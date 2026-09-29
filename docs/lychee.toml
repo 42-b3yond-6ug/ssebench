@@ -1,0 +1,21 @@
+# External link check for the docs sources: `bun run check-links`.
+# `vitepress build` already fails on broken links between pages, so only
+# http(s) links are checked here.
+
+scheme = ["https", "http"]
+extensions = ["md"]
+# Lets lychee resolve root-relative page links, which the scheme filter then skips.
+root_dir = "."
+exclude_path = ["node_modules", ".vitepress/cache", ".vitepress/dist"]
+
+# Addresses of services the reader runs locally.
+exclude_loopback = true
+exclude_private = true
+exclude_link_local = true
+
+max_retries = 3
+timeout = 30
+max_concurrency = 16
+
+# Rate limiting means the host is up.
+accept = ["200..=299", "429"]

@@ -23,6 +23,22 @@ builds the static site into `docs/.vitepress/dist` and fails if any link
 between pages is broken; run it before you open a pull request.
 `bun run preview` serves the built site.
 
+## Check external links
+
+`bun run build` checks the links between pages but never goes to the network.
+Links to other sites are checked separately with
+[lychee](https://lychee.cli.rs/), configured in `docs/lychee.toml`:
+
+```sh
+cd docs
+bun run check-links
+```
+
+This needs `lychee` on your `PATH`; with Nix, run
+`nix shell nixpkgs#lychee -c bun run check-links`. Set `GITHUB_TOKEN` to avoid
+GitHub's rate limits. Links in code blocks are not checked, and neither are
+local addresses such as `localhost`.
+
 ## Layout
 
 | Directory | Section |
