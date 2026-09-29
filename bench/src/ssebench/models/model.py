@@ -11,6 +11,9 @@ from ssebench import settings, stack
 
 MAX_BUDGET = 10
 
+# The model name of a run that makes no model calls.
+NO_MODEL = "none"
+
 
 class UserCreateResult(BaseModel):
     user_id: str
@@ -77,3 +80,18 @@ class Model:
         user_result = UserInfoResult.model_validate_json(response.text)
         spend = user_result.user_info.spend
         return spend
+
+
+@final
+class NoModel:
+    """Stands in for the model of a run that makes no model calls, such as a reference run.
+
+    It has no proxy key and no spend, so the run needs no provider key.
+    """
+
+    model_name: str = NO_MODEL
+    api_key: str = ""
+    service_url: str = ""
+
+    def get_spend(self) -> float:
+        return 0.0

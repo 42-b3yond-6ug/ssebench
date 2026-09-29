@@ -21,15 +21,6 @@ class RuntimeResult(BaseModel):
     evaluator_timeout: bool
 
 
-class EvaluationResult(BaseModel):
-    patch_result: PatchResult
-    runtime_result: RuntimeResult
-
-
-class FrameworkResult(BaseModel):
-    spend: float  # the spend of LLM
-
-
 class RunConfig(BaseModel):
     agent: str
     model: str
@@ -38,6 +29,20 @@ class RunConfig(BaseModel):
     difficulty: int
     tool_layer: str | None = None  # set in sandbox mode; sidecar mode has fixed layers
     egress: Literal["restricted", "open"] = "restricted"
+    # The reference agent applied the task's known fix: the grade measures the task, not a model.
+    reference_run: bool = False
+
+
+class EvaluationResult(BaseModel):
+    """result.json: the evaluator's grade, to which `ssebench run` adds the run settings."""
+
+    patch_result: PatchResult
+    runtime_result: RuntimeResult
+    config: RunConfig | None = None
+
+
+class FrameworkResult(BaseModel):
+    spend: float  # the spend of LLM
 
 
 class PerTaskEvaluationResult(BaseModel):
