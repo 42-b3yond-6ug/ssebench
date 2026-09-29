@@ -13,11 +13,15 @@ RUN mkdir -p /home/model/.cache && \
     rm -rf /home/model/.cache/uv && \
     chown -R model:model /home/model
 
-# Owned by model: uv creates /app/.venv and builds the SDK inside its source
-# tree when the agent starts.
 COPY --from=workspace --chown=model:model pyproject.toml uv.lock /app/
 COPY --from=workspace --chown=model:model sdk/python/pyproject.toml /app/sdk/python/
 COPY --from=workspace --chown=model:model sdk/python/sse/ /app/sdk/python/sse/
 COPY --chown=model:model opencode-sse/ /app/agents/opencode/opencode-sse
+
+# Install the wrapper's environment, Python included, now: at run time the
+# container reaches the LiteLLM proxy only.
+USER model
+RUN HOME=/home/model uv sync --frozen --no-dev --package opencode-sse
+USER root
 
 CMD ["./run.sh"]
