@@ -1,10 +1,9 @@
 ARG SSEBENCH_REGISTRY=ghcr.io/42-b3yond-6ug/ssebench
 FROM ${SSEBENCH_REGISTRY}/base-generic-rust:1.0.0
 
-# Install and switch to stable (support Rust 2024)
-RUN rustup toolchain install stable \
- && rustup default stable \
- && rustup update stable
+# The harness uses the 2024 edition, which needs Rust 1.85 or newer
+RUN rustup toolchain install 1.98.1 \
+ && rustup default 1.98.1
 
 # Check versions
 RUN rustc -V && cargo -V
@@ -22,9 +21,11 @@ RUN git clone https://github.com/rust-ammonia/ammonia.git /src/ammonia && \
 
 # Copy harness
 COPY ./harness /ssebench/harness
-RUN cd /ssebench/harness && cargo fetch
+RUN cd /ssebench/harness && cargo fetch --locked
 
-RUN cd /src/ammonia && cargo fetch && cp Cargo.lock /ssebench/harness/Cargo.lock
+# Upstream commits no lockfile, so the crate versions are pinned here
+COPY Cargo.lock /src/ammonia/Cargo.lock
+RUN cd /src/ammonia && cargo fetch --locked
 
 # Copy config file
 COPY sse/config.yaml /ssebench/config.yaml

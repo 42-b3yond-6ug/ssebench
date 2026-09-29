@@ -15,7 +15,9 @@ RUN cd /src/string-interner && \
 
 # Copy harness
 COPY ./harness /ssebench/harness
-RUN cd /src/string-interner && cargo fetch && cp Cargo.lock /ssebench/harness/Cargo.lock
+# Upstream commits no lockfile, so the crate versions are pinned here
+COPY Cargo.lock /src/string-interner/Cargo.lock
+RUN cd /src/string-interner && cargo fetch --locked && cp Cargo.lock /ssebench/harness/Cargo.lock
 
 # Copy config file
 COPY sse/config.yaml /ssebench/config.yaml
