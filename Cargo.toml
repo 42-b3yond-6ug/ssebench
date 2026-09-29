@@ -1,0 +1,12 @@
+[workspace]
+members = ["sdk/daemon"]
+# Task crates under datasets/ are built inside their own case images.
+exclude = ["datasets"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.98"
+license = "Apache-2.0"
+repository = "https://github.com/42-b3yond-6ug/ssebench"

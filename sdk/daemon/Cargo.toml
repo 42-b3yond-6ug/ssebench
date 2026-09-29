@@ -1,10 +1,11 @@
 [package]
 name = "ssebench"
-version = "0.1.0"
-edition = "2021"
 description = "SSEBench SDK - Core library and daemon for code analysis"
-repository = "https://github.com/42-b3yond-6ug/ssebench"
-license = "Apache-2.0"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [lib]
 name = "ssebench"

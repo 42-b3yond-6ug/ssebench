@@ -1,0 +1,6 @@
+# Keep in sync with the rust image tag in images/sandbox/Dockerfile,
+# images/sidecar-case/Dockerfile and sdk/tests/integration/Dockerfile.
+[toolchain]
+channel = "1.98.1"
+profile = "minimal"
+components = ["clippy", "rustfmt"]

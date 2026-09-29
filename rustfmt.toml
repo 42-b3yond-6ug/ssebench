@@ -1,0 +1,2 @@
+# The crates stay on edition 2021; their sources follow rustfmt's 2024 style.
+style_edition = "2024"
