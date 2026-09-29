@@ -30,7 +30,7 @@
   let headers = (
     "Model",
     "Agent",
-    [Spend #footnote("The reported "spend" values are estimates derived from usage metrics exposed by our LLM proxy, and should not be interpreted as exact billing records. Commercial LLM providers apply their own server-side caching and other optimizations that can reduce the actually billed usage relative to the nominal token consumption seen at the proxy, but detailed information about cache hits and final charges is only available via the providers' raw billing and usage APIs, which we do not query in this report.")],
+    [Spend #footnote[The reported "spend" values are estimates derived from usage metrics exposed by our LLM proxy, and should not be interpreted as exact billing records. Commercial LLM providers apply their own server-side caching and other optimizations that can reduce the actually billed usage relative to the nominal token consumption seen at the proxy, but detailed information about cache hits and final charges is only available via the providers' raw billing and usage APIs, which we do not query in this report.]],
     "Time",
     "Build",
     "PoC",
