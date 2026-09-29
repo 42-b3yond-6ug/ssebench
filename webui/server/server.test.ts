@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { existsSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import type { Subprocess } from "bun"
+import { version } from "../package.json"
 import {
   createFakes,
   injectionPayloads,
@@ -285,8 +286,9 @@ describe("server with a token", () => {
       headers: { Authorization: `Bearer ${TOKEN}` },
     })
     expect(ok.status).toBe(200)
-    const health = (await ok.json()) as { terminal: boolean }
+    const health = (await ok.json()) as { terminal: boolean; version: string }
     expect(health.terminal).toBe(false)
+    expect(health.version).toBe(version)
   })
 
   test("percent-encoded API paths are still guarded", async () => {

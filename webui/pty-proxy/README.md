@@ -37,8 +37,10 @@ bun run build:pty
 
 # or directly
 cd pty-proxy
-CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o pty-proxy .
+CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=$(cat ../../VERSION)" -o pty-proxy .
 ```
+
+`pty-proxy --version` prints the SSEBench version it was built from.
 
 The backend looks for the binary at `webui/pty-proxy/pty-proxy`. If it is
 missing, terminal sessions report an error instead of starting.

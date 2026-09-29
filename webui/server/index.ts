@@ -12,6 +12,7 @@ import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
 import { serveStatic } from "hono/bun"
+import { version } from "../package.json"
 import {
   listContainers,
   getContainer,
@@ -148,6 +149,7 @@ app.get("/api/health", async (c) => {
   const dockerOk = await checkDockerAccess()
   return c.json({
     status: "ok",
+    version,
     docker: dockerOk,
     terminal: security.terminalEnabled,
     timestamp: new Date().toISOString(),

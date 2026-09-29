@@ -18,6 +18,9 @@ import (
 
 const usage = "Usage: pty-proxy [--workdir WORKDIR] <container-id> [command [arg...]]"
 
+// version is set at build time: -ldflags "-X main.version=<version>".
+var version = "dev"
+
 var containerIDPattern = regexp.MustCompile(`^[a-f0-9]{12,64}$`)
 
 // Message types - must match frontend/backend
@@ -71,6 +74,11 @@ func main() {
 	// Set up logging to stderr (stdout is for JSON messages)
 	log.SetOutput(os.Stderr)
 	log.SetPrefix("[PTY-PROXY] ")
+
+	if len(os.Args) == 2 && os.Args[1] == "--version" {
+		fmt.Println("pty-proxy", version)
+		return
+	}
 
 	dockerArgs, err := parseArgs(os.Args[1:])
 	if err != nil {

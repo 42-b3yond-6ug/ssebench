@@ -5,7 +5,8 @@ FROM golang:1.26-bookworm AS entrypoint-builder
 
 COPY runtime/entrypoint/ /build/
 WORKDIR /build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /entrypoint .
+ARG VERSION=dev
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${VERSION}" -o /entrypoint .
 
 
 # =============================================================================
@@ -26,7 +27,7 @@ RUN apt-get update && \
 RUN groupadd -g 1000 model && \
     useradd -m -u 1000 -g 1000 -s /bin/bash model
 
-# SSE-Bench Shared Assets (ver 1.0)
+# SSEBench shared assets
 ENV PATH="/opt/venv/bin:$PATH"
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 

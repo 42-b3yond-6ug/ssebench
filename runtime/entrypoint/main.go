@@ -22,10 +22,14 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// version is set at build time: -ldflags "-X main.version=<version>".
+var version = "dev"
+
 func main() {
 	app := &cli.App{
 		Name:      "entrypoint",
 		Usage:     "SSEBench container entrypoint",
+		Version:   version,
 		ArgsUsage: "[--] <command> [args...]",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
