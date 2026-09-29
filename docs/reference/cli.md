@@ -61,6 +61,33 @@ uv run ssebench build-case --benchmarks datasets/pilot --tasks gjson-196-bf4efcb
 | `--tasks IDS` | every task | Comma-separated task IDs |
 | `--force` | off | Rebuild images that already exist |
 
+## `ssebench dataset`
+
+Checks a dataset and writes the files generated from it. See
+[Dataset manifest](/dataset/manifest) for the layout, the task config and the
+manifest these commands work with. Each command exits 1 when it fails.
+
+```sh
+uv run ssebench dataset validate
+uv run ssebench dataset manifest --check
+```
+
+| Command | Description |
+|---------|-------------|
+| `validate [DIR]` | Check every task folder: the config against the schema, the ID against the folder name, the Dockerfile's base image, and that every path in the config is a file the Dockerfile copies into the image. Lists every problem, per task |
+| `manifest [DIR]` | Validate the dataset and write its `manifest.json` |
+| `schema` | Write the JSON Schemas of the task config, `dataset.yaml` and the manifest |
+
+`DIR` is the dataset directory and defaults to `datasets/pilot` in the
+[SSEBench home](#working-directory).
+
+| Option | Command | Default | Description |
+|--------|---------|---------|-------------|
+| `-o FILE` | `manifest` | `DIR/manifest.json` | Output file, or `-` for standard output |
+| `--generated-from COMMIT` | `manifest` | none | Record the repository commit the manifest is generated from |
+| `-o DIR` | `schema` | `datasets/schema` in the SSEBench home | Output directory |
+| `--check` | `manifest`, `schema` | off | Write nothing, and fail if the files are missing or out of date. `manifest --check` keeps the commit the file records |
+
 ## Commands from extensions
 
 Installed packages can add subcommands; `ssebench --help` lists them. See

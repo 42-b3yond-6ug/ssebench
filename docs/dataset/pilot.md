@@ -28,8 +28,9 @@ inputs, the issue or crash report the agent receives, and the reference patch
 and tests used for grading. The agent never sees the reference patch or the
 hidden tests.
 
-See [Tasks and datasets](/concepts/tasks-and-datasets) for the concepts, and
-[Add a task](/guides/add-a-task) to contribute one.
+See [Dataset manifest](/dataset/manifest) for the layout of a task folder and
+every key of `config.yaml`, [Tasks and datasets](/concepts/tasks-and-datasets)
+for the concepts, and [Add a task](/guides/add-a-task) to contribute one.
 
 ## Running a pilot task
 
