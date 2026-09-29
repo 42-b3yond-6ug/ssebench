@@ -8,4 +8,5 @@ cd "$SCRIPT_DIR" || exit 1
 export HOME=/home/model
 
 echo "[run.sh] Launching OpenCode agent..."
-exec uv run --frozen --no-dev main.py
+# The image holds the environment, and the run container has no internet.
+exec uv run --offline --no-sync main.py

@@ -11,4 +11,5 @@ export HOME=/home/model
 
 # Launch the agent (runs as model user via entrypoint)
 echo "[run.sh] Launching Claude Code agent..."
-exec uv run --frozen --no-dev main.py
+# The image holds the environment, and the run container has no internet.
+exec uv run --offline --no-sync main.py

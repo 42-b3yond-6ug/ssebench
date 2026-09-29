@@ -11,4 +11,5 @@ export HOME=/home/model
 
 # Launch the agent
 echo "[run.sh] Launching Codex agent..."
-uv run --frozen --no-dev main.py
+# The image holds the environment, and the run container has no internet.
+exec uv run --offline --no-sync main.py
