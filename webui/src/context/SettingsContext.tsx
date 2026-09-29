@@ -5,19 +5,14 @@
  * Settings are persisted to localStorage.
  */
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react"
+import { useState, useEffect, ReactNode } from "react"
 import type { ITheme } from "@xterm/xterm"
-
-export type TerminalThemeName = "gruvbox" | "dracula" | "solarized"
-
-/** Tab bar position for configurable docks */
-export type DockTabPosition = "top" | "bottom" | "left" | "right"
+import {
+  SettingsContext,
+  type Settings,
+  type TerminalThemeName,
+  type DockTabPosition,
+} from "./useSettings"
 
 // Terminal theme definitions
 const terminalThemes: Record<TerminalThemeName, ITheme> = {
@@ -95,24 +90,6 @@ const terminalThemes: Record<TerminalThemeName, ITheme> = {
   },
 }
 
-interface Settings {
-  terminalTheme: TerminalThemeName
-  anthropicApiKey: string | null
-  centerTabPosition: DockTabPosition
-  bottomTabPosition: DockTabPosition
-}
-
-interface SettingsContextValue extends Settings {
-  setTerminalTheme: (theme: TerminalThemeName) => void
-  getTerminalTheme: () => ITheme
-  setAnthropicApiKey: (key: string | null) => void
-  hasAnthropicApiKey: () => boolean
-  setCenterTabPosition: (pos: DockTabPosition) => void
-  setBottomTabPosition: (pos: DockTabPosition) => void
-}
-
-const SettingsContext = createContext<SettingsContextValue | null>(null)
-
 const STORAGE_KEY = "ssebench-settings"
 
 const defaultSettings: Settings = {
@@ -187,12 +164,4 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       {children}
     </SettingsContext.Provider>
   )
-}
-
-export function useSettings() {
-  const context = useContext(SettingsContext)
-  if (!context) {
-    throw new Error("useSettings must be used within SettingsProvider")
-  }
-  return context
 }

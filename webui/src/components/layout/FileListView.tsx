@@ -4,7 +4,7 @@
  * Displays files with their status (added, modified, deleted) and line counts.
  */
 
-import { useSDKDataContext } from "../../context/SDKDataContext"
+import { useSDKDataContext } from "../../context/useSDKDataContext"
 import { ViewContainer } from "./ViewContainer"
 import type { ChangedFile } from "../../types/container"
 

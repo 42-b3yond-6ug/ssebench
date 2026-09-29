@@ -9,7 +9,7 @@ import { useState, useEffect } from "react"
 import { BaseModal } from "./BaseModal"
 import { AttachContent } from "./AttachContent"
 import { LaunchWizard } from "../launch/LaunchWizard"
-import { useContainers } from "../../context/ContainerContext"
+import { useContainers } from "../../context/useContainers"
 
 export type NewPanelTab = "attach" | "launch"
 

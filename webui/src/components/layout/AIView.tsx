@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useRef } from "react"
-import { useSDKDataContext } from "../../context/SDKDataContext"
+import { useSDKDataContext } from "../../context/useSDKDataContext"
 import { SessionSidebar } from "../ai/SessionSidebar"
 import { EmptyChatState } from "../ai/EmptyChatState"
 import { ChatInterface } from "../ai/ChatInterface"

@@ -6,8 +6,8 @@
  */
 
 import { useEffect } from "react"
-import { useContainers } from "../context/ContainerContext"
-import { useNewPanel } from "../App"
+import { useContainers } from "../context/useContainers"
+import { useNewPanel } from "../context/usePanels"
 import { timeAgo } from "../lib/utils"
 
 export function HomePage() {

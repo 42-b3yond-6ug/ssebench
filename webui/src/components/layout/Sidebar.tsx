@@ -8,10 +8,10 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { useContainers } from "../../context/ContainerContext"
+import { useContainers } from "../../context/useContainers"
 import { useBackendHealth } from "../../hooks/useBackendHealth"
-import { useLaunchContext, type LaunchEntry } from "../../context/LaunchContext"
-import { useNewPanel, useSettingsPanel } from "../../App"
+import { useLaunchContext, type LaunchEntry } from "../../context/useLaunchContext"
+import { useNewPanel, useSettingsPanel } from "../../context/usePanels"
 import { DetachModal } from "../DetachModal"
 import { ResizeHandle } from "../ui/ResizeHandle"
 import { stopContainer, removeContainer } from "../../lib/api"

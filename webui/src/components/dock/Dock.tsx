@@ -19,7 +19,7 @@
  */
 
 import React, { type CSSProperties, type ReactNode } from "react"
-import { useDock } from "./DockContext"
+import { useDock } from "./useDock"
 import { DockTabBar, type DockTab } from "./DockTabBar"
 import { ResizeHandle } from "../ui/ResizeHandle"
 

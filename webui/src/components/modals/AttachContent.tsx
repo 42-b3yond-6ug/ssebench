@@ -5,7 +5,7 @@
  */
 
 import { useState, useMemo, useCallback } from "react"
-import { useContainers } from "../../context/ContainerContext"
+import { useContainers } from "../../context/useContainers"
 import type { DockerContainer } from "../../types/container"
 
 interface AttachContentProps {

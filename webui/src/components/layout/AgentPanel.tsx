@@ -13,7 +13,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { useSDKDataContext } from "../../context/SDKDataContext"
+import { useSDKDataContext } from "../../context/useSDKDataContext"
 import type {
   DialogEntry,
   InitEntry,
