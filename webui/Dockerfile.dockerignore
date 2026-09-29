@@ -1,0 +1,9 @@
+*
+!package.json
+!bun.lock
+!bunfig.toml
+!docs/package.json
+!webui/
+**/node_modules/
+webui/dist/
+webui/pty-proxy/pty-proxy

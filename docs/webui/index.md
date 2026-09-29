@@ -34,6 +34,31 @@ ssh -L 3001:localhost:3001 user@your-server
 
 and open `http://localhost:3001` on your own machine.
 
+### In a container
+
+The web UI is also published as an image,
+`ghcr.io/42-b3yond-6ug/ssebench/webui:<version>`, for `linux/amd64` and
+`linux/arm64`. Run it on the host network with the Docker socket mounted:
+
+```sh
+docker run --rm --network host \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  ghcr.io/42-b3yond-6ug/ssebench/webui:<version>
+```
+
+It needs the socket to manage the run containers, and the host network to
+reach the SSEBench daemon in each of them by its container IP address. It
+listens on `http://127.0.0.1:3001` like the web UI started from a checkout,
+and takes the same environment variables (see `webui/README.md`). Access to
+the socket is root access to the host, so run it only on a machine you
+control.
+
+The image shows runs but cannot launch them, since it has no SSEBench checkout
+and no `uv`: start runs with `ssebench run --keep-container`, or start the web
+UI from a checkout to launch runs from the browser. To build the image
+yourself, run `docker buildx build -f webui/Dockerfile .` from the repository
+root.
+
 ## What it does
 
 - **Launch wizard:** pick a task, an agent, a model and an execution mode, then
