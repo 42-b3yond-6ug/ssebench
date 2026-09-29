@@ -37,19 +37,32 @@ needs. It never cleans or resets the source tree the agent worked in.
 
 ## 1. Capturing the patch
 
-The daemon takes the agent's changes from its source tree with git, against the
-single commit the tree started with:
+The patch is the whole difference between the agent's source tree, as it is
+when grading starts, and the single commit the tree started with:
 
-- if the agent made commits, the patch is everything from the first commit to
-  `HEAD`; changes it did not commit are left out;
-- otherwise, the patch is its uncommitted changes to tracked files, staged and
-  unstaged. New files that were never added with `git add` are left out.
+- every change to a tracked file, staged or not, committed or not;
+- every new file that the project's `.gitignore` files do not ignore, whether
+  or not the agent ran `git add`;
+- deleted files, mode changes, symbolic links and binary files.
 
-So an agent should commit its work, or at least `git add` new files, before it
-stops. The bundled agents' prompt asks for a commit.
+What the agent did with git does not matter: its commits, amended or rewritten
+history, and even a deleted `.git` give the same patch. When the daemon starts,
+before the agent runs, it copies the tree's initial commit into a private
+repository, and it diffs the tree against that copy with its own index and an
+empty git configuration, so settings in the agent's repository, such as
+`diff.noprefix` or a diff driver, do not change the patch either. Git runs as
+the agent's user, so nothing in the tree is read with more rights than the
+agent has.
+
+Files the agent leaves in the tree become part of the patch unless they are
+ignored: an agent should delete scratch files and build outputs the project
+does not ignore, or add them to `.gitignore`. Ignored files, such as vendored
+dependencies or a `build/` directory, never are. A nested git repository is
+left out.
 
 The patch is saved as `final.patch` in the results directory, and the messages
-of the agent's commits as `commits.log`. Then the daemon applies the patch to
+of the commits the agent made on top of the initial one as `commits.log`, for
+reference only. Then the daemon applies the patch to
 `/ssebench-repo` with `git apply --binary`. If it does not apply, grading ends:
 the result records `Patch apply failed`, with the build, the functional tests
 and the intent tests as failed.

@@ -243,6 +243,12 @@ def test_diff() -> TestResult:
     # intact so that vendor code and cached dependencies are preserved.
     bash.execute("mkdir -p /src/buggy/build && echo 'junk' > /src/buggy/build/output.bin")
 
+    # Commit that change, then change the tree again and add a file that is
+    # never staged: the capture must take all of it, whatever was committed.
+    bash.execute("cd /src/buggy && git add buggy.go && git commit -qm 'agent commit'")
+    bash.execute("echo '// after-commit-marker' >> /src/buggy/buggy.go")
+    bash.execute("echo 'never staged' > /src/buggy/untracked_note.txt")
+
     # Call GET /diff
     data = Daemon().get("/diff")
 
@@ -254,12 +260,19 @@ def test_diff() -> TestResult:
     if not diff_text:
         return TestResult("diff", False, "Expected non-empty diff")
 
-    if "integration-test-marker" not in diff_text:
-        return TestResult(
-            "diff",
-            False,
-            f"Diff missing expected change. Got: {diff_text[:200]}",
-        )
+    for expected in ("integration-test-marker", "after-commit-marker", "b/untracked_note.txt"):
+        if expected not in diff_text:
+            return TestResult(
+                "diff",
+                False,
+                f"Diff missing {expected!r}. Got: {diff_text[:300]}",
+            )
+    if "output.bin" in diff_text:
+        return TestResult("diff", False, "Diff contains the gitignored build/output.bin")
+
+    files = {f["path"]: f["status"] for f in Daemon().get("/files")["files"]}
+    if files.get("untracked_note.txt") != "added" or files.get("buggy.go") != "modified":
+        return TestResult("diff", False, f"Unexpected /files: {files}")
 
     return TestResult("diff", True, "Diff correctly contains agent's changes")
 
@@ -326,12 +339,16 @@ def test_grading() -> TestResult:
     if not final_diff:
         return TestResult("grading", False, "GET /final_diff returned empty after prepare_grading")
 
-    if "integration-test-marker" not in final_diff:
-        return TestResult(
-            "grading",
-            False,
-            f"final_diff missing code change. Got: {final_diff[:200]}",
-        )
+    for expected in ("integration-test-marker", "after-commit-marker", "b/untracked_note.txt"):
+        if expected not in final_diff:
+            return TestResult(
+                "grading",
+                False,
+                f"final_diff missing {expected!r}. Got: {final_diff[:300]}",
+            )
+    untracked_in_repo = bash.execute("test -f /ssebench-repo/untracked_note.txt")
+    if untracked_in_repo.code != 0:
+        return TestResult("grading", False, "the never-staged file was not applied to /ssebench-repo")
 
     # -- Verify grading results (buggy code should fail) --
 

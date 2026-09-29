@@ -164,9 +164,9 @@ paths:
       tags: [monitoring]
       summary: The agent's changes so far, as a unified diff.
       description: >-
-        The diff of the source tree against the task's single initial commit:
-        the committed changes if the agent committed, otherwise the staged and
-        unstaged ones.
+        The diff of the source tree against the task's single initial commit,
+        as grading captures it: every change, committed or not, and every new
+        file that is not ignored, whatever the agent did with git.
       operationId: diff
       x-access: any
       responses:
@@ -190,7 +190,7 @@ paths:
       x-access: any
       responses:
         "200":
-          description: The changed files, from `git status`.
+          description: The files in `GET /diff`, with their status and line counts.
           content:
             application/json:
               schema:
@@ -478,14 +478,16 @@ components:
           description: Path relative to the source tree.
         status:
           type: string
-          enum: [modified, added, deleted, renamed]
-          description: Untracked files count as `added`.
+          enum: [modified, added, deleted]
+          description: >-
+            A new file, staged or not, is `added`; a renamed file is a deleted
+            file and an added one.
         additions:
           type: integer
-          description: Lines added.
+          description: Lines added; 0 for a binary file.
         deletions:
           type: integer
-          description: Lines deleted.
+          description: Lines deleted; 0 for a binary file.
     Dialog:
       type: object
       required: [entries]

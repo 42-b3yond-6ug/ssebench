@@ -167,7 +167,7 @@ Request body (`application/json`): [GradingArgument](#gradingargument) \| [PocAr
 
 The agent's changes so far, as a unified diff.
 
-The diff of the source tree against the task's single initial commit: the committed changes if the agent committed, otherwise the staged and unstaged ones.
+The diff of the source tree against the task's single initial commit, as grading captures it: every change, committed or not, and every new file that is not ignored, whatever the agent did with git.
 
 Served on: every listener.
 
@@ -184,7 +184,7 @@ Served on: every listener.
 
 | Status | Body | Description |
 |---|---|---|
-| `200` | [Files](#files) | The changed files, from `git status`. |
+| `200` | [Files](#files) | The files in `GET /diff`, with their status and line counts. |
 | `500` | [Error](#error) | git failed. |
 
 ### `GET /agent/dialog`
@@ -366,9 +366,9 @@ The argument of `bash`.
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `path` | `string` | yes | Path relative to the source tree. |
-| `status` | `modified` \| `added` \| `deleted` \| `renamed` | yes | Untracked files count as `added`. |
-| `additions` | `integer` | yes | Lines added. |
-| `deletions` | `integer` | yes | Lines deleted. |
+| `status` | `modified` \| `added` \| `deleted` | yes | A new file, staged or not, is `added`; a renamed file is a deleted file and an added one. |
+| `additions` | `integer` | yes | Lines added; 0 for a binary file. |
+| `deletions` | `integer` | yes | Lines deleted; 0 for a binary file. |
 
 ### Dialog
 
