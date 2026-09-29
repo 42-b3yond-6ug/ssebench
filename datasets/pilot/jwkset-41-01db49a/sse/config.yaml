@@ -16,7 +16,6 @@ files:
   poc:
   - pocs/poc.go
   future_test: diffs/test.diff
-  security_test: diffs/security_test.diff
   intent_test:
 sanitizer:
 type: Server and client key refresh inconsistency

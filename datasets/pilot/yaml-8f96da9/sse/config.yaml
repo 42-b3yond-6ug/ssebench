@@ -17,7 +17,6 @@ scripts:
 files:
   patch: diffs/patch.diff
   future_test: diffs/test.diff
-  security_test: diffs/security_test.diff
   intent_test:
   poc:
     - pocs/poc.go

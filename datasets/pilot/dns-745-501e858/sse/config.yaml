@@ -18,7 +18,6 @@ files:
   - pocs/poc.go
   future_test: diffs/test.diff
   security_test:
-  intent_test: diffs/intent_test.diff
 sanitizer:
 type: SEVG
 binary:
