@@ -14,6 +14,11 @@ const DEFAULT_HTTP_PORT: u16 = 4263;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    if matches!(env::args().nth(1).as_deref(), Some("--version" | "-V")) {
+        println!("ssebench-daemon {}", env!("CARGO_PKG_VERSION"));
+        return Ok(());
+    }
+
     env_logger::Builder::from_env(
         Env::default().default_filter_or("info,actix_web::middleware::logger=warn"),
     )

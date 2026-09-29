@@ -25,6 +25,7 @@ from ssebench.extensions import (
 from ssebench.models import Model
 from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRuner
 from ssebench.tasks import LocalTask, RemoteTask
+from ssebench.version import VERSION
 
 from .build import build_case_image, get_tasks
 
@@ -190,6 +191,7 @@ def main(argv: Sequence[str] | None = None):
         description="SSEBench CLI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    parser.add_argument("--version", action="version", version=f"ssebench {VERSION}")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # ==================== run subcommand ====================

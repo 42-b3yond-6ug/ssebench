@@ -1,6 +1,6 @@
 # Build from the repository root, so the dataset is in the context and its
 # catalog is generated into the image:
-#   docker build -f catalog/Dockerfile .
+#   docker build -f catalog/Dockerfile --build-arg VERSION="$(cat VERSION)" .
 # catalog/Dockerfile.dockerignore trims the context to the files read here.
 FROM golang:1.26-alpine AS build
 
@@ -8,7 +8,8 @@ WORKDIR /src/catalog
 COPY catalog/go.mod catalog/go.sum ./
 RUN go mod download
 COPY catalog/ ./
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/ssebench-catalog ./cmd/ssebench-catalog
+ARG VERSION=dev
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/ssebench-catalog ./cmd/ssebench-catalog
 
 ARG DATASET=pilot
 ARG SSEBENCH_REGISTRY=ghcr.io/42-b3yond-6ug/ssebench

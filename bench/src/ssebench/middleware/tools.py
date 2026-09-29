@@ -7,6 +7,7 @@ from typing import final, override
 
 from ssebench import paths
 from ssebench.pipe import REGISTRY, DockerLayerMixin
+from ssebench.version import VERSION
 
 DOCKER_IMAGE_PREFIX_SANDBOX = f"{REGISTRY}/tool"
 DOCKER_IMAGE_PREFIX_SIDECAR_AGENTRT = f"{REGISTRY}/runtime"
@@ -60,6 +61,8 @@ class SandboxToolLayer(ToolLayer):
                 f"case-image=docker-image://{base}",
                 "--build-arg",
                 f"SOURCE_DIR={self.context.source_dir}",
+                "--build-arg",
+                f"VERSION={VERSION}",
                 "-t",
                 docker_image_name,
                 "-f",
@@ -91,6 +94,8 @@ class SidecarToolLayerAgentRuntime(ToolLayer):
                 "docker",
                 "buildx",
                 "build",
+                "--build-arg",
+                f"VERSION={VERSION}",
                 "-t",
                 docker_image_name,
                 "-f",
