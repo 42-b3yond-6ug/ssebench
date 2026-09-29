@@ -2,14 +2,16 @@
 # context:
 #   docker build -f catalog/Dockerfile --build-arg VERSION="$(cat VERSION)" .
 # catalog/Dockerfile.dockerignore trims the context to the files read here.
-FROM golang:1.26-alpine AS build
+# The binary is cross-compiled on the build platform, so a multi-platform build
+# needs no emulation.
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS build
 
 WORKDIR /src/catalog
 COPY catalog/go.mod catalog/go.sum ./
 RUN go mod download
 COPY catalog/ ./
-ARG VERSION=dev
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/ssebench-catalog ./cmd/ssebench-catalog
+ARG TARGETOS TARGETARCH VERSION=dev
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/ssebench-catalog ./cmd/ssebench-catalog
 
 FROM alpine:3.22
 
