@@ -16,6 +16,6 @@ pkgs.buildGo126Module {
     description = "SSEBench container entrypoint: starts the daemon, the MCP server, the agent and the evaluator";
     homepage = "https://github.com/42-b3yond-6ug/ssebench";
     license = pkgs.lib.licenses.asl20;
-    mainProgram = "entrypoint";
+    mainProgram = "ssebench-entrypoint";
   };
 }
