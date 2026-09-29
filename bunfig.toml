@@ -1,0 +1,3 @@
+[install]
+# webui's server tsconfig loads bun-types, which only a hoisted node_modules exposes.
+linker = "hoisted"
