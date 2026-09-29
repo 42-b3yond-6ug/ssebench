@@ -4,7 +4,15 @@ RUN apt-get update && apt-get install -y curl ca-certificates && rm -rf /var/lib
 RUN useradd -m -u 1000 model
 USER model
 ENV HOME=/home/model
-RUN curl -fsSL https://claude.ai/install.sh | bash
+ARG CLAUDE_CODE_VERSION=2.1.277
+ARG CLAUDE_CODE_SHA256=722210f05ba494d8f6df69423c4d4f2960900f7a007d0532851c7a36e375cab7
+# `claude install` sets up the launcher in ~/.local/bin for this version.
+RUN curl -fsSLo /tmp/claude \
+        "https://downloads.claude.ai/claude-code-releases/${CLAUDE_CODE_VERSION}/linux-x64/claude" && \
+    echo "${CLAUDE_CODE_SHA256}  /tmp/claude" | sha256sum -c - && \
+    chmod +x /tmp/claude && \
+    /tmp/claude install "${CLAUDE_CODE_VERSION}" && \
+    rm /tmp/claude
 
 # Stage 2: Final image
 FROM ssebench-agent
