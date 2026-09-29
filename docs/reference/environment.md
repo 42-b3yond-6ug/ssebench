@@ -86,6 +86,9 @@ too.
 | `SSEBENCH_CATALOG` | the bundled pilot manifest | CLI, just, web UI | [Task catalog](/reference/cli#task-catalog) that `ssebench run`, `ssebench tasks list` and the web UI get tasks from: the path or URL of a `manifest.json`, a dataset directory, or the URL of a catalog service. `--catalog` overrides it. |
 | `SSEBENCH_HOME` | see [CLI](/reference/cli#working-directory) | CLI | Directory that holds `agents/`, `images/`, `runtime/`, `models/`, `deploy/` and `datasets/`, normally the repository root. Unset, a package install without a clone uses the copy of these directories in the package. |
 | `SSEBENCH_ENV_FILE` | `.env` in the repository root | CLI, Compose | The `.env` file that the LiteLLM container reads provider keys from. The CLI sets it to the `.env` in the workspace; set it yourself only when you run `docker compose` on `deploy/compose/docker-compose.yaml` directly. |
+| `SSEBENCH_DEMO_WEBUI_PORT` | `3001` | CLI, Compose | Host port of the demo's web UI, on `127.0.0.1`. |
+| `SSEBENCH_DEMO_CATALOG_PORT` | `8090` | CLI, Compose | Host port of the demo's catalog service, on `127.0.0.1`. |
+| `SSEBENCH_VERSION` | set by the CLI | CLI, Compose | SSEBench version that the Compose files pass as the `VERSION` build argument of the images they build. The CLI sets it from `VERSION`; it only matters when you run `docker compose build` yourself. |
 
 <!-- end generated -->
 

@@ -44,7 +44,7 @@ SEMVER = re.compile(
 PEP440_PRE = {"alpha": "a", "beta": "b", "rc": "rc"}
 
 # Compose files whose SSEBench images carry the version as their tag.
-COMPOSE_FILES = ["deploy/compose/docker-compose.yaml"]
+COMPOSE_FILES = ["deploy/compose/docker-compose.yaml", "deploy/compose/demo.yaml"]
 COMPOSE_IMAGE = re.compile(r"(?m)^(\s*image:\s*\$\{SSEBENCH_REGISTRY[^}]*\}/[\w./-]+?)(?::([\w.-]+))?\s*$")
 
 

@@ -15,7 +15,7 @@ import shutil
 import subprocess
 import tempfile
 import time
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -117,18 +117,20 @@ def compose_env() -> dict[str, str]:
         **os.environ,
         "SSEBENCH_REGISTRY": REGISTRY,
         "SSEBENCH_ENV_FILE": str(settings.env_file()),
+        "SSEBENCH_VERSION": TAG,
         "LITELLM_PORT": str(settings.litellm_port()),
     }
 
 
-def compose(*args: str) -> None:
+def compose(*args: str, overlays: Sequence[Path] = ()) -> None:
+    """Run `docker compose` on the stack, with the Compose files in `overlays` layered over it."""
+    files = [paths.compose_file(), *overlays]
     cmd = [
         "docker",
         "compose",
         "--project-name",
         settings.compose_project(),
-        "--file",
-        str(paths.compose_file()),
+        *(arg for file in files for arg in ("--file", str(file))),
         *args,
     ]
     _ = subprocess.run(cmd, env=compose_env(), check=True)

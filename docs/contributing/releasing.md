@@ -32,7 +32,7 @@ forms below are accepted, because each has exactly one PEP 440 spelling:
 | Python projects (every uv workspace member) | `[project] version` in each `pyproject.toml`, and `uv.lock` | the bump tool, in PEP 440 form |
 | `ssebench-daemon` | `[workspace.package] version` in `Cargo.toml`, and `Cargo.lock` | the bump tool |
 | Web UI and docs | `version` in `webui/package.json` and `docs/package.json`, and `bun.lock` | the bump tool |
-| LiteLLM proxy image | image tag in `deploy/compose/docker-compose.yaml` | the bump tool |
+| LiteLLM proxy, catalog and web UI images | image tags in `deploy/compose/docker-compose.yaml` and `deploy/compose/demo.yaml` | the bump tool |
 | Entrypoint, catalog, pty-proxy (Go) | `-ldflags "-X main.version=..."` | the build: the Dockerfiles take a `VERSION` build argument, which the CLI passes when it builds the tool layers, and `bun run build:pty` reads `VERSION`; a plain `go build` reports `dev` |
 | Docs site | version in the navigation bar | read from `VERSION` when the site is built |
 | Tool layer, sidecar runtime and agent images | image tag | the CLI, from its own version |
