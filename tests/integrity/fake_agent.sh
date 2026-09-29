@@ -81,6 +81,16 @@ for action in build function_test run_poc intent_test; do
 	done
 done
 
+# --- model must have no supplementary groups ---------------------------------
+# A base image's uid-1000 user (ubuntu) carries sudo, adm and more; the fresh
+# model user must belong to its own group only.
+groups=$(id -G)
+if [ "$groups" = "$(id -g)" ]; then
+	ok "model has no supplementary groups ($groups)"
+else
+	bad "model has supplementary groups: $groups"
+fi
+
 # --- Privileged admin socket must be unreachable to model --------------------
 if curl -s -m 3 --unix-socket "$ADMIN_SOCK" http://d/version >/dev/null 2>&1; then
 	bad "admin socket reachable by model"

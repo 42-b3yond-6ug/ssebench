@@ -29,6 +29,7 @@ SSEBENCH_REGISTRY and the current version. Sidecar mode needs the uv workspace.
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import subprocess
@@ -151,11 +152,13 @@ def start_sidecar(difficulty: int) -> Deployment:
     from ssebench.runner.runner import SIDECAR_DAEMON_SOCKET
 
     run_id = uuid.uuid4().hex[:12]
-    # A volume rather than a host directory, so no root-owned files are left behind.
+    # Volumes rather than host directories, so no root-owned files are left behind.
     archive = f"integrity-{run_id}-archive"
+    results = f"integrity-{run_id}-results"
     pair = SidecarPair(
         task_name=TASK,
         source_dir=SOURCE_DIR,
+        results=results,
         archive=archive,
         network=NETWORK,
         difficulty=difficulty,
@@ -166,10 +169,11 @@ def start_sidecar(difficulty: int) -> Deployment:
     def cleanup() -> None:
         stop_container(agent)
         pair.remove()
-        _run(["docker", "volume", "rm", archive])
+        _run(["docker", "volume", "rm", archive, results])
 
     try:
         subprocess.run(["docker", "volume", "create", archive], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(["docker", "volume", "create", results], check=True, stdout=subprocess.DEVNULL)
         pair.create_volumes()
         subprocess.run(
             ["docker", "run", "-d", *pair.environment_options(), SIDECAR_ENV_IMAGE],
@@ -301,48 +305,242 @@ def check_bypasses(mode: str, difficulty: int) -> None:
         dep.cleanup()
 
 
+# Where the hook records what it reached; /tmp is world-writable, so the runner
+# can write there and the test can read it, whether or not `go test` is verbose.
+HOOK_REPORT = "/tmp/sse_integrity_hook.report"
+
+# A Go test that a malicious agent commits into the source tree. When a check
+# builds and tests the tree, this runs as whoever the daemon runs checks as; it
+# records what it can reach, tries to forge the grade, and detaches a process
+# that would rewrite the grade later. The report file lets the test read the
+# result even though `go test` swallows a passing test's output.
+MALICIOUS_HOOK = r"""package gjson
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"testing"
+)
+
+func TestZZIntegrityHook(t *testing.T) {
+	f, err := os.Create("__REPORT__")
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	fmt.Fprintf(f, "uid=%d\n", os.Geteuid())
+	if b, err := os.ReadFile("/ssebench/diffs/patch.diff"); err == nil {
+		fmt.Fprintf(f, "patch_bytes=%d\n", len(b))
+	} else {
+		fmt.Fprintf(f, "patch_bytes=0\n")
+	}
+	forged := `{"patch_result":{"build_success":true,"pov_passed":1,"pov_total":1,` +
+		`"func_test_success":true,"intent_test_success":true},` +
+		`"runtime_result":{"agent_duration":0,"agent_timeout":false,"evaluator_timeout":false}}`
+	for _, p := range []string{"/var/lib/ssebench/results/result.json", "/sse_result"} {
+		if os.WriteFile(p, []byte(forged), 0644) == nil {
+			fmt.Fprintf(f, "wrote=%s\n", p)
+		}
+	}
+	// Detach a process that would rewrite the grade after the check returns.
+	_ = exec.Command("/bin/sh", "-c", "sleep 300").Start()
+	fmt.Fprintf(f, "done\n")
+}
+""".replace("__REPORT__", HOOK_REPORT)
+
+
+def exec_in(container: str, *args: str, user: str | None = None) -> subprocess.CompletedProcess[str]:
+    cmd = ["docker", "exec"]
+    if user is not None:
+        cmd += ["--user", user]
+    return _run([*cmd, container, *args])
+
+
+def plant_hook(dep: Deployment) -> None:
+    """As the agent, commit the malicious test into the source tree so grading runs it too."""
+    payload = base64.b64encode(MALICIOUS_HOOK.encode()).decode()
+    script = (
+        f"cd {SOURCE_DIR} && echo {payload} | base64 -d > zz_integrity_hook_test.go && "
+        "git add zz_integrity_hook_test.go && git commit -q -m planted && echo COMMITTED"
+    )
+    committed = exec_in(dep.agent, "bash", "-c", script, user="model")
+    assert "COMMITTED" in committed.stdout, f"could not plant the hook:\n{committed.stdout}\n{committed.stderr}"
+
+
+def daemon_bencher(dep: Deployment, action: str, *, socket: str, grading: bool) -> str:
+    """Call a bencher action over a unix socket in the daemon's container; return the JSON body."""
+    body = '{"grading":true}' if grading else "{}"
+    out = exec_in(
+        dep.daemon,
+        "curl",
+        "-s",
+        "--unix-socket",
+        socket,
+        "-X",
+        "POST",
+        f"http://d/tool/bencher?action={action}",
+        "-H",
+        "Content-Type: application/json",
+        "-d",
+        body,
+    )
+    return out.stdout
+
+
+def read_hook_report(dep: Deployment, where: str) -> str:
+    """Read the hook's report from the daemon's container, then remove it for the next check."""
+    report = exec_in(dep.daemon, "cat", HOOK_REPORT)
+    assert report.returncode == 0 and "uid=" in report.stdout, (
+        f"{where}: the hook did not run; check output was:\n{report.stdout}\n{report.stderr}"
+    )
+    exec_in(dep.daemon, "rm", "-f", HOOK_REPORT)
+    return report.stdout
+
+
+def assert_hook_contained(where: str, report: str) -> None:
+    """The hook ran but reached nothing it must not: no patch, no forged grade, not as root or the agent."""
+    assert "patch_bytes=0" in report, f"{where}: the hook read the reference patch:\n{report}"
+    assert "wrote=" not in report, f"{where}: the hook wrote a forged grade:\n{report}"
+    for uid in ("uid=0\n", "uid=1000\n"):
+        assert uid not in report, f"{where}: a check ran as {uid.strip()} (root or the agent), not the runner"
+
+
+def check_malicious_hook(mode: str) -> None:
+    """A committed build/test hook must not read hidden material or forge the grade, in test_patch or grading."""
+    dep = start(mode, 2)
+    try:
+        wait_for_daemon(dep)
+        exec_in(dep.daemon, "rm", "-f", HOOK_REPORT)
+        plant_hook(dep)
+
+        # test_patch at difficulty 2 runs the function test on the agent socket.
+        during = daemon_bencher(dep, "function_test", socket=dep.daemon_socket, grading=False)
+        assert '"code":0' in during, f"{mode} test_patch: function_test did not run cleanly:\n{during}"
+        assert_hook_contained(f"{mode} test_patch", read_hook_report(dep, f"{mode} test_patch"))
+
+        # Grading, over the admin socket as the entrypoint drives it.
+        assert (
+            "true"
+            in exec_in(
+                dep.daemon,
+                "curl",
+                "-s",
+                "--unix-socket",
+                ADMIN_SOCKET,
+                "-X",
+                "POST",
+                "http://d/prepare_grading",
+            ).stdout
+        )
+        daemon_bencher(dep, "function_test", socket=ADMIN_SOCKET, grading=True)
+        assert_hook_contained(f"{mode} grading", read_hook_report(dep, f"{mode} grading"))
+
+        # The daemon never wrote a grade the hook could reach: the results file is root-only.
+        result = exec_in(dep.daemon, "cat", "/var/lib/ssebench/results/result.json")
+        assert "pov_passed" not in result.stdout, f"{mode}: a forged grade reached the results file"
+
+        # Each check kills the runner's process tree, so the detached sleep is
+        # gone. Zombies (already dead, awaiting reaping) do not count.
+        left = exec_in(
+            dep.daemon,
+            "bash",
+            "-c",
+            "ps -o stat=,args= -u sse-runner 2>/dev/null | awk '$1 !~ /Z/' || true",
+        ).stdout.strip()
+        assert not left, f"{mode}: a detached check process survived:\n{left}"
+        print(f"malicious hook contained ({mode})")
+    finally:
+        dep.cleanup()
+
+
+def http_code(url: str) -> str:
+    return _run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", url]).stdout.strip()
+
+
 def check_reference_patch_phase(mode: str) -> None:
-    """The reference patch is withheld during the agent phase and served after."""
+    """The reference patch is served only on the admin socket, never on the agent-facing listeners.
+
+    The agent-facing HTTP listener reaches other run containers, and a kept
+    container after the run, so it must refuse the reference patch at all times.
+    Only the admin socket, which only root in the daemon's container can reach,
+    serves it.
+    """
     dep = start(mode, 2)
     try:
         wait_for_daemon(dep)
         ip = container_ip(dep.daemon)
         wait_for_http(ip)
 
-        # During the agent phase: HTTP :4263 must refuse the reference patch.
-        during = _run(
-            ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", f"http://{ip}:4263/reference/patch"]
-        ).stdout.strip()
-        assert during == "403", f"reference patch served mid-run (HTTP {during})"
+        assert http_code(f"http://{ip}:4263/reference/patch") == "403", "reference patch served on HTTP mid-run"
 
-        # The entrypoint, as root in the agent's container, would signal this
-        # over the admin socket when the agent exits; do it here to exercise the unlock.
-        signal = _run(
-            [
-                "docker",
-                "exec",
-                dep.agent,
-                "curl",
-                "-s",
-                "-o",
-                "/dev/null",
-                "-w",
-                "%{http_code}",
-                "--unix-socket",
-                ADMIN_SOCKET,
-                "-X",
-                "POST",
-                "http://d/admin/agent_exited",
-            ]
+        # End the agent phase, as the entrypoint does over the admin socket.
+        signal = exec_in(
+            dep.daemon,
+            "curl",
+            "-s",
+            "-o",
+            "/dev/null",
+            "-w",
+            "%{http_code}",
+            "--unix-socket",
+            ADMIN_SOCKET,
+            "-X",
+            "POST",
+            "http://d/admin/agent_exited",
         ).stdout.strip()
         assert signal == "200", f"admin agent_exited failed (HTTP {signal})"
 
-        # After the phase ends: the web UI (host) can read it over :4263.
-        after = _run(["curl", "-s", f"http://{ip}:4263/reference/patch"]).stdout.strip()
-        payload = json.loads(after)
-        assert payload.get("diff", "").strip(), "reference patch empty post-run"
+        # It stays refused on the agent-facing listener even after the phase ends.
+        assert http_code(f"http://{ip}:4263/reference/patch") == "403", "reference patch served on HTTP post-run"
+
+        # The admin socket serves it, so post-run tooling on the host still has the answer.
+        admin = exec_in(dep.daemon, "curl", "-s", "--unix-socket", ADMIN_SOCKET, "http://d/reference/patch").stdout
+        assert json.loads(admin).get("diff", "").strip(), "admin socket did not serve the reference patch"
     finally:
         dep.cleanup()
+
+
+def check_cross_run_reference(mode: str) -> None:
+    """A run on the shared agents network cannot fetch another run's reference patch over :4263."""
+    victim = start(mode, 2)
+    attacker = start(mode, 2)
+    try:
+        wait_for_daemon(victim)
+        wait_for_daemon(attacker)
+        victim_ip = container_ip(victim.daemon)
+        wait_for_http(victim_ip)
+
+        # End the victim's agent phase, the moment a kept container is most exposed.
+        exec_in(
+            victim.daemon,
+            "curl",
+            "-s",
+            "-o",
+            "/dev/null",
+            "--unix-socket",
+            ADMIN_SOCKET,
+            "-X",
+            "POST",
+            "http://d/admin/agent_exited",
+        )
+
+        # From the attacker's agent container, reach the victim daemon's :4263.
+        got = exec_in(
+            attacker.agent,
+            "curl",
+            "-s",
+            "-o",
+            "/dev/null",
+            "-w",
+            "%{http_code}",
+            f"http://{victim_ip}:4263/reference/patch",
+        ).stdout.strip()
+        assert got == "403", f"a second run fetched another run's reference patch (HTTP {got})"
+        print(f"cross-run reference patch refused ({mode})")
+    finally:
+        attacker.cleanup()
+        victim.cleanup()
 
 
 # ----------------------------------------------------------------------------
@@ -370,6 +568,14 @@ def test_no_bypass(mode: str, difficulty: int):
     check_bypasses(mode, difficulty)
 
 
+def test_malicious_hook_is_contained(mode: str):
+    check_malicious_hook(mode)
+
+
+def test_a_second_run_cannot_fetch_another_runs_reference_patch(mode: str):
+    check_cross_run_reference(mode)
+
+
 def test_reference_patch_phase_gate(mode: str):
     check_reference_patch_phase(mode)
 
@@ -392,6 +598,10 @@ def main(argv: list[str]) -> int:
         for d in args.difficulty:
             print(f"\n### {args.mode}, difficulty {d} ###")
             check_bypasses(args.mode, d)
+        print(f"\n### {args.mode}, malicious build/test hook ###")
+        check_malicious_hook(args.mode)
+        print(f"\n### {args.mode}, cross-run reference patch ###")
+        check_cross_run_reference(args.mode)
         print(f"\n### {args.mode}, reference-patch phase gate ###")
         check_reference_patch_phase(args.mode)
     except AssertionError as e:
