@@ -1,7 +1,172 @@
+---
+outline: deep
+---
+
 # Grading pipeline
 
-::: info
-This page is being written.
-:::
+When the agent stops, the evaluator grades the changes it made. It runs in the
+same container, as root, and talks to the daemon over the privileged admin
+socket, so it runs every check the task has whatever the
+[difficulty level](/concepts/difficulty-levels). The code is
+`runtime/evaluator` and `sse.grading` in the [Python SDK](/reference/python-sdk);
+the checks themselves are the daemon's `bencher` actions.
 
-This page will describe how the evaluator grades the source tree the agent leaves behind: how the agent's changes are applied to a clean copy of the project, then the build, the proofs of concept, the project's functional tests, and the intent and security tests that come from the upstream fix, and how each outcome is recorded in the [results](/concepts/results).
+## Overview
+
+```
+agent exits, or is stopped at the timeout
+   |
+   v
+entrypoint -- POST /admin/agent_exited --> daemon     (unlocks the reference patch)
+   |
+   v
+evaluator, through the admin socket:
+   1. prepare_grading   capture the agent's diff  -> final.patch, commits.log
+                        apply it to /ssebench-repo, a clean copy of the project
+   2. build             build.sh                   fails -> stop here
+   3. PoCs              run.sh <poc>, for every proof of concept
+   4. function_test     test.sh
+   5. intent_test       apply the hidden tests, then test.sh
+   6. archive           source.tar.gz of the agent's source tree
+   7. write result.json
+```
+
+The grader works on `/ssebench-repo`, the project exactly as the case image
+built it, with the vendored dependencies and other ignored files the build
+needs. It never cleans or resets the source tree the agent worked in.
+
+## 1. Capturing the patch
+
+The daemon takes the agent's changes from its source tree with git, against the
+single commit the tree started with:
+
+- if the agent made commits, the patch is everything from the first commit to
+  `HEAD`; changes it did not commit are left out;
+- otherwise, the patch is its uncommitted changes to tracked files, staged and
+  unstaged. New files that were never added with `git add` are left out.
+
+So an agent should commit its work, or at least `git add` new files, before it
+stops. The bundled agents' prompt asks for a commit.
+
+The patch is saved as `final.patch` in the results directory, and the messages
+of the agent's commits as `commits.log`. Then the daemon applies the patch to
+`/ssebench-repo` with `git apply --binary`. If it does not apply, grading ends:
+the result records `Patch apply failed`, with the build, the functional tests
+and the intent tests as failed.
+
+An empty patch is not an error: the grader then checks the unmodified project,
+which is what happens with the `dummy` agent.
+
+## 2 to 5. The checks
+
+Each check runs one of the task's scripts and passes when the script exits
+with status 0. The build and the two test checks each start from a fresh
+temporary copy of the patched project; the proofs of concept run in the copy
+the grading build left behind.
+
+| Check | What runs | Passes when | Result field |
+|---|---|---|---|
+| Build | `scripts.build` | the patched project builds | `build_success` |
+| PoCs | `scripts.run <poc>` for each file in `files.poc`, in the folder of the grading build | the proof of concept no longer triggers the vulnerability | `pov_passed` out of `pov_total` |
+| Functional tests | `scripts.test` | the project's own tests pass | `func_test_success` |
+| Intent tests | `git apply -p1` of `files.future_test`, then `scripts.test` | the tests of the upstream fix pass; a test diff that does not apply counts as a failure | `intent_test_success` |
+
+- **A failed build ends grading.** Nothing else can run without it.
+- **Every other check runs** even when an earlier one fails, so a result shows
+  each check on its own.
+- **Only the checks the task has run.** A task without a run script or
+  proofs of concept has no PoC check, and a task without `files.future_test`
+  has no intent test. The fields of checks that did not run stay `null`.
+
+### How a proof of concept is judged
+
+A proof of concept is an input or a small program that triggers the
+vulnerability in the unfixed project. The task's `run.sh` runs one, and its exit
+status is the verdict:
+
+- **non-zero**: the vulnerability still triggers. For the C tasks, which build
+  with AddressSanitizer, `run.sh` fails when the output contains a sanitizer
+  report or a segmentation fault. For the Go tasks, the proof of concept is a
+  program that panics on the bug, so it exits non-zero. The Rust tasks run a
+  harness that fails the same way.
+- **zero**: the program ran to completion without triggering the bug. The PoC
+  passes.
+
+A patch that makes the project reject the input, or exit cleanly on it, passes;
+whether it also keeps the project working is what the functional and intent
+tests check.
+
+### The hidden tests
+
+`files.future_test` holds the tests that the upstream fix added or changed,
+usually taken from the fixing commit. They are never shown to the agent. They
+are chosen to fail on the vulnerable code and pass with the upstream fix, so
+they check that
+the agent's patch behaves as the project's maintainers intended, beyond the
+known proof of concept. The config keys `files.security_test` and
+`files.intent_test` are kept for reference; the grader does not use them.
+
+## The result
+
+The evaluator writes one JSON document to `result.json`:
+
+```json
+{
+  "patch_result": {
+    "build_success": true,
+    "pov_passed": 0,
+    "pov_total": 1,
+    "func_test_success": true,
+    "intent_test_success": false,
+    "error_msg": "PoC failed: /ssebench/pocs/poc.go",
+    "error_log": "panic: runtime error: slice bounds out of range [1:0] ..."
+  },
+  "runtime_result": { "agent_duration": 0, "agent_timeout": false, "evaluator_timeout": false }
+}
+```
+
+This is the `dummy` agent on `gjson-196-bf4efcb`: the unmodified project builds
+and passes its own tests, but the proof of concept still panics and the hidden
+tests fail. `error_msg` and `error_log` describe the **first** check that failed;
+later failures are recorded only in their fields. See
+[Results format](/concepts/results#result-json) for every field.
+
+There is no single pass or fail field. A patch fixes the task when every check
+that ran passed: the build succeeded, `pov_passed` equals `pov_total`, and the
+functional and intent tests passed. The evaluator logs `[result] Patch success`
+in that case and `[result] Patch Failed or Incomplete` otherwise.
+`just report` shows, for each agent and model, the share of runs that passed
+each check.
+
+A result in which no check ran means grading did not happen: `error_msg` then
+starts with `Timeout` (with `evaluator_timeout` set) or `Exception:`, or reads
+`No result: evaluator did not produce output` when the container wrote nothing.
+Count such a run as failed.
+
+## Time limit
+
+The evaluator gets the same time limit as the agent, `TIMEOUT` (`--timeout`,
+3600 seconds by default). When grading takes longer, the result has
+`evaluator_timeout: true` and `error_msg: "Timeout (<seconds>s)"`.
+
+## Grading and `test_patch`
+
+The agent's `test_patch` tool uses the same daemon actions, but it is not a
+preview of the grade:
+
+| | `test_patch` | Grading |
+|---|---|---|
+| Source | the agent's working tree, as it is | the captured patch applied to `/ssebench-repo` |
+| Checks | those the difficulty level allows | every check the task has |
+| Order | build, PoCs, intent tests, functional tests | build, PoCs, functional tests, intent tests |
+| PoCs | stop at the first that triggers | all run and are counted |
+| Functional tests | skipped when the intent tests pass | always run |
+| Socket | agent-facing, difficulty-gated | admin, not gated |
+
+## Next steps
+
+- [Results format](/concepts/results): where the grade and the logs are written
+- [Difficulty levels](/concepts/difficulty-levels): what the agent may check
+  before grading
+- [Integrity model](/concepts/integrity): how the grading material is kept from
+  the agent
