@@ -40,8 +40,13 @@ treats a way around any of these as a vulnerability.
 |                                                                              |
 |  /ssebench          0700  task files          /src/<project>  source tree,   |
 |  /ssebench-repo     0700  original source                     one commit     |
+|  /var/lib/ssebench  0700  the grade, logs     /tmp/sse-archive  dialog, logs |
 |  /run/ssebench      0700  admin socket        /tmp/sse.sock   agent socket   |
 |                                               :4263           daemon HTTP    |
+|                                                                              |
+|                          user sse-runner (a third uid, no groups)            |
+|                          ---------------------------------------             |
+|                          build, PoC and test scripts, in a scratch copy      |
 |                                                                              |
 +-------------------------------- network: <project>_agents (internal) --------+
                                           |
@@ -51,11 +56,38 @@ treats a way around any of these as a vulnerability.
 
 ### The agent runs unprivileged
 
-The entrypoint runs as root. It starts the daemon, the MCP server and, at the
-end, the evaluator as root, and the agent command as the user `model`
-(uid 1000), in its own session. The tool image creates `model` and gives it
-the project's source tree and its home directory; see
+The entrypoint runs as root. It starts the daemon and the MCP server as root,
+and the agent command as the user `model` (uid 1000), in its own session. The
+tool layer creates `model` fresh, with no supplementary groups, so it does not
+inherit a base image's uid-1000 user and its `sudo` or `adm` membership; see
 [Image layers](/concepts/image-layers#tool).
+
+### Task scripts run as a third, unprivileged user
+
+A check builds and tests the agent's source tree, so it runs code the agent
+wrote (a `Makefile` rule, a `go test` file, a `build.rs`). None of that runs
+as root or as the agent. The daemon runs every task script — build, PoC,
+function and intent tests — as **`sse-runner`**, a dedicated uid with no
+groups, neither `model` nor root, in a scratch copy of the project under
+`/var/lib/ssebench-runner`:
+
+- root prepares the copy with only what the check needs, and adds hidden
+  material (the intent-test diff) into it at grading time;
+- `sse-runner` cannot read `/ssebench`, `/ssebench-repo` or the run's results,
+  and cannot reach the admin socket (its `SSE_ADMIN_SOCKET` is cleared);
+- the scratch copies live in a directory `model` cannot enter (`0710`,
+  root-owned, `sse-runner`'s group), so the agent cannot read hidden material
+  staged there;
+- after the process tree exits, root kills every remaining `sse-runner`
+  process (code that daemonises escapes the process group, so the whole
+  user's processes go) before it collects the output;
+- grading starts a fresh `sse-runner` session, so nothing a check left behind
+  during `test_patch` — a build cache, a file in a support directory, a
+  process — takes part in grading.
+
+A PoC still runs in the folder the grading build produced: the sanitizer-crash
+semantics (a non-zero exit means the vulnerability still triggers) are
+unchanged.
 
 ### Task files are root-only
 
@@ -73,14 +105,37 @@ that directory readable by root only (mode 0700):
 
 The agent learns what it needs through other channels: its
 [prompt](/concepts/prompt) contains the task's description, the report files
-and the build and test scripts, and `test_patch` runs checks on its behalf.
+and the build and test scripts, and `test_patch` runs checks on its behalf. So
+the runner can execute them, the build and test scripts and any support
+directory they use in place (a Rust harness at `/ssebench/harness`, say) are
+readable and executable by `sse-runner`'s group only; the reference patch, the
+hidden tests, the proofs of concept and the config stay root-only.
 
 The one exception is the `reference` agent, which applies the known fix to
 check a task rather than a model. For that agent only, `ssebench run` copies
 the reference patch out of the case image and mounts it read-only at
-`/reference/patch.diff`; the daemon still withholds it. The run is labelled
-with `config.reference_run` and never counts as a model's score; see
-[Reference runs](/reference/cli#reference-runs).
+`/reference/patch.diff`; the daemon still serves it only on the admin socket.
+The run is labelled with `config.reference_run` and never counts as a model's
+score; see [Reference runs](/reference/cli#reference-runs).
+
+### Grading outputs are root-only
+
+Two directories hold what a run produces, and they are kept apart:
+
+| Directory | Env | Owner | Holds |
+|---|---|---|---|
+| results | `SSE_RESULTS`, `/var/lib/ssebench/results` | written by root; `0700` root parent | `result.json` (the grade), `final.patch`, `commits.log`, the logs |
+| archive | `SSE_ARCHIVE`, `/tmp/sse-archive` | `model` | `dialog.jsonl` and whatever the agent side writes |
+
+The CLI mounts the run directory at the results path and its `archive/`
+subdirectory at the archive path; the result the CLI trusts is
+`result.json` there, written only by root. The parent of the results
+directory is `0700` root, so neither `model` nor `sse-runner` can reach it,
+whoever owns the run directory on the host. The evaluator writes the grade
+with an atomic replace into that directory, and the daemon writes `final.patch`
+and its logs there too, so a symlink the agent plants in its own archive
+cannot redirect a root write. The agent gets its own archive directory back
+when the agent phase ends, so a run can be cleared for the next one.
 
 ### The project's history is replaced
 
@@ -113,12 +168,18 @@ On the agent-facing listeners:
 
 | Endpoint | Agent-facing | Admin socket |
 |---|---|---|
-| `POST /tool/bencher?action=…` (`build`, `run_poc`, `function_test`, `intent_test`) | only the actions the difficulty level allows; the others return 403 | every action |
-| `POST /tool/bash` | allowed; runs commands as `model` | allowed |
+| `POST /tool/bencher?action=…` (`build`, `run_poc`, `function_test`, `intent_test`) | during the agent phase, only the actions the difficulty level allows; a `grading` argument or any call after the phase returns 403 | every action |
+| `POST /tool/bash` | during the agent phase; runs commands as `model` | allowed |
 | `POST /prepare_grading` | 403 | allowed |
 | `POST /admin/agent_exited` | 403 | allowed |
-| `GET /reference/patch` | 403 until the agent phase ends | allowed |
+| `GET /reference/patch` | 403 | allowed |
 | `GET /project`, `/capabilities`, `/diff`, `/files`, `/agent/dialog`, `/result`, `/final_diff`, `/version` | allowed | allowed |
+
+The git-backed endpoints (`/diff`, `/files`) and the patch capture run git on
+the agent's source tree against a private copy of its base commit, as the
+tree's owner and with the repository's own configuration ignored, so a
+configuration the agent plants (a hook, a filter, `fsmonitor`) runs nothing as
+root; see [Capturing the patch](/concepts/grading#_1-capturing-the-patch).
 
 `GET /project` returns the task's public view only: the project, the report
 contents, the build and test scripts and the paths of the proofs of concept.
@@ -135,33 +196,38 @@ evaluator grades through the admin socket, where the gate does not apply, so
 grading always runs every check. See
 [Difficulty levels](/concepts/difficulty-levels#where-the-level-is-enforced).
 
-### The reference patch unlocks after the agent phase
+### The reference patch is on the admin socket only
 
-The web UI shows the reference patch next to the agent's patch once a run is
-over, so the daemon has to serve it at some point. It follows one rule:
+`GET /reference/patch` is served only on the admin socket, which only root in
+the daemon's container can reach. The agent-facing listeners refuse it at all
+times, before and after the agent phase, because the HTTP listener on port 4263
+is reachable from the other run containers on the network, and from a container
+kept after the run.
 
-- on the **admin socket**, `GET /reference/patch` works at any time;
-- on the **agent-facing listeners**, it returns 403 until the agent phase has
-  ended.
+The agent phase still ends: when the agent process exits or is killed at the
+timeout, the entrypoint sends `POST /admin/agent_exited` over the admin socket.
+From then on the daemon refuses every tool on the agent-facing listeners and
+kills the agent user's processes, so nothing the agent left running takes part
+in grading. It does not open the reference patch to those listeners.
 
-The phase ends when the entrypoint, after the agent process exits or is killed
-at the timeout, sends `POST /admin/agent_exited` over the admin socket. Only
-then does the evaluator start. From that moment the web UI can read the patch
-from the host over port 4263. If the signal fails, the patch stays locked and
-the entrypoint logs a warning.
+Post-run consumers get the patch elsewhere:
 
-Post-run tooling in Python reads it with the SDK:
+- **The web UI** reads it on the host, from `reference.patch` in the run's
+  results directory (the CLI copies it there once the run is over) or from the
+  task folder in the local dataset; it knows both.
+- **Root tooling inside the container** (the evaluator, a plugin) reads it with
+  the SDK, which goes to the admin socket:
 
-```python
-from sse.reference import get_reference_patch
+  ```python
+  from sse.reference import get_reference_patch
 
-patch = get_reference_patch()   # the unified diff, or "" if the task has none
-```
+  patch = get_reference_patch()   # the unified diff, or "" if the task has none
+  ```
 
-The call goes to the daemon socket in `SSE_DAEMON_SOCKET`, so during the agent
-phase, over the agent socket, it fails with a 403. The old name,
-`sse.cheating.get_ground_truth`, still works for one release and warns that it
-is deprecated.
+  The call needs `SSE_ADMIN_SOCKET`, so it works only as root; the agent, over
+  the agent socket, cannot reach it. The old name,
+  `sse.cheating.get_ground_truth`, still works for one release and warns that
+  it is deprecated.
 
 ### No internet by default
 
@@ -184,8 +250,12 @@ reach:
   isolation. Run only agents you are prepared to run in Docker on that host.
 - **The checks run the project's own code.** A check that `test_patch` runs
   builds and tests the agent's modified source tree, so code the agent writes
-  runs during the check, in the same container. The difficulty gate decides
-  which checks the agent may ask for, not what that code does.
+  runs during the check. That code runs as `sse-runner`, which cannot read the
+  hidden material or the grade and cannot reach the admin socket, in a scratch
+  copy `model` cannot enter; but it shares the container's kernel with the
+  root processes, so it is contained by ordinary Unix permissions, not
+  sandboxed. The difficulty gate decides which checks the agent may ask for,
+  not what that code does once a check runs it.
 - **The model is outside the container.** The network policy stops the
   container from reaching the internet, not the model: requests to the proxy
   go to the provider, and a provider-hosted tool that a request turns on, such
@@ -193,10 +263,11 @@ reach:
   upstream fix from its training data. SSEBench does not detect either.
 - **Runs share a network.** Every run container of a Compose project joins the
   same `<project>_agents` network, so it can reach the other run containers
-  there, including their daemon's HTTP port. A finished container kept with
-  `--keep-container` serves its reference patch on that port. Do not keep
-  finished containers of a task on the network while other runs of the same
-  task are in progress, or give each experiment its own Compose project.
+  there, including their daemon's HTTP port on 4263. That port no longer serves
+  the reference patch, or any grading route, so a concurrent or kept run cannot
+  read another run's answer through it. It still exposes that run's public view
+  and its live diff; give each experiment its own Compose project if even that
+  should be private.
 - **`--egress open` gives the agent the internet**, and with it the upstream
   repository and its fix. Use it only for tasks that need the network, and do
   not compare its results with restricted runs.

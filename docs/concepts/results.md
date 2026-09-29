@@ -11,16 +11,18 @@ directory: a **run directory** with everything the container produced, and a
 ```
 results/
 ├── <task>-<agent>-<model>.json          the summary
-└── <task>/<model>/<agent>/              the run directory
+└── <task>/<model>/<agent>/              the run directory (root-only inside the container)
     ├── result.json                      the grade
-    ├── dialog.jsonl                     the agent's session
     ├── final.patch                      the agent's changes
     ├── commits.log                      the agent's commit messages
     ├── source.tar.gz                    the agent's source tree
+    ├── reference.patch                  the reference patch (added after the run, if the task has one)
     ├── agent.log  daemon.log  mcp.log  evaluator.log  opencode.log
     ├── scriptrunner-<ms>.log            one per script the daemon ran
     ├── patch-<ms>.log                   one per test diff the daemon applied
-    └── plugins/                         plugin logs and outcomes, when plugins ran
+    ├── plugins/                         plugin logs and outcomes, when plugins ran
+    └── archive/                         the agent's own directory (SSE_ARCHIVE)
+        └── dialog.jsonl                 the agent's session
 ```
 
 A run of the `dummy` agent on `gjson-196-bf4efcb` with `claude-sonnet-4-6`
@@ -30,18 +32,22 @@ writes `results/gjson-196-bf4efcb-dummy-claude-sonnet-4-6.json` and
 
 ## The run directory
 
-The CLI mounts the run directory into the container as `SSE_ARCHIVE`
-(`/tmp/sse-archive`), and empties it at the start of each run. Running the same
-task, model and agent again replaces the previous results; move them elsewhere
-first to keep them.
+The CLI mounts the run directory into the container root-only, at `SSE_RESULTS`
+(`/var/lib/ssebench/results`), and its `archive/` subdirectory as the agent's
+`SSE_ARCHIVE` (`/tmp/sse-archive`). It empties the run directory at the start of
+each run. Running the same task, model and agent again replaces the previous
+results; move them elsewhere first to keep them. Root writes the grade and the
+logs; the agent writes only inside `archive/`, so a file it plants there cannot
+redirect a root write.
 
 | File | Written by | Contents |
 |---|---|---|
 | `result.json` | evaluator, then the CLI | The grade and the run settings; see [below](#result-json). |
-| `dialog.jsonl` | the agent's wrapper | The agent's session, one JSON object per line, in the [dialog protocol](/reference/dialog-protocol) format. The web UI renders it. An agent without a wrapper, such as `dummy`, writes none. |
+| `archive/dialog.jsonl` | the agent's wrapper | The agent's session, one JSON object per line, in the [dialog protocol](/reference/dialog-protocol) format. The web UI renders it. An agent without a wrapper, such as `dummy`, writes none. |
 | `final.patch` | daemon, when grading starts | The patch the grader applied, as a git diff; empty when the agent changed nothing. See [Capturing the patch](/concepts/grading#_1-capturing-the-patch). |
 | `commits.log` | daemon, when grading starts | Hash, subject and body of each commit the agent made, separated by `---`; empty when it made none. |
 | `source.tar.gz` | evaluator | The source tree the agent worked in, as it was after grading. |
+| `reference.patch` | the CLI, after the run | The task's reference patch, copied from the task folder when the task has one, for reports and the web UI. |
 | `agent.log` | entrypoint | Standard output and error of the agent command. |
 | `daemon.log` | entrypoint | The daemon's log, including its difficulty gate and every tool call. |
 | `mcp.log` | entrypoint | The MCP server's log, including the difficulty level it read. |
@@ -57,9 +63,10 @@ results.
 
 ## `result.json`
 
-The evaluator's grade, written through `/sse_result` when grading ends. When
-the container exits, the CLI adds the run settings as `config`, the same object
-as in the [summary](#the-summary). The dummy run above produces:
+The evaluator's grade, written into the root-only results directory when
+grading ends. When the container exits, the CLI adds the run settings as
+`config`, the same object as in the [summary](#the-summary). The dummy run
+above produces:
 
 ```json
 {

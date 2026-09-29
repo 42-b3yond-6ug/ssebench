@@ -9,7 +9,13 @@ same container, as root, and talks to the daemon over the privileged admin
 socket, so it runs every check the task has whatever the
 [difficulty level](/concepts/difficulty-levels). The code is
 `runtime/evaluator` and `sse.grading` in the [Python SDK](/reference/python-sdk);
-the checks themselves are the daemon's `bencher` actions.
+the checks themselves are the daemon's `bencher` actions. The daemon still runs
+each check's scripts as the unprivileged `sse-runner` user, in a scratch copy of
+the project, and starts a fresh runner session for grading so nothing a check
+left behind during `test_patch` takes part in it; see
+[the integrity model](/concepts/integrity#task-scripts-run-as-a-third-unprivileged-user).
+The grade the evaluator writes, `result.json`, and the logs go to the root-only
+results directory, which neither the agent nor the runner can reach.
 
 ## Overview
 
@@ -17,12 +23,12 @@ the checks themselves are the daemon's `bencher` actions.
 agent exits, or is stopped at the timeout
    |
    v
-entrypoint -- POST /admin/agent_exited --> daemon     (unlocks the reference patch)
+entrypoint -- POST /admin/agent_exited --> daemon     (ends the agent phase, kills the agent's processes)
    |
    v
 evaluator, through the admin socket:
-   1. prepare_grading   capture the agent's diff  -> final.patch, commits.log
-                        apply it to /ssebench-repo, a clean copy of the project
+   1. prepare_grading   start a fresh runner session; capture the agent's diff
+                        -> final.patch, commits.log; apply it to /ssebench-repo
    2. build             build.sh                   fails -> stop here
    3. PoCs              run.sh <poc>, for every proof of concept
    4. function_test     test.sh
@@ -72,10 +78,13 @@ which is what happens with the `dummy` agent.
 
 ## 2 to 5. The checks
 
-Each check runs one of the task's scripts and passes when the script exits
-with status 0. The build and the two test checks each start from a fresh
-temporary copy of the patched project; the proofs of concept run in the copy
-the grading build left behind.
+Each check runs one of the task's scripts, as the unprivileged `sse-runner`
+user, and passes when the script exits with status 0. The build and the two
+test checks each start from a fresh copy of the patched project in the runner's
+scratch area; the proofs of concept run in the copy the grading build left
+behind. The intent test's hidden diff is applied to that copy by the runner
+from material root stages into it, so the runner never reads the hidden tests
+in place.
 
 | Check | What runs | Passes when | Result field |
 |---|---|---|---|

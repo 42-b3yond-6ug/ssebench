@@ -167,22 +167,28 @@ of them shape the container itself.
 ### User isolation
 
 In sandbox mode, the agent runs as the unprivileged user `model` (uid 1000),
-and the task's files are readable only by root:
+the task's files are readable only by root, and the task's scripts run as a
+third user, `sse-runner`:
 
 ```
-Root only (the agent cannot read them):
+Root only (neither the agent nor the runner can read them):
   /ssebench/config.yaml        task metadata
   /ssebench/diffs/             reference patch and hidden tests
   /ssebench/pocs/              proof-of-concept inputs
+  /var/lib/ssebench/results/   the grade and the logs
 
-Accessible to the agent:
+Accessible to the agent (model):
   /src/<project>/              the project's source tree
   /home/model/                 the agent's home directory
-  /tmp/sse-archive/            the run's results directory
+  /tmp/sse-archive/            the agent's archive directory
+
+The task runner (sse-runner) only:
+  /var/lib/ssebench-runner/    a scratch copy of the project, per check
 ```
 
 The agent gets the task through its prompt, and `test_patch` runs the checks
-on its behalf.
+on its behalf; the daemon runs each check's scripts as `sse-runner` in a
+scratch copy.
 
 ### Git history reset
 
