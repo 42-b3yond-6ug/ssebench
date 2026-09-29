@@ -114,7 +114,7 @@
           "type": "string"
         },
         "base": {
-          "description": "Base image of the case image, relative to the registry: the last FROM of the task's Dockerfile without ${SSEBENCH_REGISTRY}/.",
+          "description": "Base image of the case image, relative to the registry, with its pinned version: the last FROM of the task's Dockerfile without ${SSEBENCH_REGISTRY}/, such as base-generic-go:1.0.0.",
           "minLength": 1,
           "title": "Base",
           "type": "string"

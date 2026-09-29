@@ -90,7 +90,7 @@ def test_manifest_entry(tmp_path: Path, make_task: MakeTask) -> None:
         "language": "c",
         "project": "demo",
         "repository": "https://example.org/demo",
-        "base": "base-generic-c:latest",
+        "base": "base-generic-c:1.0.0",
         "image": "case/demo/demo-1",
         "arch": ["amd64"],
         "checks": ["build", "poc", "function_test", "intent_test"],
