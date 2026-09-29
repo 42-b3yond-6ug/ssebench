@@ -1,4 +1,4 @@
-id: "generic-rust-nano-arena-rustsec20210031"
+id: RUSTSEC-2021-0031
 project: "nano-arena"
 language: "rust"
 source: "/src/nano-arena"

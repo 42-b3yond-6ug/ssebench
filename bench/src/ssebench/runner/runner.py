@@ -249,7 +249,7 @@ class BenchmarkSidecarRuner(BenchmarkRunner):
             logger.error(f"Docker volume creation failed: {e}")
 
         source = Path(self.task.get_task_metadata().source).resolve()
-        environment_name = f"env-{self.task.get_task_metadata().id}"
+        environment_name = f"env-{self.task.name}"
 
         # Start the environment first
         # Environment must map the source code to an empty docker volume

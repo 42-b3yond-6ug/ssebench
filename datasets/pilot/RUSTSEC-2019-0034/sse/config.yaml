@@ -1,4 +1,4 @@
-id: "generic-rust-http-rustsec20190034"
+id: RUSTSEC-2019-0034
 project: "http"
 language: "rust"
 source: "/src/http"
