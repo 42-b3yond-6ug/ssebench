@@ -1,0 +1,99 @@
+name: Build an image
+description: >-
+  Build one image with Buildx and the GitHub Actions cache, tagged and labelled
+  for the SSEBench registry, and push it with an SBOM and provenance
+  attestations when asked to. Nothing is pushed from a private repository.
+inputs:
+  name:
+    description: Image name under the registry prefix, for example runtime.
+    required: true
+  context:
+    description: Build context.
+    required: true
+  file:
+    description: Dockerfile.
+    required: true
+  platforms:
+    description: Comma-separated target platforms.
+    default: linux/amd64
+  description:
+    description: The image description label.
+    required: true
+  registry:
+    description: Registry prefix, for example ghcr.io/owner/repo.
+    required: true
+  version:
+    description: The SSEBench version from VERSION; the image is tagged with it and gets it as the VERSION build argument.
+    required: true
+  build-args:
+    description: More build arguments, one KEY=VALUE per line.
+    default: ""
+  push:
+    description: Whether to push the image; the caller logs in to the registry.
+    default: "false"
+outputs:
+  tags:
+    description: The tags the image was built with.
+    value: ${{ steps.meta.outputs.tags }}
+runs:
+  using: composite
+  steps:
+    - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+      id: meta
+      env:
+        DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
+      with:
+        images: ${{ inputs.registry }}/${{ inputs.name }}
+        flavor: latest=false
+        # latest follows releases only, not pre-releases or main.
+        tags: |
+          type=raw,value=${{ inputs.version }}
+          type=sha,prefix=sha-,format=short
+          type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
+        labels: |
+          org.opencontainers.image.title=ssebench-${{ inputs.name }}
+          org.opencontainers.image.description=${{ inputs.description }}
+          org.opencontainers.image.version=${{ inputs.version }}
+          org.opencontainers.image.licenses=Apache-2.0
+        annotations: |
+          org.opencontainers.image.title=ssebench-${{ inputs.name }}
+          org.opencontainers.image.description=${{ inputs.description }}
+          org.opencontainers.image.version=${{ inputs.version }}
+          org.opencontainers.image.licenses=Apache-2.0
+
+    - name: Build
+      if: inputs.push != 'true'
+      uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+      with:
+        context: ${{ inputs.context }}
+        file: ${{ inputs.file }}
+        platforms: ${{ inputs.platforms }}
+        build-args: |
+          VERSION=${{ inputs.version }}
+          ${{ inputs.build-args }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        push: false
+        provenance: false
+        sbom: false
+        cache-from: type=gha,scope=${{ inputs.name }}
+        cache-to: type=gha,mode=max,scope=${{ inputs.name }}
+
+    - name: Build and push
+      if: inputs.push == 'true' && !github.event.repository.private
+      uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+      with:
+        context: ${{ inputs.context }}
+        file: ${{ inputs.file }}
+        platforms: ${{ inputs.platforms }}
+        build-args: |
+          VERSION=${{ inputs.version }}
+          ${{ inputs.build-args }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        annotations: ${{ steps.meta.outputs.annotations }}
+        push: true
+        provenance: mode=max
+        sbom: true
+        cache-from: type=gha,scope=${{ inputs.name }}
+        cache-to: type=gha,mode=max,scope=${{ inputs.name }}
