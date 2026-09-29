@@ -6,10 +6,10 @@ FROM ssebench-agent
 WORKDIR /app/agents/codex/codex-sse
 
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get install -y nodejs && \
-    npm install -g npm@latest
+    apt-get install -y nodejs
 
-RUN npm install -g @openai/codex
+ARG CODEX_VERSION=0.159.0
+RUN npm install -g "@openai/codex@${CODEX_VERSION}"
 
 RUN uv python install 3.14
 
