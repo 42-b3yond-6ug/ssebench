@@ -172,8 +172,17 @@ contains the working directory, otherwise the checkout it was installed from.
   reveal the reference patch, the hidden tests, the upstream fix commit, or a
   check that its difficulty level withholds. The agent runs as `model` (uid
   1000); task metadata and reference files are root-only; the project's git
-  history is replaced by a single commit. Treat any change that weakens this
-  as a security bug, and add a test that tries the bypass.
+  history is replaced by a single commit. The daemon enforces this, not just
+  the MCP server: it reads `SSE_DIFFICULTY` at startup and rejects withheld
+  `bencher` actions (403) on the agent-facing listeners, and it serves the
+  reference patch (`GET /reference/patch`) only on the privileged admin socket
+  or, on the agent-facing listeners, after the agent phase has ended (the
+  entrypoint signals `POST /admin/agent_exited` over the admin socket, which is
+  how the web UI reads the patch from the host post-run). Grading goes through
+  the admin socket so it runs every check regardless of difficulty. By default
+  a run container has no internet, only the LiteLLM proxy (`--egress open`
+  opts out). Treat any change that weakens this as a security bug, and add a
+  test to `tests/integrity/` that tries the bypass.
 - **Plugins never change the grade.** A plugin that fails or times out must
   not alter the evaluation result.
 - **The container contract is stable.** Agents, plugins and third-party
@@ -187,9 +196,10 @@ contains the working directory, otherwise the checkout it was installed from.
   | `SSE_DIFFICULTY` | difficulty level, 0 to 4 |
   | `SSE_ARCHIVE` | results directory inside the container |
   | `TIMEOUT` | agent time limit in seconds |
-  | `SSE_DAEMON_SOCKET` | daemon Unix socket (default `/tmp/sse.sock`) |
+  | `SSE_DAEMON_SOCKET` | agent-facing daemon Unix socket, 0666 (default `/tmp/sse.sock`) |
+  | `SSE_ADMIN_SOCKET` | privileged daemon Unix socket, 0600 root-only (default `/run/ssebench/admin.sock`) |
   | `SSE_KEEP_ALIVE`, `SSE_DEBUG` | keep the container after the run; verbose entrypoint logs |
-  | daemon HTTP port | 4263 |
+  | daemon HTTP port | 4263 (agent-facing) |
   | MCP server | port 3000, path `/mcp` |
   | OpenCode server | port 4096, when the agent image includes OpenCode |
   | `dialog.jsonl` | the agent dialog in the results directory, read by the web UI |
