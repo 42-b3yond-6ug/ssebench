@@ -27,6 +27,8 @@ class ToolLayerContext:
     """Absolute path of the project source inside the case image."""
     build_root: Path = field(default_factory=paths.home)
     """The SSEBench home, which holds `images/`, `runtime/` and `sdk/`; the built-in layers use it as build context."""
+    plugins: tuple[str, ...] = ()
+    """Plugins to install into the tool layer, by folder name; empty installs none."""
 
 
 class ToolLayer(DockerLayerMixin, ABC):
@@ -64,6 +66,8 @@ class SandboxToolLayer(ToolLayer):
                 f"SOURCE_DIR={self.context.source_dir}",
                 "--build-arg",
                 f"VERSION={VERSION}",
+                "--build-arg",
+                f"PLUGINS={' '.join(self.context.plugins)}",
                 "-t",
                 docker_image_name,
                 "-f",

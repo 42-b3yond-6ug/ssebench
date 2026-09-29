@@ -31,6 +31,7 @@ class RunConfig(BaseModel):
     egress: Literal["restricted", "open"] = "restricted"
     # The reference agent applied the task's known fix: the grade measures the task, not a model.
     reference_run: bool = False
+    plugins: list[str] = []  # plugins enabled for the run, in plugins.yaml order
 
 
 class EvaluationResult(BaseModel):
