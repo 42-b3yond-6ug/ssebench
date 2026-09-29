@@ -126,6 +126,12 @@ jobs:
             exit 1
           fi
           wheels/bin/python -c "import sse; print('sse', sse.__version__)"
+          # The CLI works without a checkout: the wheel carries the agents, the models and the pilot manifest.
+          mkdir workspace
+          (cd workspace && ../wheels/bin/ssebench init)
+          test -s workspace/.env && test -d workspace/models && test -d workspace/results
+          (cd workspace && ../wheels/bin/ssebench tasks list --json) \
+            | wheels/bin/python -c 'import json, sys; tasks = json.load(sys.stdin); print(len(tasks), "pilot tasks"); assert tasks'
           # The wheels carry the PEP 440 form of VERSION.
           wheels/bin/python - "$VERSION" <<'PY'
           import sys

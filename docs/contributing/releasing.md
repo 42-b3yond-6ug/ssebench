@@ -119,7 +119,7 @@ these jobs:
 | Job | What it does |
 |---|---|
 | Plan | Fails unless the tag is `v` followed by `VERSION`, `VERSION` is not a `-dev` version, the tagged commit is on `main`, and `bump.py --check` passes. |
-| Build the Python packages | Builds the sdist and the wheel of `ssebench` and `ssebench-sdk` with `uv build`, checks their metadata with `twine check --strict`, installs the wheels in a clean environment, and checks that `ssebench --version` prints `VERSION`, that `import sse` works, and that both packages carry the PEP 440 form of `VERSION`. Produces the artifact `python-dist`. |
+| Build the Python packages | Builds the sdist and the wheel of `ssebench` and `ssebench-sdk` with `uv build`, checks their metadata with `twine check --strict`, installs the wheels in a clean environment, and checks that `ssebench --version` prints `VERSION`, that `import sse` works, that `ssebench init` and `ssebench tasks list` work outside a checkout, and that both packages carry the PEP 440 form of `VERSION`. Produces the artifact `python-dist`. |
 | Binaries | Runs the [Binaries](#binaries) workflow, which produces the artifact `ssebench-binaries-<version>`. |
 | Build the dataset manifest | Runs `ssebench dataset manifest` on `datasets/pilot`, recording the commit it was generated from. Produces the artifact `pilot-manifest`. |
 | Publish to PyPI | Runs after all the jobs above have passed, so a build that fails publishes nothing. Uploads `python-dist` with PyPI trusted publishing, in the `pypi` environment; no PyPI token is stored anywhere. Files that PyPI already has are skipped. |
@@ -306,16 +306,17 @@ from PyPI; see [Python SDK](/reference/python-sdk#install-and-versions).
 Its build hook, `bench/hatch_build.py`, copies the files that the CLI needs into
 the wheel as `ssebench/_data/`, in the repository's layout: the agents, the
 models, the Compose file, the sources of the tool layer and proxy images, the
-SDK, evaluator and MCP sources, `uv.lock`, and the pilot manifest. `INCLUDE` in
+SDK, evaluator and MCP sources, `uv.lock`, and the pilot manifest with its
+license. `INCLUDE` in
 the hook lists them; add a file there when the CLI starts to need it. The sdist
 carries the same files under `src/ssebench/_data/`, so the wheel that `uv build`
 builds from it has them too. A build from a tree with no repository around it
 makes a wheel without them. Tests build both and check the contents; see
 [Without a clone](/reference/cli#without-a-clone) for how the CLI uses them.
 
-A wheel built for a release must be run once outside a checkout, in a clean
-virtual environment with `SSEBENCH_HOME` unset: install it, then run
-`ssebench init` and `ssebench tasks list`.
+The Release workflow installs the wheels in a clean virtual environment away
+from the checkout and runs `ssebench init` and `ssebench tasks list` there. To
+try a wheel by hand, do the same with `SSEBENCH_HOME` unset.
 
 ## Images
 
