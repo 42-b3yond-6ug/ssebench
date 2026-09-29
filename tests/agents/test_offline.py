@@ -57,7 +57,7 @@ class StubModel:
 
 
 def last_dialog_entry(run: Path) -> dict[str, object]:
-    lines = (run / "dialog.jsonl").read_text().splitlines()
+    lines = (run / "archive" / "dialog.jsonl").read_text().splitlines()
     return json.loads(lines[-1])
 
 

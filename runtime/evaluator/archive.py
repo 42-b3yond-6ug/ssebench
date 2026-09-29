@@ -11,7 +11,8 @@ logger.setLevel(logging.INFO)
 
 def backup_src():
     source = project.metadata.source
-    archive = os.getenv("SSE_ARCHIVE")
+    # The results directory is root-only; the archive is the agent's.
+    archive = os.getenv("SSE_RESULTS") or os.getenv("SSE_ARCHIVE")
     if not archive:
         return
 

@@ -8,7 +8,7 @@ import pytest
 from ssebench import stack
 from ssebench.cli.cli import main
 from ssebench.runner import SidecarPair
-from ssebench.runner.runner import ARCHIVE_PATH, SIDECAR_DAEMON_SOCKET, SIDECAR_SOCKET_DIR
+from ssebench.runner.runner import ARCHIVE_PATH, RESULTS_PATH, SIDECAR_DAEMON_SOCKET, SIDECAR_SOCKET_DIR
 
 PILOT = Path(__file__).resolve().parents[2] / "datasets" / "pilot"
 TASK = "gjson-196-bf4efcb"
@@ -18,7 +18,8 @@ def make_pair(**kw: object) -> SidecarPair:
     fields: dict[str, object] = {
         "task_name": "Demo-1",
         "source_dir": "/src/demo",
-        "archive": "/host/results",
+        "results": "/host/results",
+        "archive": "/host/results/archive",
         "network": "ssebench_agents",
         "difficulty": 4,
         "run_id": "abc123",
@@ -33,20 +34,22 @@ def pairs(options: list[str], flag: str) -> list[str]:
 def test_both_containers_share_the_source_sockets_and_archive() -> None:
     pair = make_pair()
     for options in (pair.environment_options(), pair.agent_options()):
-        assert pairs(options, "-v")[:3] == [
-            f"/host/results:{ARCHIVE_PATH}",
+        assert pairs(options, "-v")[:4] == [
+            f"/host/results/archive:{ARCHIVE_PATH}",
             "ssebench-abc123-source:/src/demo",
             f"ssebench-abc123-sockets:{SIDECAR_SOCKET_DIR}",
+            f"/host/results:{RESULTS_PATH}",
         ]
+        assert f"SSE_RESULTS={RESULTS_PATH}" in pairs(options, "-e")
 
 
 def test_the_agent_container_never_mounts_the_task_files() -> None:
-    options = make_pair().agent_options({"SSE_API_KEY": "sk-x"}, result_file=Path("/host/results/result.json"))
+    options = make_pair().agent_options({"SSE_API_KEY": "sk-x"})
 
     targets = [volume.split(":")[1] for volume in pairs(options, "-v")]
     assert not any(target == "/ssebench" or target.startswith("/ssebench/") for target in targets)
     assert "/ssebench-repo" not in targets
-    assert "/host/results/result.json:/sse_result" in pairs(options, "-v")
+    assert not [volume for volume in pairs(options, "-v") if volume.endswith(":/sse_result")]
     assert "SSE_API_KEY=sk-x" in pairs(options, "-e")
 
 
@@ -70,7 +73,10 @@ def test_each_run_has_its_own_names() -> None:
     assert first.environment_name == "ssebench-env-demo-1-one"
     assert pairs(first.environment_options(), "--name") == [first.environment_name]
     assert {first.source_volume, first.socket_volume}.isdisjoint({second.source_volume, second.socket_volume})
-    assert len(SidecarPair(task_name="t", source_dir="/s", archive="a", network="n", difficulty=2).run_id) == 12
+    assert (
+        len(SidecarPair(task_name="t", source_dir="/s", results="r", archive="a", network="n", difficulty=2).run_id)
+        == 12
+    )
 
 
 def test_run_warns_that_sidecar_mode_is_experimental(

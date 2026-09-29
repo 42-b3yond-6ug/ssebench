@@ -56,6 +56,10 @@ class LocalTask(Task):
         return bool(result.stdout.strip())
 
     @override
+    def task_folder(self) -> Path | None:
+        return self.task_path
+
+    @override
     def get_task_metadata(self) -> TaskMetadata:
         metadata_filepath = self.task_path / "sse" / "config.yaml"
         if not metadata_filepath.exists():
