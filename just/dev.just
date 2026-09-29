@@ -89,6 +89,18 @@ fmt *components:
 docs action="dev":
     bun run --cwd docs "$1"
 
+# Regenerate the parts of the reference pages that are generated from the code
+[group('develop')]
+docs-gen:
+    uv run tools/docs/reference.py
+
+# Check that the generated reference pages, the JSON Schemas and the daemon's OpenAPI description match the code
+[group('develop')]
+docs-check:
+    uv run tools/docs/reference.py --check
+    uv run ssebench dataset schema --check
+    cargo test --locked --test openapi
+
 # Build and serve the web UI
 [group('develop')]
 webui:
