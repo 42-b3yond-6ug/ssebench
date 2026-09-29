@@ -10,7 +10,8 @@ from ssebench.pipe import REGISTRY, TAG, DockerLayerMixin
 from ssebench.version import VERSION
 
 DOCKER_IMAGE_PREFIX_SANDBOX = f"{REGISTRY}/tool"
-DOCKER_IMAGE_PREFIX_SIDECAR_AGENTRT = f"{REGISTRY}/runtime"
+# `runtime` is the published image that carries the daemon and the entrypoint.
+DOCKER_IMAGE_PREFIX_SIDECAR_AGENTRT = f"{REGISTRY}/tool-sidecar-agent"
 DOCKER_IMAGE_PREFIX_SIDECAR_ENVIRON = f"{REGISTRY}/tool-sidecar"
 
 logger = logging.getLogger(__name__)
