@@ -102,12 +102,20 @@ func runMode(name string, agentCmd []string) int {
 	rt := newRuntime(cfg, agentCmd)
 	rt.setupSignalHandler()
 	defer rt.sm.cleanup()
+	// Registered after cleanup, so it runs before it (defers are LIFO): a
+	// plugin that talks to the daemon still has it while it finishes.
+	defer rt.finishPlugins()
 
 	if err := rt.setupArchive(); err != nil {
 		logger.Error("Failed to setup archive", "err", err)
 		return 1
 	}
 	rt.initLogFiles()
+
+	if err := rt.loadPlugins(); err != nil {
+		logger.Error("Invalid plugin configuration", "err", err)
+		return 1
+	}
 
 	return m.Run(rt)
 }

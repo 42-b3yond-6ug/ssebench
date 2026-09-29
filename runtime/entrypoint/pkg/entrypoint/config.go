@@ -31,6 +31,9 @@ type Config struct {
 	MCPHealthURL string
 	// EvaluatorPath is the directory of the evaluator.
 	EvaluatorPath string
+	// PluginsDir holds the installed plugins and plugins.yaml. A directory
+	// without plugins.yaml simply has no plugins.
+	PluginsDir string
 
 	// AgentTimeout is how long the agent may run, from TIMEOUT (seconds).
 	AgentTimeout time.Duration
@@ -62,6 +65,7 @@ func defaultConfig() Config {
 		MCPServerPath:      "/ssebench/mcp",
 		MCPHealthURL:       "http://localhost:3000/mcp",
 		EvaluatorPath:      "/evaluator",
+		PluginsDir:         "/plugins",
 		AgentTimeout:       4 * time.Hour,
 		DaemonTimeout:      5 * time.Minute,
 		MCPTimeout:         5 * time.Minute,

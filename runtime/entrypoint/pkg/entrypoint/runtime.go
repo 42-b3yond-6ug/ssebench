@@ -23,6 +23,8 @@ type Runtime struct {
 
 	logFiles map[string]string // logical name -> absolute path
 
+	plugins *pluginRunner
+
 	endPhase sync.Once
 }
 
@@ -64,6 +66,38 @@ func newRuntime(cfg Config, agentCmd []string) *Runtime {
 // Config returns the configuration of this run.
 func (rt *Runtime) Config() Config {
 	return rt.cfg
+}
+
+// loadPlugins reads and validates plugins.yaml in [Config.PluginsDir], selects
+// the plugins this run enables (SSE_PLUGINS overrides the enabled field), and
+// builds the runner. It fails the run if the file is present but invalid.
+func (rt *Runtime) loadPlugins() error {
+	all, err := LoadPlugins(rt.cfg.PluginsDir)
+	if err != nil {
+		return err
+	}
+	selected, unknown := selectPlugins(all, requestedPlugins())
+	for _, name := range unknown {
+		logger.Warn("Requested plugin is not declared in plugins.yaml", "plugin", name)
+	}
+	if len(selected) > 0 {
+		names := make([]string, len(selected))
+		for i, p := range selected {
+			names[i] = p.Name
+		}
+		logger.Info("Plugins enabled", "plugins", strings.Join(names, ","))
+	}
+	rt.plugins = newPluginRunner(rt.cfg, selected)
+	return nil
+}
+
+// finishPlugins waits for every "on" plugin still running, each bounded by its
+// timeout, and writes the plugin report. The entrypoint calls it before it
+// stops the services, so a plugin that needs the daemon still has it.
+func (rt *Runtime) finishPlugins() {
+	if rt.plugins != nil {
+		rt.plugins.finish()
+	}
 }
 
 // AgentCommand returns the agent command: the entrypoint's arguments after
@@ -234,13 +268,45 @@ func (rt *Runtime) StartService(name string, argv []string, dir string, env []st
 // exited, it ends the agent phase (see [Runtime.EndAgentPhase]). It returns
 // an error only if the agent could not be started.
 func (rt *Runtime) RunAgent() (AgentResult, error) {
+	rt.startAgentPhaseHooks()
 	cmd, start, err := rt.startAgent()
 	if err != nil {
 		return AgentResult{}, err
 	}
 	result := rt.waitAgent(cmd, start)
+	rt.awaitHook(On, PhaseAgent)
 	rt.EndAgentPhase()
+	rt.runHook(After, PhaseAgent)
 	return result, nil
+}
+
+// startAgentPhaseHooks runs the "before:agent" plugins and starts the
+// "on:agent" ones. [Runtime.RunAgent] calls it just before it launches the
+// agent so agent-phase plugins run around the agent, as the same user.
+func (rt *Runtime) startAgentPhaseHooks() {
+	rt.runHook(Before, PhaseAgent)
+	rt.startHook(On, PhaseAgent)
+}
+
+// runHook runs the blocking plugins at a hook, if a runner is configured.
+func (rt *Runtime) runHook(w When, p Phase) {
+	if rt.plugins != nil {
+		rt.plugins.runBlocking(Hook{When: w, Phase: p})
+	}
+}
+
+// awaitHook waits for the "on" plugins of a hook once its phase has ended.
+func (rt *Runtime) awaitHook(w When, p Phase) {
+	if rt.plugins != nil {
+		rt.plugins.await(Hook{When: w, Phase: p})
+	}
+}
+
+// startHook starts the "on" plugins at a hook without waiting.
+func (rt *Runtime) startHook(w When, p Phase) {
+	if rt.plugins != nil {
+		rt.plugins.start(Hook{When: w, Phase: p})
+	}
 }
 
 // startAgent launches the agent command as the "model" user (non-blocking).
@@ -322,6 +388,16 @@ func (rt *Runtime) EndAgentPhase() {
 // grade to /sse_result.
 func (rt *Runtime) Evaluate(result AgentResult) {
 	rt.EndAgentPhase()
+
+	rt.runHook(Before, PhaseGrading)
+	rt.startHook(On, PhaseGrading)
+	// The after-grading plugins and the plugin report come before Evaluate
+	// returns, because a keep-alive mode blocks after it and never returns.
+	defer rt.finishPlugins()
+	defer func() {
+		rt.awaitHook(On, PhaseGrading)
+		rt.runHook(After, PhaseGrading)
+	}()
 
 	logger.Info("Running evaluators...")
 
