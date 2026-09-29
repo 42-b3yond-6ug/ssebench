@@ -3,10 +3,12 @@ from .tools import (
     SidecarToolLayerAgentRuntime,
     SidecarToolLayerEnvironment,
     ToolLayer,
+    ToolLayerContext,
 )
 
 __all__ = [
     "ToolLayer",
+    "ToolLayerContext",
     "SandboxToolLayer",
     "SidecarToolLayerAgentRuntime",
     "SidecarToolLayerEnvironment",

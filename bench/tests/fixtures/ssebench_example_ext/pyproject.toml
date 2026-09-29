@@ -1,0 +1,20 @@
+# An out-of-tree SSEBench extension, used by bench/tests/test_extensions.py.
+# It is not a workspace member: the tests install it by writing its metadata,
+# and `uv pip install` or `uv run --with` install it as any other package.
+
+[project]
+name = "ssebench-example-ext"
+version = "0.1.0"
+description = "Example SSEBench extension: a tool layer and a hello command"
+requires-python = ">=3.12"
+dependencies = ["ssebench"]
+
+[project.entry-points."ssebench.tool_layers"]
+example = "ssebench_example_ext:ExampleToolLayer"
+
+[project.entry-points."ssebench.commands"]
+hello = "ssebench_example_ext:HelloCommand"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
