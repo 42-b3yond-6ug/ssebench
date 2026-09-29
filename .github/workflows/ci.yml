@@ -293,9 +293,9 @@ jobs:
       - name: bun test
         working-directory: webui
         run: bun test
+      - name: prettier
+        run: bun run --cwd webui format:check
       - name: eslint
-        # Advisory until the web UI's existing eslint errors are fixed; then drop continue-on-error.
-        continue-on-error: true
         run: bun run --cwd webui lint
 
   docs:

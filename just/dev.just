@@ -53,11 +53,9 @@ lint *components:
                 check env CGO_ENABLED=0 go vet work
                 ;;
             webui)
+                check bun run --cwd webui format:check
                 check bun run --cwd webui typecheck
-                # The web UI has eslint findings that predate this check; they are
-                # reported here but do not fail it yet.
-                echo "--> bun run --cwd webui lint"
-                bun run --cwd webui lint || echo "warning: webui eslint findings are reported, not enforced" >&2
+                check bun run --cwd webui lint
                 ;;
             *) echo "unknown component '$component' (python, rust, go, webui)" >&2; exit 2 ;;
         esac

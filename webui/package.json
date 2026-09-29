@@ -12,11 +12,11 @@
     "start": "bun server/index.ts",
     "prod": "bun run build && bun run start",
     "preview": "vite preview",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\" \"*.{js,ts}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\" \"*.{js,ts}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc -b"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.9",
