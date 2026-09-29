@@ -88,14 +88,18 @@ func (rt *Runtime) setupArchive() error {
 }
 
 // initLogFiles pre-creates all log files so tails can start before the
-// processes they track.
+// processes they track. It does not truncate them: in sidecar mode the daemon
+// in the case container may already be writing its log, and every process
+// started here truncates its own log when it starts.
 func (rt *Runtime) initLogFiles() {
 	for name, path := range rt.logFiles {
-		if err := os.WriteFile(path, []byte{}, 0o644); err != nil {
+		f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0o644)
+		if err != nil {
 			logger.Warn("Failed to initialize log file", "name", name, "err", err)
-		} else {
-			logger.Debug("Initialized log file", "path", path)
+			continue
 		}
+		f.Close()
+		logger.Debug("Initialized log file", "path", path)
 	}
 }
 
