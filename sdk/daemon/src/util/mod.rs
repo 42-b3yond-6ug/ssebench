@@ -1,9 +1,7 @@
-mod fs;
 mod logging;
 pub mod script;
 
-pub use fs::copy_folder_to_temp;
-pub use logging::create_timestamped_log;
+pub use logging::{archive_dir, create_timestamped_log, log_script, results_dir};
 pub use script::{ScriptOutput, run_script};
 
 /// Return the path to the pre-populated clean clone of the original repo.

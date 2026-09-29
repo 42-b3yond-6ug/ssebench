@@ -2,6 +2,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use crate::bench::BenchCore;
+use crate::isolation::TaskRunner;
 use crate::tools::ToolRouter;
 
 /// Difficulty level, read once from `SSE_DIFFICULTY` at startup. It decides
@@ -93,9 +94,22 @@ pub struct AppState {
 }
 
 impl AppState {
+    /// A state whose checks run as the daemon's own user, in a temporary
+    /// scratch directory: for tests and a daemon that is not root.
     pub fn new(project: BenchCore, difficulty: Difficulty) -> Self {
+        let scratch = tempfile::Builder::new()
+            .prefix("ssebench-runner-")
+            .tempdir()
+            .map(|dir| dir.keep())
+            .expect("failed to create a scratch directory");
+        let runner = TaskRunner::unprivileged(&scratch).expect("failed to prepare the task runner");
+        Self::with_runner(project, difficulty, runner)
+    }
+
+    /// A state whose checks run through `runner`.
+    pub fn with_runner(project: BenchCore, difficulty: Difficulty, runner: TaskRunner) -> Self {
         let project = Arc::new(project);
-        let router = ToolRouter::new(Arc::clone(&project));
+        let router = ToolRouter::new(Arc::clone(&project), runner);
         Self {
             project,
             tool_router: Arc::new(Mutex::new(router)),

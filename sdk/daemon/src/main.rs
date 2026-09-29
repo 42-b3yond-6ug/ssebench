@@ -1,6 +1,7 @@
 use std::env;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
+use std::path::{Path, PathBuf};
 
 use actix_web::{App, HttpServer, middleware::Logger, web};
 use env_logger::Env;
@@ -8,9 +9,35 @@ use log::info;
 
 use ssebench::api::{Access, AppState, Difficulty, configure_routes, record_baseline};
 use ssebench::bench::BenchCore;
+use ssebench::isolation::{Account, TaskFiles, TaskRunner, is_root, pristine_dir};
 
 /// Default HTTP port for WebUI access
 const DEFAULT_HTTP_PORT: u16 = 4263;
+
+/// The runner account (`SSE_RUNNER_USER`) and its scratch root
+/// (`SSE_RUNNER_DIR`). The tool layer creates the account.
+const DEFAULT_RUNNER_USER: &str = "sse-runner";
+const DEFAULT_RUNNER_DIR: &str = "/var/lib/ssebench-runner";
+
+/// The task runner of a root daemon. Without the runner account the daemon
+/// refuses to start rather than run the agent's code as root.
+fn task_runner(bench: &BenchCore, bench_path: &Path) -> anyhow::Result<TaskRunner> {
+    let user = env::var("SSE_RUNNER_USER").unwrap_or_else(|_| DEFAULT_RUNNER_USER.to_string());
+    let root = PathBuf::from(
+        env::var("SSE_RUNNER_DIR").unwrap_or_else(|_| DEFAULT_RUNNER_DIR.to_string()),
+    );
+    let account = Account::lookup(&user)?;
+    let files = TaskFiles::plan(bench, bench_path, &pristine_dir(&root));
+    info!(
+        "Task scripts run as {} (uid {}) in {}; shared in place: {:?}, {:?}",
+        account.name,
+        account.uid,
+        root.display(),
+        files.scripts(),
+        files.support_dirs()
+    );
+    TaskRunner::privileged(account, &root, files)
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -33,7 +60,16 @@ async fn main() -> std::io::Result<()> {
             std::process::exit(2);
         }
     };
-    let state = AppState::new(bench, difficulty);
+    let state = if is_root() {
+        let runner = task_runner(&bench, Path::new(&bench_path)).unwrap_or_else(|e| {
+            log::error!("Cannot run task scripts unprivileged: {e:#}");
+            std::process::exit(1);
+        });
+        AppState::with_runner(bench, difficulty, runner)
+    } else {
+        log::warn!("Not running as root: task scripts run as the daemon's own user");
+        AppState::new(bench, difficulty)
+    };
     info!("Difficulty gate: {:?}", state.difficulty);
 
     // Get HTTP port from environment or use default

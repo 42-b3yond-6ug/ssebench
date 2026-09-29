@@ -20,6 +20,8 @@ pub struct Capabilities {
 
 #[derive(Debug, Clone)]
 pub struct BenchCore {
+    /// The task directory (`/ssebench`)
+    root: PathBuf,
     metadata: Metadata,
     source_folder: PathBuf,
     /// Resolved (absolute) script paths for build, run, and test operations
@@ -99,6 +101,7 @@ impl BenchCore {
         let ground_truth_patch_file = metadata.files.patch.as_ref().map(|p| project_path.join(p));
 
         Ok(BenchCore {
+            root: project_path.to_path_buf(),
             metadata,
             source_folder,
             scripts,
@@ -106,6 +109,39 @@ impl BenchCore {
             intent_test_file,
             ground_truth_patch_file,
         })
+    }
+
+    /// The task directory
+    pub fn root(&self) -> &Path {
+        &self.root
+    }
+
+    /// Files that must not reach the agent: the config, the reference patch,
+    /// the hidden tests and the proofs of concept.
+    pub fn hidden_files(&self) -> Vec<PathBuf> {
+        let files = &self.metadata.files;
+        let mut hidden = vec![self.root.join("config.yaml")];
+        hidden.extend(
+            [&files.patch, &files.intent_test, &files.security_test]
+                .into_iter()
+                .flatten()
+                .map(|p| self.root.join(p)),
+        );
+        hidden.extend(files.poc.iter().cloned());
+        hidden
+    }
+
+    /// The configured PoC that `poc` names, as an absolute path or relative
+    /// to the task directory. Anything else is refused, so a caller cannot
+    /// make the run script read some other file.
+    pub fn find_poc(&self, poc: &str) -> Option<&Path> {
+        let wanted = self.root.join(poc);
+        self.metadata
+            .files
+            .poc
+            .iter()
+            .find(|p| **p == wanted)
+            .map(PathBuf::as_path)
     }
 
     /// Get reference to metadata

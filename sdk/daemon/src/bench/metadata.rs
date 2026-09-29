@@ -28,6 +28,8 @@ pub struct Files {
     #[serde(default, rename = "future_test")]
     pub intent_test: Option<PathBuf>,
     #[serde(default)]
+    pub security_test: Option<PathBuf>,
+    #[serde(default)]
     pub poc: Vec<PathBuf>,
 }
 
