@@ -12,7 +12,7 @@ FROM ubuntu:24.04 AS python-builder
 COPY --from=uv /uv /bin/
 WORKDIR /src
 COPY pyproject.toml uv.lock ./
-COPY sdk/python/pyproject.toml sdk/python/
+COPY sdk/python/pyproject.toml sdk/python/README.md sdk/python/
 COPY sdk/python/sse/ sdk/python/sse/
 COPY runtime/evaluator/pyproject.toml runtime/evaluator/
 COPY runtime/mcp/pyproject.toml runtime/mcp/

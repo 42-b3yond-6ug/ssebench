@@ -26,6 +26,37 @@ such as a check that the difficulty level withholds, raise
 [`SDKError`](#sse-error); a check that runs and fails is a
 [`ScriptResult`](#class-scriptresult) with a non-zero exit code.
 
+## Install and versions
+
+The SDK is on PyPI as `ssebench-sdk`. An agent that runs in a task container
+installs it into its own environment:
+
+```sh
+pip install ssebench-sdk==<version>
+```
+
+It needs Python 3.12 or newer. The agents in this repository, the evaluator and
+the MCP server are members of the repository's uv workspace and use the SDK
+from the workspace (`ssebench-sdk = { workspace = true }`), so they always get
+the version of the checkout.
+
+The SDK and the daemon are released together with one version, and
+`ssebench-sdk` `X` works with `ssebench-daemon` `X`; see
+[Releasing and versioning](/contributing/releasing). Pin the SDK to the version
+of the SSEBench release that built your task image. When the SDK connects to
+the daemon, it reads the daemon's version from
+[`GET /version`](/reference/daemon-api) and logs a warning if it differs from
+`sse.__version__`:
+
+```text
+SDK version (1.1.0) does not match daemon version (1.2.0)
+```
+
+The warning does not stop the run, but nothing promises that a mismatched SDK
+and daemon agree on the API, so treat it as a sign to fix the pin. Python
+packages write a pre-release as `1.2.0rc1`, the daemon and `VERSION` as
+`1.2.0-rc.1`; the SDK treats both as the same release.
+
 <!-- The module sections are generated from the docstrings in sdk/python/sse/
 by tools/docs/reference.py; edit the docstrings, then run `just docs-gen`. -->
 
