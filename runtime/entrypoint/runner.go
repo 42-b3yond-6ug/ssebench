@@ -56,6 +56,16 @@ func (r *runner) initLogFiles() {
 func (r *runner) startDaemon() bool {
 	os.Setenv("SSE_DAEMON_SOCKET", r.cfg.daemonSocketPath)
 
+	// Privileged admin socket: create its parent root-only, then let the daemon
+	// bind it (0600). The agent-facing socket and HTTP listener stay untrusted.
+	if dir := filepath.Dir(r.cfg.adminSocketPath); dir != "" && dir != "." {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			logger.Error("Failed to create admin socket directory", "dir", dir, "err", err)
+			return false
+		}
+	}
+	os.Setenv("SSE_ADMIN_SOCKET", r.cfg.adminSocketPath)
+
 	info, err := r.sm.startProcess(
 		"SDK daemon",
 		[]string{r.cfg.daemonBinaryPath},
@@ -218,7 +228,11 @@ func (r *runner) runEvaluator(agentDuration int) {
 	cmd.Dir = r.cfg.evaluatorPath
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
-	cmd.Env = append(os.Environ(), fmt.Sprintf("AGENT_DURATION=%d", agentDuration))
+	// Grading must run every check regardless of difficulty, so point the
+	// evaluator's SDK at the privileged admin socket instead of the gated
+	// agent-facing one.
+	env := replaceEnv(os.Environ(), "SSE_DAEMON_SOCKET", r.cfg.adminSocketPath)
+	cmd.Env = append(env, fmt.Sprintf("AGENT_DURATION=%d", agentDuration))
 
 	if err := cmd.Run(); err != nil {
 		logger.Warn("Evaluator exited with error", "err", err)
