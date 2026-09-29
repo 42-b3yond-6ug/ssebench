@@ -9,12 +9,19 @@ import (
 	"github.com/42-b3yond-6ug/ssebench/catalog/internal/catalog"
 )
 
-var tasks = []catalog.Task{
-	{ID: "zeta", Dataset: "demo", Project: "z", Language: "go", ImageName: "r/case/demo/zeta", BaseImage: "b",
-		Metadata: map[string]any{"id": "zeta", "project": "z"}},
-	{ID: "alpha", Dataset: "demo", Project: "a", Language: "c", ImageName: "r/case/demo/alpha", BaseImage: "b",
-		Metadata: map[string]any{"id": "alpha", "project": "a"}},
+var manifest = catalog.Manifest{
+	Dataset: "demo",
+	Version: "demo-v1",
+	Tasks: []catalog.Task{
+		{ID: "zeta", Language: "go", Project: "z", Base: "base-generic-go:latest", Image: "case/demo/zeta",
+			Arch: []string{"amd64"}, Checks: []string{"build"}, Files: map[string]string{"Dockerfile": "00"},
+			Metadata: json.RawMessage(`{"id":"zeta","project":"z"}`)},
+		{ID: "alpha", Language: "c", Project: "a", Base: "base-generic-c:latest", Image: "case/demo/alpha",
+			Metadata: json.RawMessage(`{"id":"alpha","project":"a"}`)},
+	},
 }
+
+const registry = "registry.test/ns"
 
 func get(t *testing.T, h http.Handler, method, path string) *httptest.ResponseRecorder {
 	t.Helper()
@@ -23,63 +30,78 @@ func get(t *testing.T, h http.Handler, method, path string) *httptest.ResponseRe
 	return rec
 }
 
-func TestList(t *testing.T) {
-	rec := get(t, New(tasks), http.MethodGet, "/tasks")
+func decode(t *testing.T, rec *httptest.ResponseRecorder, v any) {
+	t.Helper()
 	if rec.Code != http.StatusOK {
-		t.Fatalf("status %d", rec.Code)
+		t.Fatalf("status %d: %s", rec.Code, rec.Body)
 	}
 	if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
 		t.Errorf("content type %q", ct)
 	}
-
-	var got []map[string]any
-	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+	if err := json.Unmarshal(rec.Body.Bytes(), v); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestList(t *testing.T) {
+	var got []map[string]any
+	decode(t, get(t, New(manifest, registry), http.MethodGet, "/tasks"), &got)
+
 	if len(got) != 2 || got[0]["id"] != "alpha" || got[1]["id"] != "zeta" {
 		t.Fatalf("unexpected list %v", got)
 	}
-	for _, key := range []string{"id", "dataset", "project", "language", "image_name", "base_image"} {
-		if _, ok := got[0][key]; !ok {
+	if got[1]["image"] != "registry.test/ns/case/demo/zeta" || got[1]["base"] != "registry.test/ns/base-generic-go:latest" {
+		t.Errorf("images not resolved: %v", got[1])
+	}
+	for _, key := range []string{"id", "language", "project", "repository", "base", "image", "arch", "checks"} {
+		if _, ok := got[1][key]; !ok {
 			t.Errorf("list entry lacks %q", key)
 		}
 	}
-	if _, ok := got[0]["metadata"]; ok {
-		t.Error("list entry includes metadata")
+	for _, key := range []string{"files", "metadata"} {
+		if _, ok := got[1][key]; ok {
+			t.Errorf("list entry includes %q", key)
+		}
 	}
 }
 
 func TestListEmpty(t *testing.T) {
-	rec := get(t, New(nil), http.MethodGet, "/tasks")
+	rec := get(t, New(catalog.Manifest{Dataset: "d", Version: "v"}, registry), http.MethodGet, "/tasks")
 	if body := rec.Body.String(); body != "[]\n" {
 		t.Errorf("body %q, want an empty array", body)
 	}
 }
 
 func TestTask(t *testing.T) {
-	h := New(tasks)
+	h := New(manifest, registry)
 
 	var task catalog.Task
-	rec := get(t, h, http.MethodGet, "/tasks/zeta")
-	if err := json.Unmarshal(rec.Body.Bytes(), &task); err != nil {
-		t.Fatal(err)
-	}
-	if task.ID != "zeta" || task.ImageName != "r/case/demo/zeta" || task.Metadata["project"] != "z" {
+	decode(t, get(t, h, http.MethodGet, "/tasks/zeta"), &task)
+	if task.ID != "zeta" || task.Image != "registry.test/ns/case/demo/zeta" || task.Files["Dockerfile"] != "00" {
 		t.Errorf("unexpected task %+v", task)
 	}
 
 	var metadata map[string]any
-	rec = get(t, h, http.MethodGet, "/tasks/zeta/metadata")
-	if err := json.Unmarshal(rec.Body.Bytes(), &metadata); err != nil {
-		t.Fatal(err)
-	}
-	if metadata["id"] != "zeta" {
+	decode(t, get(t, h, http.MethodGet, "/tasks/zeta/metadata"), &metadata)
+	if metadata["id"] != "zeta" || metadata["project"] != "z" {
 		t.Errorf("unexpected metadata %v", metadata)
 	}
 }
 
+func TestManifest(t *testing.T) {
+	var got catalog.Manifest
+	decode(t, get(t, New(manifest, registry), http.MethodGet, "/manifest.json"), &got)
+
+	if got.Version != "demo-v1" || len(got.Tasks) != 2 || got.Tasks[0].ID != "zeta" {
+		t.Fatalf("unexpected manifest %+v", got)
+	}
+	if got.Tasks[0].Image != "case/demo/zeta" {
+		t.Errorf("manifest images should stay relative to the registry, got %q", got.Tasks[0].Image)
+	}
+}
+
 func TestErrors(t *testing.T) {
-	h := New(tasks)
+	h := New(manifest, registry)
 	for _, tc := range []struct {
 		method, path string
 		want         int

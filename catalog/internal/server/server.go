@@ -1,4 +1,4 @@
-// Package server serves a task catalog, held in memory, over HTTP.
+// Package server serves a dataset manifest, held in memory, over HTTP.
 package server
 
 import (
@@ -13,21 +13,26 @@ import (
 )
 
 type server struct {
+	manifest  catalog.Manifest
 	summaries []catalog.Task
 	byID      map[string]catalog.Task
 }
 
-// New returns the HTTP API for tasks:
+// New returns the HTTP API for a manifest. Task entries carry image names
+// prefixed by registry:
 //
-//	GET /tasks                 all tasks without metadata, sorted by id
-//	GET /tasks/{id}            one task with metadata
+//	GET /tasks                 all tasks without files and metadata, sorted by id
+//	GET /tasks/{id}            one task
 //	GET /tasks/{id}/metadata   the task's config.yaml as JSON
-func New(tasks []catalog.Task) http.Handler {
+//	GET /manifest.json         the manifest as loaded, with image names relative to the registry
+func New(m catalog.Manifest, registry string) http.Handler {
 	s := &server{
-		summaries: make([]catalog.Task, 0, len(tasks)),
-		byID:      make(map[string]catalog.Task, len(tasks)),
+		manifest:  m,
+		summaries: make([]catalog.Task, 0, len(m.Tasks)),
+		byID:      make(map[string]catalog.Task, len(m.Tasks)),
 	}
-	for _, t := range tasks {
+	for _, t := range m.Tasks {
+		t = t.Resolve(registry)
 		s.summaries = append(s.summaries, t.Summary())
 		s.byID[t.ID] = t
 	}
@@ -37,6 +42,7 @@ func New(tasks []catalog.Task) http.Handler {
 	mux.HandleFunc("GET /tasks", s.list)
 	mux.HandleFunc("GET /tasks/{id}", s.get)
 	mux.HandleFunc("GET /tasks/{id}/metadata", s.metadata)
+	mux.HandleFunc("GET /manifest.json", s.raw)
 	return mux
 }
 
@@ -77,6 +83,10 @@ func (s *server) metadata(w http.ResponseWriter, req *http.Request) {
 	if t, ok := s.lookup(w, req); ok {
 		writeJSON(w, t.Metadata)
 	}
+}
+
+func (s *server) raw(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, s.manifest)
 }
 
 func (s *server) lookup(w http.ResponseWriter, req *http.Request) (catalog.Task, bool) {

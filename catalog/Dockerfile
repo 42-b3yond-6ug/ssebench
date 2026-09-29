@@ -1,5 +1,5 @@
-# Build from the repository root, so the dataset is in the context and its
-# catalog is generated into the image:
+# Build from the repository root, so that the dataset manifest is in the
+# context:
 #   docker build -f catalog/Dockerfile --build-arg VERSION="$(cat VERSION)" .
 # catalog/Dockerfile.dockerignore trims the context to the files read here.
 FROM golang:1.26-alpine AS build
@@ -11,17 +11,13 @@ COPY catalog/ ./
 ARG VERSION=dev
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/ssebench-catalog ./cmd/ssebench-catalog
 
-ARG DATASET=pilot
-ARG SSEBENCH_REGISTRY=ghcr.io/42-b3yond-6ug/ssebench
-COPY datasets/${DATASET}/ /src/datasets/${DATASET}/
-RUN /out/ssebench-catalog generate --dataset "${DATASET}" --output /out/catalog.json "/src/datasets/${DATASET}"
-
 FROM alpine:3.22
 
+ARG DATASET=pilot
 COPY --from=build /out/ssebench-catalog /usr/local/bin/
-COPY --from=build /out/catalog.json /srv/catalog.json
+COPY datasets/${DATASET}/manifest.json /srv/manifest.json
 
-ENV SSEBENCH_CATALOG_FILE=/srv/catalog.json \
+ENV SSEBENCH_MANIFEST=/srv/manifest.json \
     SSEBENCH_CATALOG_PORT=8080
 USER nobody
 EXPOSE 8080

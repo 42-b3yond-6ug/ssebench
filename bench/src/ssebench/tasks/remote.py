@@ -1,44 +1,32 @@
 import logging
 import subprocess
-from typing import cast, final, override
+from typing import final, override
+from urllib.parse import quote
 
 import requests
-from pydantic import BaseModel
 
+from ssebench.tasks.manifest import ManifestTask
 from ssebench.tasks.metadata import TaskMetadata
 
 from .task import Task
 
 
-class RemoteTaskConfig(BaseModel):
-    id: str
-    image_name: str
-    base_image: str
-    language: str
-    dataset: str
-
-
 @final
 class RemoteTask(Task):
     """
-    RemoteTask loads a task from a catalog server.
+    RemoteTask loads a task from a catalog server (`ssebench-catalog serve`).
 
-    The task configuration is fetched from a remote server and the
-    Docker image is pulled during the prepare() phase.
+    The server returns the task's manifest entry with image names already
+    prefixed by its registry, and the case image is pulled during the
+    prepare() phase.
     """
 
     def __init__(self, name: str, server: str):
         self.name = name
         self.server = server.rstrip("/")
-        self.remote_tasks = get_remote_tasks_list(self.server)
-
-        self.docker_image_name = ""
-        for t in self.remote_tasks:
-            if t.id == name:
-                self.docker_image_name = t.image_name
-
-        assert self._validate()
-        self.task_metadata = get_remote_task_metadata(self.name, self.server)
+        entry = get_remote_task(name, self.server)
+        self.docker_image_name = entry.image
+        self.task_metadata = entry.metadata
 
     @override
     def docker_image(self, base: str | None) -> str:
@@ -60,18 +48,6 @@ class RemoteTask(Task):
         )
         logging.info(f"Successfully pulled {self.docker_image_name}")
 
-    def _validate(self) -> bool:
-        """
-        Validate that the task configuration was successfully loaded.
-        This will always return True since we trust the remote server to provide correct task configuration.
-
-        Returns:
-            bool: True if the task config is loaded and has a valid image name.
-        """
-        assert self.docker_image_name != ""
-
-        return True
-
     @override
     def case_image_exists(self) -> bool:
         """Remote images are pulled on demand; treat them as always available."""
@@ -82,30 +58,17 @@ class RemoteTask(Task):
         return self.task_metadata
 
 
-def get_remote_tasks_list(server: str) -> list[RemoteTaskConfig]:
+def get_remote_task(name: str, server: str) -> ManifestTask:
     """
-    GET /tasks: expect return a list[RemoteTaskConfig] json.
+    GET /tasks/<name>: the task's manifest entry, with resolved image names.
 
     Raises:
+        LookupError: If the catalog has no such task.
         requests.RequestException: If the HTTP request fails.
-        pydantic.ValidationError: If the response doesn't match list[RemoteTaskConfig] schema.
+        pydantic.ValidationError: If the response is not a manifest entry.
     """
-    endpoint = f"{server}/tasks"
-    resp = requests.get(endpoint)
+    resp = requests.get(f"{server}/tasks/{quote(name, safe='')}", timeout=30)
+    if resp.status_code == 404:
+        raise LookupError(f"Task {name} is not in the catalog at {server}")
     resp.raise_for_status()
-    tasks_data = cast(list[object], resp.json())
-    return [RemoteTaskConfig.model_validate(task) for task in tasks_data]
-
-
-def get_remote_task_metadata(name: str, server: str) -> TaskMetadata:
-    """
-    GET /tasks/<task_name>/metadata: expect return a TaskMetadata json.
-
-    Raises:
-        requests.RequestException: If the HTTP request fails.
-        pydantic.ValidationError: If the response doesn't match RemoteTaskConfig schema.
-    """
-    endpoint = f"{server}/tasks/{name}/metadata"
-    resp = requests.get(endpoint)
-    resp.raise_for_status()
-    return TaskMetadata.model_validate(resp.json())
+    return ManifestTask.model_validate(resp.json())
