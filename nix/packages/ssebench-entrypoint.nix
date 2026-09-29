@@ -1,8 +1,16 @@
 { pkgs, flake, ... }:
+let
+  inherit (pkgs) lib;
+  root = ../../runtime/entrypoint;
+in
 pkgs.buildGo126Module {
   pname = "ssebench-entrypoint";
   inherit (flake.lib) version;
-  src = ../../runtime/entrypoint;
+  # examples/ holds separate modules that build against this one.
+  src = lib.fileset.toSource {
+    inherit root;
+    fileset = lib.fileset.difference root (root + "/examples");
+  };
   vendorHash = "sha256-2adRLsTSd0vTGcis5FfOT5ZFgB420nvDqHkEEopmgec=";
 
   env.CGO_ENABLED = 0;
@@ -15,7 +23,7 @@ pkgs.buildGo126Module {
   meta = {
     description = "SSEBench container entrypoint: starts the daemon, the MCP server, the agent and the evaluator";
     homepage = "https://github.com/42-b3yond-6ug/ssebench";
-    license = pkgs.lib.licenses.asl20;
+    license = lib.licenses.asl20;
     mainProgram = "ssebench-entrypoint";
   };
 }
