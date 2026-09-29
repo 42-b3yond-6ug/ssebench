@@ -245,9 +245,9 @@ Inside `Run`, the mode uses the `*Runtime`:
 | `StartMCPServer() error` | Starts the MCP server and waits until it answers |
 | `StartOpenCodeServer()` | Starts OpenCode on port 4096 if it is installed |
 | `StartService(name string, argv []string, dir string, env []string) error` | Starts another background process, logged to `LogPath(name)` |
-| `RunAgent() (AgentResult, error)` | Runs the agent as `model` with its time limit, then ends the agent phase |
+| `RunAgent() (AgentResult, error)` | Runs the agent as `model` with its time limit, then ends the agent phase; runs the agent-phase [plugins](/concepts/plugins-and-hooks#hooks) around it |
 | `EndAgentPhase()` | Ends the agent phase; only the first call has an effect |
-| `Evaluate(result AgentResult)` | Ends the agent phase, then grades through the admin socket and writes `/sse_result` |
+| `Evaluate(result AgentResult)` | Ends the agent phase, then grades through the admin socket and writes `/sse_result`; runs the grading plugins around it |
 | `KeepAlive()` | Blocks while `SSE_KEEP_ALIVE=1` keeps the container for the web UI |
 
 `AgentResult` has the agent's `ExitStatus` (124 when it was killed at its time
@@ -328,6 +328,7 @@ A tool image, and so each agent image built from it, must:
 | `/ssebench/ssebench-daemon` | The daemon (`sdk/daemon`) |
 | `/ssebench/mcp` | The MCP server (`runtime/mcp`) and its virtual environment |
 | `/evaluator` | The evaluator (`runtime/evaluator`) and its virtual environment |
+| `/plugins` | `plugins.yaml`, its schema and the plugins the run selected, each with its virtual environment; root-owned. `Config.PluginsDir` points elsewhere. |
 | `/ssebench` | The task's scripts and files from the case image; root only |
 | `/ssebench-repo` | The original project source; root only |
 | `source_dir` from the task's `config.yaml` | The project source, owned by `model`, with its git history replaced by one commit |
@@ -374,11 +375,15 @@ generated from the [environment variable registry](/reference/environment).
 | `SSE_DIFFICULTY` | `2` | daemon, MCP server | The [difficulty level](/concepts/difficulty-levels), from 0 to 4. The MCP server decides from it which checks `test_patch` runs, and the daemon refuses the withheld `bencher` actions on its agent-facing listeners. |
 | `TIMEOUT` | `14400` in the entrypoint, `1800` in the evaluator | entrypoint, evaluator, agents | How long the agent may run, in seconds (`--timeout`). The evaluator uses the same limit for grading. |
 | `SSE_KEEP_ALIVE` | `0` | entrypoint | `1` keeps the container running after grading (`--keep-container`), for the web UI. |
+| `SSE_PLUGINS` | the plugins `plugins.yaml` enables | entrypoint | Comma-separated plugins to run, set by `ssebench run --plugin`; when it is set, it replaces the `enabled` field of `plugins.yaml`, and an empty value runs none. See [Plugins and hooks](/concepts/plugins-and-hooks). |
 | `SSE_DAEMON_SOCKET` | `/tmp/sse.sock` | entrypoint, daemon, SDK | The daemon's agent-facing Unix socket, mode `0666`. The entrypoint sets it for every process it starts; in sidecar mode `ssebench run` sets it to `/run/ssebench/sse.sock`, on a root-owned volume the two containers share. Without it, the daemon serves HTTP only. |
 | `SSE_ADMIN_SOCKET` | `/run/ssebench/admin.sock` | entrypoint, daemon | The daemon's privileged Unix socket, mode `0600`, root only: grading, the reference patch and phase changes. In sidecar mode it is on the volume the two containers share, and the task container's entrypoint sets it. The daemon binds it only when this is set; the entrypoint sets it, and points the evaluator's `SSE_DAEMON_SOCKET` at it. |
 | `SSE_DAEMON_TIMEOUT` | `300` | entrypoint | Seconds to wait for the daemon's socket. |
 | `SSE_MCP_TIMEOUT` | `300` | entrypoint | Seconds to wait for the MCP server. |
 | `SSE_DEBUG` | unset | entrypoint | Any non-empty value turns on debug logs. |
+| `SSE_PLUGIN_NAME` | unset | plugins | Set by the entrypoint for a plugin it runs; the plugin's name. |
+| `SSE_PLUGIN_HOOK` | unset | plugins | Set by the entrypoint for a plugin it runs; the hook it runs at, such as `after-grading`. |
+| `SSE_ORACLE_FUZZ` | unset | oracle plugin | `1` makes the oracle plugin fuzz the patched project after its review; it installs AFL++, so the run needs `--egress open`. |
 | `SSE_BENCH_PATH` | `/ssebench` | daemon | Directory with the task's `config.yaml`, scripts and files. |
 | `SSE_HTTP_PORT` | `4263` | daemon | The daemon's agent-facing HTTP port. |
 | `SSE_REPO_PATH` | `/ssebench-repo` | daemon | Clean clone of the project that grading applies the agent's diff to and builds. |

@@ -12,7 +12,7 @@ SSEBench reads these files. Paths are relative to the repository root, the
 | [`.env`](#env) | the CLI, `just`, Compose | Local secrets, provider keys and settings |
 | [`models/*.yaml`](#models-yaml) | the LiteLLM proxy image | The models `--model` can name |
 | [`agents/<agent>/agent.yaml`](#agent-yaml) | the CLI | An agent's image |
-| [`runtime/plugins/plugins.yaml`](#plugins-yaml) | not yet | Plugins and their hooks |
+| [`runtime/plugins/plugins.yaml`](#plugins-yaml) | the CLI, the entrypoint | Plugins and their hooks |
 | [`datasets/<dataset>/<task>/sse/config.yaml`](#sse-config-yaml) | the CLI, the daemon | A task |
 | [`datasets/<dataset>/dataset.yaml`](#dataset-yaml) | the CLI | A dataset's version |
 
@@ -112,20 +112,17 @@ name: claude-code
 ## `plugins.yaml`
 
 `runtime/plugins/plugins.yaml` lists the plugins in `runtime/plugins/`, each a
-folder with a `run.sh`, and when they run. `runtime/plugins/schema.json` is its
-JSON Schema. See [Plugins and hooks](/concepts/plugins-and-hooks).
-
-::: warning Not wired yet
-The runtime does not read `plugins.yaml` yet, so no plugin runs during a
-benchmark.
-:::
+folder with an executable `run.sh`, and when they run. `runtime/plugins/schema.json`
+is its JSON Schema; the CLI validates the file against it when it builds the
+tool layer, and the entrypoint again when the container starts. See
+[Plugins and hooks](/concepts/plugins-and-hooks).
 
 ```yaml
-- name: oracle
-  enabled: true
+- name: artifact
+  enabled: false
   hook: after-grading
-  llm: true
-  timeout: 3600
+  llm: false
+  timeout: 5
 ```
 
 Each entry has:
@@ -135,10 +132,10 @@ Each entry has:
 | Key | Type | Required | Description |
 |---|---|---|---|
 | `name` | string | yes | Name of the plugin; it must equal the name of its folder. |
-| `enabled` | boolean | yes | Whether the plugin runs. |
+| `enabled` | boolean | yes | Whether the plugin runs in every run; the `--plugin` option of ssebench run selects plugins for one run instead. |
 | `hook` | `before-agent` \| `on-agent` \| `after-agent` \| `before-grading` \| `on-grading` \| `after-grading` | yes | When the plugin runs: before (blocking), on (in parallel with) or after (blocking) the agent or the grading. |
-| `llm` | boolean | yes | Whether the plugin uses an LLM. |
-| `timeout` | number | yes | Time limit of the plugin. |
+| `llm` | boolean | yes | Whether the plugin gets the run's model: `SSE_BASE_URL`, `SSE_API_KEY` and `SSE_MODEL_NAME`. |
+| `timeout` | integer | yes | Time limit of the plugin, in minutes; it is stopped when it runs longer. |
 
 <!-- end generated -->
 

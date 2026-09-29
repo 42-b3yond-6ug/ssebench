@@ -19,7 +19,8 @@ results/
     ├── source.tar.gz                    the agent's source tree
     ├── agent.log  daemon.log  mcp.log  evaluator.log  opencode.log
     ├── scriptrunner-<ms>.log            one per script the daemon ran
-    └── patch-<ms>.log                   one per test diff the daemon applied
+    ├── patch-<ms>.log                   one per test diff the daemon applied
+    └── plugins/                         plugin logs and outcomes, when plugins ran
 ```
 
 A run of the `dummy` agent on `gjson-196-bf4efcb` with `claude-sonnet-4-6`
@@ -48,6 +49,7 @@ first to keep them.
 | `opencode.log` | entrypoint | The OpenCode server's log; empty unless the image has OpenCode. |
 | `scriptrunner-<ms>.log` | daemon | The command line, exit code, standard output and standard error of one task script, named by the time it started in milliseconds. There is one for each check `test_patch` ran during the run, followed by those of grading. |
 | `patch-<ms>.log` | daemon | The result of applying the hidden tests before an intent test. |
+| `plugins/<name>.log`, `plugins/results.json` | entrypoint | The output of each [plugin](/concepts/plugins-and-hooks) and how it ended; only when plugins ran. Each plugin writes its own output in a folder named after it, such as `artifact/manifest.json`. |
 
 The MCP server also writes the full log of a long check result to
 `/tmp/mcp/logs` inside the container; that directory is not part of the
@@ -131,7 +133,8 @@ are copied from `result.json`; the rest comes from the CLI. For the dummy run
     "difficulty": 2,
     "tool_layer": "sandbox",
     "egress": "restricted",
-    "reference_run": false
+    "reference_run": false,
+    "plugins": []
   },
   "patch_result": { "build_success": true, "pov_passed": 0, "pov_total": 1, "…": "…" },
   "runtime_result": { "agent_duration": 0, "agent_timeout": false, "evaluator_timeout": false },
@@ -149,6 +152,7 @@ are copied from `result.json`; the rest comes from the CLI. For the dummy run
 | `config.difficulty` | The [difficulty level](/concepts/difficulty-levels), `--difficulty`. |
 | `config.tool_layer` | The [tool layer](/concepts/image-layers#tool), `--tool-layer`; `null` in sidecar mode. |
 | `config.egress` | The [egress policy](/deployment/integrity-and-egress), `restricted` or `open`. |
+| `config.plugins` | The [plugins](/concepts/plugins-and-hooks) enabled for the run, from `--plugin` or `plugins.yaml`; empty when none ran. |
 | `config.reference_run` | `true` when the `reference` agent applied the task's known fix; see [Reference runs](#reference-runs). |
 | `patch_result`, `runtime_result` | As in `result.json`. |
 | `spend` | What the run's model calls cost, in US dollars, as the [LiteLLM proxy](/concepts/litellm-proxy#one-key-per-run) recorded it. |

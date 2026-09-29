@@ -104,6 +104,7 @@ task container. Agents and plugins read them.
 | `SSE_DIFFICULTY` | `2` | daemon, MCP server | The [difficulty level](/concepts/difficulty-levels), from 0 to 4. The MCP server decides from it which checks `test_patch` runs, and the daemon refuses the withheld `bencher` actions on its agent-facing listeners. |
 | `TIMEOUT` | `14400` in the entrypoint, `1800` in the evaluator | entrypoint, evaluator, agents | How long the agent may run, in seconds (`--timeout`). The evaluator uses the same limit for grading. |
 | `SSE_KEEP_ALIVE` | `0` | entrypoint | `1` keeps the container running after grading (`--keep-container`), for the web UI. |
+| `SSE_PLUGINS` | the plugins `plugins.yaml` enables | entrypoint | Comma-separated plugins to run, set by `ssebench run --plugin`; when it is set, it replaces the `enabled` field of `plugins.yaml`, and an empty value runs none. See [Plugins and hooks](/concepts/plugins-and-hooks). |
 | `SSE_DAEMON_SOCKET` | `/tmp/sse.sock` | entrypoint, daemon, SDK | The daemon's agent-facing Unix socket, mode `0666`. The entrypoint sets it for every process it starts; in sidecar mode `ssebench run` sets it to `/run/ssebench/sse.sock`, on a root-owned volume the two containers share. Without it, the daemon serves HTTP only. |
 | `SSE_ADMIN_SOCKET` | `/run/ssebench/admin.sock` | entrypoint, daemon | The daemon's privileged Unix socket, mode `0600`, root only: grading, the reference patch and phase changes. In sidecar mode it is on the volume the two containers share, and the task container's entrypoint sets it. The daemon binds it only when this is set; the entrypoint sets it, and points the evaluator's `SSE_DAEMON_SOCKET` at it. |
 
@@ -119,6 +120,9 @@ defaults:
 | `SSE_DAEMON_TIMEOUT` | `300` | entrypoint | Seconds to wait for the daemon's socket. |
 | `SSE_MCP_TIMEOUT` | `300` | entrypoint | Seconds to wait for the MCP server. |
 | `SSE_DEBUG` | unset | entrypoint | Any non-empty value turns on debug logs. |
+| `SSE_PLUGIN_NAME` | unset | plugins | Set by the entrypoint for a plugin it runs; the plugin's name. |
+| `SSE_PLUGIN_HOOK` | unset | plugins | Set by the entrypoint for a plugin it runs; the hook it runs at, such as `after-grading`. |
+| `SSE_ORACLE_FUZZ` | unset | oracle plugin | `1` makes the oracle plugin fuzz the patched project after its review; it installs AFL++, so the run needs `--egress open`. |
 | `SSE_BENCH_PATH` | `/ssebench` | daemon | Directory with the task's `config.yaml`, scripts and files. |
 | `SSE_HTTP_PORT` | `4263` | daemon | The daemon's agent-facing HTTP port. |
 | `SSE_REPO_PATH` | `/ssebench-repo` | daemon | Clean clone of the project that grading applies the agent's diff to and builds. |
@@ -195,6 +199,7 @@ The catalog service reads these; each has a command-line option too. See
 | `SSEBENCH_INTEGRITY_IMAGE` | the tool image that `ssebench run` builds for `gjson-196-bf4efcb` | integrity tests | Sandbox tool image that `tests/integrity` attacks. |
 | `SSEBENCH_INTEGRITY_SIDECAR_ENV_IMAGE` | the task image that `ssebench run --mode sidecar` builds for `gjson-196-bf4efcb` | integrity tests | Sidecar task image, with the daemon, that `tests/integrity` attacks. |
 | `SSEBENCH_INTEGRITY_SIDECAR_AGENT_IMAGE` | the sidecar runtime image of this version | integrity tests | Sidecar agent runtime image that `tests/integrity` runs the fake agent in. |
+| `SSEBENCH_INTEGRITY_PLUGINS` | unset | integrity tests | Plugins the sandbox container of the integrity tests enables, passed as `SSE_PLUGINS`; the image must have them installed. |
 | `SSEBENCH_INTEGRITY_SOURCE` | `/src/gjson` | integrity tests | Source directory inside those images. |
 | `SSE_DAEMON_HTTP` | `http://localhost:4263` | integrity tests | The daemon's HTTP listener that `tests/integrity/fake_agent.sh` probes; in sidecar mode, the task container's. |
 | `SSEBENCH_SMOKE_TASK` | `gjson-196-bf4efcb` | tests/e2e/smoke.sh | Task of the end-to-end smoke run. |
