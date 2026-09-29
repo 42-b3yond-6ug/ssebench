@@ -51,6 +51,11 @@ def clear_directory(path: Path) -> None:
     logger.debug(f"Cleared contents of {path}")
 
 
+def summary_path(task: str, agent: str, model: str) -> Path:
+    """The run summary that `ssebench run` writes, a PerTaskEvaluationResult, relative to its working directory."""
+    return Path("results") / f"{task}-{agent}-{model}.json"
+
+
 def record_results(task: Task, run_config: RunConfig, spend: float, evaluator_file: Path) -> None:
     """Complete the run's result.json with the run settings, and write the summary to results/."""
     content = evaluator_file.read_text().strip()
@@ -72,9 +77,8 @@ def record_results(task: Task, run_config: RunConfig, spend: float, evaluator_fi
         crs=container_result,
     )
 
-    result_folder = Path("results")
-    result_folder.mkdir(exist_ok=True)
-    result_json_path = result_folder / f"{task.name}-{run_config.agent}-{run_config.model}.json"
+    result_json_path = summary_path(task.name, run_config.agent, run_config.model)
+    result_json_path.parent.mkdir(exist_ok=True)
     _ = result_json_path.write_text(per_task_result.model_dump_json())
 
 

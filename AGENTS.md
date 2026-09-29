@@ -94,6 +94,7 @@ Justfile yet.
 | `just fmt [components]` | ruff, cargo fmt, gofmt, prettier. |
 | `just images` | Build the base images and the runtime, LiteLLM and catalog images. |
 | `just dataset-validate [tasks]` | Check that tasks build, their PoCs reproduce and their tests behave. |
+| `just dataset-verify [tasks]` | Grade tasks with the reference agent (every check must pass) and the dummy agent (the PoCs must still trigger), as the Dataset workflow does; `--changed-since origin/main` picks the tasks a branch changed. |
 | `just docs [build]` | Serve or build the documentation site. |
 | `just docs-gen` / `just docs-check` | Regenerate, or check, the reference pages generated from the code (CLI, Python SDK, daemon API, environment variables, config files). |
 | `just release <version>` | Set the version of every component and update the lockfiles. |
@@ -135,6 +136,8 @@ uv run tools/docs/reference.py            # or --check
 uv run ssebench dataset validate
 uv run ssebench dataset manifest --check
 uv run ssebench dataset schema --check
+# Grade tasks end to end with the reference and dummy agents (needs Docker and the base images)
+uv run ssebench dataset verify <task-id> ...
 
 # Nix (optional): every toolchain in one shell; the lint and test checks in the sandbox
 nix develop

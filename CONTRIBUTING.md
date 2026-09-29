@@ -128,13 +128,14 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent reference
 
 - **Add a task:** [docs/guides/add-a-task.md](docs/guides/add-a-task.md). Tasks
   must be publicly disclosed vulnerabilities with an upstream fix. A new task
-  must pass `uv run ssebench dataset validate` and `just dataset-validate
-  <task-id>`, and every check with the `reference` agent, while the `dummy`
-  agent must fail its proof-of-concept and hidden-test checks. Regenerate
-  `datasets/pilot/manifest.json` with `uv run ssebench dataset manifest`. Record
-  the upstream project and license in `datasets/pilot/third_party.json`, then
-  regenerate `datasets/pilot/THIRD_PARTY.md` with
-  `python3 tools/dataset/third_party.py`.
+  must pass `uv run ssebench dataset validate` and `just dataset-verify
+  <task-id>`, which the Dataset workflow runs on every pull request that
+  changes a task: every check must pass with the `reference` agent, while the
+  `dummy` agent must fail its proof-of-concept and hidden-test checks.
+  Regenerate `datasets/pilot/manifest.json` with `uv run ssebench dataset
+  manifest`. Record the upstream project and license in
+  `datasets/pilot/third_party.json`, then regenerate
+  `datasets/pilot/THIRD_PARTY.md` with `python3 tools/dataset/third_party.py`.
 - **Add an agent:** [docs/guides/add-an-agent.md](docs/guides/add-an-agent.md).
   An agent is a folder in `agents/` with an `agent.yaml` and a Dockerfile; an
   agent with a Python wrapper (`agents/<name>/<name>-sse`) is a member of the

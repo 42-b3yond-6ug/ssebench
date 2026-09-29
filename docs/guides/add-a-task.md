@@ -394,6 +394,17 @@ hidden tests do not fail without the fix. The `reference` run is labelled as
 such and never counts as a model's score; see
 [Reference runs](/reference/cli#reference-runs).
 
+`just dataset-verify` runs both agents and compares their grades with the table
+above, for one task or several (`--jobs` sets how many run at once):
+
+```sh
+just dataset-verify <task-id>
+```
+
+It prints a table of task by check and lists every check that did not grade as
+expected, with the log of each run under `results/dataset-verify/logs/`. See
+[`ssebench dataset verify`](/reference/cli#ssebench-dataset-verify).
+
 ### 4. Run the offline validator
 
 ```sh
@@ -453,7 +464,9 @@ uv run ssebench dataset schema --check
 uv run python tools/dataset/third_party.py --check
 ```
 
-Run them, and the `reference` and `dummy` runs, yourself first, and read
+The Dataset workflow then runs `ssebench dataset verify` for every task the
+pull request changes. Run those checks and `just dataset-verify <task-id>`
+yourself first, and read
 [Contributing](https://github.com/42-b3yond-6ug/ssebench/blob/main/CONTRIBUTING.md)
 for the rest of the process. Never include API keys, `.env` files or `results/`.
 
