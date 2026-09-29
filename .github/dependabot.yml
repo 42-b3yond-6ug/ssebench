@@ -79,9 +79,11 @@ updates:
     directories:
       - /catalog
       - /images/litellm
+      - /images/runtime
       - /images/sandbox
       - /images/sidecar-agent
       - /images/sidecar-case
+      - /webui
     schedule:
       interval: weekly
     open-pull-requests-limit: 0
