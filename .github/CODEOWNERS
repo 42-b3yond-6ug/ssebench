@@ -1,0 +1,17 @@
+# One entry per component, so ownership can be split as maintainers join.
+
+*                     @whexy
+
+/.github/             @whexy
+/bench/               @whexy
+/runtime/             @whexy
+/sdk/                 @whexy
+/images/              @whexy
+/agents/              @whexy
+/models/              @whexy
+/catalog/             @whexy
+/webui/               @whexy
+/docs/                @whexy
+/datasets/            @whexy
+/deploy/              @whexy
+/tools/               @whexy

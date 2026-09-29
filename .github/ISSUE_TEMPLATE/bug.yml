@@ -1,0 +1,41 @@
+name: Bug report
+description: Something in SSEBench does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report security problems here, including ways for an agent to reach the reference answer. Use the security advisory link on the previous page instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: The exact commands, and for runs the task, agent, model, mode and difficulty level.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant output, for example from the run directory under `results/`. Remove API keys first.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: The SSEBench release or the commit you are on.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, Docker version and architecture.
