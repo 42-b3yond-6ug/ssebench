@@ -11,4 +11,4 @@ export HOME=/home/model
 
 # Launch the agent (runs as model user via entrypoint)
 echo "[run.sh] Launching Claude Code agent..."
-exec uv run main.py
+exec uv run --frozen --no-dev main.py

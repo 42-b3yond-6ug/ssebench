@@ -2,7 +2,7 @@
 name = "ssebench"
 version = "0.1.0"
 description = "SSEBench - Software Security Benchmark for AI Agents"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "httpx>=0.28.1",
     "jinja2>=3.1.6",
@@ -13,9 +13,6 @@ dependencies = [
 
 [project.scripts]
 ssebench = "ssebench.cli:main"
-
-[dependency-groups]
-dev = ["ruff>=0.11.0", "basedpyright>=1.29.0"]
 
 [build-system]
 requires = ["hatchling"]

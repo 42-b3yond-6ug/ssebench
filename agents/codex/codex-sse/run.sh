@@ -8,4 +8,4 @@ cd "$SCRIPT_DIR" || exit 1
 
 # Launch the agent
 echo "[run.sh] Launching Codex agent..."
-uv run main.py
+uv run --frozen --no-dev main.py

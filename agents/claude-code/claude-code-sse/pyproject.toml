@@ -1,16 +1,13 @@
 [project]
-name = "claude_code_sse"
+name = "claude-code-sse"
 version = "0.1.0"
 description = "Claude"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
   "fastmcp",
   "ssebench-sdk",
 ]
 
-[tool.basedpyright]
-typeCheckingMode = "standard"
-
 [tool.uv.sources]
-ssebench-sdk = { path = "../../../sdk/python", editable = false }
+ssebench-sdk = { workspace = true }

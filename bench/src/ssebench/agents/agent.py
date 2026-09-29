@@ -26,8 +26,8 @@ class AgentConfig(BaseModel):
         return v.strip()
 
 
-# In-repo agent wrappers depend on the SDK sources; agent builds get them as the `sdk` context.
-SDK_PYTHON_PATH = Path("sdk/python")
+# In-repo agent wrappers are uv workspace members; agent builds get the workspace root as the `workspace` context.
+WORKSPACE_ROOT = Path(".")
 
 
 def get_agent_path(name: str) -> Path:
@@ -74,7 +74,7 @@ class Agent(DockerLayerMixin):
                 "--build-context",
                 f"ssebench-agent=docker-image://{base}",
                 "--build-context",
-                f"sdk={SDK_PYTHON_PATH.resolve()}",
+                f"workspace={WORKSPACE_ROOT.resolve()}",
                 "-t",
                 docker_image_name,
                 "--load",

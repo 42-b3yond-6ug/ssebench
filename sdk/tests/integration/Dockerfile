@@ -17,7 +17,7 @@ RUN cargo build --release --bin ssebench-daemon
 # =============================================================================
 # Stage 2: Build Python wheel
 # =============================================================================
-FROM python:3.11-alpine AS python-builder
+FROM python:3.12-alpine AS python-builder
 
 WORKDIR /build
 COPY python/pyproject.toml ./

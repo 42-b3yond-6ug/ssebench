@@ -1,12 +1,61 @@
-[project]
-name = "ssebench-cli"
-version = "0.1.0"
-description = "SSEBench CLI - Software Security Benchmark for AI Agents"
-requires-python = ">=3.10"
-dependencies = ["ssebench"]
+# Workspace root. It is not a package itself: `uv sync` here installs every
+# member, including the `ssebench` CLI, into one environment.
 
-[tool.uv.sources]
-ssebench = { path = "bench", editable = true }
+[tool.uv.workspace]
+members = [
+  "bench",
+  "runtime/evaluator",
+  "runtime/mcp",
+  "runtime/plugins/*",
+  "sdk/python",
+  "agents/*/*-sse",
+]
 
-[project.scripts]
-ssebench = "ssebench.cli:main"
+[dependency-groups]
+dev = [
+  "basedpyright>=1.29.0",
+  "pytest>=8.3.5",
+  "ruff>=0.11.0",
+]
+
+# Marks the SSEBench home: the CLI looks for this table to find agents/,
+# images/, runtime/, models/, deploy/ and datasets/ (see ssebench.paths).
+[tool.ssebench]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+# Directories whose top-level modules count as first-party for import sorting.
+src = ["bench/src", "runtime/evaluator", "runtime/mcp", "runtime/plugins/*", "agents/*/*-sse"]
+# Task sources are upstream code; docs snippets are formatted for reading;
+# tools/validate and the SDK integration fixtures run as standalone scripts.
+extend-exclude = ["datasets", "docs", "tools/validate", "sdk/tests/integration"]
+
+[tool.ruff.lint]
+select = [
+  "E",  # pycodestyle errors
+  "F",  # pyflakes
+  "B",  # flake8-bugbear
+  "I",  # isort
+  "C4",  # flake8-comprehensions
+  "UP",  # pyupgrade
+]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.basedpyright]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+venvPath = "."
+venv = ".venv"
+include = ["bench", "runtime/evaluator", "runtime/mcp", "runtime/plugins", "sdk/python", "agents"]
+# setuptools editable installs use an import hook that pyright cannot follow.
+extraPaths = ["sdk/python"]
+
+[tool.pytest.ini_options]
+testpaths = ["bench/tests", "sdk/python/tests"]
+addopts = ["--import-mode=importlib"]
