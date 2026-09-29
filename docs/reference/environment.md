@@ -88,6 +88,7 @@ too.
 | `SSEBENCH_ENV_FILE` | `.env` in the repository root | CLI, Compose | The `.env` file that the LiteLLM container reads provider keys from. The CLI sets it to the `.env` in the workspace; set it yourself only when you run `docker compose` on `deploy/compose/docker-compose.yaml` directly. |
 | `SSEBENCH_DEMO_WEBUI_PORT` | `3001` | CLI, Compose | Host port of the demo's web UI, on `127.0.0.1`. |
 | `SSEBENCH_DEMO_CATALOG_PORT` | `8090` | CLI, Compose | Host port of the demo's catalog service, on `127.0.0.1`. |
+| `SSEBENCH_RUNTIME_IMAGE` | `<registry>/runtime:<version>` without a checkout, else unset | CLI | Runtime image that the tool layers copy the daemon and the entrypoint from, as `<registry>/runtime:<version>` does. Unset, a checkout compiles both from its sources, and an installation without a checkout uses the published image of its version. Set it to skip the compilation in a checkout. |
 | `SSEBENCH_VERSION` | set by the CLI | CLI, Compose | SSEBench version that the Compose files pass as the `VERSION` build argument of the images they build. The CLI sets it from `VERSION`; it only matters when you run `docker compose build` yourself. |
 
 <!-- end generated -->
