@@ -22,13 +22,14 @@ from types import MappingProxyType
 from typing import Final, Protocol, runtime_checkable
 
 from ssebench.middleware import SandboxToolLayer, ToolLayer, ToolLayerContext
-from ssebench.pipe import REGISTRY
+from ssebench.pipe import REGISTRY, TAG
 
 __all__ = [
     "BUILTIN_TOOL_LAYERS",
     "COMMANDS_GROUP",
     "DEFAULT_TOOL_LAYER",
     "REGISTRY",
+    "TAG",
     "TOOL_LAYERS_GROUP",
     "Command",
     "ExtensionError",

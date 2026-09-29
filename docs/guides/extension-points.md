@@ -90,9 +90,11 @@ from ssebench.extensions import ToolLayer, ToolLayerContext
   on top of it and returns the tool image's name. The agent image is then built
   from that image. The tool image must meet the
   [image contract](#image-contract).
-- Build on `SandboxToolLayer` to keep the standard runtime. Use `REGISTRY`,
-  the image prefix that `SSEBENCH_REGISTRY` sets, to name images like the
-  built-in ones do.
+- Build on `SandboxToolLayer` to keep the standard runtime. Name images like
+  the built-in ones do, with `REGISTRY`, the image prefix that
+  `SSEBENCH_REGISTRY` sets, and `TAG`, the SSEBench version that every
+  component and image shares, so the images of two SSEBench versions do not
+  replace each other.
 
 This layer adds one Docker layer on top of the standard runtime:
 
@@ -100,7 +102,7 @@ This layer adds one Docker layer on top of the standard runtime:
 import subprocess
 from typing import override
 
-from ssebench.extensions import REGISTRY, SandboxToolLayer, ToolLayer
+from ssebench.extensions import REGISTRY, TAG, SandboxToolLayer, ToolLayer
 
 DOCKERFILE = """\
 FROM runtime
@@ -112,7 +114,7 @@ class ExampleToolLayer(ToolLayer):
     @override
     def docker_image(self, base: str | None) -> str:
         runtime = SandboxToolLayer(self.context).docker_image(base)
-        image = f"{REGISTRY}/tool-example/{self.context.task_name.lower()}"
+        image = f"{REGISTRY}/tool-example/{self.context.task_name.lower()}:{TAG}"
         subprocess.run(
             ["docker", "buildx", "build",
              "--build-context", f"runtime=docker-image://{runtime}",
