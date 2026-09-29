@@ -1,0 +1,560 @@
+# HTTP API of ssebench-daemon, maintained by hand.
+#
+# tests/openapi.rs checks it against the daemon: the paths and methods must be
+# exactly the routes in src/api/handlers.rs, the access rules (x-access) and
+# the difficulty gate (x-difficulty-gate) must match what the listeners do, and
+# the documented response fields must cover what the daemon returns.
+# docs/reference/daemon-api.md is generated from this file (`just docs-gen`).
+#
+# Extensions:
+#   x-access on an operation: which listeners serve it.
+#     any          every listener.
+#     admin        the admin socket only; the agent-facing listeners answer 403.
+#     after-agent  the admin socket, and the agent-facing listeners once the
+#                  entrypoint has called POST /admin/agent_exited; before that
+#                  they answer 403.
+#   x-difficulty-gate on an operation: for each action of a tool, the highest
+#     difficulty level (SSE_DIFFICULTY) at which the agent-facing listeners run
+#     it. At a higher level they answer 403; the admin socket runs every action.
+openapi: 3.1.0
+info:
+  title: ssebench-daemon
+  version: "1"
+  summary: Task metadata, build, test and grading actions inside a task container.
+  description: >-
+    The daemon serves one task: the project in the container, its scripts and
+    its reference material. The Python SDK (`sse`), the MCP server, the
+    evaluator and the web UI call it. Every listener serves the same routes;
+    the access rules in `x-access` decide which ones answer.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+tags:
+  - name: task
+    description: The task and what it supports.
+  - name: tools
+    description: Build, test and shell actions on the project.
+  - name: monitoring
+    description: What the agent has changed and said so far, for the web UI.
+  - name: grading
+    description: Grading and its result.
+  - name: reference
+    description: The reference patch and the phase switch that unlocks it.
+paths:
+  /version:
+    get:
+      tags: [task]
+      summary: The daemon's version.
+      description: The SDK compares it with its own version and warns when they differ.
+      operationId: version
+      x-access: any
+      responses:
+        "200":
+          description: The version.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Version"
+  /project:
+    get:
+      tags: [task]
+      summary: The task's metadata, without the reference material.
+      description: >-
+        The task config, with the contents of the report files and of the build
+        and test scripts instead of their paths. The reference patch and the
+        hidden tests are left out.
+      operationId: project
+      x-access: any
+      responses:
+        "200":
+          description: The task's metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Metadata"
+  /capabilities:
+    get:
+      tags: [task]
+      summary: Which checks the task supports.
+      description: >-
+        Derived from the scripts and files the task config names. The difficulty
+        level can still withhold a supported check from the agent.
+      operationId: capabilities
+      x-access: any
+      responses:
+        "200":
+          description: The task's capabilities.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Capabilities"
+  /tool/{name}:
+    post:
+      tags: [tools]
+      summary: Run an action of a tool.
+      description: >-
+        `bencher` builds and tests a copy of the source tree; `bash` runs a
+        command in one interactive shell in the source tree, as the unprivileged
+        user `model`. The daemon runs one action at a time. A script that runs and
+        fails is a 200 with a non-zero `code`.
+      operationId: tool
+      x-access: any
+      x-difficulty-gate:
+        tool: bencher
+        actions:
+          build: 3
+          function_test: 2
+          run_poc: 1
+          intent_test: 0
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: The tool.
+          schema:
+            type: string
+            enum: [bencher, bash]
+        - name: action
+          in: query
+          required: true
+          description: >-
+            The action: `build`, `run_poc`, `function_test` or `intent_test` for
+            `bencher`. `bash` has one action and ignores the value; the SDK sends
+            `execute`.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        description: >-
+          The action's argument, sent with `Content-Type: application/json`.
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/GradingArgument"
+                - $ref: "#/components/schemas/PocArgument"
+                - $ref: "#/components/schemas/BashArgument"
+      responses:
+        "200":
+          description: The action ran; its script's exit code and output.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScriptResult"
+        "400":
+          description: The `action` parameter is missing, or the body is not JSON.
+        "403":
+          description: >-
+            On an agent-facing listener, a `bencher` action that the difficulty
+            level withholds.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: >-
+            An unknown tool or action, an invalid argument, a script the task does
+            not have, or hidden tests that do not apply (`git apply failed`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /diff:
+    get:
+      tags: [monitoring]
+      summary: The agent's changes so far, as a unified diff.
+      description: >-
+        The diff of the source tree against the task's single initial commit:
+        the committed changes if the agent committed, otherwise the staged and
+        unstaged ones.
+      operationId: diff
+      x-access: any
+      responses:
+        "200":
+          description: The diff; empty when nothing changed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Diff"
+        "500":
+          description: git failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /files:
+    get:
+      tags: [monitoring]
+      summary: The files the agent changed, with line counts.
+      operationId: files
+      x-access: any
+      responses:
+        "200":
+          description: The changed files, from `git status`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Files"
+        "500":
+          description: git failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /agent/dialog:
+    get:
+      tags: [monitoring]
+      summary: The agent's dialog, from `$SSE_ARCHIVE/dialog.jsonl`.
+      description: >-
+        The entries the agent wrote in the dialog protocol. Lines that are not
+        JSON, or have no `seq`, are skipped.
+      operationId: agentDialog
+      x-access: any
+      parameters:
+        - name: since
+          in: query
+          required: false
+          description: Return only the entries whose `seq` is greater, for polling.
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: The entries in file order; none when the file does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dialog"
+        "500":
+          description: The file exists but cannot be read.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /result:
+    get:
+      tags: [grading]
+      summary: The grade, once the evaluator has written it.
+      operationId: result
+      x-access: any
+      responses:
+        "200":
+          description: >-
+            The grade, or `available: false` before the evaluator has written it
+            or when it cannot be parsed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvaluationResult"
+  /prepare_grading:
+    post:
+      tags: [grading]
+      summary: Save the agent's diff and apply it to the copy of the repository that is graded.
+      description: >-
+        Writes the agent's diff to `$SSE_ARCHIVE/final.patch` and its commit
+        messages to `$SSE_ARCHIVE/commits.log`, then applies the diff to the
+        clean clone of the repository in `$SSE_REPO_PATH`, which the `bencher`
+        actions use with `grading: true`. The evaluator calls it once, after the
+        agent has finished.
+      operationId: prepareGrading
+      x-access: admin
+      responses:
+        "200":
+          description: The diff is saved and applied.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "403":
+          description: The request came from an agent-facing listener.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: git failed, or the diff does not apply (`git apply failed`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /final_diff:
+    get:
+      tags: [grading]
+      summary: The agent's diff that `POST /prepare_grading` saved.
+      operationId: finalDiff
+      x-access: any
+      responses:
+        "200":
+          description: The saved diff; empty before grading.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Diff"
+        "500":
+          description: The saved diff cannot be read.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /admin/agent_exited:
+    post:
+      tags: [reference]
+      summary: End the agent phase.
+      description: >-
+        The entrypoint calls it once the agent process has exited. From then on
+        the agent-facing listeners serve `GET /reference/patch`, so that the web
+        UI can show it. Calling it again has no effect.
+      operationId: agentExited
+      x-access: admin
+      responses:
+        "200":
+          description: The agent phase has ended.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "403":
+          description: The request came from an agent-facing listener.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /reference/patch:
+    get:
+      tags: [reference]
+      summary: The reference patch, the answer to the task.
+      description: >-
+        The upstream fix that the task config names as `files.patch`. It must
+        never reach the agent while it works, so the agent-facing listeners
+        refuse it until the agent phase has ended.
+      operationId: referencePatch
+      x-access: after-agent
+      responses:
+        "200":
+          description: The patch; empty when the task has none or it cannot be read.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Diff"
+        "403":
+          description: The request came from an agent-facing listener while the agent works.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    Version:
+      type: object
+      required: [version]
+      properties:
+        version:
+          type: string
+          description: The daemon's version, which is the SSEBench version.
+    Metadata:
+      type: object
+      required: [id, project, language, source, task_description, poc, build_script, test_script]
+      properties:
+        id:
+          type: string
+          description: Task ID.
+        project:
+          type: string
+          description: Name of the upstream project.
+        language:
+          type: string
+          description: Language of the project, such as `c`, `go` or `rust`.
+        source:
+          type: string
+          description: Absolute path of the source tree that the agent edits.
+        task_description:
+          $ref: "#/components/schemas/TaskDescription"
+        poc:
+          type: array
+          items:
+            type: string
+          description: Absolute paths of the proof-of-concept inputs, to pass to `run_poc`.
+        build_script:
+          type: [string, "null"]
+          description: Contents of the build script.
+        test_script:
+          type: [string, "null"]
+          description: Contents of the test script.
+    TaskDescription:
+      type: object
+      required: [issue, crash_report, bug_description]
+      properties:
+        issue:
+          type: [string, "null"]
+          description: Issue text.
+        crash_report:
+          type: [array, "null"]
+          items:
+            type: string
+          description: Contents of the report files.
+        bug_description:
+          type: [string, "null"]
+          description: Short description of the bug.
+    Capabilities:
+      type: object
+      required: [can_build, can_run_poc, poc_count, has_function_test, has_intent_test]
+      properties:
+        can_build:
+          type: boolean
+          description: The task has a build script.
+        can_run_poc:
+          type: boolean
+          description: The task has a run script and at least one proof of concept.
+        poc_count:
+          type: integer
+          description: Number of proofs of concept.
+        has_function_test:
+          type: boolean
+          description: The task has a test script.
+        has_intent_test:
+          type: boolean
+          description: The task has a test script and hidden tests (`files.future_test`).
+    GradingArgument:
+      type: object
+      description: The argument of `build`, `function_test` and `intent_test`.
+      properties:
+        grading:
+          type: boolean
+          default: false
+          description: >-
+            Use the graded copy of the repository in `$SSE_REPO_PATH` instead of
+            the source tree that the agent edits.
+    PocArgument:
+      type: object
+      description: The argument of `run_poc`. It runs in the output of the last `build`.
+      required: [poc]
+      properties:
+        poc:
+          type: string
+          description: Path of the proof of concept, one of `poc` in the metadata.
+    BashArgument:
+      type: object
+      description: The argument of `bash`.
+      required: [command]
+      properties:
+        command:
+          type: string
+          description: >-
+            Shell command. It runs in the persistent shell, so `cd` and `export`
+            carry over to the next command.
+    ScriptResult:
+      type: object
+      required: [code, stdout, stderr]
+      properties:
+        code:
+          type: integer
+          description: Exit code; -1 for `run_poc` before any `build`.
+        stdout:
+          type: string
+          description: Standard output.
+        stderr:
+          type: string
+          description: Standard error.
+    Diff:
+      type: object
+      required: [diff]
+      properties:
+        diff:
+          type: string
+          description: Unified diff, with binary changes as git binary patches.
+    Files:
+      type: object
+      required: [files]
+      properties:
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChangedFile"
+    ChangedFile:
+      type: object
+      required: [path, status, additions, deletions]
+      properties:
+        path:
+          type: string
+          description: Path relative to the source tree.
+        status:
+          type: string
+          enum: [modified, added, deleted, renamed]
+          description: Untracked files count as `added`.
+        additions:
+          type: integer
+          description: Lines added.
+        deletions:
+          type: integer
+          description: Lines deleted.
+    Dialog:
+      type: object
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          description: Dialog entries, as the dialog protocol defines them.
+          items:
+            type: object
+    EvaluationResult:
+      type: object
+      required: [available]
+      properties:
+        available:
+          type: boolean
+          description: Whether the evaluator has written the grade.
+        patch_result:
+          $ref: "#/components/schemas/PatchResult"
+        runtime_result:
+          $ref: "#/components/schemas/RuntimeResult"
+    PatchResult:
+      type: object
+      description: The grade; a check the task does not have is `null`.
+      properties:
+        build_success:
+          type: [boolean, "null"]
+          description: Whether the patched project builds.
+        pov_passed:
+          type: [integer, "null"]
+          description: Number of proofs of concept that no longer trigger the vulnerability.
+        pov_total:
+          type: [integer, "null"]
+          description: Number of proofs of concept run.
+        func_test_success:
+          type: [boolean, "null"]
+          description: Whether the project's tests pass.
+        intent_test_success:
+          type: [boolean, "null"]
+          description: Whether the tests pass with the hidden tests applied.
+        error_msg:
+          type: [string, "null"]
+          description: The first failure.
+        error_log:
+          type: [string, "null"]
+          description: Output of the step that failed first.
+    RuntimeResult:
+      type: object
+      required: [agent_duration, agent_timeout, evaluator_timeout]
+      properties:
+        agent_duration:
+          type: integer
+          description: How long the agent ran, in seconds.
+        agent_timeout:
+          type: boolean
+          description: Whether the agent hit its time limit.
+        evaluator_timeout:
+          type: boolean
+          description: Whether grading hit its time limit.
+    Success:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+          const: true
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: What went wrong.
