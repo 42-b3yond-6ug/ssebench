@@ -1,35 +1,35 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "array",
-  "$schema": "http://json-schema.org/draft-04/schema#",
-  "description": "runtime/plugins/plugins.yaml: the plugins, each in the folder runtime/plugins/<name> with a run.sh.",
-  "minItems": 1,
-  "uniqueItems": true,
+  "description": "runtime/plugins/plugins.yaml: the plugins, each in the folder runtime/plugins/<name> with an executable run.sh.",
   "items": {
     "type": "object",
+    "additionalProperties": false,
     "required": ["name", "enabled", "hook", "llm", "timeout"],
     "properties": {
       "name": {
         "type": "string",
-        "minLength": 1,
+        "pattern": "^[a-z0-9][a-z0-9_-]*$",
         "description": "Name of the plugin; it must equal the name of its folder."
       },
       "enabled": {
         "type": "boolean",
-        "description": "Whether the plugin runs."
+        "description": "Whether the plugin runs in every run; the --plugin option of ssebench run selects plugins for one run instead."
       },
       "hook": {
         "type": "string",
-        "minLength": 1,
         "description": "When the plugin runs: before (blocking), on (in parallel with) or after (blocking) the agent or the grading.",
         "enum": ["before-agent", "on-agent", "after-agent", "before-grading", "on-grading", "after-grading"]
       },
       "llm": {
         "type": "boolean",
-        "description": "Whether the plugin uses an LLM."
+        "description": "Whether the plugin gets the run's model: SSE_BASE_URL, SSE_API_KEY and SSE_MODEL_NAME."
       },
       "timeout": {
-        "type": "number",
-        "description": "Time limit of the plugin."
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1440,
+        "description": "Time limit of the plugin, in minutes; it is stopped when it runs longer."
       }
     }
   }

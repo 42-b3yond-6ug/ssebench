@@ -1,0 +1,6 @@
+[project]
+name = "ssebench-plugin-artifact"
+version = "1.0.0.dev0"
+description = "Artifact plugin for SSEBench: a checksummed manifest of a run's results"
+requires-python = ">=3.12"
+dependencies = []

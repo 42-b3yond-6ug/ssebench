@@ -1,10 +1,13 @@
 import logging
-import subprocess
+import shutil
+from pathlib import Path
 
 from sse import project
 from sse.ai import OpenCodeAgent, build_opencode_config
 
 logger = logging.getLogger(__name__)
+
+SKILLS_DIR = Path(__file__).parent / "skills"
 
 
 FUZZING_PROMPT_TEMPLATE = """
@@ -30,16 +33,17 @@ Steps:
 2. /seeds-collection prepare some seeds.
 3. /fuzzing run the fuzzer for 5 minutes only. You must stop after 5 minutes.
 
-You should look at skills in /plugins/oracle/skills to understand your job.
+You should look at the skills in .opencode/skills to understand your job.
 
 In the end, report the fuzzing result.
 """
 
 
-# Load skills to opencode configs
+# Copy the plugin's skills into the project so OpenCode can load them.
 def load_skills(src_dir: str):
-    _ = subprocess.run(["mkdir", "-p", f"{src_dir}/.opencode"])
-    _ = subprocess.run(["cp", "-r", "/evaluator/skills", f"{src_dir}/.opencode/"])
+    dest = Path(src_dir) / ".opencode" / "skills"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(SKILLS_DIR, dest, dirs_exist_ok=True)
 
 
 async def run_fuzz(review: str | None):
