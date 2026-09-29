@@ -46,13 +46,55 @@ class Docker:
         return [cmd for cmd in self.commands if cmd[:2] == ["docker", "compose"]]
 
 
-def test_up_starts_the_configured_project(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    _ = (home / ".env").write_text("LITELLM_MASTER_KEY=sk-test\nPOSTGRES_PASSWORD=pw\nCOMPOSE_PROJECT_NAME=mine\n")
-    docker = Docker(None)
+def test_config_hash_follows_models(home: Path) -> None:
+    before = stack.config_hash()
+    _ = (home / "models" / "b.yml").write_text("- model_name: b\n")
+    after_new_file = stack.config_hash()
+    _ = (home / "models" / "b.yml").write_text("- model_name: c\n")
+
+    assert len({before, after_new_file, stack.config_hash()}) == 3
+
+
+def test_config_hash_ignores_other_files(home: Path) -> None:
+    before = stack.config_hash()
+    _ = (home / "models" / "README.md").write_text("notes\n")
+
+    assert stack.config_hash() == before
+
+
+@pytest.mark.parametrize("label", [None, "", "stale"])
+def test_build_when_missing_or_stale(home: Path, monkeypatch: pytest.MonkeyPatch, label: str | None) -> None:
+    docker = Docker(label)
     monkeypatch.setattr(subprocess, "run", docker)
 
-    stack.up()
+    assert stack.build(stack.config_hash())
+    [build] = docker.builds()
+    assert f"{stack.CONFIG_LABEL}={stack.config_hash()}" in build
+    assert build[build.index("--tag") + 1] == stack.image()
 
+
+def test_no_build_when_current(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    docker = Docker(stack.config_hash())
+    monkeypatch.setattr(subprocess, "run", docker)
+
+    assert not stack.build(stack.config_hash())
+    assert docker.builds() == []
+    assert stack.build(stack.config_hash(), force=True)
+
+
+def test_up_rebuilds_after_a_model_change(
+    home: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    _ = (home / ".env").write_text("LITELLM_MASTER_KEY=sk-test\nPOSTGRES_PASSWORD=pw\nCOMPOSE_PROJECT_NAME=mine\n")
+    docker = Docker(stack.config_hash())
+    _ = (home / "models" / "a.yaml").write_text("- model_name: changed\n")
+    monkeypatch.setattr(subprocess, "run", docker)
+
+    with caplog.at_level("INFO"):
+        stack.up()
+
+    assert len(docker.builds()) == 1
+    assert "models/ changed" in caplog.text
     [up] = docker.compose()
     assert up[up.index("--project-name") + 1] == "mine"
     assert up[-2:] == ["up", "--detach"]
@@ -97,3 +139,10 @@ def test_compose_file_is_project_scoped() -> None:
         assert "container_name" not in service
     assert all(not isinstance(v, dict) or "name" not in v for v in (compose.get("volumes") or {}).values())
     assert "networks" not in compose
+
+
+def test_image_matches_the_compose_file() -> None:
+    compose = yaml.safe_load(paths.compose_file().read_text())
+    image = compose["services"]["litellm"]["image"].replace("${SSEBENCH_REGISTRY:-ghcr.io/42-b3yond-6ug/ssebench}", "")
+
+    assert stack.image() == f"{stack.REGISTRY}{image}"

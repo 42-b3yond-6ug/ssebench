@@ -104,8 +104,10 @@ def cmd_proxy(args: argparse.Namespace) -> int:
     try:
         match args.action:
             case "up":
-                stack.up()
+                stack.up(rebuild=args.rebuild)
                 stack.wait_healthy()
+            case "build":
+                _ = stack.build(stack.config_hash(), force=args.rebuild)
             case "down":
                 stack.down()
             case _:
@@ -238,10 +240,11 @@ def main(argv: Sequence[str] | None = None):
     # ==================== proxy subcommand ====================
     proxy_parser = subparsers.add_parser(
         "proxy",
-        help="Start or stop the local LiteLLM proxy",
-        description="`down` keeps the database volume.",
+        help="Start, rebuild or stop the local LiteLLM proxy",
+        description="`up` rebuilds the proxy image first when models/ changed; `down` keeps the database volume.",
     )
-    proxy_parser.add_argument("action", choices=["up", "down"])
+    proxy_parser.add_argument("action", choices=["up", "build", "down"])
+    proxy_parser.add_argument("--rebuild", action="store_true", help="Rebuild the proxy image even if it is current")
 
     extensions: dict[str, Command] = {}
     for command in requested_extensions(argv):
