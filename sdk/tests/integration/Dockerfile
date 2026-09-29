@@ -42,6 +42,11 @@ RUN addgroup -g 1000 model && \
 # Ensure model user has a proper home directory
 RUN mkdir -p /home/model && chown -R model:model /home/model
 
+# The daemon runs the task scripts as this unprivileged user; it refuses to
+# start as root without it.
+RUN useradd --system --user-group --no-create-home --home-dir /nonexistent \
+        --shell /sbin/nologin sse-runner
+
 # Install Rust daemon
 COPY --from=rust-builder /build/target/release/ssebench-daemon /usr/local/bin/
 RUN chmod +x /usr/local/bin/ssebench-daemon
@@ -91,6 +96,10 @@ RUN chmod +x /ssebench/scripts/*.sh
 
 # Copy test fixtures: PoC, diffs, reports
 COPY sdk/tests/integration/fixtures/pocs/ /ssebench/pocs/
+RUN cd /ssebench/pocs && \
+    go mod init poc-buggy && \
+    go mod edit -replace buggy=/src/buggy && \
+    go mod tidy
 COPY sdk/tests/integration/fixtures/diffs/ /ssebench/diffs/
 COPY sdk/tests/integration/fixtures/reports/ /ssebench/reports/
 

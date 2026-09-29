@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-# log save and preview
-DAEMON_LOG_FILE="${SSE_ARCHIVE}/daemon.log"
+# log save and preview; the results directory is root-only, the archive is the agent's
+DAEMON_LOG_FILE="${SSE_RESULTS:-${SSE_ARCHIVE}}/daemon.log"
 touch "$DAEMON_LOG_FILE"
 tail -f "$DAEMON_LOG_FILE" &
 

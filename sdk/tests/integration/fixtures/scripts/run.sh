@@ -1,13 +1,8 @@
 #!/bin/bash
+# The PoC module (go.mod next to poc.go, prepared in the image) replaces the
+# project with /src/buggy, as the pilot's Go tasks do.
 set -e
 
 POC_FILE="$1"
-
-# Get absolute path (works with BusyBox)
-cd /ssebench
-POC_DIR=$(cd "$(dirname "$POC_FILE")" && pwd)
-POC_BASENAME=$(basename "$POC_FILE")
-
-cd "$POC_DIR"
-
-go run "$POC_BASENAME"
+cd "$(dirname "$POC_FILE")"
+go run "$(basename "$POC_FILE")"
