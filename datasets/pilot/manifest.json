@@ -1,0 +1,3926 @@
+{
+  "dataset": "pilot",
+  "version": "pilot-v1",
+  "tasks": [
+    {
+      "id": "RUSTSEC-2019-0009",
+      "language": "rust",
+      "project": "rust-smallvec",
+      "repository": "https://github.com/servo/rust-smallvec",
+      "base": "base-generic-rust:latest",
+      "image": "case/pilot/rustsec-2019-0009",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "0921ccae389fb038e0c07923aaf7e901ea80bca0976d136285688a7828196db5",
+        "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
+        "harness/Cargo.toml": "2705b30415f541373d05d44c5091716a77c7293932750c4ba115dffc231e9bd0",
+        "harness/src/main.rs": "35044381ef5b61198e297674825375cfe0b3ba7ab9757823daf346c66a91c1d4",
+        "rust-smallvec/.gitignore": "f9b1ca6ae27d1c18215265024629a8960c31379f206d9ed20f64e0b2dcf79805",
+        "rust-smallvec/.travis.yml": "f994d1b20f0991a147e7ef8554bdc221cd53578b5277efcf90b39ab5d59fbdc0",
+        "rust-smallvec/Cargo.toml": "42b219a0560baaedd5b81f1a8108b0bee802ecb37c4b600550deed239742214c",
+        "rust-smallvec/LICENSE-APACHE": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "rust-smallvec/LICENSE-MIT": "0b28172679e0009b655da42797c03fd163a3379d5cfa67ba1f1655e974a2a1a9",
+        "rust-smallvec/README.md": "38eef4ebde6fe6effa12a2dbca3bd69d6446b2935f19a329ac4926f1cb2e5013",
+        "rust-smallvec/benches/bench.rs": "9dca7122a3dcb2c099e49807e4d3b8f01d9220e2b3db0a54e9901ee74392866f",
+        "rust-smallvec/lib.rs": "a34604945212fcb95eee841bffc3652636af7b91bbb9f8a710e454ad41224765",
+        "sse/build.sh": "bebb82cb818ed977fb771e6e5652c2e25363c73c07aeffb86437caa20d4a3df7",
+        "sse/config.yaml": "553425ac60cd3e365b0c95bff329a07a57ab96e193b4a0ccf54ff97416c08727",
+        "sse/diffs/patch.diff": "8cc35ab453b0c4c738337bd0425b2fe687ff32289dd6cb8ed8ce987fd2d90508",
+        "sse/diffs/test.diff": "0c78f35a9d701c74b7fd29a6d213f25d897680dc9dcbbde5fee8d376acee24cb",
+        "sse/pocs/Cargo.toml": "2705b30415f541373d05d44c5091716a77c7293932750c4ba115dffc231e9bd0",
+        "sse/pocs/src/main.rs": "35044381ef5b61198e297674825375cfe0b3ba7ab9757823daf346c66a91c1d4",
+        "sse/reports/crash.txt": "eed9b84802d2326624b81ce6cf3004c565758c15e744e95ae3febffa4e9cb518",
+        "sse/reports/issue.md": "45b95dff70de7ad370d5168d34c98baab7411876dfe6389d2a2804d12374810e",
+        "sse/run.sh": "6bf2eb8a9a4d37ac9ef290ea906542da4b897546e62a1c8c5d1c6eabd51c7ebb",
+        "sse/test.sh": "db60052f6b14719b2d48755966bfe61bd1c8c8e35cbcf56745591ab9755c1d35"
+      },
+      "metadata": {
+        "id": "RUSTSEC-2019-0009",
+        "project": "rust-smallvec",
+        "repository": "https://github.com/servo/rust-smallvec",
+        "language": "rust",
+        "source": "/src/rust-smallvec",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/crash.txt",
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/src/main.rs"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "UAF",
+        "binary": "RUSTSEC-2019-0009",
+        "trigger_commit": "dfd78d18b790c18bd103c3e7b4930bb54cb6b8f0",
+        "patch_commit": "4ba0d0f689440963e38b8adbe7fc2cabc6e573d5",
+        "reference": [
+          "https://rustsec.org/advisories/RUSTSEC-2019-0009.html",
+          "https://github.com/servo/rust-smallvec/issues/148"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "RUSTSEC-2019-0023",
+      "language": "rust",
+      "project": "string-interner",
+      "repository": "https://github.com/Robbepop/string-interner",
+      "base": "base-generic-rust:latest",
+      "image": "case/pilot/rustsec-2019-0023",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "3d13b1b0a791496d6847b06b499ba638f5ae80b47b5ef5690ca6d622b5e4d7a1",
+        "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
+        "harness/Cargo.toml": "8026c2b40ed79bb3e4110a2ad116b34a2c6cdf269a704041a4ca7ee75f5b0aa8",
+        "harness/src/main.rs": "02c144ee5fa60f97e917658c36ba374e97d0320ef20ebe54325a95b56dda5518",
+        "sse/build.sh": "bebb82cb818ed977fb771e6e5652c2e25363c73c07aeffb86437caa20d4a3df7",
+        "sse/config.yaml": "06c27cd387dbb8196b8058fbdee706f9801c6991a55cedf2514a75f0c25bf699",
+        "sse/diffs/patch.diff": "b441a2ea5f037aeecb6e5d32543fabd01a1b1b22ce0e89e5a1d56f84383863c1",
+        "sse/diffs/test.diff": "f50091f4487d32ee91902e6623211f3c6d2078270ee9ac95c010186638a39a27",
+        "sse/pocs/Cargo.toml": "8026c2b40ed79bb3e4110a2ad116b34a2c6cdf269a704041a4ca7ee75f5b0aa8",
+        "sse/pocs/src/main.rs": "02c144ee5fa60f97e917658c36ba374e97d0320ef20ebe54325a95b56dda5518",
+        "sse/reports/crash.txt": "995f1b5fae9ce1c41eeb34b14c2b8059b1ca6c2d51d294a2c1bfd4360fe9da59",
+        "sse/reports/issue.md": "4c3f3f22fce9bb291e739897fdf7d4a783e73552355085c6e27a4c874bfec2d3",
+        "sse/run.sh": "9972c55605a8c3a47348667c313862e3bebccb51afa660a085501ca50a77f16b",
+        "sse/test.sh": "db60052f6b14719b2d48755966bfe61bd1c8c8e35cbcf56745591ab9755c1d35",
+        "string-interner/.gitignore": "bc308241a59d286903ccec116f6c359dbec9f69ead0ba0231c3bec57c77f2870",
+        "string-interner/.travis.yml": "7f4520b95a4b4c1d319091d7d3dc6ba81bbece06117abd955464741825e913a5",
+        "string-interner/Cargo.toml": "73099946d21e0ea767da7297574059c3d0d2187e84336ad87429b3a5cc3b4446",
+        "string-interner/LICENSE-APACHE": "c574c5499b22266ccef89f8b93ffb84e4e7faba8b274fa1ee8b42ce6578de3c6",
+        "string-interner/LICENSE-MIT": "354c6bc3767e4581e75b8747864736911132af6a85ed476a6f7e63f859d58bc5",
+        "string-interner/README.md": "97f11e72a3d2c4d39b53cf014fa7626d79ffac11bfdf56898f6fd50639a814cd",
+        "string-interner/TODO.md": "35c4f962b10a5511313485a6b5301ee77b870e93c95753dcdb237532eff57ae0",
+        "string-interner/appveyor.yml": "8c07196d8796b458689a2f69b6937f32f3a6f240211065a15bf8cbbd198bd7c7",
+        "string-interner/bench/input.txt": "07b5dffb59743a323f1f4efe342b56052ac5576e1519d8901ad3390cb74cbaaa",
+        "string-interner/src/benches.rs": "732df3eb876677899699d857e2b083348028de40484531d56853f5094a92f485",
+        "string-interner/src/lib.rs": "2cb9956a3a104ae11a39dc791f25ee1799d935b2cd7fa65334d1baf757d4fc05",
+        "string-interner/src/serde_impl.rs": "5790960f967a6bb22f4af38c382c8c908b283896a0ee25ec211455451b1cc32f",
+        "string-interner/src/tests.rs": "9086a228bd5f65113db2fd1ba16a9de1134aea961af899d976454fa28b346b7f"
+      },
+      "metadata": {
+        "id": "RUSTSEC-2019-0023",
+        "project": "string-interner",
+        "repository": "https://github.com/Robbepop/string-interner",
+        "language": "rust",
+        "source": "/src/string-interner",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/crash.txt",
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/src/main.rs"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "UAF",
+        "binary": "RUSTSEC-2019-0023",
+        "trigger_commit": "6a9246d283ddbd789c98ba74fbdd9c7f3d8cc4f2",
+        "patch_commit": "04731e101fed08a32942d52790e1c8c6ede61889, ef7a6454baabe7cd3d32b56aefb2768b4be02079",
+        "reference": [
+          "https://rustsec.org/advisories/RUSTSEC-2019-0023.html",
+          "https://github.com/Robbepop/string-interner/issues/9"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "RUSTSEC-2019-0034",
+      "language": "rust",
+      "project": "http",
+      "repository": "https://github.com/hyperium/http",
+      "base": "base-generic-rust:latest",
+      "image": "case/pilot/rustsec-2019-0034",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "e9c76c28f9598a2c02275552a79b5f0a8da1c3a740ceea7382ea5ee10cf353e4",
+        "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
+        "harness/Cargo.toml": "da182f9368aab7e98cc30e61643d9d8a4214cc1ca4b7141540e1878a86698914",
+        "harness/src/main.rs": "a91af60566c23007695d7f363d5c1099ea44aa54ef48a64b98bcc0d0976dee36",
+        "http/.gitignore": "f9b1ca6ae27d1c18215265024629a8960c31379f206d9ed20f64e0b2dcf79805",
+        "http/.travis.yml": "a3e83cca9fce4b586ed9d810b22855bb3a8879d6303608d21161bbde2fb63fbc",
+        "http/CHANGELOG.md": "94e6ec3c93b08d14b91eadadaed9a2f7cd3414ee186c47a413fd009b7b2a3a95",
+        "http/Cargo.toml": "e60a8664d15165ec1568fb7d61d1ef0f9b48f6e1ebccb926211f3416b3d4cfe2",
+        "http/LICENSE-APACHE": "8bb1b50b0e5c9399ae33bd35fab2769010fa6c14e8860c729a52295d84896b7a",
+        "http/LICENSE-MIT": "dc91f8200e4b2a1f9261035d4c18c33c246911a6c0f7b543d75347e61b249cff",
+        "http/README.md": "f73e225735ebdcafa1ba79216261fe24828f873d8940c9f96adb37d933a93aaf",
+        "http/benches/header_map/basic.rs": "7e91c67c5ee59bb0f12bba735e4b2ed0b0fc2a4c0007c3920dfc66d266eeaeeb",
+        "http/benches/header_map/mod.rs": "601ab90cdb234f0d1e15c98d9d407f1dd44984d6abb0ecaccd9f64f1fc5255e2",
+        "http/benches/header_map/vec_map.rs": "6cee49372f891c21355d04c336ebd26971c42b78a2edb7e8281174d771856d2f",
+        "http/benches/header_name.rs": "ae65e76147a0251cf0191edbed5961c99cc9407f2eba006d8f59b4c2dc636c1e",
+        "http/benches/header_value.rs": "0b8fd23e545e805a4f5b37f83188a6b9b53748ea8d28dcb60ae79af1297e609d",
+        "http/benches/uri.rs": "5e3e5c4cbaa69390317a32b1e8f15aa4e9425466739dd81c3d3d379c47da1457",
+        "http/src/byte_str.rs": "87688714c2d8fb1086e362d1d239bd3353a7f4bc6839740eeea3fcbbfd3d71e5",
+        "http/src/convert.rs": "ec6d60146e9bd6782151142a3ee2dbc1c63b6938157639540454aa39a981dc75",
+        "http/src/error.rs": "d41cef53237f877a379b145aa9f920af39e1342af5e2454aead88e7878978e59",
+        "http/src/extensions.rs": "a850e041ccdec2e9f85ec923abfd1dd0abce491cd0cebf9bda8803b6721b6bd3",
+        "http/src/header/map.rs": "c1ff70815df63fe925a0e7df409d9aed4bea47890b9b8512b84e63268e9d8736",
+        "http/src/header/mod.rs": "59c0431016f797e4d700b5aabb9c6092c40acde3d2003d3c70bc373fa6fe37b2",
+        "http/src/header/name.rs": "cd320f63fc39f8120cf49f03f35286ed1ba2653c8961d7a001ad2ccff3612085",
+        "http/src/header/value.rs": "45107836fbe6da226702093510ad35bd5c2362f8e0d4bc53fd8d17d4eeb32467",
+        "http/src/lib.rs": "f51bd362412657c9bde73aa556a997a17bce83a82d944d0f63e8d61029b94556",
+        "http/src/method.rs": "73162e820717c788a06cbac94e199a52a09dd7040ce63243e38feaf6342ca642",
+        "http/src/request.rs": "38739f181ef3864d66d63639aa8de67e65f0bc4543c55c5226c5d28fb0d49688",
+        "http/src/response.rs": "8f54380bac712e5f912fee625c2a688a50666403c1080d14b1e4bf2c93cfbf25",
+        "http/src/status.rs": "319514b1c6f654d8934cdf4d3fc865e6f9a2525def5fde95a7c935f122b07345",
+        "http/src/uri/authority.rs": "12523634ab71c514e853e186448cf7cc73ce8dea688ad7d6270f7aaaecd4a5bf",
+        "http/src/uri/builder.rs": "6dc27c738fd57f0e44313c511dd1e14dcc9fa1362638a6b5255c73ef00307d90",
+        "http/src/uri/mod.rs": "f5c4b634f380003456d00a5f40e727b1c05512b4e2e796f26785472a9f25ec6e",
+        "http/src/uri/path.rs": "11e3a0b40e9b32e8a9d9018003d30ac36d12f876532b07af8aa72324c2374267",
+        "http/src/uri/port.rs": "a52c7d16d21f22897d5007c673dbd2a6fdfa550385cff663b6d7642893e4e71e",
+        "http/src/uri/scheme.rs": "2152ec76ad60c5de2182f3714f7ce2ee514d632d510917a7c4ddc8a9ec36292d",
+        "http/src/uri/tests.rs": "7da1c0a4ace29501b3a104094184f708321c979835e3aa82ab942fc8136f6c0c",
+        "http/src/version.rs": "d7cea6976335425a1fd10766083f9ac74b9f8c6667c2e71abf5f0886c0a93186",
+        "http/tests/header_map.rs": "4b52dfd11e37353ecc242220a3db7ea8b000c373ae33f3a527c3cfeb020c6cc0",
+        "http/tests/header_map_fuzz.rs": "0a1419849a14d346055d8560eb4c7d8c618a2b147874f636df911e981b5b3676",
+        "http/tests/status_code.rs": "112e27e367e2adc16d5734b6a523d6dd5208e69fd6b9e596d95111051881d10b",
+        "http/util/Cargo.toml": "ecb8c877fa29c123a18042fdc788a7fd26ea671bdf7d30b5e291942da14caad2",
+        "http/util/README.md": "1dfdb7ed879d9ae0c38d90f36d553af29f7c9267a6e815c047b023d627aa88d7",
+        "http/util/src/main.rs": "c61cfe205c9a2980cfaca3fa94d0d558e9a015e4b8fd5dc99da3e2d1b89df978",
+        "sse/build.sh": "048287a500fa633c3f83064a9e59ca4975c83662978e5fca3dd8d2744e4bdd4a",
+        "sse/config.yaml": "416a477d20f6aa5def41e695d6fb2484ab34188b8afa8f346691cda6cf0b9797",
+        "sse/diffs/patch.diff": "6239d0e015bfa1f7861d2680444da4545e96c0b0b6e99e3d3de8c0b968ee8f8a",
+        "sse/diffs/test.diff": "41fad6e68125723ab59ad8e42044c693bfb0376c014f47cd2d14d4ae0fc5ebac",
+        "sse/pocs/Cargo.toml": "39e46093a9da1228e06d2667c1cae08eae75928192aa7b2819808d2186031111",
+        "sse/pocs/src/main.rs": "a91af60566c23007695d7f363d5c1099ea44aa54ef48a64b98bcc0d0976dee36",
+        "sse/reports/crash.txt": "00326442732368703f7c38e8ef3ec25cb05cc6669a057bcd1fb23158e47a8ff5",
+        "sse/reports/issue.md": "3ee597b69f941df05d0275970c585ad6f49e22e0fe1a6c6b97b6cfbb878aa4fb",
+        "sse/run.sh": "c2db163964f4e581ef90305f6ac70f7df154d575ff9a05abf4050618a83b48a6",
+        "sse/test.sh": "6628a05ccb31f950302f68c13fa12d5c7eb58078f39a3f5c8904e90d581c4420"
+      },
+      "metadata": {
+        "id": "RUSTSEC-2019-0034",
+        "project": "http",
+        "repository": "https://github.com/hyperium/http",
+        "language": "rust",
+        "source": "/src/http",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/crash.txt",
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/src/main.rs"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "UAF",
+        "binary": "RUSTSEC-2019-0034",
+        "trigger_commit": "9c05e391e00474abaa8c14a86bcb0fc5eff1120e",
+        "patch_commit": "82d53dbdfdb1ffbeb0323200a0bbd30b5f895fa7",
+        "reference": [
+          "https://rustsec.org/advisories/RUSTSEC-2019-0034.html",
+          "https://github.com/hyperium/http/issues/354"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "RUSTSEC-2021-0003",
+      "language": "rust",
+      "project": "rust-smallvec",
+      "repository": "https://github.com/servo/rust-smallvec",
+      "base": "base-generic-rust:latest",
+      "image": "case/pilot/rustsec-2021-0003",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "01898006dbab010c1e7b5ed97d787d3005127a7d4f6d615817f9046de6b5148b",
+        "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
+        "harness/Cargo.toml": "e631012427f5b4a2dd792777b1134a5c5b8386d8228006c1b1dbcc698366d42f",
+        "harness/src/main.rs": "648b774776f0a8b2022f2b6a7ab42ad1aba034090a0775ff954a624b80221a49",
+        "rust-smallvec/.gitignore": "80f68cc9e02e96598d54558392a01553a8b34cb14263658e99d572d863aba92c",
+        "rust-smallvec/.travis.yml": "0e30a2c458a767dd5e15e6c063b1d54dbbf583198272e60941133894b410e6f1",
+        "rust-smallvec/Cargo.toml": "22300abf53aef98a1634fca0c3e876cb5db5d4c4196f5ee2b9041eb66a6d146c",
+        "rust-smallvec/LICENSE-APACHE": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "rust-smallvec/LICENSE-MIT": "0b28172679e0009b655da42797c03fd163a3379d5cfa67ba1f1655e974a2a1a9",
+        "rust-smallvec/README.md": "a01127c37308457e8d396b176fb790846be0978c173be3f13260b62efcef011b",
+        "rust-smallvec/benches/bench.rs": "7425b60d83d01a0bcedb5855ec8652fb1089194da5b5d8f7d7d9072c8ea9d133",
+        "rust-smallvec/fuzz/Cargo.lock": "55b165b9ea051df186338b72250bb197b7dc4db76cf052bc95059365fccb7f15",
+        "rust-smallvec/fuzz/Cargo.toml": "8caef7886369cfe93a640f72a91a256cd1a0205121e1f938115ea824b79925cf",
+        "rust-smallvec/fuzz/README.md": "c3c62e3a735752b8f0540fb7b906f3ea88aa4d240a402e02a97e33bccdc518d3",
+        "rust-smallvec/fuzz/fuzz_targets/smallvec_ops.rs": "a7ba2751556de9e2883d28ee5b9d5072216cb1a5359d7a2c37d48cd38d580316",
+        "rust-smallvec/fuzz/in/stub": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "rust-smallvec/fuzz/travis-fuzz.sh": "4623a644edda63bb4f5843ad8347437eb7b275c120b617ab99f4d67d276a2228",
+        "rust-smallvec/scripts/run_miri.sh": "0d0b8c54c73fa9da1217d29ed0984f8328dd9fb61bb5a02db44458c360cdc3c4",
+        "rust-smallvec/src/lib.rs": "092cbff540e17c5431d91739e1be9f3465ad7bbfcf1662cc9880f69918f7f00f",
+        "rust-smallvec/src/specialization.rs": "46433586203399251cba496d67b88d34e1be3c2b591986b77463513da1c66471",
+        "rust-smallvec/src/tests.rs": "1c4763444139813d335d33f9eda8b8b719da60a2b13ddcb44e1a6cc278c319cc",
+        "rust-smallvec/tests/macro.rs": "22ad4f6f104a599fdcba19cad8834105b8656b212fb6c7573a427d447f5db14f",
+        "sse/build.sh": "bebb82cb818ed977fb771e6e5652c2e25363c73c07aeffb86437caa20d4a3df7",
+        "sse/config.yaml": "316c00dede35ea64d03304da710bf608e18890a97255bb99e0101b46eb4b946c",
+        "sse/diffs/patch.diff": "4347735ba0e5b046e853cea2e8178073bb5e339d37b4c24a953be50786e3fac2",
+        "sse/diffs/test.diff": "103d9adbe1aa76533de33733b653d3366de4d4290bc8617abaf37558b5d785f3",
+        "sse/pocs/Cargo.toml": "e631012427f5b4a2dd792777b1134a5c5b8386d8228006c1b1dbcc698366d42f",
+        "sse/pocs/src/main.rs": "648b774776f0a8b2022f2b6a7ab42ad1aba034090a0775ff954a624b80221a49",
+        "sse/reports/crash.txt": "316882ad00d625fb7c82a16a20712c41dbb0880f6c46d07d6438c12dee87d3a3",
+        "sse/reports/issue.md": "058737d0c358d6a5c01eb1f080f23e5a4a5957f0fa6d10624e66d16dd3778c25",
+        "sse/run.sh": "6e87d74f3363ee3fa8dd07c89ccbb3724ea1d6f0ac7fef8b06cb74995d9d866c",
+        "sse/test.sh": "db60052f6b14719b2d48755966bfe61bd1c8c8e35cbcf56745591ab9755c1d35"
+      },
+      "metadata": {
+        "id": "RUSTSEC-2021-0003",
+        "project": "rust-smallvec",
+        "repository": "https://github.com/servo/rust-smallvec",
+        "language": "rust",
+        "source": "/src/rust-smallvec",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/crash.txt",
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/src/main.rs"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "UAF",
+        "binary": "RUSTSEC-2021-0003",
+        "trigger_commit": "78522049b3ce129d02eea4e802747ba1090a5586",
+        "patch_commit": "9998ba0694a6b51aa6604748b00b6a98f0a0039e",
+        "reference": [
+          "https://rustsec.org/advisories/RUSTSEC-2021-0003.html",
+          "https://github.com/servo/rust-smallvec/issues/252"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "RUSTSEC-2021-0031",
+      "language": "rust",
+      "project": "nano-arena",
+      "repository": "https://github.com/bennetthardwick/nano-arena",
+      "base": "base-generic-rust:latest",
+      "image": "case/pilot/rustsec-2021-0031",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "b279646c0a6d937de30c14d267945f012a6f7193e2e10b106ef17daa150c6691",
+        "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
+        "harness/Cargo.toml": "7d741bb6b2d91ce1f37ba104d8040fce9cbcfa97884243390a1e23c2cbc867ab",
+        "harness/src/main.rs": "b8ab6526de23fed4f51720deaeb3ae6bd931b48b9d52def78dd64009cd76aed3",
+        "nano-arena/.gitignore": "7d5e0312e7229eea3e92df1d0c53b52298293fab05d7761be1b59f4e843e375f",
+        "nano-arena/Cargo.toml": "13c3a9213ff79f27ae9fd5c2e0bdd81c947f772cc0fd6ad414ce49d199be7147",
+        "nano-arena/LICENSE": "623fce514f31fdf2826037128ff8cf359e1f0f0366bbe3b3ab88c64de961e5ed",
+        "nano-arena/src/lib.rs": "5cb563489f383294ef1b24c129b17c65ae64483b389789a2643d4196ce71d113",
+        "nano-arena/src/split.rs": "25ebf41fecea8a77bb7b8391bd2e45f28d5090d1795fa7b22307c5df6b77ec21",
+        "sse/build.sh": "bebb82cb818ed977fb771e6e5652c2e25363c73c07aeffb86437caa20d4a3df7",
+        "sse/config.yaml": "ca7c03a6570b58882516a303d2cd63ef9757286309c9efee3ebb3b4df1190989",
+        "sse/diffs/patch.diff": "d58639ed2bb48c8b5ddb540cad0c65bd3d39fb05f4d7fff96e73872dae49c07f",
+        "sse/diffs/test.diff": "16f85d7ee23c556caf72859853a015bdc507881c729e6fbb09a6c294d66fa962",
+        "sse/pocs/Cargo.toml": "8237c511933ff2df2c5d83898a606504f5978574d80ee2811fb7b5c5755dd994",
+        "sse/pocs/src/main.rs": "b8ab6526de23fed4f51720deaeb3ae6bd931b48b9d52def78dd64009cd76aed3",
+        "sse/reports/issue.md": "63ad23430aeea5d4e0b45d4c9d751b4fbb0d58ed97bfdee136a3b502f7317320",
+        "sse/run.sh": "ce33e779eca8e2c72301c8d1507449b562d899c561b643257d50f14156b2d114",
+        "sse/test.sh": "db60052f6b14719b2d48755966bfe61bd1c8c8e35cbcf56745591ab9755c1d35"
+      },
+      "metadata": {
+        "id": "RUSTSEC-2021-0031",
+        "project": "nano-arena",
+        "repository": "https://github.com/bennetthardwick/nano-arena",
+        "language": "rust",
+        "source": "/src/nano-arena",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/src/main.rs"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "UAF",
+        "binary": "RUSTSEC-2021-0031",
+        "trigger_commit": "f5306c73a0f8f260eb49f9f0a8509ef85f038244",
+        "patch_commit": "6b83f9d0708337a9f8b709c1624a8587021ceba2",
+        "reference": [
+          "https://rustsec.org/advisories/RUSTSEC-2021-0031.html",
+          "https://github.com/bennetthardwick/nano-arena/issues/1"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "RUSTSEC-2021-0033",
+      "language": "rust",
+      "project": "stack_dst-rs",
+      "repository": "https://github.com/thepowersgang/stack_dst-rs",
+      "base": "base-generic-rust:latest",
+      "image": "case/pilot/rustsec-2021-0033",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "ba2774c06fa269afb1420591333bc7bc4994e9c83c584033eaecb86c87c71c0e",
+        "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
+        "harness/Cargo.toml": "aa48b22927e458c78841fc732156372b0aa8a4d79875ae2eec3c3466a7207c94",
+        "harness/src/main.rs": "61862af203ce503fadb80825e5583fd246a6e8cba49a8ec6f8145b9be1a605df",
+        "sse/build.sh": "bebb82cb818ed977fb771e6e5652c2e25363c73c07aeffb86437caa20d4a3df7",
+        "sse/config.yaml": "1b5db0ddd5dd9bc2e726d9c80ebf7b3feb7c6770230d94f86a34969f0324c48a",
+        "sse/diffs/patch.diff": "f02731ac037382b24f13faecfc430ecb812e01767043634796a3a76b22f99000",
+        "sse/diffs/test.diff": "644e47de87b2f1ba0b74f93b25b35613153111adeb78302dcd90e89913b34113",
+        "sse/pocs/Cargo.toml": "fbad50681ddd58f4fc109278f0aa0e0a51253785afc20795dd39008f23af68ff",
+        "sse/pocs/src/main.rs": "61862af203ce503fadb80825e5583fd246a6e8cba49a8ec6f8145b9be1a605df",
+        "sse/reports/issue.md": "79b65281e3de709fd15c5bc32af5320b077fe510d7c4be8ae35e64f1d8409b7c",
+        "sse/run.sh": "453bbde36c3e7bfc8eeef0f54fe78158fb56760c961e99d922713a324bcfb8a3",
+        "sse/test.sh": "db60052f6b14719b2d48755966bfe61bd1c8c8e35cbcf56745591ab9755c1d35",
+        "stack_dst-rs/Cargo.toml": "a7882def257271fc24f9a81274626c89867dcb7324e0804a80c21a728b89e0aa",
+        "stack_dst-rs/LICENCE": "bdc3a1f95bdd7f3063b1a227352434f07e42ca9f1881fdc1b1440b103c9ef1b7",
+        "stack_dst-rs/LICENSE-APACHE": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+        "stack_dst-rs/LICENSE-MIT": "cab91c5774be07f15983997412e203077049f2b01136cbe2e659956164af33cb",
+        "stack_dst-rs/README.md": "70d6b58d118f63e7361e8d65fd4f321247995d1678667a91fb505f4ec73f36e7",
+        "stack_dst-rs/deploy.sh": "39f4ad9ac39fd10b77736e99f5563580c7c92362533838a986da40a0fc1c5d7a",
+        "stack_dst-rs/index.html": "66a9278ecfe685f80408e02e27ea31d26ac1ba1058bc1f28b6d4c527cd92590d",
+        "stack_dst-rs/src/lib.rs": "b133010fc763cdae600d44f1ecda4a837eb4603d66b2b88039ffc139fff6520b",
+        "stack_dst-rs/src/stack.rs": "7941bce80ac34921bf32e8d1de7131704432ce6e315cf3272d28e3f6f3ebef23",
+        "stack_dst-rs/src/value/mod.rs": "bec25b294f2dcb0de484fe8fbbb5a5c7ceda124a288b3e5c101b906a474ff3b5",
+        "stack_dst-rs/src/value/trait_impls.rs": "1eae21bdb8313a150fb4dddfa4f121c83069cc94975e6f86ef43c7b87fcbf400",
+        "stack_dst-rs/tests/stack.rs": "6937b75eb4c6812128b80b565aaf339105c496044c3fe6173f2b3fd2cb05d9f1",
+        "stack_dst-rs/tests/value.rs": "d97d25502584129b0334cec4fdc9faf490313f85c3714c04635625faa6bf9ffa"
+      },
+      "metadata": {
+        "id": "RUSTSEC-2021-0033",
+        "project": "stack_dst-rs",
+        "repository": "https://github.com/thepowersgang/stack_dst-rs",
+        "language": "rust",
+        "source": "/src/stack_dst-rs",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/src/main.rs"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "UAF",
+        "binary": "RUSTSEC-2021-0033",
+        "trigger_commit": "807e9d45019c02369e11d40bd181cbf7bb7981fc",
+        "patch_commit": "2a4d53809e3000f40085f2b229b6b1a33759881d",
+        "reference": [
+          "https://rustsec.org/advisories/RUSTSEC-2021-0033.html",
+          "https://github.com/thepowersgang/stack_dst-rs/issues/5"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "ammonia-142-4b8426b",
+      "language": "rust",
+      "project": "ammonia",
+      "repository": "https://github.com/rust-ammonia/ammonia",
+      "base": "base-generic-rust:latest",
+      "image": "case/pilot/ammonia-142-4b8426b",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "dd3a8e3a28c6c69a3e74067a0f9e38c3896f9a7195fad560de58d481332e0a23",
+        "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
+        "harness/Cargo.lock": "0ca062667745dd6147254cd1fb3e3601fe33b225c71e0e587197636bae4fcee4",
+        "harness/Cargo.toml": "ca72f160c055bd59af53453cfc2473f74326d5984e549edc57f723017ed2b79d",
+        "harness/src/main.rs": "ed055bfb49386123ae2ee1a318ebfe965341a1144afdb5462244e370af43e62d",
+        "sse/build.sh": "0120048f367c1ad4950f90df3abe741fc51df828181b99a75fe3f40ed8c615ff",
+        "sse/config.yaml": "a6186ca59fc43c7504f99c25acf9069d1dc8c3294b72e735d59f7b159475fe9d",
+        "sse/diffs/patch.diff": "ce355bf7a200465001a6bf7a6dc5a4ce7814cdd15eaea82f3fd392a96b6a605b",
+        "sse/diffs/test.diff": "1c60760b501a65b9e24eeafc731f27a4ba4dd0dab2cd05fbb7cec42d4a4e908d",
+        "sse/pocs/Cargo.lock": "0ca062667745dd6147254cd1fb3e3601fe33b225c71e0e587197636bae4fcee4",
+        "sse/pocs/Cargo.toml": "ca72f160c055bd59af53453cfc2473f74326d5984e549edc57f723017ed2b79d",
+        "sse/pocs/src/main.rs": "ed055bfb49386123ae2ee1a318ebfe965341a1144afdb5462244e370af43e62d",
+        "sse/reports/issue.md": "0349e636fa407e0caf930434a890b7e762bbde2f0547c676c62d03ddcdcf6fe2",
+        "sse/run.sh": "68f276456ce39189b04a04aa3781bf5448d7647eb979d581d5013fd54913aabb",
+        "sse/test.sh": "d1f4e7a0962edbc1f01eb6e0b75a88596698039b0ce37efb4171503c9787a8da"
+      },
+      "metadata": {
+        "id": "ammonia-142-4b8426b",
+        "project": "ammonia",
+        "repository": "https://github.com/rust-ammonia/ammonia",
+        "language": "rust",
+        "source": "/src/ammonia",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/src/main.rs"
+          ]
+        },
+        "sanitizer": null,
+        "type": "Cross-site Scripting",
+        "binary": null,
+        "trigger_commit": "ae3fb569e1f0019a8a9793616d1944614d79e7a0",
+        "patch_commit": "4b8426b89b861d9bea20e126576b0febb9d13515",
+        "reference": [
+          "https://github.com/advisories/GHSA-5325-xw5m-phm3",
+          "https://github.com/rust-ammonia/ammonia/pull/142/commits/4b8426b89b861d9bea20e126576b0febb9d13515"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "argo-workflows-2a2ecc9",
+      "language": "go",
+      "project": "argo-workflows",
+      "repository": "https://github.com/argoproj/argo-workflows",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/argo-workflows-2a2ecc9",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "02bcbb89b0f10c922cdfe214bfd01f564604422d06f4f66e92500a68c52d66e0",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "ec145b00e197ebae7dd0f0621fc96da03af746aa524835942d2aff23e231692e",
+        "sse/config.yaml": "53e58d9e0b79ecb8ea8bf1638496e230d5549b7ae3d7569ab797a0cb895c2a09",
+        "sse/diffs/patch.diff": "5dfb80040855d5aa4e36499dc7d62c6ddb2b35e4300c5426b04d62894fdebd31",
+        "sse/diffs/security_test.diff": "0e0e175415072ad919a0bbdca3e39bfd0a7783932382dd95fd7875f965950452",
+        "sse/diffs/test.diff": "0e0e175415072ad919a0bbdca3e39bfd0a7783932382dd95fd7875f965950452",
+        "sse/pocs/poc.go": "62e627d58bdb51f3bb218d8b1e3dc28bf0ab80de0be7f1d327eddcd5a3aeba83",
+        "sse/reports/issue.md": "49b570765c972889d0eabf55ee8ad1312cdb76615825f6da50449be53056d2fa",
+        "sse/run.sh": "b41da3c354a41771899185ba4e418dc46af627a666c4201d2b121ee3eb5b08eb",
+        "sse/test.sh": "30e0d7d2fdcb6f0fb10cb0e9b458f43dd81399d19bbd0475af46e7e4d1587a57"
+      },
+      "metadata": {
+        "id": "argo-workflows-2a2ecc9",
+        "project": "argo-workflows",
+        "repository": "https://github.com/argoproj/argo-workflows",
+        "language": "go",
+        "source": "/src/argo-workflows",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": "diffs/security_test.diff",
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "Injection",
+        "binary": null,
+        "trigger_commit": "7bf825bfcdcd894ba12ef160cd9913a26844d6b6",
+        "patch_commit": "2a2ecc916925642fd8cb1efd026588e6828f82e1",
+        "reference": [
+          "https://github.com/argoproj/argo-workflows.git",
+          "https://github.com/argoproj/argo-workflows/commit/2a2ecc916925642fd8cb1efd026588e6828f82e1",
+          "https://github.com/argoproj/argo-workflows/issues/6441",
+          "https://github.com/argoproj/argo-workflows/pull/6285"
+        ],
+        "originality": "crafted"
+      }
+    },
+    {
+      "id": "aws-iam-authenticator-029d1dc",
+      "language": "go",
+      "project": "aws-iam-authenticator",
+      "repository": "https://github.com/kubernetes-sigs/aws-iam-authenticator",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/aws-iam-authenticator-029d1dc",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "62faac76f0350636130233baf8ea3a0519062394f51bb65dd463cfe935510bbd",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "f23141f5c285f3168da20ab4c3e6ce6c1a053bbd3d21fb932b83923968510b70",
+        "sse/config.yaml": "0874418d5e00f493495b3083d0b2344c5e7464e352c70ff6d9fed6f5dacf22b7",
+        "sse/diffs/patch.diff": "cdd64fa2165f0a0eff27d04bb2f234c52da558e573c02474e561f6c30db9bd7f",
+        "sse/diffs/test.diff": "eaf60fdcc1c8eab24a969291add31275fa5cc0ca39b93807a8ee91205016424f",
+        "sse/pocs/poc.go": "26d5195bddddb7a1dc80435699ab8a4f9bbae43c98a199a22ffc9423b5f31cbc",
+        "sse/reports/issue.md": "a4da53171361a6e35f70d5c628f8cd379cc3c8ce3cc8a89026ba4ea6dc9b546f",
+        "sse/run.sh": "b41da3c354a41771899185ba4e418dc46af627a666c4201d2b121ee3eb5b08eb",
+        "sse/test.sh": "a70982c94dbe499e491f6b3e6cc87d092c7e9420c9dde9967c572aca8a7f6c9a"
+      },
+      "metadata": {
+        "id": "aws-iam-authenticator-029d1dc",
+        "project": "aws-iam-authenticator",
+        "repository": "https://github.com/kubernetes-sigs/aws-iam-authenticator",
+        "language": "go",
+        "source": "/src/aws-iam-authenticator",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": "none"
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": "none",
+        "type": "Improper Input Validation",
+        "binary": "none",
+        "trigger_commit": "0a72c12090fb71ebefbc5036dc1b548b123a91a6",
+        "patch_commit": "029d1dcf2ec8d662d9b1c21260bb197404bc8218",
+        "reference": [
+          "https://github.com/kubernetes-sigs/aws-iam-authenticator.git",
+          "https://github.com/kubernetes-sigs/aws-iam-authenticator/commit/029d1dcf2ec8d662d9b1c21260bb197404bc8218",
+          "https://github.com/kubernetes-sigs/aws-iam-authenticator/issues/472"
+        ],
+        "originality": "crafted"
+      }
+    },
+    {
+      "id": "bluemonday-524f142",
+      "language": "go",
+      "project": "bluemonday",
+      "repository": "https://github.com/microcosm-cc/bluemonday",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/bluemonday-524f142",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "0e243c0d1b786acf2ca76c069ccb244c378b360c45d8d72726b627017df06ca2",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "6a98860426b23a02bc5d4122320ae20c4fe544730698a59afa1acd854d7c1dd5",
+        "sse/config.yaml": "ff39da1086ec878076b2c72417525cc1f0c7089e3e62fab7b8dea83f91415401",
+        "sse/diffs/patch.diff": "21056e46290393501198bb8bb059be5387188fc1bf01eb18e281694a20e5b8f0",
+        "sse/diffs/security_test.diff": "23335eef703469a121981c78e52beb401afef9b53544b1f01e8f4951776d94cf",
+        "sse/diffs/test.diff": "23335eef703469a121981c78e52beb401afef9b53544b1f01e8f4951776d94cf",
+        "sse/pocs/poc.go": "ef0dc8232ab3ce3edc4d1b8ea9b86adda6ac74498e31c3e5c95ca7375e82be64",
+        "sse/reports/issue.md": "7967080ef5ef27429d1ef15197c5cd79c8fd8f54b08a119159b41d2a781d9f18",
+        "sse/run.sh": "b41da3c354a41771899185ba4e418dc46af627a666c4201d2b121ee3eb5b08eb",
+        "sse/test.sh": "5cffed59dc08f755d513c0fd165356078647b08428b4b87fd27053332c982cfb"
+      },
+      "metadata": {
+        "id": "bluemonday-524f142",
+        "project": "bluemonday",
+        "repository": "https://github.com/microcosm-cc/bluemonday",
+        "language": "go",
+        "source": "/src/bluemonday",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": "diffs/security_test.diff",
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "Improper Validation of Syntactic Correctness of Input",
+        "binary": null,
+        "trigger_commit": "3cce251c9ed2a9ee66c8f8984fff3d19d45999df",
+        "patch_commit": "524f142fe46e945b7dcd291d7805c4b7dcf75bee",
+        "reference": [
+          "https://github.com/microcosm-cc/bluemonday.git",
+          "https://github.com/microcosm-cc/bluemonday/issues/111",
+          "https://github.com/microcosm-cc/bluemonday/commit/524f142fe46e945b7dcd291d7805c4b7dcf75bee"
+        ],
+        "originality": "public"
+      }
+    },
+    {
+      "id": "dns-745-501e858",
+      "language": "go",
+      "project": "dns",
+      "repository": "https://github.com/miekg/dns",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/dns-745-501e858",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "d8c9bbe7b1537e04271bce4cdd5e27c133d5dc0742079bae4f44efdb5fbf55d7",
+        "sse/build.sh": "b5788b2802f0870b807f5f3ed8459925dce67a2a8367d07365c615c8db3c2983",
+        "sse/config.yaml": "4352614d6c69d5748efe255f9490c4386febd71ff5b66c6760d1c226e3ce07da",
+        "sse/diffs/intent_test.diff": "e8b09e255f59ed964e06297d62086aed418947dec831ebce201add7a4cbdfc9a",
+        "sse/diffs/patch.diff": "7c07e8de4d3a38652184e927e25b6c58c3d1484a4229087d1ad417d59a6cb1fd",
+        "sse/diffs/test.diff": "e8b09e255f59ed964e06297d62086aed418947dec831ebce201add7a4cbdfc9a",
+        "sse/pocs/poc.go": "a8c972189f3c225c1dd985af5e52f90ab3dee99366cdb8074fdec3412ba4b1f4",
+        "sse/reports/crash_report_1.txt": "1596f280262b5bed18c71f7ee343abfa94094b5de421f18cd2bb6c752a0cc816",
+        "sse/reports/issue.md": "70d2c8d2c804c54041b23f9ecc4316f1d78132177d649c66237971c855794f17",
+        "sse/run.sh": "6629fa1fe683803b80a16e102a5eabfb0f1caab84480eb46326e8bb3eddafae8",
+        "sse/test.sh": "2b97354fd2a6d0ed2188ba4cd0db28df0e224cfde56801c5f1f4ed37ee50f056"
+      },
+      "metadata": {
+        "id": "dns-745-501e858",
+        "project": "dns",
+        "repository": "https://github.com/miekg/dns",
+        "language": "go",
+        "source": "/src/dns",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/crash_report_1.txt",
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": "diffs/intent_test.diff",
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "SEVG",
+        "binary": null,
+        "trigger_commit": "833bf76c282d338e307ff7ec181b95cfc117deb2",
+        "patch_commit": "501e858f679edecd4a38a86317ce50271014a80d",
+        "reference": [
+          "https://github.com/miekg/dns",
+          "https://github.com/miekg/dns/commit/501e858f679edecd4a38a86317ce50271014a80d",
+          "https://github.com/miekg/dns/issues/742"
+        ],
+        "originality": "public"
+      }
+    },
+    {
+      "id": "docconv-b19021a",
+      "language": "go",
+      "project": "docconv",
+      "repository": "https://github.com/sajari/docconv",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/docconv-b19021a",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "93597b0c932d65b23a7d06f21240cc2d76e1ef2d4a8e07f51be3f0f6d662ff11",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "db2bcf14ba5b198b187edf0da7be510d81fb43d273b5e357304d8826baf6d2dd",
+        "sse/config.yaml": "928d50205085c6ad05687717513a6df083b254e12389c63f034344d059146381",
+        "sse/diffs/patch.diff": "414a1137b0b4e4a32aa3bd6a3c41f765690c0c0e578c54fb142b1a592718ed78",
+        "sse/diffs/test.diff": "821bd10de19096a117b41bf6555d54346e3a0550aa4b1ec322b773125cf4ee19",
+        "sse/pocs/poc.go": "2955715ab37e03f634f3b1f454c017ac79d6f3666b93b18a29ed434ef7a9e26b",
+        "sse/reports/issue.md": "dabca55224cceff1c6a3c3dd7bdb5703b2ba21089abfea1fefaeaf509c1645a6",
+        "sse/run.sh": "548d23e8dda06d2f51cb55e9a5427e278791ebca4245557007e29202c6ec0f29",
+        "sse/test.sh": "2a5a81d0c1693bdcb1d39038a5ecf9c54edc6f06fa705ff000dcfa8cbbeb1909"
+      },
+      "metadata": {
+        "id": "docconv-b19021a",
+        "project": "docconv",
+        "repository": "https://github.com/sajari/docconv",
+        "language": "go",
+        "source": "/src/docconv",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": "none"
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": "none",
+        "type": "CWE-78 - OS Command Injection",
+        "binary": "none",
+        "trigger_commit": "44d673994791482c8aec902e0f949c354ce8dc0f",
+        "patch_commit": "b19021ade3d0b71c89d35cb00eb9e589a121faa5",
+        "reference": [
+          "https://github.com/sajari/docconv.git",
+          "https://github.com/sajari/docconv/commit/b19021ade3d0b71c89d35cb00eb9e589a121faa5",
+          "https://vuldb.com/?id.216502"
+        ],
+        "originality": "crafted"
+      }
+    },
+    {
+      "id": "fiber-b8c9ede",
+      "language": "go",
+      "project": "fiber",
+      "repository": "https://github.com/gofiber/fiber",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/fiber-b8c9ede",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "f87fa90c0433115795869cf09867a92d2154353deb594c9993211c7050414a8b",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
+        "sse/config.yaml": "0365d7a8b5556102c370a4f380ee5bf9c4b43733b748c04f3151a123336fa3dc",
+        "sse/diffs/patch.diff": "19d6c95d29f4620f6b9776840bdc6f24476188b16f2198d6d409724b1e4238fb",
+        "sse/diffs/test.diff": "c646e3514166c8874b3e21b67ed138c0116b8f017c2ab0d0fa9b5265ddcacf21",
+        "sse/pocs/poc.go": "7ccbdc5cc528e1826bb2b6c17ac25dd210675c6bff76c37643a5fc9e302792c9",
+        "sse/reports/issue.md": "7292068ed3f79b37663f79bc42008eb762bbfd6fd84fad37c9a94523d16fce73",
+        "sse/run.sh": "b41da3c354a41771899185ba4e418dc46af627a666c4201d2b121ee3eb5b08eb",
+        "sse/test.sh": "ef473b75b7d70daa228ee2cc8559db74d7a1135e4d434878d3f5fedb5c1d8c80"
+      },
+      "metadata": {
+        "id": "fiber-b8c9ede",
+        "project": "fiber",
+        "repository": "https://github.com/gofiber/fiber",
+        "language": "go",
+        "source": "/src/fiber",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": "none"
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": "none",
+        "type": "Authentication Bypass by Spoofing",
+        "binary": "none",
+        "trigger_commit": "b8c9ede6efa231116c4bd8bb9d5e03eac1cb76dc~1",
+        "patch_commit": "b8c9ede6efa231116c4bd8bb9d5e03eac1cb76dc",
+        "reference": [
+          "https://github.com/gofiber/fiber.git",
+          "https://github.com/gofiber/fiber/commit/b8c9ede6efa231116c4bd8bb9d5e03eac1cb76dc",
+          "https://github.com/gofiber/fiber/security/advisories/GHSA-3q5p-3558-364f"
+        ],
+        "originality": "crafted"
+      }
+    },
+    {
+      "id": "generic-c-cpython-py_pr_102397",
+      "language": "c",
+      "project": "cpython",
+      "repository": "https://github.com/python/cpython",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-cpython-py_pr_102397",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "ad1e663f0101247579691112e2b253ced3d46ee31ca9aafdf7ed85378862b645",
+        "sse/build.sh": "e360e530778af528d32a5ad0d5faed8e297d82cc7d8271ed47c6d28b818c92aa",
+        "sse/config.yaml": "380bbe8bedc8e2402c30fc597735683860765e6946b427966c0a14428c5eb206",
+        "sse/diffs/patch.diff": "ee9f4dad5d0a5d2e1a96a8e23ffb0ab8065e431d21db004dac01949dc7dc26b8",
+        "sse/diffs/test_rich.diff": "a80b659b43b5e8f6779eac33e21416a237f3fd4a310718cc469b952b48cf6b86",
+        "sse/pocs/poc.py": "e11a46e8011c479913a93e4f7469d33aed4571e5467f389443b6d99030d0839f",
+        "sse/reports/crash.txt": "294ca1db49d32a4902543f79b2bee7cbbb620848a01ec3f3bdedc1f051ac1704",
+        "sse/reports/issue.md": "ad36a17fa13c88f727ad20727bc7c1d88dfa747f78f8c4968f7c2e099f7bbb92",
+        "sse/run.sh": "33cee072fb0c3853e7ac9cedf76d500c27a1304802a7d67cdee15294debc817e",
+        "sse/test.sh": "a7a8dbb45f0f1d2f6341c87773c745427b78a7aa005e13b6115483d092d2ac3d"
+      },
+      "metadata": {
+        "id": "generic-c-cpython-py_pr_102397",
+        "project": "cpython",
+        "repository": "https://github.com/python/cpython",
+        "language": "c",
+        "source": "/src/cpython",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test_rich.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.py"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "Race Condition",
+        "binary": "python",
+        "trigger_commit": "8bf8e3d9a001f1d955a9f0875ac5a70f6d5a5f5c",
+        "patch_commit": "7905ae7b1a347a5dd15174f7e44bb67c4cdb5972",
+        "reference": [
+          "https://github.com/python/cpython.git",
+          "https://github.com/python/cpython/pull/102528",
+          "https://github.com/python/cpython/issues/102397",
+          "https://github.com/python/cpython/commit/8bf8e3d9a001f1d955a9f0875ac5a70f6d5a5f5c",
+          "https://github.com/python/cpython/commit/7905ae7b1a347a5dd15174f7e44bb67c4cdb5972"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-cpython-py_pr_124513",
+      "language": "c",
+      "project": "cpython",
+      "repository": "https://github.com/python/cpython",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-cpython-py_pr_124513",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "e4a85131f312bca2bd5d0d27c883e1ec1fb93e86891b40300eb8cd6f2154a144",
+        "sse/build.sh": "e360e530778af528d32a5ad0d5faed8e297d82cc7d8271ed47c6d28b818c92aa",
+        "sse/config.yaml": "422cbf533758f1258a06769a80c20f605e68d3c1318a14e8b8fa90adea1c35dd",
+        "sse/diffs/patch.diff": "f9b33d43c5210a427e365655af83c310d6bff63f9c32105b1cca8639e3c6b15d",
+        "sse/diffs/test_rich.diff": "a4e0e8a83018b95c5992341ee3c412a4a985ac21d764ca6222a9869062f92d91",
+        "sse/pocs/poc.py": "82a3c92d2b254910d7dd72e66a8b04a9720fd3f092358daefc89ad6b8c1b84a6",
+        "sse/reports/crash.txt": "c4539acc9719dd40537251ec75cedd988cd4a3da8552a54d1f52af893be492b6",
+        "sse/reports/issue.md": "4697906170e53fa185ceb806eb6c1ac1f2e0f09e3551097c2cc43b19bfe23a61",
+        "sse/run.sh": "33cee072fb0c3853e7ac9cedf76d500c27a1304802a7d67cdee15294debc817e",
+        "sse/test.sh": "ba6b91db8762c21e4a09cbd0894079e3be953c0352a6e1ef79faabafe6bab2c6"
+      },
+      "metadata": {
+        "id": "generic-c-cpython-py_pr_124513",
+        "project": "cpython",
+        "repository": "https://github.com/python/cpython",
+        "language": "c",
+        "source": "/src/cpython",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test_rich.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.py"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "NULL Pointer Dereference",
+        "binary": "python",
+        "trigger_commit": "0d9d56c4e4246495f506f7fb319548fb105b535b",
+        "patch_commit": "d6954b6421aa34afd280df9c44ded21a2348a6ea",
+        "reference": [
+          "https://github.com/python/cpython.git",
+          "https://github.com/python/cpython/pull/124515",
+          "https://github.com/python/cpython/issues/124513",
+          "https://github.com/python/cpython/commit/0d9d56c4e4246495f506f7fb319548fb105b535b",
+          "https://github.com/python/cpython/commit/d6954b6421aa34afd280df9c44ded21a2348a6ea"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-cpython-py_pr_124555",
+      "language": "c",
+      "project": "cpython",
+      "repository": "https://github.com/python/cpython",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-cpython-py_pr_124555",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "3b208bc81af74cc74f3e52a90f6abaf07ae559ac1423e15a77da96ae86ef6de6",
+        "sse/build.sh": "e360e530778af528d32a5ad0d5faed8e297d82cc7d8271ed47c6d28b818c92aa",
+        "sse/config.yaml": "f27de7ffba8719402ace065c1a0f8387a03b4ea0d1274befb287649f4d980e0e",
+        "sse/diffs/patch.diff": "ef9b65099566226397bb06a320c735124cd50e0c66ea852a4d69c59ca666a83d",
+        "sse/diffs/test.diff": "e1c490095c8c58c21ffc001ede71b881968d56e40afb1ffefcf08fff3f6eb005",
+        "sse/pocs/poc.bin": "b49fcc5f57d171c91b8f6b1087ea306d84041256687569fe1566088b0a9b5710",
+        "sse/reports/crash.txt": "5d5db30b5d078b7b3e1206be04e061cdee35eeb9f43fc5a55c67d3e4f63b27b3",
+        "sse/reports/issue.md": "7f7f4f67e014fac03e3e4c0a593529f6dea2d9f98692f61ed5fb3cfc84176953",
+        "sse/run.sh": "33cee072fb0c3853e7ac9cedf76d500c27a1304802a7d67cdee15294debc817e",
+        "sse/test.sh": "9d311d6f3102bcd9f6cbf00c9ac548cbb83fce4aecfff0b83906b13fd884c1ee"
+      },
+      "metadata": {
+        "id": "generic-c-cpython-py_pr_124555",
+        "project": "cpython",
+        "repository": "https://github.com/python/cpython",
+        "language": "c",
+        "source": "/src/cpython",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.bin"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "NULL Pointer Dereference",
+        "binary": "python",
+        "trigger_commit": "7bd9dbf8e148f14f9c9c6715a820bfda6adff957",
+        "patch_commit": "c2ba931318280796a6dcc33d1a5c5c02ad4d035b",
+        "reference": [
+          "https://github.com/python/cpython.git",
+          "https://github.com/python/cpython/pull/124555",
+          "https://github.com/python/cpython/issues/120378",
+          "https://github.com/python/cpython/commit/7bd9dbf8e148f14f9c9c6715a820bfda6adff957",
+          "https://github.com/python/cpython/commit/c2ba931318280796a6dcc33d1a5c5c02ad4d035b"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-cpython-py_pr_125723",
+      "language": "c",
+      "project": "cpython",
+      "repository": "https://github.com/python/cpython",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-cpython-py_pr_125723",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "877817127590f1cf135df27be1304d0ab638cba3f393aa6d57b477b2655efcab",
+        "sse/build.sh": "e360e530778af528d32a5ad0d5faed8e297d82cc7d8271ed47c6d28b818c92aa",
+        "sse/config.yaml": "832add7ed1104070c4a6fc9458d224bf93b199d4d19f78d85ee92d7848b10a15",
+        "sse/diffs/patch.diff": "f0364d6793330b2d02a339a613e0b4d02743c560dd7cbad2584940bf5c42ba6d",
+        "sse/diffs/test.diff": "26442c4b69c9353a5d1e90212a2b574565d43615f5b6cecf18030048ad4eadd3",
+        "sse/pocs/poc.py": "fbdff4305a4eafcad88a054cafb90e6702428fdaf42b9ba0ce7baf6fb9a35c03",
+        "sse/reports/crash.txt": "5978e6fb368453b445b5f479458bc95cda260423c9919afafdb8c484ad3585ab",
+        "sse/reports/issue.md": "88f50f5b6893e49cb9bc680aceb23d004cc61cddac5d93fd70cf4ad491897585",
+        "sse/run.sh": "33cee072fb0c3853e7ac9cedf76d500c27a1304802a7d67cdee15294debc817e",
+        "sse/test.sh": "c896b9dfd8fa6f6336866286fbf046d4da9b8849bba4130e7d34be2812394ca4"
+      },
+      "metadata": {
+        "id": "generic-c-cpython-py_pr_125723",
+        "project": "cpython",
+        "repository": "https://github.com/python/cpython",
+        "language": "c",
+        "source": "/src/cpython",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.py"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "Use After Free",
+        "binary": "python",
+        "trigger_commit": "24c84d816f2f2ecb76b80328c3f1d8c05ead0b10",
+        "patch_commit": "8e20e42cc63321dacc500d7670bfc225ca04e78b",
+        "reference": [
+          "https://github.com/python/cpython.git",
+          "https://github.com/python/cpython/pull/126956",
+          "https://github.com/python/cpython/issues/125723",
+          "https://github.com/python/cpython/commit/24c84d816f2f2ecb76b80328c3f1d8c05ead0b10",
+          "https://github.com/python/cpython/commit/8e20e42cc63321dacc500d7670bfc225ca04e78b"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-cpython-py_pr_126033",
+      "language": "c",
+      "project": "cpython",
+      "repository": "https://github.com/python/cpython",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-cpython-py_pr_126033",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "c57aeed45c15b9dd1e035e22e34a6355ed7786fc1b7bbe04b4a87827cfef5696",
+        "sse/build.sh": "e360e530778af528d32a5ad0d5faed8e297d82cc7d8271ed47c6d28b818c92aa",
+        "sse/config.yaml": "039d6bb04a7790d188e6b9dd965eec8ec5026ddc9a704974668bc70906008c7b",
+        "sse/diffs/patch.diff": "1b85cddaa3004af16f1991d5f31253de4720567cb87e0068170b524759a37e98",
+        "sse/diffs/test.diff": "d434eb8f41b250cc1efc8158c49d71c000eb00f5f467be75abfd1e75ce2a16c7",
+        "sse/pocs/poc.py": "13016e7025ecc8c40aed333b4846cb0da8dabae957292e428b3293af0845f72e",
+        "sse/reports/crash.txt": "d0281e36b5468749510520a1e513d674e757ff36ac3d117f1f36d4b6496151bc",
+        "sse/reports/issue.md": "3f742bf4a160d4d64f08bd2327aa142e419b3d9a8f174cd6491fda61fb5bcf19",
+        "sse/run.sh": "33cee072fb0c3853e7ac9cedf76d500c27a1304802a7d67cdee15294debc817e",
+        "sse/test.sh": "c896b9dfd8fa6f6336866286fbf046d4da9b8849bba4130e7d34be2812394ca4"
+      },
+      "metadata": {
+        "id": "generic-c-cpython-py_pr_126033",
+        "project": "cpython",
+        "repository": "https://github.com/python/cpython",
+        "language": "c",
+        "source": "/src/cpython",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.py"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "NULL Pointer Dereference",
+        "binary": "python",
+        "trigger_commit": "c57623c221d46daeaedfbf2b32d041fde0c882de",
+        "patch_commit": "bab1398a47f6d0cfc1be70497f306874c749ef7c",
+        "reference": [
+          "https://github.com/python/cpython.git",
+          "https://github.com/python/cpython/pull/126124",
+          "https://github.com/python/cpython/issues/126033",
+          "https://github.com/python/cpython/commit/c57623c221d46daeaedfbf2b32d041fde0c882de",
+          "https://github.com/python/cpython/commit/bab1398a47f6d0cfc1be70497f306874c749ef7c"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-cpython-py_pr_132747",
+      "language": "c",
+      "project": "cpython",
+      "repository": "https://github.com/python/cpython",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-cpython-py_pr_132747",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "66f02ea38d53d355949a4dd9365def446276a0749ce293ca68e7dbb36e641122",
+        "sse/build.sh": "e360e530778af528d32a5ad0d5faed8e297d82cc7d8271ed47c6d28b818c92aa",
+        "sse/config.yaml": "0623d0d1001495b191a39b2c619332b4880c814c49d923a4a1552b9f5d210663",
+        "sse/diffs/patch.diff": "5585f13ec71dca5e986b407334af0eab6fc7f609b30eed9e144912446d01550c",
+        "sse/diffs/test.diff": "c763f67de60b7122564a7984ae0a0d321a83b5fbc7075bd81a8040ae7f815d2c",
+        "sse/pocs/poc.py": "ad48676201fcb45a0ed734c240e3fd83366277678534b30366f086107aabeffb",
+        "sse/reports/crash.txt": "66abdfbf9705ed129de2d91fafa2dac9710bba81cea75af2e520cb8d86cf2a37",
+        "sse/reports/issue.md": "4ee69d5028511a591c8f7327c045e7ce14cca2bb4a4eae4fae5fdcc4e5c637c4",
+        "sse/run.sh": "33cee072fb0c3853e7ac9cedf76d500c27a1304802a7d67cdee15294debc817e",
+        "sse/test.sh": "27d53828bb9ee76faaf7bd15f9beaf4e3dc9660ba6621b159824df11ef8fa4cc"
+      },
+      "metadata": {
+        "id": "generic-c-cpython-py_pr_132747",
+        "project": "cpython",
+        "repository": "https://github.com/python/cpython",
+        "language": "c",
+        "source": "/src/cpython",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.py"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "NULL Pointer Dereference",
+        "binary": "python",
+        "trigger_commit": "c8e0b6e6849fc3d93c33050b43fe866391625157",
+        "patch_commit": "fa70bf85931eff62cb24fb2f5b7e86c1dcf642d0",
+        "reference": [
+          "https://github.com/python/cpython.git",
+          "https://github.com/python/cpython/pull/132772",
+          "https://github.com/python/cpython/issues/132747",
+          "https://github.com/python/cpython/commit/c8e0b6e6849fc3d93c33050b43fe866391625157",
+          "https://github.com/python/cpython/commit/fa70bf85931eff62cb24fb2f5b7e86c1dcf642d0"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-exiv2-exiv2_gh_789",
+      "language": "c",
+      "project": "exiv2",
+      "repository": "https://github.com/Exiv2/exiv2",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-exiv2-exiv2_gh_789",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "4c101a2a6c4ada8039c5602df2f86e4f69ff2f673fffd0d8f6568a58b1fc1437",
+        "sse/build.sh": "cf1e7a8f2f6450cfc5eeb0890ddde6deb5cdff10582895ad245a8896d5926f17",
+        "sse/config.yaml": "1eba21503f9f310eaf0b7bbe275b21c76eb6985580930415f1ba17237a62e524",
+        "sse/diffs/patch.diff": "d50d012fa352a556fb3b29509596bd1e5ff3312fd06ab1f90f88aad4493a62d2",
+        "sse/diffs/test_rich.diff": "2ab03e7f1c1bbe6605b0e61242541f97cdb661972566c1eadac982c489120dc8",
+        "sse/pocs/issue_789_poc1.png": "56942e0e4450f69b869bb936fd983e0455f6d053257139f59dc3cdb604be711a",
+        "sse/reports/crash.txt": "491d72cdde9668f144deaa5fef2be38d1efebd385482f9bf4eb4e21e360aef67",
+        "sse/reports/issue.md": "ec13f29962ead353dc26e2532ef7b59967c7ee0c2f9d69ec9d3c33ec66e4bb8b",
+        "sse/reports/poc1.png": "56942e0e4450f69b869bb936fd983e0455f6d053257139f59dc3cdb604be711a",
+        "sse/run.sh": "501121021ea6ed51ddfc152e2d38c14223e7d8f13d6e8f5bd26c2da4358de982",
+        "sse/test.sh": "0499168f0a4fd8e82ebe8452db5ecf30401a21bd76bb16e659ee1eb9eda815c1"
+      },
+      "metadata": {
+        "id": "generic-c-exiv2-exiv2_gh_789",
+        "project": "exiv2",
+        "repository": "https://github.com/Exiv2/exiv2",
+        "language": "c",
+        "source": "/src/exiv2",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test_rich.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/issue_789_poc1.png"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "Heap Buffer Overflow",
+        "binary": "exiv2",
+        "trigger_commit": "f05d100579effd7459fd0715b26239d4cd2c9bcc",
+        "patch_commit": "8cd95e221889e41e9cc153e2cfb5a7b41c7bc7a4",
+        "reference": [
+          "https://github.com/Exiv2/exiv2",
+          "https://github.com/Exiv2/exiv2/issues/789",
+          "https://github.com/Exiv2/exiv2/commit/f05d100579effd7459fd0715b26239d4cd2c9bcc",
+          "https://github.com/Exiv2/exiv2/commit/8cd95e221889e41e9cc153e2cfb5a7b41c7bc7a4"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-jq-jq_gh_3196",
+      "language": "c",
+      "project": "jq",
+      "repository": "https://github.com/jqlang/jq",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-jq-jq_gh_3196",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "51ec483d242011f09115ba2e9d80276135152206493ca7bacb9d9376fdc6ff20",
+        "sse/build.sh": "0bf5aa64b40eec5260131365e37e223e65545b202e6f4045eb34cc03936e7b5b",
+        "sse/config.yaml": "4701773274d974d99537b55091dba4fe868e2cef0ef06929b115b1a3ce2a6b1a",
+        "sse/diffs/patch.diff": "e9a05ce9ae1d3a79ea9779e8edc9651a51e68be4842028aebca0330e382ed43d",
+        "sse/diffs/test.diff": "cb06fd4e00289aa5352bae57d15f3999b5e5d78df326d97121bdd8b8b196d99f",
+        "sse/pocs/poc.jq": "70b7498a038dfc8b3b31990834dfa8963acda98c7251c49244a40f15b40b4626",
+        "sse/reports/crash.txt": "898ccc01cd520c45a7901e3a77a37e7c8a319b64edbb0730a25833733c6058ac",
+        "sse/reports/issue.md": "203b244c48a5617b7682786dffef64b76ea87b7904b46cb54f5c35ed37d35b14",
+        "sse/run.sh": "0dcee6fb9bf2b9c69f7caba7831dc306e3ed6f10698d02a1cafdd701e4b7bb76",
+        "sse/test.sh": "a260d40f4d4a88784170311142df2442ece1f968a844f89f821558fd7af72c7a"
+      },
+      "metadata": {
+        "id": "generic-c-jq-jq_gh_3196",
+        "project": "jq",
+        "repository": "https://github.com/jqlang/jq",
+        "language": "c",
+        "source": "/src/jq",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.jq"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "Stack Buffer Overflow",
+        "binary": "jq_fuzz_fixed",
+        "trigger_commit": "64bd8ba3749fe473b0708f999e088dfa94d37a2c",
+        "patch_commit": "a09a4dfd55e6c24d04b35062ccfe4509748b1dd3",
+        "reference": [
+          "https://github.com/jqlang/jq",
+          "https://github.com/jqlang/jq/issues/3196",
+          "https://github.com/jqlang/jq/commit/64bd8ba3749fe473b0708f999e088dfa94d37a2c",
+          "https://github.com/jqlang/jq/commit/a09a4dfd55e6c24d04b35062ccfe4509748b1dd3"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-libtiff-tif_gh_647",
+      "language": "c",
+      "project": "libtiff",
+      "repository": "https://gitlab.com/libtiff/libtiff",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-libtiff-tif_gh_647",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "9d4368214f03d1aa5b933d507c4e8581979d2644c75d5953252a70b3adb5dfa1",
+        "sse/build.sh": "78e496a398adbf3136c6aef968b1b0da0754800bc2105fda44f7e02b0cf9aba9",
+        "sse/config.yaml": "a8bd995ff0db4405ef6c673386f232ee1063068b1f5265984645ec69e9e71102",
+        "sse/diffs/patch.diff": "d1c08644c3b0cda0eaa09defb3829244bfc7cc619fb83d176b81d20fe7dca5d7",
+        "sse/diffs/test.diff": "11f0ce3ac2d1c7939276837af300ad3dc4406a8a021c75018bf4b7c58951de9b",
+        "sse/pocs/poc.tiff": "11ad9570b5bf40b3a8d8d9f507f62cb6569b58b525d644319800b64c9f24ae6b",
+        "sse/reports/crash.txt": "c90a505ee0b4bc230f972acc348cded5f0e2ce035477f7adf844accd12519b10",
+        "sse/run.sh": "7be09418fb2c9c61e9dcefadbee5d4bd395e76ce23b94169e1a7b8e7b2870b28",
+        "sse/test.sh": "bfdc40c28aa2f8c7944fe3a4304972333acab50d0bac57e94b5e3af0bcf801f3"
+      },
+      "metadata": {
+        "id": "generic-c-libtiff-tif_gh_647",
+        "project": "libtiff",
+        "repository": "https://gitlab.com/libtiff/libtiff",
+        "language": "c",
+        "source": "/src/libtiff",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/crash.txt"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.tiff"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "NULL Pointer Dereference",
+        "binary": "poc-647",
+        "trigger_commit": "b00d0060ba2fb4c0f8bcb4bbb9fe4426ab5457dc",
+        "patch_commit": "986f906ed073afbbf61bf2af83687ed2543b38b7",
+        "reference": [
+          "https://gitlab.com/libtiff/libtiff",
+          "https://gitlab.com/libtiff/libtiff/-/merge_requests/647",
+          "https://gitlab.com/libtiff/libtiff/-/commit/b00d0060ba2fb4c0f8bcb4bbb9fe4426ab5457dc",
+          "https://gitlab.com/libtiff/libtiff/-/commit/986f906ed073afbbf61bf2af83687ed2543b38b7"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-libxml2-xml_commit_0bcd05c",
+      "language": "c",
+      "project": "libxml2",
+      "repository": "https://gitlab.gnome.org/GNOME/libxml2",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-libxml2-xml_commit_0bcd05c",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "7f76673948096fddc1c4496b67659b67ce175970a2a1fd5480336d6cefa06f76",
+        "sse/build.sh": "db32f14b4dbfed9c75ce771f44f93e3f9f2c0fbc3f5a67f89b33b8816bb65bc4",
+        "sse/config.yaml": "abf4d5f75d516461184e69052c2b48579de64cb568e136db492b93edf51b9cb6",
+        "sse/diffs/patch.diff": "7283c2d2c7e33efb8fc475a57662ea9838345effed15cae953c71cba8409f324",
+        "sse/diffs/test.diff": "f27d9e719744a85620a8240e42180c1fd167dd10e48400439a08b6c75d17ae65",
+        "sse/pocs/poc.html": "59320650754dc51c88f1d96e7945aef7add208275f29c90214c408213218a5ca",
+        "sse/reports/crash.txt": "9627b40a9a0a88f948e10940780553fc3551b08346958c564de0c910853faf4c",
+        "sse/run.sh": "bc914ce5dd38b5e7ddc720067b3aba75465a70d00ce54741effa73cac5f9f692",
+        "sse/test.sh": "3dcff0a6579e562ffadf36badf0d3d0faadf571e603b7e39299719fee05f73d4"
+      },
+      "metadata": {
+        "id": "generic-c-libxml2-xml_commit_0bcd05c",
+        "project": "libxml2",
+        "repository": "https://gitlab.gnome.org/GNOME/libxml2",
+        "language": "c",
+        "source": "/src/libxml2",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/crash.txt"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.html"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "Heap Buffer Overflow",
+        "binary": "xmllint",
+        "trigger_commit": "00906759053986b8079985644172085f74331f83",
+        "patch_commit": "0bcd05c5cd83dec3406c8f68b769b1d610c72f76",
+        "reference": [
+          "https://gitlab.gnome.org/GNOME/libxml2",
+          "https://gitlab.gnome.org/GNOME/libxml2/-/commit/00906759053986b8079985644172085f74331f83",
+          "https://gitlab.gnome.org/GNOME/libxml2/-/commit/0bcd05c5cd83dec3406c8f68b769b1d610c72f76"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-libxml2-xml_commit_a820dbe",
+      "language": "c",
+      "project": "libxml2",
+      "repository": "https://gitlab.gnome.org/GNOME/libxml2",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-libxml2-xml_commit_a820dbe",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "e27918d7d297e0b848699631a9dc33fde3ca5358c91f3e23ba5b8f2fe384d08a",
+        "sse/build.sh": "3c334685e8b566ce7f505c1ce5558afa4578c2fe9ffde647d1bcf102e6ff0242",
+        "sse/config.yaml": "b04cc7a920a96b66aca35ebe32188ad52a66ae1df579150d377c0baa9ee4d85a",
+        "sse/diffs/patch.diff": "776c1b6eba152f0cd270513cee6b1fc05399e27e159c814c1e1261f7f08711a6",
+        "sse/diffs/test.diff": "7c26ebb2ed2a21a1a53d4ce1da185981bf65aa5ac908ba26f7727107631c9cf3",
+        "sse/pocs/attachment_316182": "d96c1e4505f4bad43375702ee69350b16dee452dba9d5ba770756da863ea4685",
+        "sse/reports/crash.txt": "ef26f1786ec3414e147b58d6929da7976d6e900d97223a07953ca97320abe438",
+        "sse/run.sh": "bc914ce5dd38b5e7ddc720067b3aba75465a70d00ce54741effa73cac5f9f692",
+        "sse/test.sh": "3dcff0a6579e562ffadf36badf0d3d0faadf571e603b7e39299719fee05f73d4"
+      },
+      "metadata": {
+        "id": "generic-c-libxml2-xml_commit_a820dbe",
+        "project": "libxml2",
+        "repository": "https://gitlab.gnome.org/GNOME/libxml2",
+        "language": "c",
+        "source": "/src/libxml2",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/crash.txt"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/attachment_316182"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "Heap Buffer Overflow",
+        "binary": "xmllint",
+        "trigger_commit": "db07dd613e461df93dde7902c6505629bf0734e9",
+        "patch_commit": "a820dbeac29d330bae4be05d9ecd939ad6b4aa33",
+        "reference": [
+          "https://gitlab.gnome.org/GNOME/libxml2",
+          "https://gitlab.gnome.org/GNOME/libxml2/-/commit/db07dd613e461df93dde7902c6505629bf0734e9",
+          "https://gitlab.gnome.org/GNOME/libxml2/-/commit/a820dbeac29d330bae4be05d9ecd939ad6b4aa33"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-libxml2-xml_gh_931",
+      "language": "c",
+      "project": "libxml2",
+      "repository": "https://gitlab.gnome.org/GNOME/libxml2",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-libxml2-xml_gh_931",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "c6bad004d1f281ca1110904ed6c641c144c8886294ddd95991539810e3b4e7e2",
+        "sse/build.sh": "dc1c7861d33a7cc395283a1583c53f05f9fae124174291c6e85d773d367d4e89",
+        "sse/config.yaml": "2845dfd6f84d94b477bae76bfe6b2170d03415a3e43927599b68e12aa1c2e94f",
+        "sse/diffs/patch.diff": "93c3fd725e7e65503ea28875bba41095e187a7e83d5a0fd8c65935a1c3c9d4a7",
+        "sse/diffs/test.diff": "623f2eeb5c73f9278f23cd93c729b2de9e4efba8ccab2b25f72a35dfc7f60705",
+        "sse/pocs/poc": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sse/reports/crash.txt": "56dce8f77968da6edf7b28bc1c2288e924da55e44bc90ecea956fc94e7e3fa38",
+        "sse/run.sh": "139c4482696e198beb96dbf44aba715faaa1ab6961df228795a029ae3dd1b604",
+        "sse/test.sh": "ce1c10d60050718f97f3c4909fc46bff23ae91045fc48527ed6f0734b1ea6320"
+      },
+      "metadata": {
+        "id": "generic-c-libxml2-xml_gh_931",
+        "project": "libxml2",
+        "repository": "https://gitlab.gnome.org/GNOME/libxml2",
+        "language": "c",
+        "source": "/src/libxml2",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/crash.txt"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "Use After Free",
+        "binary": "poc",
+        "trigger_commit": "24d7e15914588cb45e7fb41cbe4fcf785e1a4861",
+        "patch_commit": "71e1e8af5ee46dad1b57bb96cfbf1c3ad21fbd7b",
+        "reference": [
+          "https://gitlab.gnome.org/GNOME/libxml2",
+          "https://gitlab.gnome.org/GNOME/libxml2/-/merge_requests/931",
+          "https://gitlab.gnome.org/GNOME/libxml2/-/commit/24d7e15914588cb45e7fb41cbe4fcf785e1a4861",
+          "https://gitlab.gnome.org/GNOME/libxml2/-/commit/71e1e8af5ee46dad1b57bb96cfbf1c3ad21fbd7b"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-libxml2-xml_gh_932",
+      "language": "c",
+      "project": "libxml2",
+      "repository": "https://gitlab.gnome.org/GNOME/libxml2",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-libxml2-xml_gh_932",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "b2f9dd95b36e2402bd018f974c19814f55334880866fe3b79c21f5a1e5f3e944",
+        "sse/build.sh": "dc1c7861d33a7cc395283a1583c53f05f9fae124174291c6e85d773d367d4e89",
+        "sse/config.yaml": "e46823f72428c7aa0593e3fd8e06ce17addfcf66ca020e81648c2ae2e8958de6",
+        "sse/diffs/patch.diff": "935214e7cf96448e75f6c1230c4295bcfbc994b8d0230efd77150b4116008e5b",
+        "sse/diffs/test.diff": "c41c150715db7b045410af5f3bdca1eb2fe682b5f31883514ad992f7e7ce79e7",
+        "sse/pocs/poc": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sse/reports/crash.txt": "a0d89a36f171dbff1701acafdd83e15ef22254b7d10537e598db7b58de489d93",
+        "sse/run.sh": "dc8a6ab2bd53ad329ae17d29ecc2dc34a30f38ad5fe74b1c35ce5718ed13d2a9",
+        "sse/test.sh": "ce1c10d60050718f97f3c4909fc46bff23ae91045fc48527ed6f0734b1ea6320"
+      },
+      "metadata": {
+        "id": "generic-c-libxml2-xml_gh_932",
+        "project": "libxml2",
+        "repository": "https://gitlab.gnome.org/GNOME/libxml2",
+        "language": "c",
+        "source": "/src/libxml2",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/crash.txt"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "NULL Pointer Dereference",
+        "binary": "poc",
+        "trigger_commit": "069bcda17d8194e9582c64dd4bc9dac99b015810",
+        "patch_commit": "499bcb78ab389f60c2fd634ce410d4bb85c18765",
+        "reference": [
+          "https://gitlab.gnome.org/GNOME/libxml2",
+          "https://gitlab.gnome.org/GNOME/libxml2/-/merge_requests/932",
+          "https://gitlab.gnome.org/GNOME/libxml2/-/commit/069bcda17d8194e9582c64dd4bc9dac99b015810",
+          "https://gitlab.gnome.org/GNOME/libxml2/-/commit/499bcb78ab389f60c2fd634ce410d4bb85c18765"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-libxml2-xml_gh_933",
+      "language": "c",
+      "project": "libxml2",
+      "repository": "https://gitlab.gnome.org/GNOME/libxml2",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-libxml2-xml_gh_933",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "c6bad004d1f281ca1110904ed6c641c144c8886294ddd95991539810e3b4e7e2",
+        "sse/build.sh": "d2e9e8e3186491eda86204003621f1001cadfbc662bc8212f880b7aa9f800a78",
+        "sse/config.yaml": "ff8793bfdd22f11fe863425270571a88ed9fb46490dd588a0c5305f99bdb45fb",
+        "sse/diffs/patch.diff": "93c3fd725e7e65503ea28875bba41095e187a7e83d5a0fd8c65935a1c3c9d4a7",
+        "sse/diffs/test.diff": "a5a234abe453d1355f58f16999e55fd8ca008ecdb13b1b4d624d08fe980fc09f",
+        "sse/pocs/poc": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sse/reports/crash.txt": "f3bfb73d19d024d1bd72f6022a8983cae49766ade008f119abba4e4d978511d7",
+        "sse/run.sh": "c5dafeb617aa705a15e83b1a741e818b62ea98f4f7ecf6830fe9ba0201c6dd5f",
+        "sse/test.sh": "ce1c10d60050718f97f3c4909fc46bff23ae91045fc48527ed6f0734b1ea6320"
+      },
+      "metadata": {
+        "id": "generic-c-libxml2-xml_gh_933",
+        "project": "libxml2",
+        "repository": "https://gitlab.gnome.org/GNOME/libxml2",
+        "language": "c",
+        "source": "/src/libxml2",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/crash.txt"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "Incorrect Type Conversion or Cast",
+        "binary": "poc",
+        "trigger_commit": "24d7e15914588cb45e7fb41cbe4fcf785e1a4861",
+        "patch_commit": "71e1e8af5ee46dad1b57bb96cfbf1c3ad21fbd7b",
+        "reference": [
+          "https://gitlab.gnome.org/GNOME/libxml2",
+          "https://gitlab.gnome.org/GNOME/libxml2/-/merge_requests/933",
+          "https://gitlab.gnome.org/GNOME/libxml2/-/commit/24d7e15914588cb45e7fb41cbe4fcf785e1a4861",
+          "https://gitlab.gnome.org/GNOME/libxml2/-/commit/71e1e8af5ee46dad1b57bb96cfbf1c3ad21fbd7b"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-php-php_gh_16589",
+      "language": "c",
+      "project": "php",
+      "repository": "https://github.com/php/php-src",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-php-php_gh_16589",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "35d8aee5b7a31c2797e8dee366be0116b0b0a4cf04661c0e0ac3ff640214ba26",
+        "sse/build.sh": "c94b18f393e7bbb4dde9e6eac8fe721ebded8cdc0a41eb3d6093e5847763e10f",
+        "sse/config.yaml": "b7ea2d39776a8da041ca9778906dea989bd94c5283cdd78d2a0cfc110ebfedbb",
+        "sse/diffs/patch.diff": "a531cecf73ce1370a6fbff7055f5898ac776234e3c601261c0d3a00827694531",
+        "sse/diffs/test_rich.diff": "1407039baf91ba3d4567cd5ff41c6f7a88e116fcde872289631875e0c8502ae3",
+        "sse/pocs/poc.bin": "9f631699b06ab0e1b8edd8350c2fa48b0c87ae4f49ce0a288079d8aec4bdcf69",
+        "sse/reports/crash.txt": "390ee0ff523d8239a574b40348f953ad0f86507949501f09fc212ba24e8e9a40",
+        "sse/reports/issue.md": "5ffb19122c23ad8eaeef750a4b44c7fba158646d28e3b38504f6ee51681ff020",
+        "sse/run.sh": "28baf56fdac3aa43968055515fc09b97b15a5d33a55472d9acda982fbbc8c88d",
+        "sse/test.sh": "590fb9130a727d4ad088ccb32b3780db471d7df6758f47fa92ec3f027907cf9f"
+      },
+      "metadata": {
+        "id": "generic-c-php-php_gh_16589",
+        "project": "php",
+        "repository": "https://github.com/php/php-src",
+        "language": "c",
+        "source": "/src/php",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test_rich.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.bin"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "Use After Free",
+        "binary": "php",
+        "trigger_commit": "992ac1c25a790d413a8029ed052a1436cc8f50a1",
+        "patch_commit": "8f60309a78e5c30b7713b820258676ef5ce19786",
+        "reference": [
+          "https://github.com/php/php-src.git",
+          "https://github.com/php/php-src/issues/16589",
+          "https://github.com/php/php-src/commit/992ac1c25a790d413a8029ed052a1436cc8f50a1",
+          "https://github.com/php/php-src/commit/8f60309a78e5c30b7713b820258676ef5ce19786"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-quickjs-qjs_gh_567",
+      "language": "c",
+      "project": "quickjs",
+      "repository": "https://github.com/quickjs-ng/quickjs",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-quickjs-qjs_gh_567",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "987bf7bb0c39c83136c65151d165d08db0ed33c110bce5a17fb229075f7ef069",
+        "sse/build.sh": "b2ae95c655efed512cf840817f7686da80b76fd1ee9dc71b22b1fd360ad43e7d",
+        "sse/config.yaml": "e83c2310c1ea171adbac988b3164b48f5467d0fb86541509e1f52af84d04797b",
+        "sse/diffs/patch.diff": "a66c73c90f145487f78bb5ed30cf4dc94f772a321a4d0099365d7434306f1d20",
+        "sse/diffs/test.diff": "9402b8d533f53773afc190b110516ec8919f6906a10acb80a88a98f864f6e4bb",
+        "sse/pocs/poc.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sse/reports/crash.txt": "d4200d26d8e21442b3f2f17550cd9b051fac23cb413780156d50c5e36001930e",
+        "sse/reports/issue.md": "e6c94cc686c15b3cb832db8bbc6c80eec0af6785b938339b0cef22e700585d21",
+        "sse/run.sh": "038cbe2bee91bce78b81249b50629af8b00a1a96325f70ec9789ba913674a439",
+        "sse/test.sh": "bd905015f4c8fadb518f3f98b40cc7a499efe79f37f436d7d8b22bfb0611aac1"
+      },
+      "metadata": {
+        "id": "generic-c-quickjs-qjs_gh_567",
+        "project": "quickjs",
+        "repository": "https://github.com/quickjs-ng/quickjs",
+        "language": "c",
+        "source": "/src/quickjs",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.bin"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "NULL Pointer Dereference",
+        "binary": "qjs",
+        "trigger_commit": "d9d6939b20ae6e74399ed88433b3a121afdd642d",
+        "patch_commit": "36227a5310f3a58c6be1fb1bfd1f833983c29d71",
+        "reference": [
+          "https://github.com/quickjs-ng/quickjs.git",
+          "https://github.com/quickjs-ng/quickjs/issues/567",
+          "https://github.com/quickjs-ng/quickjs/commit/d9d6939b20ae6e74399ed88433b3a121afdd642d",
+          "https://github.com/quickjs-ng/quickjs/commit/36227a5310f3a58c6be1fb1bfd1f833983c29d71"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-vim-vim_gh_14738",
+      "language": "c",
+      "project": "vim",
+      "repository": "https://github.com/vim/vim",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-vim-vim_gh_14738",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "536a9ad10fe94f2bc22000a5ac6140fcbbb4d1958b522a4dbbf52ef1fc44d708",
+        "sse/build.sh": "6894f518e01ef5c8bf67b3d8ac36aaa5d0b91a19aae8251990c7729a2008c8ff",
+        "sse/config.yaml": "4c4655d8a63f35a021d72dbf9fa9ed4a72389b4d3d57ffc1b89944e645249f40",
+        "sse/diffs/patch.diff": "388f2224785f28fbfb29ea69627040de217f9e413f50003e183d1de100ada08d",
+        "sse/diffs/test.diff": "f0f080d38e64c5774ec2050bdf33c5571c346abb2d53d05c264a5a040ca65a62",
+        "sse/pocs/poc.vim": "28f43aef5c6589d141569cf6d50ab29d275091b696af493ab5c6582410628778",
+        "sse/reports/crash.txt": "6d585ab7502ccb82404f2ea3aa46523bfce34320c4aa50ccc383e994c284d0cd",
+        "sse/reports/issue.md": "d72cf3081517e24354574a7245400bd5e3ea27d5ec752736c4f1f0275912f54c",
+        "sse/run.sh": "b2874825aeacd3c50fd049e61797cf75ab9a61c21dec410ce036329fea5b88a8",
+        "sse/test.sh": "f48ce811781a25f6a31ac1a93cb79dc54642425cad77d964d5fc799a4e17bb39",
+        "sse/test_cmdline.vim": "b27604839a1820fce422789d9fb2f1ddf3f659af4fb9d476396160fb933fb617"
+      },
+      "metadata": {
+        "id": "generic-c-vim-vim_gh_14738",
+        "project": "vim",
+        "repository": "https://github.com/vim/vim",
+        "language": "c",
+        "source": "/src/vim",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.vim"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "Heap Buffer Overflow",
+        "binary": "xxd",
+        "trigger_commit": "8c35c26c1f68950a75a1a93339410244fec23afc",
+        "patch_commit": "67797191e039196128c69ba1538ccaf2a4711323",
+        "reference": [
+          "https://github.com/vim/vim",
+          "https://github.com/vim/vim/issues/14738",
+          "https://github.com/vim/vim/commit/8c35c26c1f68950a75a1a93339410244fec23afc",
+          "https://github.com/vim/vim/commit/67797191e039196128c69ba1538ccaf2a4711323"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-vim-vim_gh_17005",
+      "language": "c",
+      "project": "vim",
+      "repository": "https://github.com/vim/vim",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-vim-vim_gh_17005",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "bcd8638aa8c9a994e4f0263cc6a99e52b8df8bf1ee9a50581ecdbc2b5b83111c",
+        "sse/build.sh": "6894f518e01ef5c8bf67b3d8ac36aaa5d0b91a19aae8251990c7729a2008c8ff",
+        "sse/config.yaml": "0bde50e119c7f660e03c0c7f8f6c5ac1621d6f9dac4f3672b33c78fbd5781318",
+        "sse/diffs/patch.diff": "740f8719c1bad5bbf62a3d6a44ebafc6b0a63b4d59c6c6c0ac41477b3cef1330",
+        "sse/diffs/test.diff": "ef88ceaaf248a9ed4092c0219562c1fa97fce42269eaf63c8d2c8030fe3dfd78",
+        "sse/pocs/poc.vim": "e251ede15dabc35be6b8e55d8ecded1ead841f21faa406c5a926313dd4cd5c6e",
+        "sse/reports/crash.txt": "fbd431777d08c5a8c378645ceca3a5e559c9831c22adbb1c55bc9422c62a4e82",
+        "sse/run.sh": "ca0ecff4ea17e6028033ba22fbf7d80259281d3ed3a25480c64517c82681947c",
+        "sse/test.sh": "f48ce811781a25f6a31ac1a93cb79dc54642425cad77d964d5fc799a4e17bb39",
+        "sse/test_cmdline.vim": "ddcbb8cce17a6734aaf90b7043f36dd9e65ec80533de86fb4ccd7a93e4b3595e"
+      },
+      "metadata": {
+        "id": "generic-c-vim-vim_gh_17005",
+        "project": "vim",
+        "repository": "https://github.com/vim/vim",
+        "language": "c",
+        "source": "/src/vim",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/crash.txt"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.vim"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "Heap Buffer Overflow",
+        "binary": "vim",
+        "trigger_commit": "c6336acfe3e80904458d7ea735929b4c91346702",
+        "patch_commit": "f13c8561544dad4f82b7f4f71041d35f55b5feaa",
+        "reference": [
+          "https://github.com/vim/vim",
+          "https://github.com/vim/vim/commit/c6336acfe3e80904458d7ea735929b4c91346702",
+          "https://github.com/vim/vim/commit/f13c8561544dad4f82b7f4f71041d35f55b5feaa"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-wabt-wabt_gh_2398",
+      "language": "c",
+      "project": "wabt",
+      "repository": "https://github.com/WebAssembly/wabt",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-wabt-wabt_gh_2398",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "87899bfa041fe94c437113ab2f6c683c551a0a587c5aa6632b2371a91c578df6",
+        "sse/build.sh": "3722d0e5c552bd23910be55aba9e873ceab109e0c5ce7e97ded72997c4ce8d83",
+        "sse/config.yaml": "f58bc6206f0b1b0f3cb89e08c26f6d7ccd3fdbdb2fccebce6ee0ba77f0410818",
+        "sse/diffs/patch.diff": "8d63042a68b54adf882e66ac26df8becdabde96be29d67574a91ec337b32a1cd",
+        "sse/diffs/test.diff": "30e7cd4cdab3df8bec92526d321ffd6539ba5f45f9a2eaf9e37ded86530d14e8",
+        "sse/pocs/wasm-poc-03": "6793daf2b1aea5f3b66f550283020058f21c59a6e14ca4b114d3edf1a67a4672",
+        "sse/reports/crash.txt": "d88b890f9c16fb2c1246af326e68b1f631b86098db1bbf0f4e138440e97558a8",
+        "sse/reports/issue.md": "d91b4d86f7d163ab8e6615546d9653353e8b42c08d3ca0431bde23c9169e2ee9",
+        "sse/reports/wasm-poc-03.zip": "c85b2ce0ac61958525474097688936ce5b0b56a4bb98e30d7b0063ac89dbf445",
+        "sse/run.sh": "84c30ea9f8a409910384aaeeb99a25036e89e5266d944e589172b9e5bc47804f",
+        "sse/test.sh": "c3633371ec68fce4cc160804f5f4f9762ea91a508fe1bf5a8be2c1380a418f62"
+      },
+      "metadata": {
+        "id": "generic-c-wabt-wabt_gh_2398",
+        "project": "wabt",
+        "repository": "https://github.com/WebAssembly/wabt",
+        "language": "c",
+        "source": "/src/wabt",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/wasm-poc-03"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "Heap Buffer Overflow",
+        "binary": "wasm-interp",
+        "trigger_commit": "c6853eb4857908072fd1d7c28dffb1d2613a0ee6",
+        "patch_commit": "874caa4433e51013132c0f3d6ca479b759a6f23f",
+        "reference": [
+          "https://github.com/WebAssembly/wabt",
+          "https://github.com/WebAssembly/wabt/issues/2398",
+          "https://github.com/WebAssembly/wabt/commit/c6853eb4857908072fd1d7c28dffb1d2613a0ee6",
+          "https://github.com/WebAssembly/wabt/commit/874caa4433e51013132c0f3d6ca479b759a6f23f"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "generic-c-wireshark-wireshark_commit_129565f",
+      "language": "c",
+      "project": "wireshark",
+      "repository": "https://github.com/wireshark/wireshark",
+      "base": "base-generic-c:latest",
+      "image": "case/pilot/generic-c-wireshark-wireshark_commit_129565f",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "806a5d641b12020e52ad03f45ef1b55d8e9457affca8bc5620a17cac5c5d65f3",
+        "sse/build.sh": "22ef16221a7766b2d6f54bffef587102e870fd369247935686de454f394bd4c0",
+        "sse/config.yaml": "4a10a544a2683290913a49e43ead5c117ec6789a507bc762cb658c6793be699a",
+        "sse/diffs/patch.diff": "e907d7ebfb4aa7750dd6c42f66e08f98866b981d796fb4da5c229c691932e47e",
+        "sse/diffs/test.diff": "b0f7445d303254d965d8fc09ee25e7647c598b7831883e3d8222aafd818a4bf9",
+        "sse/pocs/poc.wireshark": "6a6d6b6db79dbdf1c6325230b9a176116ff0dcd86fff9623bbe43aa821357383",
+        "sse/reports/crash.txt": "38052913aa3330507b19607f94954934a203e8c8138b4e23ded140f0129e5356",
+        "sse/run.sh": "9bf87edc824c8ac015a8a0226f867a3833d2a8699e4963348b11f30b6e36547b",
+        "sse/test.sh": "7e6298581dac1914d41feac62c69ce8373200f70821fc63f3248b96bae77bddf"
+      },
+      "metadata": {
+        "id": "generic-c-wireshark-wireshark_commit_129565f",
+        "project": "wireshark",
+        "repository": "https://github.com/wireshark/wireshark",
+        "language": "c",
+        "source": "/src/wireshark",
+        "task_description": {
+          "issue": "",
+          "crash_report": [
+            "reports/crash.txt"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.wireshark"
+          ]
+        },
+        "sanitizer": "address",
+        "type": "NULL Pointer Dereference",
+        "binary": "dftest",
+        "trigger_commit": "10e9024c12ba35fcd213f8b8aa6d68ef9dd802c2",
+        "patch_commit": "129565f0efb8587d44c0c7f6c262ac72a88d7aab",
+        "reference": [
+          "https://github.com/wireshark/wireshark",
+          "https://gitlab.com/wireshark/wireshark/-/merge_requests/18298",
+          "https://github.com/wireshark/wireshark/commit/10e9024c12ba35fcd213f8b8aa6d68ef9dd802c2",
+          "https://github.com/wireshark/wireshark/commit/129565f0efb8587d44c0c7f6c262ac72a88d7aab"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "gin-5929d52",
+      "language": "go",
+      "project": "gin",
+      "repository": "https://github.com/gin-gonic/gin",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/gin-5929d52",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "93f3af3a48d165b6e0f237d4be27cc360d6281cd49873e2d43c1abcb6735bbeb",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
+        "sse/config.yaml": "f01339f26af3727fa02de126ca0db2fb14ad44c46adb6d2484c6901c796f633c",
+        "sse/diffs/patch.diff": "5e5b724cc7029fbb2167c3359f056b7b50a67afd05c54122f8d06aa9e2284a4a",
+        "sse/diffs/security_test.diff": "ec62a7a578d7f2c56c86b081cf2b9d9d945d768e44ca1ec3d07065c63a8f3c7f",
+        "sse/diffs/test.diff": "ec62a7a578d7f2c56c86b081cf2b9d9d945d768e44ca1ec3d07065c63a8f3c7f",
+        "sse/pocs/poc.go": "3a8d06c088f5efdbbce6580021b9c28f806f5913517a10d205cb624ffe1598e5",
+        "sse/reports/issue.md": "d512a30a3d39d8b213f5b0a04764fdf1fe1d232ff95a6b77bece467639dc46e1",
+        "sse/run.sh": "b41da3c354a41771899185ba4e418dc46af627a666c4201d2b121ee3eb5b08eb",
+        "sse/test.sh": "5912b2dccf6f5cc266f176dcc5d1f602abe7d571ddc9f72daa9f91b7e83f959c"
+      },
+      "metadata": {
+        "id": "gin-5929d52",
+        "project": "gin",
+        "repository": "https://github.com/gin-gonic/gin",
+        "language": "go",
+        "source": "/src/gin",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": "diffs/security_test.diff",
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "CWE-290 - Authentication Bypass by Spoofing",
+        "binary": null,
+        "trigger_commit": "21125bbb3f550dbfa4c64151f7e01f58dd64e2b8",
+        "patch_commit": "5929d521715610c9dd14898ebbe1d188d5de8937",
+        "reference": [
+          "https://github.com/gin-gonic/gin.git",
+          "https://github.com/gin-gonic/gin/commit/5929d521715610c9dd14898ebbe1d188d5de8937",
+          "https://github.com/gin-gonic/gin/issues/2862"
+        ],
+        "originality": "public"
+      }
+    },
+    {
+      "id": "gin-bfc8ca2",
+      "language": "go",
+      "project": "gin",
+      "repository": "https://github.com/gin-gonic/gin",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/gin-bfc8ca2",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "6d09a70194132511027e8d4a0abcc642dcefe5ea6f0ea5d7bfff12445bc1a333",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
+        "sse/config.yaml": "87414fc59fea06f5e7c69875df85ae3e6dd5bd7003177973678f72645338b247",
+        "sse/diffs/patch.diff": "b6f95375f687293ce334f72ccb6b98c0c05274914d1993f5d8425436bea33df4",
+        "sse/diffs/security_test.diff": "5b011ed6a0d632bda46843beac681e079646047854152f208fb00404d5099e84",
+        "sse/diffs/test.diff": "5b011ed6a0d632bda46843beac681e079646047854152f208fb00404d5099e84",
+        "sse/pocs/poc.go": "f5d0ec56f5baef706b3bdb634fd95acfab294307e6165c6924310c916bb37314",
+        "sse/reports/issue.md": "ea8dc62daf66d2e8838aff39ceb7f436ffd92c85c65b1e4dcea59b990fe5bd85",
+        "sse/run.sh": "b41da3c354a41771899185ba4e418dc46af627a666c4201d2b121ee3eb5b08eb",
+        "sse/test.sh": "5cffed59dc08f755d513c0fd165356078647b08428b4b87fd27053332c982cfb"
+      },
+      "metadata": {
+        "id": "gin-bfc8ca2",
+        "project": "gin",
+        "repository": "https://github.com/gin-gonic/gin",
+        "language": "go",
+        "source": "/src/gin",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": "diffs/security_test.diff",
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "CWE-290 - Authentication Bypass by Spoofing (or IP Spoofing)",
+        "binary": null,
+        "trigger_commit": "f3de8132c5d955784deeadb9bcf5752e9fdf0d8c",
+        "patch_commit": "bfc8ca285eb46dad60e037d57c545cd260636711",
+        "reference": [
+          "https://github.com/gin-gonic/gin.git",
+          "https://github.com/gin-gonic/gin/issues/2473",
+          "https://github.com/gin-gonic/gin/commit/bfc8ca285eb46dad60e037d57c545cd260636711"
+        ],
+        "originality": "public"
+      }
+    },
+    {
+      "id": "gjson-192-f0ee9eb",
+      "language": "go",
+      "project": "gjson",
+      "repository": "https://github.com/tidwall/gjson",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/gjson-192-f0ee9eb",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "78d94e6dd064e36824c90201f5e6136b309ab2d297d6467821ab927937ea3c00",
+        "README.md": "c258aaf33fa6070e7582a1d2a4131c47f27a7a26d45fddb2d15957d3228a3453",
+        "sse/build.sh": "b5788b2802f0870b807f5f3ed8459925dce67a2a8367d07365c615c8db3c2983",
+        "sse/config.yaml": "caefa88b6afc36c2e8348cb012cee08a049e677f5a87906bd474c028e1e5ff41",
+        "sse/diffs/patch.diff": "0a7a753cc8c7af2ab78b81758ca23a23f1f97c1ebc42e04d5917c349df1928c6",
+        "sse/diffs/security_test.diff": "ff5d22ee2570da90e1415dde8b4419e670e040836aa417bc088b09279d457019",
+        "sse/diffs/test.diff": "ff5d22ee2570da90e1415dde8b4419e670e040836aa417bc088b09279d457019",
+        "sse/pocs/poc.go": "bac4b6435149d1020e731d26f53d587ae26b6fcc78d0890082c8dc81850b92c3",
+        "sse/reports/crash_report_1.txt": "2396d42727eda334efa5aa40dd71d613a9346ec1d426cd5255fdf1aca4d6224a",
+        "sse/reports/issue.md": "e0107b3d88fe970344d3f7fe32e1e0c332cf52a755d2f242858d38afd8a699c4",
+        "sse/run.sh": "6629fa1fe683803b80a16e102a5eabfb0f1caab84480eb46326e8bb3eddafae8",
+        "sse/test.sh": "90a367e9af857c00f93511fbd74f3d12a4f0da744ad7e6a5ab5aecb76dbacdcf"
+      },
+      "metadata": {
+        "id": "gjson-192-f0ee9eb",
+        "project": "gjson",
+        "repository": "https://github.com/tidwall/gjson",
+        "language": "go",
+        "source": "/src/gjson",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/crash_report_1.txt",
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": "diffs/security_test.diff",
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "Slice bounds out of range",
+        "binary": null,
+        "trigger_commit": "9f58baa7a613f89dfdc764c39e47fd3a15606153",
+        "patch_commit": "f0ee9ebde4b619767ae4ac03e8e42addb530f6bc",
+        "reference": [
+          "https://github.com/tidwall/gjson",
+          "https://github.com/tidwall/gjson/commit/f0ee9ebde4b619767ae4ac03e8e42addb530f6bc",
+          "https://github.com/tidwall/gjson/issues/192"
+        ],
+        "originality": "public"
+      }
+    },
+    {
+      "id": "gjson-196-bf4efcb",
+      "language": "go",
+      "project": "gjson",
+      "repository": "https://github.com/tidwall/gjson",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/gjson-196-bf4efcb",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "94e4db62baa4aad21a7f4b5d09898594b089a8d36ab3617fbf35e64b2c45d4ff",
+        "README.md": "c258aaf33fa6070e7582a1d2a4131c47f27a7a26d45fddb2d15957d3228a3453",
+        "sse/build.sh": "b5788b2802f0870b807f5f3ed8459925dce67a2a8367d07365c615c8db3c2983",
+        "sse/config.yaml": "3c51886a80a2131ec00a81a4cf802c7bd84dbc0c6a17aae6e09e4e14e9ba1335",
+        "sse/diffs/patch.diff": "e1afd6cb86518715da0861b54ae14d797210e50461af33dc3ed4c97b297f1ec7",
+        "sse/diffs/security_test.diff": "9c1a1e23e876b556a10aa3722368fdb9ad6950e16b50850b7e8d0f8ca3668f50",
+        "sse/diffs/test.diff": "9c1a1e23e876b556a10aa3722368fdb9ad6950e16b50850b7e8d0f8ca3668f50",
+        "sse/pocs/poc.go": "4ee7482e30a611a87529558b855b7a257b5c81a74d44aa757d835ced51e18e85",
+        "sse/reports/crash_report_1.txt": "40339cec35c342468e4caaf5d17cb98f6557d5f709a82dfc3d1e8354a8142bc2",
+        "sse/reports/issue.md": "0c63270b450f1f466017c82a9c962a911aa14ffae7384ae17508220b9361c41c",
+        "sse/run.sh": "6629fa1fe683803b80a16e102a5eabfb0f1caab84480eb46326e8bb3eddafae8",
+        "sse/test.sh": "90a367e9af857c00f93511fbd74f3d12a4f0da744ad7e6a5ab5aecb76dbacdcf"
+      },
+      "metadata": {
+        "id": "gjson-196-bf4efcb",
+        "project": "gjson",
+        "repository": "https://github.com/tidwall/gjson",
+        "language": "go",
+        "source": "/src/gjson",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/crash_report_1.txt",
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": "diffs/security_test.diff",
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "Slice bounds out of range",
+        "binary": null,
+        "trigger_commit": "9f58baa7a613f89dfdc764c39e47fd3a15606153",
+        "patch_commit": "bf4efcb3c18d1825b2988603dea5909140a5302b",
+        "reference": [
+          "https://github.com/tidwall/gjson",
+          "https://github.com/tidwall/gjson/commit/bf4efcb3c18d1825b2988603dea5909140a5302b",
+          "https://github.com/tidwall/gjson/issues/196"
+        ],
+        "originality": "public"
+      }
+    },
+    {
+      "id": "gnark-crypto-5660088",
+      "language": "go",
+      "project": "gnark-crypto",
+      "repository": "https://github.com/Consensys/gnark-crypto",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/gnark-crypto-5660088",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "9ff92f3993aa83fc8da7335ed43870fb6a4e80e4d45ca255a80dcd94a946f456",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "6a98860426b23a02bc5d4122320ae20c4fe544730698a59afa1acd854d7c1dd5",
+        "sse/config.yaml": "616be3433696fb8765084f899a299e123b21038003192f6f0af1b8584f5a1d54",
+        "sse/diffs/patch.diff": "6bec1763adce9d3b52374745f7d8a347f5775749abe715f8f642a357b845bafc",
+        "sse/diffs/security_test.diff": "cee6758fdf6180676e1c8b222caad3f3b7453978d587272bf9d48fe3b98c89ed",
+        "sse/diffs/test.diff": "e6b6b320358bce3fc5adaf70eb7f322e42204a89194a12d7c8baa8e2e45bd1f1",
+        "sse/pocs/poc.go": "a1057fefee8c3213860e1d1a185ffe382eda0696daed8a2b11a166d955f580ea",
+        "sse/reports/issue.md": "1bb734bc586dbce3ffa1e67d851aff961f185e54adb06b56cc3125966d3c6916",
+        "sse/run.sh": "b41da3c354a41771899185ba4e418dc46af627a666c4201d2b121ee3eb5b08eb",
+        "sse/test.sh": "81895d15735221b0d74eb516d8c2cd269684a19f2b5cf0c11f87e2230bbc9823"
+      },
+      "metadata": {
+        "id": "gnark-crypto-5660088",
+        "project": "gnark-crypto",
+        "repository": "https://github.com/Consensys/gnark-crypto",
+        "language": "go",
+        "source": "/src/gnark-crypto",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": "diffs/security_test.diff",
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "CWE-835 - Loop with Unreachable Exit Condition ('Infinite Loop')",
+        "binary": null,
+        "trigger_commit": "1873045cbd7d0e690a74c0c30c4a00335776de5f",
+        "patch_commit": "56600883e0e9f9b159e9c7000b94e76185ec3d0d",
+        "reference": [
+          "https://github.com/Consensys/gnark-crypto.git",
+          "https://github.com/Consensys/gnark-crypto/commit/56600883e0e9f9b159e9c7000b94e76185ec3d0d",
+          "https://github.com/Consensys/gnark/issues/1483"
+        ],
+        "originality": "public"
+      }
+    },
+    {
+      "id": "goyave-20243293-5836bff3efaa",
+      "language": "go",
+      "project": "goyave",
+      "repository": "https://github.com/go-goyave/goyave",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/goyave-20243293-5836bff3efaa",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "f4904164a0ccc81ec67d4f0a684fe3b9a9170cf5cfe823cb9ad19f2665284b4c",
+        "sse/build.sh": "aa7f42288d6ccc3a9088b54718fdd66034f058eaefc219ebd0250f171880b385",
+        "sse/config.yaml": "7b0c22ac0af9a51782ce82fe8e5599e273bcfa6bb1d0b4f6137bc9a5a79c27e7",
+        "sse/diffs/patch.diff": "6077b6cd4cecb276c5e94e8b9e6a2a01407b692a1b6996d32c82c1d8fa9fc802",
+        "sse/diffs/security_test.diff": "2fed71f3742cb9d389aae078e87820894aaf965ea35adc28454270e0af8f5b2c",
+        "sse/diffs/test.diff": "2fed71f3742cb9d389aae078e87820894aaf965ea35adc28454270e0af8f5b2c",
+        "sse/pocs/config.json": "ae3de1bc6b3245689e7e3466d403a090f9a7f26e1bed3787d2ccc696e8b7fb40",
+        "sse/pocs/poc.go": "b403cfc8dab38bdafd85d8e83da2527c5fde463e66259504fa94f3162358f18e",
+        "sse/reports/issue.md": "35da5b895946a16b3caa356f82e2c1288f43ecc6f7675a5c2a0adcbbe8dcee39",
+        "sse/run.sh": "7004f58828d1b0a5b1ef244c1d13eaeb92cca4149e1e490a91e239a994b82272",
+        "sse/test.sh": "08a7cd4f5e924e1ee6b028622c1fa61f2608fb526d490aec43309ffabc8e8da7"
+      },
+      "metadata": {
+        "id": "goyave-20243293-5836bff3efaa",
+        "project": "goyave",
+        "repository": "https://github.com/go-goyave/goyave",
+        "language": "go",
+        "source": "/src/goyave",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": "none",
+        "type": "Path Traversal",
+        "binary": "none",
+        "trigger_commit": "fc57b4c103252191ba7643280a1225fb7332e312",
+        "patch_commit": "5836bff3efaa8a37fbd58d077b93f03e93e05edd",
+        "reference": [
+          "https://github.com/go-goyave/goyave/commit/5836bff3efaa8a37fbd58d077b93f03e93e05edd",
+          "https://github.com/golang/vulndb/issues/3293"
+        ],
+        "originality": "public"
+      }
+    },
+    {
+      "id": "interceptor-fa5b35e",
+      "language": "go",
+      "project": "interceptor",
+      "repository": "https://github.com/pion/interceptor",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/interceptor-fa5b35e",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "49dba70adfc1872cc0b6057efb9678acc47bacb894dfa8d1b58faee7173c7514",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "cf4e98b435e6d8e601e9fa4c6330146ef1194b80ed67d6a78c874088a76ab4c7",
+        "sse/config.yaml": "c815f213a5eaa66bd21bc3cd28da8d5075d1f29d04810229f8d47b3ce3698c61",
+        "sse/diffs/patch.diff": "c8ebe9d1304b72b8c6106ecce0edb920408a7d3406e299c0ed0a7faab5bd209b",
+        "sse/diffs/security_test.diff": "767ac1fbb42a31262c6e176957aac28fae26eec3eabaecddabd0284ad93344cd",
+        "sse/diffs/test.diff": "767ac1fbb42a31262c6e176957aac28fae26eec3eabaecddabd0284ad93344cd",
+        "sse/pocs/poc.go": "4f74db43c5b53d0e25b90636ccaaf2a7e8c0417ccb58c0c9d3d756aca12b6816",
+        "sse/reports/crash_report_1.txt": "3a331ab47ad80e1ac899667a7ab4e98782481a1881b04ab8f307a475e55b00cc",
+        "sse/reports/issue.md": "ef4797a9d912d21bb183d52352da61efda9106c6184eb05b0553171ad85e2a97",
+        "sse/run.sh": "b41da3c354a41771899185ba4e418dc46af627a666c4201d2b121ee3eb5b08eb",
+        "sse/test.sh": "5cffed59dc08f755d513c0fd165356078647b08428b4b87fd27053332c982cfb"
+      },
+      "metadata": {
+        "id": "interceptor-fa5b35e",
+        "project": "interceptor",
+        "repository": "https://github.com/pion/interceptor",
+        "language": "go",
+        "source": "/src/interceptor",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/crash_report_1.txt",
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": "diffs/security_test.diff",
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "Slice bounds out of range",
+        "binary": null,
+        "trigger_commit": "791455129d4ef736c4009692e8ce108afe0fff14",
+        "patch_commit": "fa5b35ea867389cec33a9c82fffbd459ca8958e5",
+        "reference": [
+          "https://github.com/pion/interceptor.git",
+          "https://github.com/pion/interceptor/commit/fa5b35ea867389cec33a9c82fffbd459ca8958e5",
+          "https://github.com/pion/webrtc/issues/3148"
+        ],
+        "originality": "public"
+      }
+    },
+    {
+      "id": "jwkset-41-01db49a",
+      "language": "go",
+      "project": "jwkset",
+      "repository": "https://github.com/MicahParks/jwkset",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/jwkset-41-01db49a",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "95ed2f3f1db3a6f01a51ed9cdd557c6f21a34cd7abdb3cf4948cf8bc6cbfb569",
+        "README.md": "3fdf10dc16013809fd58338336c7c5f52c92e51b75453dade90b81717a0550e9",
+        "sse/build.sh": "3bd1fdd8cb8606a630100c60a806826463feffd99050a71a6c1a088a2cf477db",
+        "sse/config.yaml": "5bfddacae821802a75799c788e7d4c8dad07545430f956edc87f2b5c2d61649b",
+        "sse/diffs/patch.diff": "be7538702498bef5512e6fcf830c3771b4257e230999547b3ef5219a850d8a09",
+        "sse/diffs/security_test.diff": "1ad7ee23e2d8d1052e6229652f29975da7725d3f365d70dff2c5fcec18613da5",
+        "sse/diffs/test.diff": "1ad7ee23e2d8d1052e6229652f29975da7725d3f365d70dff2c5fcec18613da5",
+        "sse/pocs/poc.go": "0fbe639f19d6497cda7fcb1dc95233d7a4fc8a0d14df9f5a3156866fb8a55b11",
+        "sse/reports/issue.md": "e7ce662c07d927be17728c031feb027de8abded60d1f86d4a63acae6a0a1a6b5",
+        "sse/run.sh": "8206b82f3a5060da3796df6205ddfad835e34aa3d5226ebca69ffd19ab398ffb",
+        "sse/test.sh": "90a367e9af857c00f93511fbd74f3d12a4f0da744ad7e6a5ab5aecb76dbacdcf"
+      },
+      "metadata": {
+        "id": "jwkset-41-01db49a",
+        "project": "jwkset",
+        "repository": "https://github.com/MicahParks/jwkset",
+        "language": "go",
+        "source": "/src/jwkset",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": "diffs/security_test.diff",
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "Server and client key refresh inconsistency",
+        "binary": null,
+        "trigger_commit": "ce57ded280d99191ea54e3c4c5460c58207c3bbf",
+        "patch_commit": "01db49a90f7f20c7fb39a699a2f19a7a5f379ed3",
+        "reference": [
+          "https://github.com/MicahParks/jwkset",
+          "https://github.com/MicahParks/jwkset/commit/01db49a90f7f20c7fb39a699a2f19a7a5f379ed3",
+          "https://github.com/MicahParks/jwkset/issues/40"
+        ],
+        "originality": "public"
+      }
+    },
+    {
+      "id": "jwt-go-ec0a89a",
+      "language": "go",
+      "project": "jwt-go",
+      "repository": "https://github.com/dgrijalva/jwt-go",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/jwt-go-ec0a89a",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "aac46eae8d17e90224433130f5d77bae20db192c783eb1c9111adb6fbbf4f2e9",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
+        "sse/config.yaml": "a64f06ef8fd30819a9097ddec50b8cb25a61431dff265680c7f5cf5ec4031d2c",
+        "sse/diffs/intent_test.diff": "794a66fcc3effe7b6adc5a5c7fa3911f5dbe0339567cdcf878ad7c898e0d77ce",
+        "sse/diffs/patch.diff": "c0c7d9d313da55a1a51c0c0153bcf74af381377b62781292416e91d42411372c",
+        "sse/diffs/test.diff": "794a66fcc3effe7b6adc5a5c7fa3911f5dbe0339567cdcf878ad7c898e0d77ce",
+        "sse/pocs/poc.go": "716b11afa180ca18200a5bf3ff3ab646ad0620ea62faf0cd0363b756c6714266",
+        "sse/reports/issue.md": "675b0e11d9679d1f433533142f57064f1d500d098f770db3d96b4121d70a1dc5",
+        "sse/run.sh": "b41da3c354a41771899185ba4e418dc46af627a666c4201d2b121ee3eb5b08eb",
+        "sse/test.sh": "5cffed59dc08f755d513c0fd165356078647b08428b4b87fd27053332c982cfb"
+      },
+      "metadata": {
+        "id": "jwt-go-ec0a89a",
+        "project": "jwt-go",
+        "repository": "https://github.com/dgrijalva/jwt-go",
+        "language": "go",
+        "source": "/src/jwt-go",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": "diffs/intent_test.diff",
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "Improper Verification of Cryptographic Signature",
+        "binary": null,
+        "trigger_commit": "32acca36b99f04b2b52d117d57bb17e17cbd35a8",
+        "patch_commit": "ec0a89a131e3e8567adcb21254a5cd20a70ea4ab",
+        "reference": [
+          "https://github.com/dgrijalva/jwt-go.git",
+          "https://github.com/dgrijalva/jwt-go/commit/ec0a89a131e3e8567adcb21254a5cd20a70ea4ab",
+          "https://github.com/dgrijalva/jwt-go/issues/422"
+        ],
+        "originality": "crafted"
+      }
+    },
+    {
+      "id": "kubernetes-dad0e93",
+      "language": "go",
+      "project": "kubernetes",
+      "repository": "https://github.com/kubernetes/kubernetes",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/kubernetes-dad0e93",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "22804401b4473959f5c29bb488b3c24fc5a251ab6072c6acc1072ba8daccf037",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "10c00821115531817dd65e2f39452d8c66789a46ef8f40466dbb079690e66226",
+        "sse/config.yaml": "2949d6b178442ad553af44e29885906340f7a4b084317cc045a83d5428eabaff",
+        "sse/diffs/patch.diff": "0dcb9949f0aa2798903262b9d7cc748a7b47158ece1578549664ab9d25f374b4",
+        "sse/diffs/test.diff": "b5035248fb495471c850f5b2743af291905ba7787088450ac9a2d706fac57aed",
+        "sse/pocs/poc.go": "2fc7473021d61051a43a41c434615d38d415e1612cd532b5ce80ca748585871f",
+        "sse/reports/issue.md": "66d8b67567ab7c2e79a798cfeb099bb523f606b45e234c0e35316c92c84a0fa3",
+        "sse/run.sh": "c09f2269727c89c3cede83f20da8c608165a1e1f13786f7de5d37fbc97277649",
+        "sse/test.sh": "fd9cc446c06d4d1fbc7a9e42fb63b21446ae7e0101b56a1261c47aeb7eb200b7"
+      },
+      "metadata": {
+        "id": "kubernetes-dad0e93",
+        "project": "kubernetes",
+        "repository": "https://github.com/kubernetes/kubernetes",
+        "language": "go",
+        "source": "/src/kubernetes",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": "none"
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": "none",
+        "type": "ANSI Escape Sequence Injection",
+        "binary": "none",
+        "trigger_commit": "90f50488c7b1ab810dd98061d196568e61c47adb",
+        "patch_commit": "dad0e937c0f76344363eb691b2668490ffef8537",
+        "reference": [
+          "https://github.com/kubernetes/kubernetes.git",
+          "https://github.com/kubernetes/kubernetes/commit/dad0e937c0f76344363eb691b2668490ffef8537",
+          "https://github.com/kubernetes/kubernetes/issues/101695"
+        ],
+        "originality": "crafted"
+      }
+    },
+    {
+      "id": "nanoid-10-a902277",
+      "language": "rust",
+      "project": "nano-id",
+      "repository": "https://github.com/viz-rs/nano-id",
+      "base": "base-generic-rust:latest",
+      "image": "case/pilot/nanoid-10-a902277",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "be5d080f732382727dd6d086c3a720e81c59b7f3e4b451ae73450b6ce2a1f3b3",
+        "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
+        "harness/Cargo.lock": "3181f6fb9c0b694671a75a3dbdc07c4e7e96a820375298fd55344958d7911280",
+        "harness/Cargo.toml": "2a5066e41e53adadcc30e1d2c726753ee016eb767f275d9cfb89eb335be313d9",
+        "harness/src/main.rs": "837be95a9acd46f6fed50a3197909c4f85d9e05802d3875749f6fbfef4b91bfc",
+        "sse/build.sh": "bebb82cb818ed977fb771e6e5652c2e25363c73c07aeffb86437caa20d4a3df7",
+        "sse/config.yaml": "3585219cb78d038e66948e3deee735fd6c1db99267f05ed06ed678482b288d05",
+        "sse/diffs/patch.diff": "6b4cb8ac2b25dc97b8806a939c547463513d741604f757af12963a790e9d2693",
+        "sse/diffs/test.diff": "1136c77a49fd58b76bad72577e93cb7c38b5cd4bd33361ffc4695040785e1b1a",
+        "sse/pocs/Cargo.toml": "2a5066e41e53adadcc30e1d2c726753ee016eb767f275d9cfb89eb335be313d9",
+        "sse/pocs/src/main.rs": "837be95a9acd46f6fed50a3197909c4f85d9e05802d3875749f6fbfef4b91bfc",
+        "sse/reports/issue.md": "af61444439f34aa56b7e8e58cee8f394eaab590ffe54c8cfd6c4b0934295263e",
+        "sse/run.sh": "2845febcdaf3d00914b98f71e63262106bb86e0c07a97c521cc134e8792ae804",
+        "sse/test.sh": "1aae2ca0fe82ce109f1c9802bd426ed096ff7b5546af483f18992d16bd4eca8f"
+      },
+      "metadata": {
+        "id": "nanoid-10-a902277",
+        "project": "nano-id",
+        "repository": "https://github.com/viz-rs/nano-id",
+        "language": "rust",
+        "source": "/src/nano-id",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/src/main.rs"
+          ]
+        },
+        "sanitizer": null,
+        "type": "Insufficient Entropy",
+        "binary": null,
+        "trigger_commit": "d8d2113aa68095ca129c32276ea883ca6324cdc5",
+        "patch_commit": "a9022772b2f1ce38929b5b81eccc670ac9d3ab23",
+        "reference": [
+          "https://github.com/viz-rs/nano-id/security/advisories/GHSA-9hc7-6w9r-wj94",
+          "https://github.com/viz-rs/nano-id/commit/a9022772b2f1ce38929b5b81eccc670ac9d3ab23"
+        ],
+        "originality": null
+      }
+    },
+    {
+      "id": "opa-064f616",
+      "language": "go",
+      "project": "opa",
+      "repository": "https://github.com/open-policy-agent/opa",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/opa-064f616",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "2a73d10cc60793a845e09d61d4928753210327c1e9cc7a6175e45b3e92e64bb8",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
+        "sse/config.yaml": "719792aa685fab6b73a35abf6788333a46b0bbdad18e8ce47806fd8a6fe30165",
+        "sse/diffs/patch.diff": "f8b29f383bdd2a6b99d62db1fe34961f99f2a5296f43eb125a51661cda26e4ab",
+        "sse/diffs/security_test.diff": "07248022bb23b21d38c2842870443a25321cd2a1d5dabed290139dda3a9dbbfc",
+        "sse/diffs/test.diff": "07248022bb23b21d38c2842870443a25321cd2a1d5dabed290139dda3a9dbbfc",
+        "sse/pocs/poc.go": "d195048a07c7a74b546779f9ffb8b627e500b0af3d4af2ed8414dd26aba9693d",
+        "sse/reports/crash_report_1.txt": "28d309855a1c336955e815ca28cbe5bb34b531c0d3e541c5f3da0d5a0d3319fb",
+        "sse/reports/issue.md": "6bcef946692596c47b5bf50c1179ade01bb6f2e10b46cee318abdb6ab37baf4b",
+        "sse/run.sh": "b41da3c354a41771899185ba4e418dc46af627a666c4201d2b121ee3eb5b08eb",
+        "sse/test.sh": "11ee9fc2dc8d4441be9aff2b320d7be00239898848a3ff08f97c620ea3bef11a"
+      },
+      "metadata": {
+        "id": "opa-064f616",
+        "project": "opa",
+        "repository": "https://github.com/open-policy-agent/opa",
+        "language": "go",
+        "source": "/src/opa",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/crash_report_1.txt",
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": "diffs/security_test.diff",
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "interface conversion",
+        "binary": null,
+        "trigger_commit": "243f526280343b0524bf9e8637182c57f0d105f9",
+        "patch_commit": "064f6168a8dfebdeb2ea147f7882bb9f5d2b7f67",
+        "reference": [
+          "https://github.com/open-policy-agent/opa.git",
+          "https://github.com/open-policy-agent/opa/commit/064f6168a8dfebdeb2ea147f7882bb9f5d2b7f67",
+          "https://github.com/open-policy-agent/opa/issues/4762"
+        ],
+        "originality": "crafted"
+      }
+    },
+    {
+      "id": "opa-ad20632",
+      "language": "go",
+      "project": "opa",
+      "repository": "https://github.com/open-policy-agent/opa",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/opa-ad20632",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "f462dc57c3afa008beeb4c54e96dffd32a9cf61fae827b9cb3aa409a6c05425d",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "65b57e48f26581ca4562a1e8d3553af80237e5239a7b6df5a61023befa458683",
+        "sse/config.yaml": "1fd29d7e8e3ea2624477644e0347cb74b5875a1aab8b9c1c3920ae8813adc7f8",
+        "sse/diffs/patch.diff": "fbf0761264ffb3a5d374e80d7ae4a341acd6d6c406cc7497c81b2a7c8aaa78de",
+        "sse/diffs/test.diff": "100f15ca5e85787890e8c20ffaae2463349b159456e845fcc03fa5c55a49b4f1",
+        "sse/pocs/poc.go": "15b84130515e69bed615e3ba19c2fae43742ba51d60080b6f50c1cd3ec88434f",
+        "sse/reports/issue.md": "e0cedff1fa595e8b60e3d9736887e87186eeefd099a3c153186034bd12cc4f89",
+        "sse/run.sh": "15aac94e58948cd76952f117408f9583bc9de005b55dfb18326ace52b360d512",
+        "sse/test.sh": "168fde90a3b551448ec93154cb46b45c0dc25d1019101767c2dfe044adc46950"
+      },
+      "metadata": {
+        "id": "opa-ad20632",
+        "project": "opa",
+        "repository": "https://github.com/open-policy-agent/opa",
+        "language": "go",
+        "source": "/src/opa",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": "none"
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": "none",
+        "type": "Code Injection",
+        "binary": "none",
+        "trigger_commit": "24ff9cfb3ad0a6a5629f0b21458982d325ee03c5",
+        "patch_commit": "ad2063247a14711882f18c387a511fc8094aa79c",
+        "reference": [
+          "https://github.com/open-policy-agent/opa.git",
+          "https://github.com/open-policy-agent/opa/commit/ad2063247a14711882f18c387a511fc8094aa79c",
+          "https://github.com/open-policy-agent/opa/security/advisories/GHSA-6m8w-jc87-6cr7"
+        ],
+        "originality": "crafted"
+      }
+    },
+    {
+      "id": "phonenumbers-152-0479e35",
+      "language": "go",
+      "project": "phonenumbers",
+      "repository": "https://github.com/nyaruka/phonenumbers",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/phonenumbers-152-0479e35",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "d16c0520a1c99663861b9b12863fe0de9142c09f57d2019c623dfbcb73d90fce",
+        "README.md": "734b5b095c6403ba5826ed843dd16eff70c669f230bc0c727bd8fcc419100dc4",
+        "sse/build.sh": "b5788b2802f0870b807f5f3ed8459925dce67a2a8367d07365c615c8db3c2983",
+        "sse/config.yaml": "ccc036b7be52ab63fc98de9fa6e994ad4804d71ea162c97c0cd55c9585d7bdc1",
+        "sse/diffs/intent_test.diff": "6a73970c56b701e8801446b76b919afc6a6bdfa3dedc6bdd10b5aa7e727ef19c",
+        "sse/diffs/patch.diff": "7ab876f85d7a691a033dfe219db04f0934a8526adb10aa8b1133f71ea336c14a",
+        "sse/diffs/test.diff": "6a73970c56b701e8801446b76b919afc6a6bdfa3dedc6bdd10b5aa7e727ef19c",
+        "sse/pocs/poc.go": "fc2102c5f63833fa595fa2fcfb2b18efeedacbac46652d3bb8eb83a930fe8d2c",
+        "sse/reports/crash_report_1.txt": "f348394f1f04287fa89e2861d4e18909e399b24edcfdf0ae4fa7a769c097d83d",
+        "sse/reports/issue.md": "36abe11fea768edc8e6cde0356561228eb792fe36dbe7fad21e98f8f6cd93034",
+        "sse/run.sh": "6629fa1fe683803b80a16e102a5eabfb0f1caab84480eb46326e8bb3eddafae8",
+        "sse/test.sh": "90a367e9af857c00f93511fbd74f3d12a4f0da744ad7e6a5ab5aecb76dbacdcf"
+      },
+      "metadata": {
+        "id": "phonenumbers-152-0479e35",
+        "project": "phonenumbers",
+        "repository": "https://github.com/nyaruka/phonenumbers",
+        "language": "go",
+        "source": "/src/phonenumbers",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/crash_report_1.txt",
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": "diffs/intent_test.diff",
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "Slice bounds out of range",
+        "binary": null,
+        "trigger_commit": "ccd8c4bbabf867cf0edce16aa0db7209ee1af06e",
+        "patch_commit": "0479e35488e8a002a261cdb515ef8a7f80ca37fe",
+        "reference": [
+          "https://github.com/nyaruka/phonenumbers",
+          "https://github.com/nyaruka/phonenumbers/commit/0479e35488e8a002a261cdb515ef8a7f80ca37fe",
+          "https://github.com/nyaruka/phonenumbers/issues/148"
+        ],
+        "originality": "public"
+      }
+    },
+    {
+      "id": "revel-d160ecb",
+      "language": "go",
+      "project": "revel",
+      "repository": "https://github.com/revel/revel",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/revel-d160ecb",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "0fb550c6ee2879b0db4d833a3d2fe9950108ef5da8810b964eacf2dff4326982",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
+        "sse/config.yaml": "e2287a0b459338eb18ba83cca61d591309af75e3857e0362563c66211257345c",
+        "sse/diffs/patch.diff": "f0acb501a022a90632a8a34ae4c6a881fbfdf8febf841a60c466d04a3b8ecbef",
+        "sse/diffs/security_test.diff": "907202bd860d4848a04eb4ba6ccb7b16525bf29d3f3d53b2be8d9b7a21d6ab6a",
+        "sse/diffs/test.diff": "907202bd860d4848a04eb4ba6ccb7b16525bf29d3f3d53b2be8d9b7a21d6ab6a",
+        "sse/pocs/poc.go": "fa5134529a2264fe918a2c36f1e6bce8b4810ed59e4723828b69573621943e13",
+        "sse/reports/crash_report_1.txt": "4c46947ec5ab927c9818e2192d5a255fe20464a2ea3795d8c8c2d9175b5c2014",
+        "sse/reports/issue.md": "cbfa910ee1982326fe0b9b75fc39704dd7f3ecc0c2c3fec6f9fb5480247cc630",
+        "sse/run.sh": "b41da3c354a41771899185ba4e418dc46af627a666c4201d2b121ee3eb5b08eb",
+        "sse/test.sh": "6929216191bed6e86eea494d271d6db8583b613e8138e801f7348ef3db4da7bb"
+      },
+      "metadata": {
+        "id": "revel-d160ecb",
+        "project": "revel",
+        "repository": "https://github.com/revel/revel",
+        "language": "go",
+        "source": "/src/revel",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/crash_report_1.txt",
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": "diffs/security_test.diff",
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "Denial of Service",
+        "binary": null,
+        "trigger_commit": "60c3d7ac38ffd6f759401147ad128a3e88c88242",
+        "patch_commit": "d160ecb72207824005b19778594cbdc272e8a605",
+        "reference": [
+          "https://github.com/revel/revel.git",
+          "https://github.com/revel/revel/commit/d160ecb72207824005b19778594cbdc272e8a605",
+          "https://github.com/revel/revel/issues/1424"
+        ],
+        "originality": "crafted"
+      }
+    },
+    {
+      "id": "saml-8e92368",
+      "language": "go",
+      "project": "saml",
+      "repository": "https://github.com/crewjam/saml",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/saml-8e92368",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "039da3e880bd80c59d3bba164d68fd8c2cf36146d25e0ad372738333e5c2a55c",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
+        "sse/config.yaml": "31a736f9f10b29e2eae0a2db8cac4caee4c3aab2f9a285d9eb38a2e4b824799f",
+        "sse/diffs/patch.diff": "c7dfbc77bf5b54db5b47ba28643812305f52643fa960f88f662a7adc5e956b60",
+        "sse/diffs/test.diff": "bbce2e9f21e3327697c92754226069da6a5365217905b28d4bae8ef94ec0b70d",
+        "sse/pocs/poc.go": "8dbca5479fb8c6ae7f6e43c99ab3b343c299a3ecccb688a632402536b8a23199",
+        "sse/reports/issue.md": "0476bb494cc9f5a727f1193f87e0f79c10f320e3f91c2aadb0ac46f204230a6f",
+        "sse/run.sh": "b41da3c354a41771899185ba4e418dc46af627a666c4201d2b121ee3eb5b08eb",
+        "sse/test.sh": "a9e9c869eb15ffeece1f10da5c6dcf47900c672b054f812094ace33c4a47a145"
+      },
+      "metadata": {
+        "id": "saml-8e92368",
+        "project": "saml",
+        "repository": "https://github.com/crewjam/saml",
+        "language": "go",
+        "source": "/src/saml",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": "none"
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": "none",
+        "type": "Decompression Bomb",
+        "binary": "none",
+        "trigger_commit": "2aeb2efd8c405fb7b40aa75b591b0828ef552670",
+        "patch_commit": "8e9236867d176ad6338c870a84e2039aef8a5021",
+        "reference": [
+          "https://github.com/crewjam/saml.git",
+          "https://github.com/crewjam/saml/commit/8e9236867d176ad6338c870a84e2039aef8a5021",
+          "https://github.com/crewjam/saml/security/advisories/GHSA-5mqj-xc49-246p"
+        ],
+        "originality": "crafted"
+      }
+    },
+    {
+      "id": "shoutrrr-6a27056",
+      "language": "go",
+      "project": "shoutrrr",
+      "repository": "https://github.com/containrrr/shoutrrr",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/shoutrrr-6a27056",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "5692f16f2219c16283c6730c122726adf63bf920b8e66f26db6faeb9751f2e80",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
+        "sse/config.yaml": "50edc7a8de0c860fd91ed7a7f3b85223e7bf611b0b82f70dec81c14178496695",
+        "sse/diffs/patch.diff": "c92e35b8f527b3530359c124bcd0e31dcb773c11c854e1883ea5d0bf73ca0fb6",
+        "sse/diffs/security_test.diff": "62ea2a1c9221179cdefd16937c67301dac7a7b580fdb9e0fcd1e9e02411977bd",
+        "sse/diffs/test.diff": "62ea2a1c9221179cdefd16937c67301dac7a7b580fdb9e0fcd1e9e02411977bd",
+        "sse/pocs/poc.go": "cc85e56ee4f3944d569518f457311e3fb7edb394bb58cc68c828b546628ac17e",
+        "sse/reports/crash_report_1.txt": "a562ba8d2cb0fdeeb8381dcd9ebb2b89b69aba99e715fb4511a76afde0d8e60a",
+        "sse/reports/issue.md": "f8cdeb90f2b142c16e53850f287a6f0a4f7a94461af11bc53703d73caba1ec04",
+        "sse/run.sh": "5d95ef033c04fb583e09d101f1e527e248e898149e33983d38277edb9f2b99b8",
+        "sse/test.sh": "daa9e1ed0a8af79a5977627b4e26d7b786eddf5b485cd0f09b0d048f88319013"
+      },
+      "metadata": {
+        "id": "shoutrrr-6a27056",
+        "project": "shoutrrr",
+        "repository": "https://github.com/containrrr/shoutrrr",
+        "language": "go",
+        "source": "/src/shoutrrr",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/crash_report_1.txt",
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": "diffs/security_test.diff",
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "Index out of range",
+        "binary": null,
+        "trigger_commit": "2c9378b69b079db2bbad29d383b54a7919434472",
+        "patch_commit": "6a27056f9d7522a8b493216195cb7634bf4b5c42",
+        "reference": [
+          "https://github.com/containrrr/shoutrrr.git",
+          "https://github.com/containrrr/shoutrrr/commit/6a27056f9d7522a8b493216195cb7634bf4b5c42",
+          "https://github.com/containrrr/shoutrrr/issues/240"
+        ],
+        "originality": "public"
+      }
+    },
+    {
+      "id": "submariner-operator-b27a04c",
+      "language": "go",
+      "project": "submariner-operator",
+      "repository": "https://github.com/submariner-io/submariner-operator",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/submariner-operator-b27a04c",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "668bb188e992963e47f2963832d4a39806763d5eaea3951403c69972861ba855",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "bb8967c10704961edd8696ca3bcfdd9f14ce8e1e2f4067e9e422e7b7710ec6f6",
+        "sse/config.yaml": "2d9d0045654b963ec80c4ee2cb6e4cd74a9e8a2e4eac27680968dbe4b9ec9acc",
+        "sse/diffs/patch.diff": "a1e49daa5624eecb149331b0f0122f7e0d35ca18704c7f0a79249c252c908e74",
+        "sse/diffs/test.diff": "a546080854dafb8abef0992453a425c7a8aec238009e78129ce60444809a9613",
+        "sse/pocs/poc.go": "6b8f5a0cbe9a68b8c1d53da4ae517b8a9e519e8add698a1b5388416fdf66f079",
+        "sse/reports/issue.md": "719540c971f85bfd4d0dc595130355d075308fdb85bb95b240d53e602e2718de",
+        "sse/run.sh": "b41da3c354a41771899185ba4e418dc46af627a666c4201d2b121ee3eb5b08eb",
+        "sse/test.sh": "57246f43272c76e4f0c065a817db4204ac990891948575197768c652a221525f"
+      },
+      "metadata": {
+        "id": "submariner-operator-b27a04c",
+        "project": "submariner-operator",
+        "repository": "https://github.com/submariner-io/submariner-operator",
+        "language": "go",
+        "source": "/src/submariner-operator",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": "none"
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": "none",
+        "type": "Incorrect Permission Assignment",
+        "binary": "none",
+        "trigger_commit": "7c944489ad3e1da187fd7aaf59e8f6aca6e7f8b9",
+        "patch_commit": "b27a04c4270e53cbff6ff8ac6245db10c204bcab",
+        "reference": [
+          "https://github.com/submariner-io/submariner-operator.git",
+          "https://github.com/submariner-io/submariner-operator/commit/b27a04c4270e53cbff6ff8ac6245db10c204bcab",
+          "https://github.com/submariner-io/submariner-operator/issues/3041"
+        ],
+        "originality": "crafted"
+      }
+    },
+    {
+      "id": "woodpecker-8aa3e5e",
+      "language": "go",
+      "project": "woodpecker",
+      "repository": "https://github.com/woodpecker-ci/woodpecker",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/woodpecker-8aa3e5e",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "a8c7255c5afd0cfc6af26088b96b506bdf18d3f333cb1ed6d62a1eeeb777e576",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "d2c71c79d81a4b2e6f832537446f651208b27cd794194490a4eaa6942b059872",
+        "sse/config.yaml": "05aa4561e7f78cf7ddd9e25eac771d036371ed434297c4d515dff391ea365c53",
+        "sse/diffs/patch.diff": "664b774fb7ee080f6521c6df270bb01a6f9a514abcea2aefb90278f5eee74609",
+        "sse/diffs/test.diff": "266ff6cba86e3027add2a26bfa09d2e61822b1eaf2c06a519aa8d6a8df9dabd7",
+        "sse/pocs/poc.go": "5a3f1750dabfe999bb0c45ef837105903d24858aa756105985fe7e4256c59e55",
+        "sse/reports/issue.md": "e02ebbb6715e4d3168d4782f576dc384eb21f8a723ff9818d60cde43fd989e16",
+        "sse/run.sh": "861d2d5695dd89a01c7a88dfa6cba4092c60e968791e06fe6f42a359fda75e65",
+        "sse/test.sh": "15a8cc84f1457b9df3bac444bb59d07f0d3a30b73f3755969d983e0b412069b2"
+      },
+      "metadata": {
+        "id": "woodpecker-8aa3e5e",
+        "project": "woodpecker",
+        "repository": "https://github.com/woodpecker-ci/woodpecker",
+        "language": "go",
+        "source": "/src/woodpecker",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": "none"
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": "none",
+        "type": "Improper Neutralization of Special Elements",
+        "binary": "none",
+        "trigger_commit": "904d8da51ae1bdb9dde818a7574fcf4c03f03150",
+        "patch_commit": "8aa3e5ec82c92eca3279e4be68625111eeedf1c4",
+        "reference": [
+          "https://github.com/woodpecker-ci/woodpecker.git",
+          "https://github.com/woodpecker-ci/woodpecker/commit/8aa3e5ec82c92eca3279e4be68625111eeedf1c4",
+          "https://github.com/woodpecker-ci/woodpecker/issues/3929"
+        ],
+        "originality": "public"
+      }
+    },
+    {
+      "id": "xz-69c6093",
+      "language": "go",
+      "project": "xz",
+      "repository": "https://github.com/ulikunitz/xz",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/xz-69c6093",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "c0fce7e3081fcfc055ee114918adbb610faa8c000f8492161fb702d5cd53eba1",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "6a98860426b23a02bc5d4122320ae20c4fe544730698a59afa1acd854d7c1dd5",
+        "sse/config.yaml": "6833b5a27d8c2a1d5c786a0b2c313f348845f779f9b347c8e4bef250fd4baca6",
+        "sse/diffs/patch.diff": "9fe68793537c57603922be4f98376671e65d8235094e906163872b682241c8a8",
+        "sse/diffs/security_test.diff": "136962d426b23eb1ec88260112390580238c2cc1ccb608e16740f567c03149ff",
+        "sse/diffs/test.diff": "136962d426b23eb1ec88260112390580238c2cc1ccb608e16740f567c03149ff",
+        "sse/pocs/poc.go": "163c8627c93c99aab676ff9036f3639390fa77b2d80f08c7ff8b580450d848e4",
+        "sse/reports/issue.md": "47fc5c8bcadd3b2c03ff4cec9140bf25b5a4a1edc4b00abdf2774575f148f3f1",
+        "sse/run.sh": "b41da3c354a41771899185ba4e418dc46af627a666c4201d2b121ee3eb5b08eb",
+        "sse/test.sh": "5cffed59dc08f755d513c0fd165356078647b08428b4b87fd27053332c982cfb"
+      },
+      "metadata": {
+        "id": "xz-69c6093",
+        "project": "xz",
+        "repository": "https://github.com/ulikunitz/xz",
+        "language": "go",
+        "source": "/src/xz",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": "diffs/security_test.diff",
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "Integer Overflow",
+        "binary": null,
+        "trigger_commit": "067145b4480ef600b25a0403f386ea25ffe42fd5",
+        "patch_commit": "69c6093c7b2397b923acf82cb378f55ab2652b9b",
+        "reference": [
+          "https://github.com/ulikunitz/xz.git",
+          "https://github.com/ulikunitz/xz/commit/69c6093c7b2397b923acf82cb378f55ab2652b9b",
+          "https://github.com/ulikunitz/xz/issues/35"
+        ],
+        "originality": "crafted"
+      }
+    },
+    {
+      "id": "yaml-8f96da9",
+      "language": "go",
+      "project": "yaml",
+      "repository": "https://github.com/go-yaml/yaml",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/yaml-8f96da9",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "06295314dff6ab6f2dae7e3bb69defbf1cedeba29fe71a356e27c9d23a327b34",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
+        "sse/config.yaml": "3d5cb21870b6ca927b5b994b2c89d48821ce959eba1c66e6f54d10b2f86ecea0",
+        "sse/diffs/patch.diff": "2868ed68f769b7933c41df9f23378f493de16edd09132c643c640a245c2c1dbd",
+        "sse/diffs/security_test.diff": "552dac34fbce5b1944e6ffb17f0c8367f96f35e1da7f3ec735efd87c8fc5cfe8",
+        "sse/diffs/test.diff": "552dac34fbce5b1944e6ffb17f0c8367f96f35e1da7f3ec735efd87c8fc5cfe8",
+        "sse/pocs/poc.go": "563cacd18ecfb43ae2b22088e051d868b7fc08abb50448f1692154613b5079b9",
+        "sse/reports/crash_report_1.txt": "46c5b2124ae68b65c4bbedfe6f89e60cc3835db167374cd99286a5043e9ca733",
+        "sse/reports/issue.md": "1b83041a77987002a6fb1506d021cf4578cc18a81460445068decefecb005247",
+        "sse/run.sh": "b41da3c354a41771899185ba4e418dc46af627a666c4201d2b121ee3eb5b08eb",
+        "sse/test.sh": "5cffed59dc08f755d513c0fd165356078647b08428b4b87fd27053332c982cfb"
+      },
+      "metadata": {
+        "id": "yaml-8f96da9",
+        "project": "yaml",
+        "repository": "https://github.com/go-yaml/yaml",
+        "language": "go",
+        "source": "/src/yaml",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/crash_report_1.txt",
+            "reports/issue.md"
+          ],
+          "bug_description": null
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": "diffs/security_test.diff",
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": null,
+        "type": "internal error",
+        "binary": null,
+        "trigger_commit": "8f96da9f5d5eff988554c1aae1784627c4bf6754",
+        "patch_commit": "539c8e751b99281a79dc659ba8dc44d91e444723",
+        "reference": [
+          "https://github.com/go-yaml/yaml.git",
+          "https://github.com/go-yaml/yaml/commit/8f96da9f5d5eff988554c1aae1784627c4bf6754",
+          "https://github.com/go-yaml/yaml/issues/666"
+        ],
+        "originality": "public"
+      }
+    },
+    {
+      "id": "yaml-bb4e33b",
+      "language": "go",
+      "project": "yaml",
+      "repository": "https://github.com/go-yaml/yaml",
+      "base": "base-generic-go:latest",
+      "image": "case/pilot/yaml-bb4e33b",
+      "arch": [
+        "amd64"
+      ],
+      "checks": [
+        "build",
+        "poc",
+        "function_test",
+        "intent_test"
+      ],
+      "files": {
+        "Dockerfile": "f3fb79777cd169862b75f491e8b099f90efdb975ba00c25ddd3d3b2e963fce05",
+        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
+        "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
+        "sse/config.yaml": "75b5a0d2371321a2ebb8af56fc1a395b942b3549348099801f654828f32435e1",
+        "sse/diffs/patch.diff": "6017310550aa329efa50418defedd0b4315ace1ae8c3823413fdaed8691cea3b",
+        "sse/diffs/test.diff": "3b56398a96bbb7048c8e6f65d1b304edb08d64834474d29f0c33613acaeb9d0b",
+        "sse/pocs/poc.go": "c48297f42f1d2bc9a4e16920d439c213e966190d47aadb33aea423b5f339d70a",
+        "sse/reports/crash_report_1.txt": "a8140f33d5ced6886922bfa300c4a0b7161d791787cea531290a555a7fc58975",
+        "sse/reports/issue.md": "f9f4f0edbbd4ce27efd4e70ee6c033ca190b3e6844137ab6e83732592f95687e",
+        "sse/run.sh": "b41da3c354a41771899185ba4e418dc46af627a666c4201d2b121ee3eb5b08eb",
+        "sse/test.sh": "f08a60fa17cbdee72a16aa1f81eb003a49f862279d28bf44c9c1c322f95b356b"
+      },
+      "metadata": {
+        "id": "yaml-bb4e33b",
+        "project": "yaml",
+        "repository": "https://github.com/go-yaml/yaml",
+        "language": "go",
+        "source": "/src/yaml",
+        "task_description": {
+          "issue": null,
+          "crash_report": [
+            "reports/crash_report_1.txt",
+            "reports/issue.md"
+          ],
+          "bug_description": "none"
+        },
+        "scripts": {
+          "build": "scripts/build.sh",
+          "run": "scripts/run.sh",
+          "test": "scripts/test.sh"
+        },
+        "files": {
+          "patch": "diffs/patch.diff",
+          "future_test": "diffs/test.diff",
+          "security_test": null,
+          "intent_test": null,
+          "poc": [
+            "pocs/poc.go"
+          ]
+        },
+        "sanitizer": "none",
+        "type": "Denial of Service",
+        "binary": "none",
+        "trigger_commit": "7b8349ac747c6a24702b762d2c4fd9266cf4f1d6",
+        "patch_commit": "bb4e33bf68bf89cad44d386192cbed201f35b241",
+        "reference": [
+          "https://github.com/go-yaml/yaml.git",
+          "https://github.com/go-yaml/yaml/commit/bb4e33bf68bf89cad44d386192cbed201f35b241",
+          "https://github.com/go-yaml/yaml/pull/375"
+        ],
+        "originality": "public"
+      }
+    }
+  ]
+}

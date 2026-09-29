@@ -53,9 +53,15 @@ def task_config() -> Callable[[str], dict[str, Any]]:
 
 @pytest.fixture
 def make_task() -> Callable[..., Path]:
-    """Write a valid task folder; `config` entries replace top-level config keys, and None drops one."""
+    """Write a valid task folder, and a dataset.yaml if there is none.
+
+    `config` entries replace top-level config keys, and None drops one.
+    """
 
     def make(dataset: Path, task_id: str, config: dict[str, Any] | None = None, dockerfile: str = DOCKERFILE) -> Path:
+        if not (dataset / "dataset.yaml").exists():
+            dataset.mkdir(parents=True, exist_ok=True)
+            _ = (dataset / "dataset.yaml").write_text("version: demo-v1\n")
         task = dataset / task_id
         for name, content in TASK_FILES.items():
             (task / name).parent.mkdir(parents=True, exist_ok=True)

@@ -8,11 +8,13 @@ import yaml
 from pydantic import ValidationError
 from pydantic_core import ErrorDetails
 
+from ssebench.tasks.manifest import DatasetInfo
 from ssebench.tasks.metadata import TaskMetadata, load_task_metadata
 
 from .dockerfile import REGISTRY_ARG, REGISTRY_PREFIX, Dockerfile, DockerfileError
 
 CONFIG = "sse/config.yaml"
+DATASET_INFO = "dataset.yaml"
 IMAGE_ROOT = "/ssebench"
 
 
@@ -39,6 +41,7 @@ class TaskReport:
 @dataclass
 class DatasetReport:
     path: Path
+    info: DatasetInfo | None = None
     tasks: list[TaskReport] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
@@ -65,6 +68,16 @@ def validate_dataset(dataset: Path) -> DatasetReport:
     if not dataset.is_dir():
         report.errors.append("not a directory")
         return report
+
+    try:
+        with (dataset / DATASET_INFO).open() as f:
+            report.info = DatasetInfo.model_validate(yaml.safe_load(f))
+    except FileNotFoundError:
+        report.errors.append(f"{DATASET_INFO}: missing")
+    except (OSError, yaml.YAMLError) as e:
+        report.errors.append(f"{DATASET_INFO}: cannot read: {e}")
+    except ValidationError as e:
+        report.errors += [f"{DATASET_INFO}: {_describe(err)}" for err in e.errors()]
 
     report.tasks = [validate_task(d) for d in task_dirs(dataset)]
     if not report.tasks:
