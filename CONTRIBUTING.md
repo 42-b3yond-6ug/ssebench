@@ -16,11 +16,12 @@ You need:
 - Docker with buildx;
 - [just](https://just.systems/);
 - Python 3.12 or newer and [uv](https://docs.astral.sh/uv/);
-- Rust (stable), Go and [Bun](https://bun.sh/), if you work on the daemon, the
-  Go services or the web UI and docs.
+- if you work on the daemon, the Go services or the web UI and docs: Rust at
+  the release `rust-toolchain.toml` pins (rustup selects it by itself), Go
+  1.26 or newer, [Bun](https://bun.sh/) at the version `packageManager` in
+  `package.json` pins, and a C compiler for linking Rust.
 
-[Nix](https://nixos.org/) is optional. `nix develop` opens a shell with every
-toolchain at the pinned versions.
+[Nix](https://nixos.org/) is optional; see [With Nix](#with-nix).
 
 ```sh
 git clone https://github.com/42-b3yond-6ug/ssebench.git
@@ -31,6 +32,38 @@ just setup
 `just setup` installs the dependencies and writes `.env` with generated local
 secrets for the LiteLLM proxy and its database. Add your provider keys to
 `.env` to run real agents. `.env` is ignored by git; never commit it.
+
+Each toolchain works from the repository root on its own, too:
+
+```sh
+uv sync          # Python: every workspace member into .venv
+cargo build      # Rust: the Cargo workspace (ssebench-daemon)
+go build work    # Go: every module in go.work
+bun install      # TypeScript: the Bun workspace (webui, docs)
+```
+
+### With Nix
+
+The flake gives you the same toolchains without installing them one by one:
+
+- `nix develop` opens a shell with Python 3.12, uv, Rust (the pinned release,
+  with clippy, rustfmt and rust-analyzer), Go, Bun, just, Typst, the Docker CLI
+  with buildx and compose, fzf, jq, actionlint, gitleaks and a C compiler. uv
+  uses the shell's Python and never downloads one. The Docker engine still
+  comes from your system. On NixOS, the prebuilt binaries uv installs (ruff,
+  and the Node.js that basedpyright runs on) need
+  [nix-ld](https://github.com/nix-community/nix-ld).
+- `nix flake check` runs the formatting check, ruff, basedpyright, pytest,
+  clippy, `go vet`, the Rust, Go and web UI unit tests, and every package
+  build, all in the Nix sandbox.
+- `nix fmt` formats Python, Rust, Go and Nix files. The web UI has its own
+  Prettier setup: `bun run --cwd webui format`.
+- `nix build .#<name>` builds `ssebench` (the CLI, also the default),
+  `ssebench-sdk`, `ssebench-wheels`, `ssebench-daemon` (statically linked;
+  Linux only), `ssebench-entrypoint`, `ssebench-catalog`, `pty-proxy`, `webui`
+  and `docs`.
+
+The flake covers x86-64 and ARM64 Linux and Apple silicon macOS.
 
 ## Checks and tests
 
