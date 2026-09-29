@@ -57,8 +57,10 @@ jobs:
               - agents/**
               - images/litellm/**
               - tools/dataset/**
+              - tools/docs/**
               - tools/release/**
               - tests/**
+              - docs/reference/**
             rust:
               - *workflow
               - Cargo.toml
@@ -309,6 +311,9 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-bun
+      - uses: ./.github/actions/setup-python
+      - name: The generated reference pages are up to date
+        run: uv run tools/docs/reference.py --check
       - name: vitepress build
         run: bun run --cwd docs build
 
