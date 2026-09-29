@@ -34,30 +34,7 @@ class LocalTask(Task):
         return self.docker_image_name
 
     def _prepare(self) -> None:
-        """
-        Build the Docker image for this task.
-
-        Raises:
-            subprocess.CalledProcessError: If the Docker build fails.
-            ValueError: If evaluator can't be found.
-        """
-        logging.info(f"Building case image {self.docker_image_name}...")
-        _ = subprocess.run(
-            [
-                "docker",
-                "buildx",
-                "build",
-                "--build-arg",
-                f"SSEBENCH_REGISTRY={REGISTRY}",
-                "-t",
-                self.docker_image_name,
-                "--load",
-                ".",
-            ],
-            cwd=self.task_path,
-            check=True,
-        )
-        logging.info(f"Successfully built case image {self.docker_image_name}")
+        docker_build_case(self.task_path, self.docker_image_name)
 
     def _validate(self) -> bool:
         """
@@ -98,3 +75,29 @@ def get_task_path(benchmark_dir: Path, name: str) -> Path:
         return benchmark_dir / name
     else:
         raise FileNotFoundError(f"Benchmark task {name} does not exist.")
+
+
+def docker_build_case(task_path: Path, image: str) -> None:
+    """
+    Build a task's case image from its folder.
+
+    Raises:
+        subprocess.CalledProcessError: If the Docker build fails.
+    """
+    logging.info(f"Building case image {image}...")
+    _ = subprocess.run(
+        [
+            "docker",
+            "buildx",
+            "build",
+            "--build-arg",
+            f"SSEBENCH_REGISTRY={REGISTRY}",
+            "-t",
+            image,
+            "--load",
+            ".",
+        ],
+        cwd=task_path,
+        check=True,
+    )
+    logging.info(f"Successfully built case image {image}")
