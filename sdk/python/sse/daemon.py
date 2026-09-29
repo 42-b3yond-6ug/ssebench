@@ -7,12 +7,25 @@ from importlib.metadata import version
 
 import requests
 import requests_unixsocket
+from packaging.version import InvalidVersion, Version
 
 from sse.error import SDKError
 
 __version__ = version("ssebench.sdk")
 
 log = logging.getLogger(__name__)
+
+
+def same_version(sdk_version: str, daemon_version: object) -> bool:
+    """Compare the SDK's PEP 440 version with the daemon's SemVer one.
+
+    Both come from the same release, spelled per ecosystem (1.0.0rc1 and
+    1.0.0-rc.1); PEP 440 parsing normalizes the SemVer spelling.
+    """
+    try:
+        return Version(str(daemon_version)) == Version(sdk_version)
+    except InvalidVersion:
+        return False
 
 
 class Daemon:
@@ -42,7 +55,7 @@ class Daemon:
             )
             data = response.json()
             daemon_version = data.get("version")
-            if daemon_version != __version__:
+            if not same_version(__version__, daemon_version):
                 log.warning(
                     "SDK version (%s) does not match daemon version (%s)",
                     __version__,
