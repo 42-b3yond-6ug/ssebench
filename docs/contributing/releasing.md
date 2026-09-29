@@ -108,4 +108,5 @@ for every `v*` tag. Until it is available, a tag publishes nothing.
 
 Datasets have their own versions, such as `pilot-v1`, independent of the
 SSEBench version. The bump tool never reads or changes anything under
-`datasets/`.
+`datasets/`. A dataset's version is in its `dataset.yaml`, and its
+`manifest.json` records it; see [Dataset manifest](/dataset/manifest).

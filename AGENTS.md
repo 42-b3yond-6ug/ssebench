@@ -53,7 +53,8 @@ agents/                claude-code, codex, opencode, dummy; each has agent.yaml 
 models/                LiteLLM model definitions, one YAML file per provider
 catalog/               task catalog service (Go)
 webui/                 web UI: Vite + React client, Bun/Hono server, pty-proxy (Go)
-datasets/pilot/        the pilot dataset, one folder per task
+datasets/pilot/        the pilot dataset, one folder per task, with dataset.yaml and the generated manifest.json
+datasets/schema/       JSON Schemas of the task config and the manifest, exported from bench/src/ssebench/tasks/
 tools/bear/            compile_commands.json generation for C tasks
 tools/release/         bump.py: sets the version everywhere, or checks for drift with --check
 tools/report/          Typst report from results/
@@ -68,7 +69,10 @@ pyproject.toml         uv workspace root (every Python project above is a member
 A task folder in `datasets/pilot/<task-id>/` contains a `Dockerfile` for the
 case image and `sse/` with `config.yaml`, `build.sh`, `run.sh`, `test.sh`,
 `pocs/`, `reports/` (what the agent is told) and `diffs/` (the reference patch
-and hidden tests; never exposed to the agent).
+and hidden tests; never exposed to the agent). The folder name is the task ID,
+and `sse/config.yaml` follows `TaskMetadata` in `bench/src/ssebench/tasks/metadata.py`
+(docs/dataset/manifest.md describes every key). After changing a task,
+regenerate the manifest, which records a checksum of every task file.
 
 ## Commands
 
@@ -112,6 +116,12 @@ go vet work && go test work
 bun install
 bun run build                                          # webui and docs
 bun run --cwd webui lint && bun run --cwd webui typecheck
+
+# Dataset: check the task folders, the committed manifest and the JSON Schemas;
+# `uv run ssebench dataset manifest` (or `schema`) rewrites a stale file
+uv run ssebench dataset validate
+uv run ssebench dataset manifest --check
+uv run ssebench dataset schema --check
 
 # One run end to end; the dummy agent makes no model calls
 uv run ssebench run --local datasets/pilot --task <task-id> --agent dummy --model <model-name>

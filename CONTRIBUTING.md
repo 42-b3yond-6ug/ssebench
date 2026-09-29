@@ -52,7 +52,7 @@ While iterating on one component, you can run its tools directly:
 | Go | `runtime/entrypoint/`, `catalog/`, `webui/pty-proxy/` | `gofmt -l .`, `go vet ./...`, `go test ./...` |
 | TypeScript | `webui/` | `bun run lint`, `bun run typecheck`, `bun run build` |
 | Docs | `docs/` | `bun run build` |
-| Dataset | `datasets/pilot/` | `just dataset-validate` |
+| Dataset | `datasets/` | `uv run ssebench dataset validate`, `uv run ssebench dataset manifest --check` |
 
 Changes to the runtime, the images or a task should also be tried end to end.
 The `dummy` agent makes no model calls, so a run with it exercises image
@@ -87,7 +87,9 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent dummy --mode
 
 - **Add a task:** [docs/guides/add-a-task.md](docs/guides/add-a-task.md). Tasks
   must be publicly disclosed vulnerabilities with an upstream fix, and must
-  pass `just dataset-validate`. Record the upstream project and license in
+  pass `uv run ssebench dataset validate` and `just dataset-validate`.
+  Regenerate `datasets/pilot/manifest.json` with `uv run ssebench dataset
+  manifest`, and record the upstream project and license in
   `datasets/pilot/THIRD_PARTY.md`.
 - **Add an agent:** [docs/guides/add-an-agent.md](docs/guides/add-an-agent.md).
 - **Add a model:** [docs/guides/add-a-model.md](docs/guides/add-a-model.md).
