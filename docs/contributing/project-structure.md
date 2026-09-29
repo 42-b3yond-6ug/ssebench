@@ -20,7 +20,7 @@ ssebench/
 │   ├── daemon/          # ssebench-daemon (Rust)
 │   └── python/          # ssebench-sdk, imported as `sse` (Python)
 ├── images/              # Base images, LiteLLM proxy, sandbox and sidecar tool layers
-├── agents/              # Agent layers: claude-code, codex, opencode, dummy
+├── agents/              # Agent layers: claude-code, codex, opencode, dummy, reference
 ├── models/              # LiteLLM model definitions, one file per provider
 ├── catalog/             # Task catalog service (Go)
 ├── webui/               # Web UI: Vite + React client, Bun/Hono server, pty-proxy (Go)
@@ -85,7 +85,8 @@ agents/
 │   └── Dockerfile
 ├── codex/
 ├── opencode/
-└── dummy/                 # Does nothing; for testing the pipeline
+├── dummy/                 # Does nothing; for testing the pipeline
+└── reference/             # Applies the task's known fix; for checking tasks
 ```
 
 ## models/

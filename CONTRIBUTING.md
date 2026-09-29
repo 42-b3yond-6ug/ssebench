@@ -96,6 +96,13 @@ builds, the entrypoint and grading without spending tokens:
 uv run ssebench run --local datasets/pilot --task <task-id> --agent dummy --model <model-name>
 ```
 
+The `reference` agent applies the task's known fix instead, so a sound task
+passes every check; use it to check a task you add or change:
+
+```sh
+uv run ssebench run --local datasets/pilot --task <task-id> --agent reference
+```
+
 ## Component map
 
 | Path | Language | What it is |

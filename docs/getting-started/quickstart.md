@@ -75,7 +75,9 @@ Model names come from `models/*.yaml` and agent names from `agents/`. The
 ::: tip
 Use `--agent dummy` to check your setup without an API key. The `dummy` agent
 exits immediately and makes no model calls, so the evaluator grades the
-unmodified source tree and the patch fails. That is expected.
+unmodified source tree and the patch fails. That is expected. For a run that
+passes, use `--agent reference` without `--model`: it applies the task's known
+fix; see [Reference runs](/reference/cli#reference-runs).
 :::
 
 ## Results

@@ -21,8 +21,9 @@ all LLM traffic goes through a LiteLLM proxy.
 - **A container runtime.** A Go entrypoint orchestrates a Rust daemon (build,
   PoC and test actions), an MCP server that gives the agent a `test_patch` tool,
   the agent itself and the evaluator.
-- **Agents:** Claude Code, Codex, OpenCode, and a no-op `dummy` agent for
-  testing the pipeline.
+- **Agents:** Claude Code, Codex, OpenCode, a no-op `dummy` agent for
+  testing the pipeline, and a `reference` agent that applies each task's known
+  fix, to check a task without a model.
 - **Models:** LiteLLM model definitions for Anthropic, OpenAI and Google models.
   Adding a provider or model is a YAML change.
 - **The `pilot` dataset:** 55 tasks (27 Go, 20 C, 8 Rust).
@@ -168,7 +169,7 @@ component.
 | `sdk/daemon/` | `ssebench-daemon` (Rust): build, PoC and test actions over a Unix socket and HTTP. |
 | `sdk/python/` | `ssebench-sdk`, imported as `sse`: the Python client used inside task containers. |
 | `images/` | Base images (`generic-c`, `generic-go`, `generic-rust`), the LiteLLM proxy image, and the sandbox and sidecar tool layers. |
-| `agents/` | Agent layers: `claude-code`, `codex`, `opencode`, `dummy`. |
+| `agents/` | Agent layers: `claude-code`, `codex`, `opencode`, `dummy`, `reference`. |
 | `models/` | LiteLLM model definitions, one file per provider. |
 | `catalog/` | Task catalog service (Go). |
 | `webui/` | Web UI: Vite + React front end, Bun/Hono server, and `pty-proxy` (Go) for terminals. |
