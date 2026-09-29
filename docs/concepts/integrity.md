@@ -71,9 +71,9 @@ that directory readable by root only (mode 0700):
 | `/ssebench/scripts/` | The build, run and test scripts |
 | `/ssebench-repo` | The project as the case image built it, used for grading (also 0700) |
 
-The agent learns what it needs through other channels: its prompt contains the
-report files and the build and test scripts, and `test_patch` runs checks on
-its behalf.
+The agent learns what it needs through other channels: its
+[prompt](/concepts/prompt) contains the task's description, the report files
+and the build and test scripts, and `test_patch` runs checks on its behalf.
 
 The one exception is the `reference` agent, which applies the known fix to
 check a task rather than a model. For that agent only, `ssebench run` copies

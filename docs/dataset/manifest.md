@@ -143,7 +143,7 @@ originality: public
 | `repository` | yes | URL of the upstream repository, `https://…`. |
 | `language` | yes | Language of the project, lowercase: `c`, `go` or `rust`. |
 | `source` | yes | Absolute path of the project's source tree in the case image. The agent edits it, and the scripts build and test it. |
-| `task_description` | yes | What the agent is told; at least one of the keys below. |
+| `task_description` | yes | What the agent is told; at least one of the keys below. The [task prompt](/concepts/prompt) includes every one that is set. |
 | `task_description.issue` | | Issue text. |
 | `task_description.crash_report` | | Report files, such as the upstream issue or a sanitizer log. |
 | `task_description.bug_description` | | Short description of the bug. |

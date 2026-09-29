@@ -52,13 +52,14 @@ uses.
 | The agent gets | The agent never gets |
 |---|---|
 | The project's source tree at `source`, owned by the agent's user, with the git history replaced by a single commit | The upstream fix (`files.patch`) and the upstream history |
-| A prompt built from the report files in `task_description.crash_report`, the path of the source tree, and the build and test scripts | The hidden tests (`files.future_test`) |
+| A [prompt](/concepts/prompt) built from the project's name and language, every field of `task_description`, the path of the source tree, and the build and test scripts | The hidden tests (`files.future_test`) |
 | The `test_patch` tool, which runs the checks its [difficulty level](/concepts/difficulty-levels) allows | The proof-of-concept inputs, and any check its difficulty level withholds |
 
-The bundled agents build their prompt with `sse.prompt.TASK_PROMPT` from the
-[Python SDK](/reference/python-sdk). Everything under `/ssebench` is readable
-by root only, so the agent reads the report through its prompt and runs checks
-through `test_patch`; see the [integrity model](/concepts/integrity).
+The bundled agents build their prompt with `sse.prompt.task_prompt()` from the
+[Python SDK](/reference/python-sdk); see [Task prompt](/concepts/prompt).
+Everything under `/ssebench` is readable by root only, so the agent reads the
+report through its prompt and runs checks through `test_patch`; see the
+[integrity model](/concepts/integrity).
 
 ## The checks a task defines
 

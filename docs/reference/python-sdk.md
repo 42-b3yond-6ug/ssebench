@@ -33,6 +33,7 @@ by tools/docs/reference.py; edit the docstrings, then run `just docs-gen`. -->
 
 - [`sse`](#sse)
 - [`sse.project`](#sse-project)
+- [`sse.metadata`](#sse-metadata)
 - [`sse.prompt`](#sse-prompt)
 - [`sse.tools.bencher`](#sse-tools-bencher)
 - [`sse.tools.bash`](#sse-tools-bash)
@@ -64,80 +65,8 @@ The task of this container: its metadata, its capabilities and the checks an age
 Importing this module asks the daemon for the task's metadata and capabilities, so it works only
 where a daemon answers: inside a task container, or with `SSE_DAEMON_SOCKET` pointing at one.
 The checks go to the daemon's agent-facing socket, which refuses those that the run's difficulty
-level withholds: they raise `SDKError`.
-
-### `class TaskDescription`
-
-```python
-@dataclass
-class TaskDescription(
-    issue: str | None,
-    crash_report: list[str] | None,
-    bug_description: str | None,
-)
-```
-
-What the agent is told about the vulnerability.
-
-| Field | Type | Description |
-|---|---|---|
-| `issue` | `str \| None` | Issue text. |
-| `crash_report` | `list[str] \| None` | Contents of the report files, such as the upstream issue or a sanitizer log. |
-| `bug_description` | `str \| None` | Short description of the bug. |
-
-### `class Metadata`
-
-```python
-@dataclass
-class Metadata(
-    id: str,
-    project: str,
-    language: str,
-    source: Path,
-    task_description: TaskDescription,
-    poc: list[Path],
-    build_script: str | None = None,
-    test_script: str | None = None,
-)
-```
-
-The task, as the daemon's `GET /project` returns it. Reference material is left out.
-
-| Field | Type | Description |
-|---|---|---|
-| `id` | `str` | Task ID. |
-| `project` | `str` | Name of the upstream project. |
-| `language` | `str` | Language of the project: `c`, `go` or `rust`. |
-| `source` | `Path` | The project's source tree, which the agent edits. |
-| `task_description` | `TaskDescription` | What the agent is told about the vulnerability. |
-| `poc` | `list[Path]` | Proof-of-concept inputs, to pass to `run_poc`. Only the daemon can read them. |
-| `build_script` | `str \| None` | Contents of the build script, if the task has one. |
-| `test_script` | `str \| None` | Contents of the test script, if the task has one. |
-
-### `class Capabilities`
-
-```python
-@dataclass
-class Capabilities(
-    can_build: bool,
-    can_run_poc: bool,
-    poc_count: int,
-    has_function_test: bool,
-    has_intent_test: bool,
-)
-```
-
-The checks the task supports, as the daemon's `GET /capabilities` returns them.
-
-The difficulty level can still withhold a supported check from the agent.
-
-| Field | Type | Description |
-|---|---|---|
-| `can_build` | `bool` | The task has a build script. |
-| `can_run_poc` | `bool` | The task has a run script and at least one proof of concept. |
-| `poc_count` | `int` | Number of proofs of concept. |
-| `has_function_test` | `bool` | The task has a test script. |
-| `has_intent_test` | `bool` | The task has a test script and hidden tests of the fix. |
+level withholds: they raise `SDKError`. The types of the metadata are in
+`sse.metadata`.
 
 ### `init_metadata()`
 
@@ -231,44 +160,126 @@ Apply the hidden tests of the fix to a copy of the source tree and run the proje
 Hidden tests that do not apply to the agent's changes give exit code 1. Raises
 `SDKError` as `build` does.
 
+## `sse.metadata`
+
+Types of the task's public metadata, as the daemon's `GET /project` and `GET /capabilities`
+return them.
+
+They live apart from `sse.project`, which asks the daemon for them on import, so that code
+built on them, such as `sse.prompt.build_prompt`, works without a daemon.
+
+### `class TaskDescription`
+
+```python
+@dataclass
+class TaskDescription(
+    issue: str | None,
+    crash_report: list[str] | None,
+    bug_description: str | None,
+)
+```
+
+What the agent is told about the vulnerability.
+
+| Field | Type | Description |
+|---|---|---|
+| `issue` | `str \| None` | Issue text. |
+| `crash_report` | `list[str] \| None` | Contents of the report files, such as the upstream issue or a sanitizer log, in the order of the task config. |
+| `bug_description` | `str \| None` | Short description of the bug. |
+
+### `class Metadata`
+
+```python
+@dataclass
+class Metadata(
+    id: str,
+    project: str,
+    language: str,
+    source: Path,
+    task_description: TaskDescription,
+    poc: list[Path],
+    build_script: str | None = None,
+    test_script: str | None = None,
+)
+```
+
+The task, as the daemon's `GET /project` returns it. Reference material is left out.
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `str` | Task ID. |
+| `project` | `str` | Name of the upstream project. |
+| `language` | `str` | Language of the project: `c`, `go` or `rust`. |
+| `source` | `Path` | The project's source tree, which the agent edits. |
+| `task_description` | `TaskDescription` | What the agent is told about the vulnerability. |
+| `poc` | `list[Path]` | Proof-of-concept inputs, to pass to `sse.project.run_poc`. Only the daemon can read them. |
+| `build_script` | `str \| None` | Contents of the build script, if the task has one. |
+| `test_script` | `str \| None` | Contents of the test script, if the task has one. |
+
+### `class Capabilities`
+
+```python
+@dataclass
+class Capabilities(
+    can_build: bool,
+    can_run_poc: bool,
+    poc_count: int,
+    has_function_test: bool,
+    has_intent_test: bool,
+)
+```
+
+The checks the task supports, as the daemon's `GET /capabilities` returns them.
+
+The difficulty level can still withhold a supported check from the agent.
+
+| Field | Type | Description |
+|---|---|---|
+| `can_build` | `bool` | The task has a build script. |
+| `can_run_poc` | `bool` | The task has a run script and at least one proof of concept. |
+| `poc_count` | `int` | Number of proofs of concept. |
+| `has_function_test` | `bool` | The task has a test script. |
+| `has_intent_test` | `bool` | The task has a test script and hidden tests of the fix. |
+
+### `parse_metadata()`
+
+```python
+def parse_metadata(data: dict[str, Any]) -> Metadata
+```
+
+Build `Metadata` from the JSON object of the daemon's `GET /project`.
+
 ## `sse.prompt`
 
 The task prompt that the bundled agents give their model.
 
-Importing it imports `sse.project`, so it needs the daemon too.
+`build_prompt` depends only on the task's public metadata, the daemon's
+`GET /project`, so every agent that uses it sends the same text for a task.
+That view holds the report contents and the build and test scripts, never the
+reference patch, the hidden tests or the proofs of concept.
 
-### `task_description()`
-
-```python
-def task_description() -> str
-```
-
-The task's crash reports, as a section of the prompt.
-
-### `source_code_instructions()`
+### `build_prompt()`
 
 ```python
-def source_code_instructions() -> str
+def build_prompt(metadata: Metadata) -> str
 ```
 
-Where the source code is, as a section of the prompt.
+Return the task prompt for a task's public metadata.
 
-### `build_and_test_instructions()`
+The prompt names the project and its language, gives fixed instructions, then
+every description field that is set (the bug description, the issue and each
+report), the source path, and the build and test scripts. A field that is
+empty or holds the placeholder `none` is left out.
+
+### `task_prompt()`
 
 ```python
-def build_and_test_instructions() -> str
+def task_prompt() -> str
 ```
 
-The build and test scripts, as a section of the prompt.
+Return the prompt for the task of this container.
 
-### `TASK_PROMPT`
-
-```python
-TASK_PROMPT: str
-```
-
-The whole prompt: the role and requirements, then the task description and the build and test
-instructions of this task.
+It imports `sse.project`, so it needs the daemon.
 
 ## `sse.tools.bencher`
 

@@ -10,7 +10,7 @@ from typing import Any
 import httpx
 from httpx_sse import aconnect_sse
 from sse import project
-from sse.prompt import TASK_PROMPT
+from sse.prompt import task_prompt
 
 # =============================================================================
 # Dialog Writer - Writes dialog.jsonl for SSEBench WebUI consumption
@@ -555,6 +555,7 @@ async def run_opencode(dialog: DialogWriter):
         return
 
     cwd = str(project.source)
+    prompt = task_prompt()
 
     # Write dialog init and prompt
     dialog.init(
@@ -563,7 +564,7 @@ async def run_opencode(dialog: DialogWriter):
         model=model_name,
         agent="opencode",
     )
-    dialog.prompt(TASK_PROMPT.strip())
+    dialog.prompt(prompt)
 
     # Build config and start the agent's own OpenCode server
     config = build_opencode_config(base_url, model_name, api_key)
@@ -622,7 +623,7 @@ async def run_opencode(dialog: DialogWriter):
         await asyncio.sleep(1)
 
         # Send the task prompt (model is set in server's global config)
-        success = await oc.send_prompt_async(session_id, TASK_PROMPT.strip())
+        success = await oc.send_prompt_async(session_id, prompt)
         if not success:
             event_task.cancel()
             dialog.complete("error", message="Failed to send prompt to OpenCode")
