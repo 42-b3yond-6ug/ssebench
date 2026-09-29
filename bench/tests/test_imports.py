@@ -1,4 +1,3 @@
-import importlib
 import pkgutil
 import subprocess
 import sys
@@ -22,7 +21,9 @@ def test_expected_subpackages_exist() -> None:
 
 @pytest.mark.parametrize("module", MODULES)
 def test_module_imports(module: str) -> None:
-    _ = importlib.import_module(module)
+    # A fresh interpreter per module, so an import cycle that another module's imports would hide still fails.
+    result = subprocess.run([sys.executable, "-c", f"import {module}"], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
 
 
 def test_help_runs_outside_the_checkout(tmp_path: Path) -> None:

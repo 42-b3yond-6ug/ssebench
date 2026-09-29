@@ -1,0 +1,217 @@
+import subprocess
+import threading
+from collections.abc import Callable, Iterator
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from ssebench import paths, settings
+from ssebench.dataset.generate import build_manifest, render_manifest
+from ssebench.pipe import REGISTRY
+from ssebench.tasks import catalog
+from ssebench.tasks.catalog import (
+    CATALOG_ENV,
+    CatalogError,
+    CatalogTask,
+    catalog_location,
+    load_catalog,
+    manifest_location,
+)
+
+# This checkout: bench/tests/ is two levels below the repository root.
+CHECKOUT = Path(__file__).resolve().parents[2]
+BUNDLED = CHECKOUT / "datasets" / "pilot" / "manifest.json"
+TASK = "gjson-196-bf4efcb"
+
+Serve = Callable[[dict[str, bytes]], str]
+
+
+@pytest.fixture(autouse=True)
+def isolated_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv(CATALOG_ENV, raising=False)
+    monkeypatch.setenv(paths.HOME_ENV, str(CHECKOUT))
+    monkeypatch.setattr(settings, "dotenv", dict)
+
+
+@pytest.fixture
+def serve() -> Iterator[Serve]:
+    """Start HTTP servers on loopback that answer GET for the given paths and 404 otherwise."""
+    servers: list[ThreadingHTTPServer] = []
+
+    def start(routes: dict[str, bytes]) -> str:
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self) -> None:
+                body = routes.get(self.path)
+                if body is None:
+                    self.send_error(404)
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                _ = self.wfile.write(body)
+
+            def log_message(self, format: str, *args: object) -> None:
+                pass
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        servers.append(server)
+        threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True).start()
+        return f"http://127.0.0.1:{server.server_address[1]}"
+
+    yield start
+    for server in servers:
+        server.shutdown()
+        server.server_close()
+
+
+@pytest.mark.parametrize(
+    ("location", "expected"),
+    [
+        ("https://example.org/pilot/manifest.json", "https://example.org/pilot/manifest.json"),
+        ("https://example.org/pilot/v1.json?sig=abc", "https://example.org/pilot/v1.json?sig=abc"),
+        ("http://catalog:8080", "http://catalog:8080/manifest.json"),
+        ("http://catalog:8080/", "http://catalog:8080/manifest.json"),
+        ("https://example.org/catalog/?key=1", "https://example.org/catalog/manifest.json?key=1"),
+    ],
+)
+def test_manifest_location_of_a_url(location: str, expected: str) -> None:
+    assert manifest_location(location) == expected
+
+
+def test_manifest_location_of_a_path(tmp_path: Path) -> None:
+    assert manifest_location(str(tmp_path)) == str(tmp_path / "manifest.json")
+    assert manifest_location(str(tmp_path / "other.json")) == str(tmp_path / "other.json")
+
+
+def test_catalog_location_precedence(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert catalog_location() == str(BUNDLED)
+    monkeypatch.setattr(settings, "dotenv", lambda: {CATALOG_ENV: "http://from-dotenv"})
+    assert catalog_location() == "http://from-dotenv"
+    monkeypatch.setenv(CATALOG_ENV, "http://from-env")
+    assert catalog_location() == "http://from-env"
+    assert catalog_location(" http://from-flag ") == "http://from-flag"
+
+
+def test_default_is_the_bundled_manifest() -> None:
+    c = load_catalog()
+
+    assert c.location == str(BUNDLED)
+    assert c.manifest.dataset == "pilot"
+    assert c.task(TASK).metadata.source == "/src/gjson"
+
+
+def test_path_to_a_manifest_file() -> None:
+    c = load_catalog(str(BUNDLED))
+
+    assert c.location == str(BUNDLED)
+    assert TASK in [t.id for t in c.manifest.tasks]
+
+
+def test_path_to_a_dataset_directory(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(CATALOG_ENV, str(BUNDLED.parent))
+
+    assert load_catalog().location == str(BUNDLED)
+
+
+def test_manifest_url(serve: Serve) -> None:
+    base = serve({"/datasets/pilot-v1.json": BUNDLED.read_bytes()})
+
+    c = load_catalog(f"{base}/datasets/pilot-v1.json")
+
+    assert c.task(TASK).image == f"case/pilot/{TASK}"
+
+
+def test_catalog_service_url(serve: Serve, monkeypatch: pytest.MonkeyPatch) -> None:
+    # A catalog service serves its manifest at /manifest.json, next to /tasks.
+    base = serve({"/manifest.json": BUNDLED.read_bytes(), "/tasks": b"[]"})
+    monkeypatch.setenv(CATALOG_ENV, base + "/")
+
+    c = load_catalog()
+
+    assert c.location == f"{base}/manifest.json"
+    assert c.task(TASK).metadata.id == TASK
+
+
+def test_unknown_task() -> None:
+    with pytest.raises(LookupError, match="not in the catalog"):
+        _ = CatalogTask(load_catalog(), "missing")
+
+
+@pytest.mark.parametrize(("routes", "error"), [({}, "Cannot read"), ({"/manifest.json": b"{}"}, "not a valid")])
+def test_unreadable_catalog(serve: Serve, routes: dict[str, bytes], error: str) -> None:
+    with pytest.raises(CatalogError, match=error):
+        _ = load_catalog(serve(routes))
+
+
+def test_missing_manifest_file(tmp_path: Path) -> None:
+    with pytest.raises(CatalogError, match="Cannot read"):
+        _ = load_catalog(str(tmp_path))
+
+
+def test_catalog_task(serve: Serve) -> None:
+    task = CatalogTask(load_catalog(serve({"/manifest.json": BUNDLED.read_bytes()})), TASK)
+
+    assert task.docker_image_name == f"{REGISTRY}/case/pilot/{TASK}"
+    assert task.get_task_metadata().id == TASK
+
+
+class Docker:
+    """Stands in for `docker pull` and the local case image build."""
+
+    def __init__(self, monkeypatch: pytest.MonkeyPatch, pull_ok: bool):
+        self.pulled: list[str] = []
+        self.built: list[tuple[Path, str]] = []
+        self.pull_ok: bool = pull_ok
+        monkeypatch.setattr(catalog.subprocess, "run", self.run)
+        monkeypatch.setattr(catalog, "docker_build_case", lambda folder, image: self.built.append((folder, image)))
+
+    def run(self, cmd: list[str], **_: Any) -> subprocess.CompletedProcess[bytes]:
+        assert cmd[:2] == ["docker", "pull"]
+        self.pulled.append(cmd[2])
+        return subprocess.CompletedProcess(cmd, 0 if self.pull_ok else 1)
+
+
+def test_pulls_the_case_image(monkeypatch: pytest.MonkeyPatch) -> None:
+    docker = Docker(monkeypatch, pull_ok=True)
+    task = CatalogTask(load_catalog(), TASK)
+
+    assert task.docker_image(None) == task.docker_image_name
+    assert docker.pulled == [task.docker_image_name]
+    assert docker.built == []
+
+
+def test_builds_from_the_bundled_dataset_when_the_pull_fails(serve: Serve, monkeypatch: pytest.MonkeyPatch) -> None:
+    docker = Docker(monkeypatch, pull_ok=False)
+    task = CatalogTask(load_catalog(serve({"/manifest.json": BUNDLED.read_bytes()})), TASK)
+
+    assert task.docker_image(None) == task.docker_image_name
+    assert docker.built == [(CHECKOUT / "datasets" / "pilot" / TASK, task.docker_image_name)]
+
+
+def test_builds_from_the_folder_next_to_the_manifest(
+    tmp_path: Path, make_task: Callable[..., Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(paths.HOME_ENV, str(tmp_path))  # a home without this dataset
+    folder = make_task(tmp_path / "demo", "demo-task")
+    _ = (tmp_path / "demo" / "manifest.json").write_text(render_manifest(build_manifest(tmp_path / "demo")))
+    docker = Docker(monkeypatch, pull_ok=False)
+
+    task = CatalogTask(load_catalog(str(tmp_path / "demo")), "demo-task")
+    _ = task.docker_image(None)
+    assert docker.built == [(folder, f"{REGISTRY}/case/demo/demo-task")]
+
+    # A folder that no longer matches the manifest would build a different task.
+    _ = (folder / "sse" / "build.sh").write_text("#!/bin/sh\nmake all\n")
+    with pytest.raises(CatalogError, match="no local copy"):
+        _ = task.docker_image(None)
+
+
+def test_fails_without_a_local_copy(serve: Serve, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(paths.HOME_ENV, str(tmp_path))
+    _ = Docker(monkeypatch, pull_ok=False)
+    task = CatalogTask(load_catalog(serve({"/manifest.json": BUNDLED.read_bytes()})), TASK)
+
+    with pytest.raises(CatalogError, match="no local copy"):
+        _ = task.docker_image(None)

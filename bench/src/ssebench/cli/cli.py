@@ -2,7 +2,6 @@
 
 import argparse
 import logging
-import os
 import subprocess
 import sys
 from collections.abc import Sequence
@@ -21,7 +20,7 @@ from ssebench.extensions import (
 )
 from ssebench.models import Model
 from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRuner
-from ssebench.tasks import LocalTask, RemoteTask
+from ssebench.tasks import CatalogError, CatalogTask, LocalTask, Task, load_catalog
 from ssebench.version import VERSION
 
 from . import dataset
@@ -50,14 +49,6 @@ class RunArgs(argparse.Namespace):
 
 def cmd_run(args: argparse.Namespace) -> int:
     """Run a benchmark."""
-    catalog = args.catalog or os.environ.get("SSEBENCH_CATALOG", "")
-    if not args.local and not catalog:
-        logger.error(
-            "No task source: pass --local DIR for a local dataset, "
-            "or --catalog URL (or set SSEBENCH_CATALOG) for a catalog server."
-        )
-        return 1
-
     if args.tool_layer is not None and args.mode != "sandbox":
         logger.error("--tool-layer applies to sandbox mode only")
         return 1
@@ -66,6 +57,15 @@ def cmd_run(args: argparse.Namespace) -> int:
     try:
         _ = get_tool_layer(tool_layer)
     except ExtensionError as e:
+        logger.error(e)
+        return 1
+
+    task: Task
+    try:
+        task = (
+            LocalTask(args.task, Path(args.local)) if args.local else CatalogTask(load_catalog(args.catalog), args.task)
+        )
+    except (CatalogError, LookupError) as e:
         logger.error(e)
         return 1
 
@@ -81,7 +81,6 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     # Run the experiment
     model = Model(args.model)
-    task = LocalTask(args.task, Path(args.local)) if args.local else RemoteTask(args.task, catalog)
     agent = Agent(args.agent, task_name=task.name)
     timeout = args.timeout
     difficulty = args.difficulty
@@ -96,7 +95,11 @@ def cmd_run(args: argparse.Namespace) -> int:
         case _:
             logger.error(f"Unknown mode: {args.mode}")
             return 1
-    runner.build()
+    try:
+        runner.build()
+    except CatalogError as e:
+        logger.error(e)
+        return 1
     runner.run()
     return 0
 
@@ -188,12 +191,16 @@ def main(argv: Sequence[str] | None = None):
     run_parser.add_argument("--model", type=str, required=True)
     run_parser.add_argument("--agent", type=str, required=True)
     run_parser.add_argument("--task", type=str, required=True)
-    run_parser.add_argument("--local", type=str, default="", help="Path to a local dataset directory")
+    run_parser.add_argument(
+        "--local", type=str, default="", metavar="DIR", help="Dataset directory to build the task from"
+    )
     run_parser.add_argument(
         "--catalog",
         type=str,
         default="",
-        help="Catalog server URL, used when --local is not given (default: $SSEBENCH_CATALOG)",
+        metavar="PATH|URL",
+        help="Task catalog, used when --local is not given: a manifest.json path or URL, a dataset directory, or "
+        "the URL of a catalog service (default: $SSEBENCH_CATALOG, else the bundled pilot manifest)",
     )
     run_parser.add_argument("--mode", choices=["sidecar", "sandbox"], default="sandbox")
     run_parser.add_argument(
