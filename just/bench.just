@@ -1,3 +1,13 @@
+# Try SSEBench: start the stack, run the known fix on a pilot task and open it in the web UI; no key needed
+[group('run')]
+demo *args:
+    uv run ssebench demo up "$@"
+
+# Stop the demo and remove what it created: its stack, its database volume and its kept run containers
+[group('run')]
+demo-down:
+    uv run ssebench demo down
+
 # Run one agent x model x task: `just run --task <id> --agent <agent> --model <model>`
 [group('run')]
 run *args:

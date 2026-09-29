@@ -124,3 +124,8 @@ def default_dataset_dir() -> Path:
 
 def compose_file() -> Path:
     return home() / "deploy" / "compose" / "docker-compose.yaml"
+
+
+def demo_compose_file() -> Path:
+    """The Compose file that adds the task catalog and the web UI to the stack for the demo."""
+    return home() / "deploy" / "compose" / "demo.yaml"

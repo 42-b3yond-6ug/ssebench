@@ -54,13 +54,18 @@ def litellm_master_key() -> str:
     return require("LITELLM_MASTER_KEY")
 
 
-def litellm_port() -> int:
-    raw = get("LITELLM_PORT")
+def port(name: str, default: int) -> int:
+    """The TCP port that `name` sets, or `default`."""
+    raw = get(name)
     if not raw:
-        return DEFAULT_LITELLM_PORT
+        return default
     if not raw.isdigit() or not 0 < int(raw) < 65536:
-        raise SettingError(f"LITELLM_PORT={raw!r} is not a TCP port number")
+        raise SettingError(f"{name}={raw!r} is not a TCP port number")
     return int(raw)
+
+
+def litellm_port() -> int:
+    return port("LITELLM_PORT", DEFAULT_LITELLM_PORT)
 
 
 def compose_project() -> str:

@@ -86,6 +86,7 @@ too.
 | `SSEBENCH_CATALOG` | the bundled pilot manifest | CLI, just, web UI | [Task catalog](/reference/cli#task-catalog) that `ssebench run`, `ssebench tasks list` and the web UI get tasks from: the path or URL of a `manifest.json`, a dataset directory, or the URL of a catalog service. `--catalog` overrides it. |
 | `SSEBENCH_HOME` | see [CLI](/reference/cli#working-directory) | CLI | Directory that holds `agents/`, `images/`, `runtime/`, `models/`, `deploy/` and `datasets/`, normally the repository root. Unset, a package install without a clone uses the copy of these directories in the package. |
 | `SSEBENCH_ENV_FILE` | `.env` in the repository root | CLI, Compose | The `.env` file that the LiteLLM container reads provider keys from. The CLI sets it to the `.env` in the workspace; set it yourself only when you run `docker compose` on `deploy/compose/docker-compose.yaml` directly. |
+| `SSEBENCH_DEMO_PROJECT` | `ssebench-demo` | CLI, Compose | Compose project of the [demo](/getting-started/demo). It must differ from `COMPOSE_PROJECT_NAME`: `just demo-down` deletes the project's database volume, and the demo refuses to touch a project whose containers it did not create. |
 | `SSEBENCH_DEMO_WEBUI_PORT` | `3001` | CLI, Compose | Host port of the demo's web UI, on `127.0.0.1`. |
 | `SSEBENCH_DEMO_CATALOG_PORT` | `8090` | CLI, Compose | Host port of the demo's catalog service, on `127.0.0.1`. |
 | `SSEBENCH_RUNTIME_IMAGE` | `<registry>/runtime:<version>` without a checkout, else unset | CLI | Runtime image that the tool layers copy the daemon and the entrypoint from, as `<registry>/runtime:<version>` does. Unset, a checkout compiles both from its sources, and an installation without a checkout uses the published image of its version. Set it to skip the compilation in a checkout. |
@@ -170,7 +171,7 @@ The web UI server reads these; see [WebUI](/webui/).
 | `PORT` | `3001` | web UI | API server port; the Vite servers forward `/api` there. |
 | `SSEBENCH_WEBUI_TOKEN` | unset | web UI | Access token, at least 16 characters. Required when the bind address is not loopback. |
 | `SSEBENCH_WEBUI_CORS_ORIGINS` | unset | web UI | Comma-separated origins, besides the server's own, allowed to call the API, such as `https://bench.example.org`. |
-| `SSEBENCH_WEBUI_TERMINAL` | `1` | web UI | `0` turns off the container terminal. |
+| `SSEBENCH_WEBUI_TERMINAL` | `1` | web UI | `0` turns off the container terminal. The demo's web UI has it off (`0`) unless you set this to `1`. |
 | `SSEBENCH_PATH` | the repository root | web UI | SSEBench checkout: `uv run ssebench` runs there, and `models/` and `agents/` are read from there. |
 | `SSEBENCH_LOCAL_TASKS` | `$SSEBENCH_PATH/datasets/pilot` | web UI | Local dataset offered in the launcher. |
 | `SSEBENCH_CATALOG_URL` | unset | web UI | Former name of `SSEBENCH_CATALOG`; deprecated, and read only when that is unset. |

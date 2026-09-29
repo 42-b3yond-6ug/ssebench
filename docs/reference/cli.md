@@ -31,6 +31,8 @@ bench/src/ssebench/cli/, then run `just docs-gen`. -->
 | `ssebench tasks list` | List the tasks of a catalog or a local dataset |
 | `ssebench proxy` | Start, rebuild or stop the local LiteLLM proxy |
 | `ssebench init` | Write .env with generated secrets, models/ and results/ to the current directory |
+| `ssebench demo up` | Start the demo stack, run one agent on one task and show the run in the web UI |
+| `ssebench demo down` | Remove everything the demo created |
 | `ssebench doctor` | Check that this host can build and run benchmarks |
 
 <!-- end generated -->
@@ -327,6 +329,72 @@ safe to run again:
 
 In a checkout, the workspace is the checkout, which already has `models/`, so
 the command only writes `.env` and `results/`.
+
+## `ssebench demo`
+
+Starts, and removes, the [local demo](/getting-started/demo): the LiteLLM proxy
+and its database, the task catalog and the web UI in a Compose project of their
+own (`SSEBENCH_DEMO_PROJECT`, default `ssebench-demo`), and one run of an agent
+that the web UI shows. `just demo` and `just demo-down` call it.
+
+```sh
+uv run ssebench demo up
+```
+
+<!-- generated: cli demo up -->
+
+```sh
+ssebench demo up [-h] [--task ID] [--agent NAME] [--model NAME] [--timeout SECONDS]
+                 [--build]
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--task ID` | `gjson-196-bf4efcb` | Task ID, from the bundled pilot dataset; pick a fast one |
+| `--agent NAME` | `reference` | Agent name, a directory under `agents/`; reference applies the task's known fix |
+| `--model NAME` |  | Model name, as defined in `models/*.yaml`; required for every agent but reference |
+| `--timeout SECONDS` | `3600` | How long the agent may run |
+| `--build` | off | Build every image from this checkout instead of pulling the published ones |
+
+<!-- end generated -->
+
+`up` checks the host as `ssebench doctor` does, then pulls the images of the
+catalog, the web UI and the task at this checkout's version, and builds those
+that the registry does not have. The LiteLLM proxy image is always built from
+`models/`, as `ssebench proxy up` does. It starts the stack, waits until the
+proxy, the catalog and the web UI answer, and runs
+`ssebench run --keep-container` in the background, because a kept container
+keeps that command running. When the evaluator has graded the run, `up` checks
+that the web UI shows it, prints the result and the address of the web UI, and
+returns. The agent's `--model` needs its provider key in `.env`, and `up`
+stops before it builds anything when the key is missing. Running `up` again
+replaces the previous run.
+
+The web UI listens on `127.0.0.1:3001` (`SSEBENCH_DEMO_WEBUI_PORT`), the catalog
+on `127.0.0.1:8090` (`SSEBENCH_DEMO_CATALOG_PORT`) and the proxy on
+`LITELLM_PORT`. The web UI container shares the host's network and mounts the
+Docker socket, so the demo needs a Linux Docker engine, and its terminal is off
+unless you set `SSEBENCH_WEBUI_TERMINAL=1`.
+
+```sh
+uv run ssebench demo down
+```
+
+<!-- generated: cli demo down -->
+
+```sh
+ssebench demo down [-h]
+```
+
+It takes no options.
+
+<!-- end generated -->
+
+`down` removes the containers of runs on the demo's networks, then the Compose
+project with its database volume. It touches nothing else: not the stack you
+run with `just launch`, not other containers, not the images and not `results/`.
+It refuses to work on a Compose project that has containers the demo did not
+create.
 
 ## `ssebench doctor`
 
