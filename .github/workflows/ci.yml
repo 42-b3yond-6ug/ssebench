@@ -1,0 +1,227 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  # Each push to main gets its own group, so a queued main run is never cancelled.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      python: ${{ steps.filter.outputs.python }}
+      rust: ${{ steps.filter.outputs.rust }}
+      go: ${{ steps.filter.outputs.go }}
+      webui: ${{ steps.filter.outputs.webui }}
+      docs: ${{ steps.filter.outputs.docs }}
+      dataset: ${{ steps.filter.outputs.dataset }}
+    steps:
+      # Pull requests are diffed through the API; pushes to main need the checkout.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name == 'push'
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        with:
+          predicate-quantifier: some-with-excludes
+          filters: |
+            workflow: &workflow
+              - .github/workflows/ci.yml
+              - .github/actions/**
+            python:
+              - *workflow
+              - VERSION
+              - pyproject.toml
+              - uv.lock
+              - bench/**
+              - runtime/evaluator/**
+              - runtime/mcp/**
+              - runtime/plugins/**
+              - sdk/python/**
+              - agents/**
+              - images/litellm/**
+              - tools/dataset/**
+              - tools/release/**
+            rust:
+              - *workflow
+              - Cargo.toml
+              - Cargo.lock
+              - rust-toolchain.toml
+              - rustfmt.toml
+              - sdk/daemon/**
+            go:
+              - *workflow
+              - go.work
+              - go.work.sum
+              - catalog/**
+              - runtime/entrypoint/**
+              - webui/pty-proxy/**
+            webui:
+              - *workflow
+              - package.json
+              - bun.lock
+              - bunfig.toml
+              - webui/**
+              - '!webui/pty-proxy/**'
+            docs:
+              - *workflow
+              - package.json
+              - bun.lock
+              - bunfig.toml
+              - docs/**
+            dataset:
+              - *workflow
+              - datasets/**
+              - tools/dataset/**
+              - bench/src/ssebench/tasks/**
+
+  python:
+    name: Python
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-python
+      - name: ruff check
+        run: uv run ruff check --output-format=github
+      - name: ruff format
+        run: uv run ruff format --check
+      - name: basedpyright
+        run: uv run basedpyright
+      - name: pytest
+        run: uv run pytest
+
+  rust:
+    name: Rust
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-rust
+      - name: cargo fmt
+        run: cargo fmt --all --check
+      - name: cargo clippy
+        run: cargo clippy --locked --all-targets -- -D warnings
+      - name: cargo test
+        run: cargo test --locked
+
+  go:
+    name: Go
+    needs: changes
+    if: needs.changes.outputs.go == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.work
+          cache-dependency-path: |
+            catalog/go.sum
+            runtime/entrypoint/go.sum
+            webui/pty-proxy/go.sum
+      - name: gofmt
+        run: |
+          unformatted=$(go list -m -f '{{.Dir}}' | xargs gofmt -l)
+          if [ -n "$unformatted" ]; then
+            echo "::error::These files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+      - name: go vet
+        run: go vet work
+      - name: go test
+        run: go test work
+
+  webui:
+    name: Web UI
+    needs: changes
+    if: needs.changes.outputs.webui == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-bun
+      - name: tsc and vite build
+        run: bun run --cwd webui build
+      - name: bun test
+        working-directory: webui
+        run: bun test
+      - name: eslint
+        # Advisory until the web UI's existing eslint errors are fixed; then drop continue-on-error.
+        continue-on-error: true
+        run: bun run --cwd webui lint
+
+  docs:
+    name: Docs
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-bun
+      - name: vitepress build
+        run: bun run --cwd docs build
+
+  dataset:
+    name: Dataset
+    needs: changes
+    if: needs.changes.outputs.dataset == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-python
+      - name: Task configs are valid
+        run: uv run ssebench dataset validate datasets/pilot
+      - name: manifest.json is up to date
+        run: uv run ssebench dataset manifest --check
+      - name: The task config schema is up to date
+        run: uv run ssebench dataset schema --check
+      - name: THIRD_PARTY.md is up to date
+        run: uv run python tools/dataset/third_party.py --check
+
+  ci-ok:
+    name: ci-ok
+    if: always()
+    needs: [changes, python, rust, go, webui, docs, dataset]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Summarize job results
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+      - name: Fail if a job failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
