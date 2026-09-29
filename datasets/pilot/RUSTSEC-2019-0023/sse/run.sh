@@ -1,5 +1,12 @@
 #!/bin/bash -eu
-cd /ssebench/harness
+# The harness depends on the project at /src/string-interner, the agent's working tree. Build
+# a copy of it against the tree this script runs in, the build being graded.
+PROJECT_DIR=$PWD
+HARNESS=$(mktemp -d)
+trap 'rm -rf "$HARNESS"' EXIT
+cp -r /ssebench/harness/. "$HARNESS"
+sed -i "s#\"/src/string-interner\"#\"$PROJECT_DIR\"#" "$HARNESS/Cargo.toml"
+cd "$HARNESS"
 export RUSTFLAGS="-Zsanitizer=address"
 cargo build --offline
 ./target/debug/RUSTSEC-2019-0023
