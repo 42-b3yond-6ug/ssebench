@@ -4,91 +4,115 @@ outline: deep
 
 # Installation
 
+SSEBench runs from a clone of its repository. This page sets up the tools it
+needs; the [Quickstart](/getting-started/quickstart) then runs your first task.
+
 ## Prerequisites
 
-SSEBench requires the following tools:
+| Tool | Needed for |
+|------|------------|
+| Docker, with the buildx plugin | Building task images and running every task |
+| [uv](https://docs.astral.sh/uv/) | Running the `ssebench` CLI; it installs Python for you |
+| [just](https://just.systems/) | The recipes in the `Justfile` |
+| git | Cloning the repository |
+| fzf (optional) | The interactive task, model and agent pickers in `just` recipes |
+| jq and [Typst](https://typst.app/) (optional) | Building a report from results |
+| [Bun](https://bun.sh/) (optional) | The web UI and these docs |
 
-| Tool | Description |
-|------|-------------|
-| `docker` | Container runtime for isolated environments, with buildx |
-| `uv` | Fast Python package manager; runs the `ssebench` CLI |
-| `just` | Task runner for build commands |
-| `fzf` | Fuzzy finder for interactive selection (optional) |
-| `jq` | JSON processor (optional, for reports) |
-| `bun` | JavaScript runtime for the Web UI (optional) |
+An x86-64 host is recommended: many C tasks build with AddressSanitizer for
+x86-64 only. Leave room for the images too: the three base images take about
+3.5 GB together, and every task adds its own image on top.
 
-An x86-64 host is recommended: many C tasks build with AddressSanitizer for amd64 only.
-
-### Installation
+## Install the tools
 
 ::: code-group
 
 ```sh [Ubuntu/Debian]
-# Install system dependencies
-apt-get install -y docker.io jq fzf
+# Docker Engine and the buildx plugin: see https://docs.docker.com/engine/install/
 
-# Install just
-curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
-
-# Install uv
+# uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# just
+curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/.local/bin
+
+# Optional tools
+sudo apt-get install -y fzf jq
 ```
 
 ```sh [macOS]
-# Install with Homebrew
-brew install docker jq fzf just
+# Docker: Docker Desktop, or another engine such as colima
 
-# Install uv
-curl -LsSf https://astral.sh/uv/install.sh | sh
+brew install uv just
+
+# Optional tools
+brew install fzf jq typst
 ```
 
 ```sh [Arch Linux]
-# Install system dependencies
-pacman -S docker jq fzf just
+sudo pacman -S docker docker-buildx uv just
 
-# Install uv
-curl -LsSf https://astral.sh/uv/install.sh | sh
+# Optional tools
+sudo pacman -S fzf jq typst
+```
+
+```sh [Nix]
+# From the repository root, after cloning it (see below).
+# Docker itself must still be installed on the host.
+nix develop
 ```
 
 :::
 
-## Get the Code
+## Get the code
 
-```bash
+```sh
 git clone https://github.com/42-b3yond-6ug/ssebench.git
 cd ssebench
 ```
 
-## Environment Setup
+Run every command in these docs from the repository root unless it says
+otherwise.
 
-Before running any benchmarks, create a `.env` file in the repository root with your API keys:
+## Add your API keys
 
-```bash
-OPENAI_API_KEY=sk-xxx
-ANTHROPIC_API_KEY=sk-ant-xxx
-GOOGLE_API_KEY=xxx
+Create a file named `.env` in the repository root with the key of each model
+provider you want to use:
+
+```sh
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+GOOGLE_API_KEY=...
 ```
 
-::: info
-All three keys must be present. If you don't use a provider, use a placeholder value (e.g., `GOOGLE_API_KEY=fake-key`).
-:::
+Leave out the providers you don't use. The LiteLLM proxy reads this file when
+it starts, so it must exist even if it is empty, for example when you only run
+the `dummy` agent, which makes no model calls.
 
 ::: warning
-Never commit your `.env` file. It's already in `.gitignore`.
+Never commit `.env`. It is listed in `.gitignore`.
 :::
 
-## Verifying Your Setup
+::: warning Coming soon
+`just setup` will install the dependencies and write `.env` for you, including
+generated local secrets for the proxy. Until it is available, create `.env` by
+hand as shown above.
+:::
 
-```bash
-# Check Docker
+## Check your setup
+
+```sh
 docker --version
-
-# Check just
+docker buildx version
+uv --version
 just --version
 
-# List available commands
+# List the available recipes
 just
-
-# Verify the LiteLLM proxy is running
-curl http://localhost:4000/health/liveliness
 ```
+
+## Next steps
+
+- [Quickstart](/getting-started/quickstart): run an agent on a pilot task
+- [Add a model](/guides/add-a-model): use a provider or model that isn't listed
+  in `models/`

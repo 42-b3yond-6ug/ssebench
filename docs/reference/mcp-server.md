@@ -2,7 +2,7 @@
 outline: deep
 ---
 
-# MCP Server
+# MCP server
 
 Every task container runs an MCP (Model Context Protocol) server that gives the agent a single tool, `test_patch`, to check its work while it runs. The server is built on [FastMCP](https://gofastmcp.com/); its source is in `runtime/mcp/`.
 
@@ -104,8 +104,8 @@ If testing itself fails, for example because the daemon cannot be reached, `test
 An internal testing failure occurred. Your patch is not responsible for this failure.
 ```
 
-## Next Steps
+## Next steps
 
-- [Architecture](/concepts/architecture) - How the MCP server fits into the task container
-- [Environment Variables](/reference/environment) - Variables available inside the container
-- [Dialog Protocol](/reference/dialog-protocol) - Integrate your agent with the Web UI
+- [Architecture](/concepts/architecture): how the MCP server fits into the task container
+- [Environment variables](/reference/environment): variables available inside the container
+- [Dialog protocol](/reference/dialog-protocol): show your agent's session in the web UI

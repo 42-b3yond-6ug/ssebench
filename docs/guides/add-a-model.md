@@ -2,258 +2,188 @@
 outline: deep
 ---
 
-# Adding Models
+# Add a model
 
-SSEBench supports 100+ LLM providers through LiteLLM. This guide shows how to integrate new models.
+SSEBench reaches models through a [LiteLLM proxy](/concepts/litellm-proxy), so
+it can use any provider LiteLLM supports. This guide adds a model to the proxy.
 
 ## Overview
 
-Models are configured using YAML files in the `models/` directory. SSEBench automatically recognizes any model defined there.
+Models are defined in YAML files in `models/`. When the proxy image is built,
+every `.yaml` or `.yml` file there is read and all the models they define are
+offered under their `model_name`. That name is what you pass to
+`ssebench run --model`.
 
-## Quick Start
+The repository has one file per provider: `anthropic-claude.yaml`,
+`google-gemini.yaml` and `openai-gpt.yaml`.
 
-### 1. Create a Config File
+## Quick start
 
-Add a configuration file named `<provider>-<model>.yaml` in the `models/` directory:
+### 1. Define the model
+
+Add an entry to the provider's file, or create a new file such as
+`models/<provider>-<family>.yaml`:
 
 ```yaml
-# models/openai-gpt.yaml
-- model_name: gpt-4o
+- model_name: gpt-5.1
   litellm_params:
-    model: openai/gpt-4o
+    model: openai/gpt-5.1
     api_key: os.environ/OPENAI_API_KEY
 ```
 
-### 2. Set Your API Key
+### 2. Set the API key
 
-Add the API key to your `.env` file:
+Add the key to `.env` in the repository root:
 
-```bash
-OPENAI_API_KEY=sk-xxx-your-api-key-here
+```sh
+OPENAI_API_KEY=sk-...
 ```
 
-### 3. Restart the LiteLLM Proxy
+### 3. Rebuild the proxy
 
-```bash
+The model list is built into the proxy image, so rebuild and restart it:
+
+```sh
 just launch
 ```
 
-The model is now available for use.
+The model is now available:
 
-## Configuration Format
-
-### Basic Structure
-
-```yaml
-- model_name: <unique-identifier>
-  litellm_params:
-    model: <provider>/<model-name>
-    api_key: os.environ/<ENV_VAR_NAME>
+```sh
+uv run ssebench run --local datasets/pilot --task <task-id> --agent claude-code --model gpt-5.1
 ```
 
-### Configuration Fields
+## Configuration format
+
+Each file holds a list of models:
+
+```yaml
+- model_name: <name used with --model>
+  litellm_params:
+    model: <provider>/<model id>
+    api_key: os.environ/<ENV_VAR_NAME>
+  model_info:
+    input_cost_per_token: <USD>
+    output_cost_per_token: <USD>
+```
 
 | Field | Description | Required |
 |-------|-------------|----------|
-| `model_name` | Unique identifier used in CLI | Yes |
-| `litellm_params.model` | Provider/model path for LiteLLM | Yes |
-| `litellm_params.api_key` | API key reference | Yes |
-| `litellm_params.api_base` | Custom API endpoint | No |
-| `litellm_params.temperature` | Default temperature | No |
-| `litellm_params.max_tokens` | Maximum tokens | No |
+| `model_name` | Unique name, used with `--model` | Yes |
+| `litellm_params.model` | The provider and model, in LiteLLM's `<provider>/<model>` form | Yes |
+| `litellm_params.api_key` | The key, as a reference to a variable in `.env` | For most providers |
+| `litellm_params.api_base` | A custom API endpoint | No |
+| `litellm_params.api_version` | API version, for providers that need one | No |
+| `litellm_params.temperature`, `max_tokens`, ... | Default request parameters | No |
+| `model_info.input_cost_per_token`, `output_cost_per_token`, `cache_read_input_token_cost` | Prices used to track the spend of each run | No |
 
-## Provider Examples
+The entries are LiteLLM model definitions; the
+[LiteLLM documentation](https://docs.litellm.ai/docs/proxy/configs) describes
+every field.
+
+## Provider examples
 
 ### OpenAI
 
 ```yaml
-# models/openai-gpt.yaml
-- model_name: gpt-4o
+- model_name: gpt-5.1
   litellm_params:
-    model: openai/gpt-4o
-    api_key: os.environ/OPENAI_API_KEY
-
-- model_name: gpt-4-turbo
-  litellm_params:
-    model: openai/gpt-4-turbo
+    model: openai/gpt-5.1
     api_key: os.environ/OPENAI_API_KEY
 ```
 
 ### Anthropic
 
 ```yaml
-# models/anthropic-claude.yaml
-- model_name: claude-opus-4-5
+- model_name: claude-sonnet-4-6
   litellm_params:
-    model: anthropic/claude-sonnet-4-20250514
-    api_key: os.environ/ANTHROPIC_API_KEY
-
-- model_name: claude-sonnet-4
-  litellm_params:
-    model: anthropic/claude-sonnet-4-20250514
+    model: anthropic/claude-sonnet-4-6
     api_key: os.environ/ANTHROPIC_API_KEY
 ```
 
 ### Google
 
 ```yaml
-# models/google-gemini.yaml
-- model_name: gemini-2.0-flash
+- model_name: gemini-3-pro
   litellm_params:
-    model: gemini/gemini-2.0-flash
-    api_key: os.environ/GOOGLE_API_KEY
-
-- model_name: gemini-1.5-pro
-  litellm_params:
-    model: gemini/gemini-1.5-pro
+    model: gemini/gemini-3-pro-preview
     api_key: os.environ/GOOGLE_API_KEY
 ```
 
 ### Azure OpenAI
 
 ```yaml
-# models/azure-openai.yaml
-- model_name: azure-gpt-4
+- model_name: azure-gpt-4o
   litellm_params:
-    model: azure/gpt-4-deployment
+    model: azure/<deployment-name>
     api_key: os.environ/AZURE_API_KEY
-    api_base: https://your-resource.openai.azure.com/
+    api_base: os.environ/AZURE_API_BASE
     api_version: "2024-02-01"
 ```
 
-### Local Models (Ollama)
+### Ollama
 
 ```yaml
-# models/ollama-local.yaml
 - model_name: llama3
   litellm_params:
     model: ollama/llama3
-    api_base: http://localhost:11434
+    api_base: http://<ollama-host>:11434
 ```
+
+The proxy runs in a container, so `localhost` there means the proxy's own
+container. Point `api_base` at an address the container can reach.
 
 ### Hugging Face
 
 ```yaml
-# models/huggingface.yaml
 - model_name: codellama
   litellm_params:
     model: huggingface/codellama/CodeLlama-34b-Instruct-hf
     api_key: os.environ/HF_TOKEN
 ```
 
-## Multiple Models Per File
+## Default parameters
 
-You can define multiple models in a single file:
-
-```yaml
-# models/anthropic-claude.yaml
-- model_name: claude-opus-4-5
-  litellm_params:
-    model: anthropic/claude-sonnet-4-20250514
-    api_key: os.environ/ANTHROPIC_API_KEY
-
-- model_name: claude-sonnet-4
-  litellm_params:
-    model: anthropic/claude-sonnet-4-20250514
-    api_key: os.environ/ANTHROPIC_API_KEY
-
-- model_name: claude-haiku-3.5
-  litellm_params:
-    model: anthropic/claude-3-5-haiku-20241022
-    api_key: os.environ/ANTHROPIC_API_KEY
-```
-
-## Advanced Configuration
-
-### Custom Parameters
+Parameters in `litellm_params` apply to every request made with that model:
 
 ```yaml
-- model_name: gpt-4-custom
+- model_name: gpt-5.1-low-temp
   litellm_params:
-    model: openai/gpt-4
+    model: openai/gpt-5.1
     api_key: os.environ/OPENAI_API_KEY
     temperature: 0.2
     max_tokens: 4096
-    top_p: 0.9
 ```
 
-### Fallback Models
+## API keys
 
-LiteLLM supports fallback configurations:
-
-```yaml
-- model_name: gpt-4-with-fallback
-  litellm_params:
-    model: openai/gpt-4
-    api_key: os.environ/OPENAI_API_KEY
-    fallbacks:
-      - model: anthropic/claude-3-opus
-        api_key: os.environ/ANTHROPIC_API_KEY
-```
-
-## Environment Variables
-
-::: warning Security Note
-Always use `os.environ/<KEY_NAME>` to reference API keys. Never hard-code secrets in config files.
+::: warning
+Always refer to keys with `os.environ/<NAME>`. Never write a key into a model
+file.
 :::
 
-Add keys to your `.env` file:
-
-```bash
-# .env
-OPENAI_API_KEY=sk-xxx
-ANTHROPIC_API_KEY=sk-ant-xxx
-GOOGLE_API_KEY=xxx
-AZURE_API_KEY=xxx
-HF_TOKEN=hf_xxx
-```
-
-## Verifying Configuration
-
-After adding a model, verify it's recognized:
-
-```bash
-# Restart LiteLLM proxy
-just launch
-
-# Check available models
-curl http://localhost:4000/models
-```
+Put the keys in `.env`; see [Environment variables](/reference/environment#provider-keys).
 
 ## Troubleshooting
 
-### Model Not Found
+### `Model <name> does not exist.`
 
-```
-Error: Model 'my-model' not found
-```
+`ssebench run` checks the model with the proxy before it builds anything. If
+the proxy doesn't know the name:
 
-- Verify the YAML file is in `models/` directory
-- Check YAML syntax is valid
-- Run `just launch` to restart the LiteLLM proxy
+- check that the file is in `models/` and ends in `.yaml` or `.yml`;
+- check that the YAML is valid and the file is a list of models; a file that
+  fails to parse is skipped;
+- run `just launch` to rebuild the proxy with your changes.
 
-### Authentication Failed
+### Authentication errors
 
-```
-Error: Invalid API key
-```
+- Check that the variable name in `api_key` matches the one in `.env`.
+- Run `just launch` after changing `.env`.
 
-- Check the environment variable name matches exactly
-- Verify the key is set in `.env`
-- Restart the LiteLLM proxy after changing keys
+## Next steps
 
-### Rate Limiting
-
-```
-Error: Rate limit exceeded
-```
-
-- LiteLLM handles retries automatically
-- Consider adding multiple API keys for rotation
-- Check provider-specific rate limits
-
-## Next Steps
-
-- [Getting Started](/getting-started/quickstart) - Run a task with your model
-- [Environment Variables](/reference/environment) - API keys and container variables
-- [LiteLLM Docs](https://docs.litellm.ai/) - Full provider list
+- [Quickstart](/getting-started/quickstart): run a task with your model
+- [Environment variables](/reference/environment): keys and container variables
+- [LiteLLM providers](https://docs.litellm.ai/docs/providers): every provider
+  LiteLLM supports

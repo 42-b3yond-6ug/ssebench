@@ -8,8 +8,8 @@ hero:
   tagline: "Measure how well AI coding agents fix real security vulnerabilities"
   actions:
     - theme: brand
-      text: Get Started
-      link: /getting-started/quickstart
+      text: Get started
+      link: /getting-started/installation
     - theme: alt
       text: What is SSEBench?
       link: /getting-started/introduction

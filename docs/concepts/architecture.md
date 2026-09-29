@@ -4,239 +4,204 @@ outline: deep
 
 # Architecture
 
-SSEBench uses a layered Docker architecture to provide isolated, reproducible benchmark environments.
+SSEBench runs every agent × model × task combination in Docker, from images
+built in layers. This page is the overview; the other concept pages go into
+detail.
 
-## System Overview
-
-```
-┌────────────────────────────────────────────────────────────┐
-│                     SSEBench Infrastructure                │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐  │
-│  │   LiteLLM    │    │   Task       │    │   Report     │  │
-│  │   Proxy      │◄───│   Runner     │───►│   Generator  │  │
-│  └──────────────┘    └──────────────┘    └──────────────┘  │
-│         │                   │                              │
-│         ▼                   ▼                              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │              Docker Container (Task)                 │  │
-│  │  ┌────────────────────────────────────────────────┐  │  │
-│  │  │              Agent Layer                       │  │  │
-│  │  │  (Claude Code / Codex / Custom Agent)          │  │  │
-│  │  └────────────────────────────────────────────────┘  │  │
-│  │  ┌────────────────────────────────────────────────┐  │  │
-│  │  │              Tool Layer                        │  │  │
-│  │  │  (MCP Server, SDK, Rust Daemon)                │  │  │
-│  │  └────────────────────────────────────────────────┘  │  │
-│  │  ┌────────────────────────────────────────────────┐  │  │
-│  │  │              Case Layer                        │  │  │
-│  │  │  (Vulnerable Project + Dependencies)           │  │  │
-│  │  └────────────────────────────────────────────────┘  │  │
-│  │  ┌────────────────────────────────────────────────┐  │  │
-│  │  │              Base Layer                        │  │  │
-│  │  │  (gcc, jvm, cargo, Python, etc.)               │  │  │
-│  │  └────────────────────────────────────────────────┘  │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
-
-## Docker Image Layers
-
-### Base Image
-
-The foundation layer providing the toolchain for the task's language:
-
-- Compilers: `gcc`, `clang`, `rustc`, `go`
-- Build tools: `make`, `cmake`, `cargo`
-- Utilities: `git`, `curl`, `wget`
-
-Base images are defined in `images/base-images/` (`generic-c`, `generic-go`, `generic-rust`) and shared across all tasks. They are named `ghcr.io/42-b3yond-6ug/ssebench/base-<type>`, for example `ghcr.io/42-b3yond-6ug/ssebench/base-generic-go`.
-
-### Case Image
-
-Contains the vulnerable project and its specific dependencies:
-
-- Project source code at a specific vulnerable commit
-- Build dependencies (libraries, headers)
-- Test suites (functional tests, PoC exploits)
-- Build scripts and configuration
-
-Case images are built from the `Dockerfile` in each task folder of a dataset, such as `datasets/pilot/<task-id>/`.
-
-### Tool Image
-
-Provides the SSEBench SDK and MCP server:
-
-- **Python SDK (`sse`)**: APIs for build, test, and metadata access
-- **MCP Server**: Model Context Protocol server exposing the [`test_patch`](/reference/mcp-server) tool
-- **Rust Daemon**: Handles build/test operations via Unix socket
-
-### Agent Image
-
-The final layer installing the code agent:
-
-- Agent binaries and dependencies
-- Agent-specific configuration
-- Entry point scripts
-
-## LiteLLM Proxy
-
-SSEBench uses LiteLLM as a proxy to decouple agents from specific LLM providers:
+## System overview
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Agent     │────►│   LiteLLM   │────►│   LLM API   │
-│             │     │   Proxy     │     │  (OpenAI,   │
-│             │◄────│             │◄────│  Anthropic) │
-└─────────────┘     └─────────────┘     └─────────────┘
+ssebench CLI
+   |  builds the image layers, creates a key for the run,
+   |  starts the container
+   v
++-- task container --------------------------------------------+
+|  the entrypoint starts, in order:                            |
+|    1. ssebench-daemon   build, PoC and test actions          |
+|    2. MCP server        the test_patch tool                  |
+|    3. agent             runs as the unprivileged user model  |
+|    4. evaluator         grades the final source tree         |
++--------------------------------------------------------------+
+   |                                    |
+   |  result.json, dialog.jsonl,        |  LLM requests
+   |  logs, source snapshot             |  from the agent
+   v                                    v
+results/                           LiteLLM proxy ---> model providers
 ```
 
-Benefits:
-- **Transparent switching**: Change models without modifying agent code
-- **Unified API**: All agents use the same OpenAI-compatible interface
-- **Rate limiting**: Built-in request throttling and retries
-- **Cost tracking**: Monitor API usage across runs
+## Docker image layers
 
-## Running Modes
+The image for a run is built from four [layers](/concepts/image-layers), each
+on top of the previous one.
 
-### Sandbox Mode
+### Base image
 
-Agent and task run in the **same container**:
+The toolchain for the task's language, shared by every task in that language:
 
-```
-┌────────────────────────────────────┐
-│         Docker Container           │
-│  ┌──────────┐    ┌──────────────┐  │
-│  │  Agent   │◄──►│   Project    │  │
-│  │          │    │   (Source)   │  │
-│  └──────────┘    └──────────────┘  │
-│       Direct filesystem access     │
-└────────────────────────────────────┘
-```
+- `generic-c`: compilers, LLVM and the usual C build tools;
+- `generic-go`: the Go toolchain;
+- `generic-rust`: the Rust toolchain;
 
-- Agent has native OS-level access to the project
-- Direct file read/write operations
-- Faster execution
-- **Use when**: Agent dependencies are compatible with task environment
+plus git and common build utilities. The base images are defined in
+`images/base-images/`.
 
-### Sidecar Mode
+### Case image
 
-Agent and task run in **separate containers**:
+One per task, built from the `Dockerfile` in the task's folder:
 
-```
-┌───────────────────┐     ┌──────────────────┐
-│  Agent Container  │     │  Task Container  │
-│  ┌───────────┐    │     │  ┌───────────┐   │
-│  │   Agent   │    │◄───►│  │  Daemon   │   │
-│  └───────────┘    │     │  └───────────┘   │
-│                   │     │                  │
-└───────────────────┘     └──────────────────┘
-```
+- the project's source code at the vulnerable commit;
+- its build dependencies;
+- the task's files: its metadata, the build, run and test scripts, the
+  proof-of-concept inputs, the report the agent receives, and the reference
+  patch and tests used for grading.
 
-- The source tree is shared between the two containers through a Docker volume
-- The agent edits files directly, but builds and tests run in the task container, through the daemon
-- The MCP server and evaluator run in the agent container
-- **Use when**: Agent requires different dependencies than task
+### Tool image
 
-Sidecar mode is experimental; sandbox mode is the default.
+The SSEBench runtime, added on top of the case image:
 
-## Project Structure
+- the **entrypoint**, which starts and supervises everything else in the
+  container;
+- **`ssebench-daemon`**, which builds the project and runs its proofs of
+  concept and tests, over a Unix socket and HTTP;
+- the **Python SDK** (`sse`), which the other components use to talk to the
+  daemon;
+- the **MCP server**, which gives the agent the
+  [`test_patch`](/reference/mcp-server) tool;
+- the **evaluator**, which grades the result.
 
-See [Project Structure](/contributing/project-structure) for the repository layout.
+There is one tool layer for each [running mode](#running-modes).
 
-## Data Flow
+### Agent image
 
-1. **Task Selection**: User selects task, model, agent, and mode
-2. **Image Building**: Pipeline builds layered Docker image
-3. **Container Launch**: Task container starts with agent
-4. **Agent Execution**: Agent receives task description and works on fix
-5. **Tool Interaction**: Agent calls `test_patch` to build and test its patch
-6. **Result Collection**: Patches and logs archived
-7. **Evaluation**: Evaluator grades the patch
-8. **Report Generation**: Results compiled into reports
+The agent under test, built from the `Dockerfile` in `agents/<name>/` on top of
+the tool layer: the agent itself and its configuration. The bundled agents also
+include a wrapper that starts the agent with the task and records its session.
 
-## Benchmark Integrity
+All images are named under one registry prefix, set with `SSEBENCH_REGISTRY`.
 
-SSEBench implements several measures to ensure fair evaluation and prevent agents from "cheating" by accessing information they shouldn't have.
+## LiteLLM proxy
 
-### User Isolation
-
-Agents run as a non-root user (`model`, uid 1000) with restricted access:
+Agents never talk to a model provider directly. Every LLM request goes through
+a [LiteLLM proxy](/concepts/litellm-proxy) that runs next to the task
+containers:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                   Container                             │
-│                                                         │
-│  Root-owned (inaccessible to agent):                    │
-│  ├── /ssebench/config.yaml      # Contains patch path   │
-│  ├── /ssebench/diffs/patch.diff # Ground truth patch    │
-│  └── /ssebench/diffs/test.diff  # Post-patch tests      │
-│                                                         │
-│  Model-owned (agent can access):                        │
-│  ├── /src/<project>/            # Source code           │
-│  ├── /home/model/               # Agent home directory  │
-│  └── /tmp/sse-archive/          # Results directory     │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
+agent  --->  LiteLLM proxy  --->  model provider (Anthropic, OpenAI, Google, ...)
 ```
 
-This prevents agents from:
-- Reading the ground truth patch directly
-- Accessing post-patch test files that reveal the fix
-- Modifying benchmark configuration
+- **Any agent, any model.** The proxy serves both OpenAI-style and
+  Anthropic-style APIs, so each agent uses its own client and the model is
+  chosen by name.
+- **One key per run.** Before each run, the CLI creates a proxy key that can
+  use only the selected model, with a spending limit.
+- **Cost tracking.** The spend of each run's key is recorded with its result.
 
-### Git History Reset
+The models the proxy offers are defined in `models/*.yaml`; see
+[Add a model](/guides/add-a-model).
 
-The original git history is **removed** during image build and replaced with a fresh repository:
+## Running modes
 
-```bash
-# What happens at build time:
-1. Delete all .git directories (including submodules)
-2. Initialize fresh git repo
-3. Commit all files as "buggy commit"
+### Sandbox mode
+
+The agent and the project run in the **same container**. This is the default.
+
+```
++-- task container ----------------------+
+|  agent  <-- edits, builds -->  project |
++----------------------------------------+
 ```
 
-This prevents agents from:
-- Using `git log` to find the patch commit
-- Using `git blame` to see when/how code was changed
-- Using `git diff` against historical commits to reverse-engineer the fix
-- Accessing submodule history
+- The agent works on the project's files directly, with the task's toolchain
+  at hand.
+- **Use when** the agent can run in the task's environment, which is the case
+  for the bundled agents.
 
-The agent sees only:
+### Sidecar mode
+
+The agent and the project run in **separate containers**:
+
+```
++-- agent container ---+          +-- task container ---+
+|  agent               |          |  ssebench-daemon    |
+|  MCP server          | <------> |  project toolchain  |
+|  evaluator           |          |                     |
++----------------------+          +---------------------+
+          \___ shared volume: the project's source tree ___/
+```
+
+- The source tree is shared between the two containers through a Docker
+  volume. The agent edits the files directly, but builds and tests run in the
+  task container, through the daemon.
+- **Use when** the agent needs dependencies that conflict with the task's
+  environment.
+
+Sidecar mode is experimental. See [Sandbox and sidecar](/concepts/sandbox-and-sidecar).
+
+## What happens during a run
+
+1. **Select.** You choose a task, an agent, a model, a mode and a difficulty
+   level.
+2. **Prepare.** The CLI starts the LiteLLM proxy if needed, creates a key for
+   the run, and builds the image layers.
+3. **Start.** The task container starts. The entrypoint starts the daemon and
+   the MCP server.
+4. **Work.** The agent runs as the user `model` with a prompt built from the
+   task's report and scripts, until it stops or reaches the timeout.
+5. **Check.** While it works, the agent may call `test_patch` to build and test
+   its changes, within the limits of the
+   [difficulty level](/concepts/difficulty-levels).
+6. **Grade.** The evaluator applies the agent's changes to a clean copy of the
+   project and runs every check the task has. See
+   [Grading pipeline](/concepts/grading).
+7. **Collect.** The grade, the agent's dialog, a snapshot of the source tree
+   and the logs are written to `results/`, along with a summary of the run.
+   See [Results format](/concepts/results).
+
+## Benchmark integrity
+
+The agent must not be able to find the answer instead of working it out. The
+[integrity model](/concepts/integrity) describes the protections in full; two
+of them shape the container itself.
+
+### User isolation
+
+In sandbox mode, the agent runs as the unprivileged user `model` (uid 1000),
+and the task's files are readable only by root:
+
+```
+Root only (the agent cannot read them):
+  /ssebench/config.yaml        task metadata
+  /ssebench/diffs/             reference patch and hidden tests
+  /ssebench/pocs/              proof-of-concept inputs
+
+Accessible to the agent:
+  /src/<project>/              the project's source tree
+  /home/model/                 the agent's home directory
+  /tmp/sse-archive/            the run's results directory
+```
+
+The agent gets the task through its prompt, and `test_patch` runs the checks
+on its behalf.
+
+### Git history reset
+
+When the image is built, every `.git` directory in the project, including
+those of submodules, is removed, and the tree is committed again as a single
+commit:
+
 ```
 $ git log --oneline
 abc1234 buggy commit
 ```
 
-### Protected Files
+So the fix can't be recovered with `git log`, `git blame` or `git diff`
+against a later commit.
 
-The SDK daemon only exposes safe metadata to agents. Protected information includes:
+## Next steps
 
-| Protected | Reason |
-|-----------|--------|
-| Ground truth patch | Direct answer to the task |
-| Post-patch tests | Reveals expected behavior after fix |
-| Patch commit hash | Could be used to look up the fix online |
-| Original git history | Contains the fix commit |
-
-### Difficulty Levels
-
-The `SSE_DIFFICULTY` environment variable controls which checks the agent's [`test_patch`](/reference/mcp-server) tool runs. Final grading always runs every check the task has.
-
-| Level | Build | Regression | PoC | Intent |
-|-------|-------|------------|-----|--------|
-| 0 (Full) | ✓ | ✓ | ✓ | ✓ |
-| 1 | ✓ | ✓ | ✓ | ✗ |
-| 2 (Default) | ✓ | ✓ | ✗ | ✗ |
-| 3 | ✓ | ✗ | ✗ | ✗ |
-| 4 | ✗ | ✗ | ✗ | ✗ |
-
-At difficulty level 2 (default), PoC validation and intent tests are hidden to prevent agents from using test assertions to infer the fix.
-
-## Next Steps
-
-- [Adding Models](/guides/add-a-model) - Configure LLM providers
-- [MCP Server](/reference/mcp-server) - The `test_patch` tool
-- [Dialog Protocol](/reference/dialog-protocol) - Integrate your agent with the Web UI
+- [Tasks and datasets](/concepts/tasks-and-datasets)
+- [MCP server](/reference/mcp-server): the `test_patch` tool
+- [Dialog protocol](/reference/dialog-protocol): how agents report their
+  session to the web UI
+- [Project structure](/contributing/project-structure): where each component
+  lives

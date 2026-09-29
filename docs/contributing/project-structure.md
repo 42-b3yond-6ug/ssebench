@@ -2,7 +2,7 @@
 outline: deep
 ---
 
-# Project Structure
+# Project structure
 
 This page documents the SSEBench repository layout and key files.
 
@@ -43,17 +43,7 @@ Run results are written to `results/`, which is not committed.
 
 ## bench/
 
-The `ssebench` CLI. It builds the image layers for a task and runs one agent × model × task combination.
-
-| Directory | Purpose |
-|-----------|---------|
-| `agents/` | Load agent configurations |
-| `cli/` | Command-line interface |
-| `middleware/` | Tool layers (sandbox and sidecar) |
-| `models/` | LLM model lookup and per-run keys |
-| `pipe/` | Docker build pipeline |
-| `runner/` | Benchmark execution |
-| `tasks/` | Task discovery and loading |
+The `ssebench` CLI. It loads the task, the agent and the model, builds the image layers for the task, runs the container and collects the results. See the [CLI reference](/reference/cli).
 
 ## runtime/
 
@@ -96,7 +86,7 @@ models/
 └── openai-gpt.yaml          # OpenAI models
 ```
 
-See [Adding Models](/guides/add-a-model) for the format.
+See [Add a model](/guides/add-a-model) for the format.
 
 ## datasets/pilot/
 
@@ -135,7 +125,7 @@ docs/
 └── index.md            # Homepage
 ```
 
-## Next Steps
+## Next steps
 
-- [Getting Started](/getting-started/quickstart) - Setup guide
-- [Architecture](/concepts/architecture) - System design
+- [Quickstart](/getting-started/quickstart): run your first task
+- [Architecture](/concepts/architecture): how the components fit together

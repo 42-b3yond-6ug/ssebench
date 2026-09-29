@@ -2,154 +2,145 @@
 outline: deep
 ---
 
-# Environment Variables
+# Environment variables
 
-This page documents all environment variables used by SSEBench.
+This page lists the environment variables SSEBench reads and sets.
 
-## Container Environment
+## Inside the task container
 
-These variables are automatically set inside task containers:
+`ssebench run` sets these variables in every task container. Agents and
+plugins read them.
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `SSE_API_KEY` | Per-run LiteLLM key for the selected model | `sk-xxx` |
-| `SSE_BASE_URL` | LiteLLM proxy URL | `http://litellm:4000` |
-| `SSE_MODEL_NAME` | Selected LLM model identifier | `claude-opus-4-5` |
-| `SSE_ARCHIVE` | Path for saving results/artifacts | `/tmp/sse-archive` |
-| `SSE_DIFFICULTY` | Task difficulty level (0-4) | `2` |
-| `TIMEOUT` | Execution timeout in seconds | `3600` |
-| `SSE_KEEP_ALIVE` | `1` keeps the container running after the run (`--keep-container`) | `0` |
+| `SSE_API_KEY` | The run's LiteLLM key, which can use only the selected model | `sk-...` |
+| `SSE_BASE_URL` | URL of the LiteLLM proxy | `http://litellm:4000` |
+| `SSE_MODEL_NAME` | The selected model, as named in `models/*.yaml` | `claude-sonnet-4-6` |
+| `SSE_ARCHIVE` | The run's results directory, writable by the agent | `/tmp/sse-archive` |
+| `SSE_DIFFICULTY` | The [difficulty level](#difficulty-levels), from 0 to 4 | `2` |
+| `TIMEOUT` | How long the agent may run, in seconds | `3600` |
+| `SSE_KEEP_ALIVE` | `1` keeps the container running after the run (`--keep-container`), otherwise `0` | `0` |
 
-## Difficulty Levels
+In sidecar mode, `SSE_DAEMON_SOCKET` also gives the path of the daemon's Unix
+socket, which the two containers share.
 
-The `SSE_DIFFICULTY` variable controls which checks the agent's `test_patch` tool runs. Final grading always runs every check the task has. See [Difficulty Levels](/reference/mcp-server#difficulty-levels).
+The entrypoint also reads these optional variables:
 
-| Level | Name | `test_patch` runs |
-|-------|------|-------------------|
-| 0 | `FULL_ASSISTANCE` | Build + Regression + Security (PoC) + Intent |
-| 1 | `NO_INTENT_TEST` | Build + Regression + Security (PoC) |
-| 2 | `NO_FUTURE_TEST` | Build + Regression only (default) |
-| 3 | `BUILD_ONLY` | Build only |
-| 4 | `NO_BUILD` | None (debugging) |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SSE_DAEMON_TIMEOUT` | `300` | Seconds to wait for the daemon to start |
+| `SSE_MCP_TIMEOUT` | `300` | Seconds to wait for the MCP server to start |
+| `SSE_DEBUG` | unset | Any non-empty value turns on debug logging |
 
-## Host Environment
+The MCP server writes the full logs of long check results to `MCP_LOG_DIR`
+(default `/tmp/mcp/logs`); see [Long logs](/reference/mcp-server#long-logs).
 
-These variables should be set in the `.env` file in the repository root. The LiteLLM proxy in `deploy/compose/docker-compose.yaml` reads it.
+## Difficulty levels
 
-### API Keys
+`SSE_DIFFICULTY` decides which checks the agent's `test_patch` tool runs. Final
+grading always runs every check the task has.
 
-```bash
-# OpenAI
-OPENAI_API_KEY=sk-xxx
+| Level | Name |
+|-------|------|
+| 0 | `FULL_ASSISTANCE` |
+| 1 | `NO_INTENT_TEST` |
+| 2 | `NO_FUTURE_TEST` (default) |
+| 3 | `BUILD_ONLY` |
+| 4 | `NO_BUILD` |
 
-# Anthropic
-ANTHROPIC_API_KEY=sk-ant-xxx
+See [MCP server](/reference/mcp-server#difficulty-levels) for what each level
+runs.
 
-# Google
-GOOGLE_API_KEY=xxx
+## On the host
 
-# Azure
-AZURE_API_KEY=xxx
-AZURE_API_BASE=https://your-resource.openai.azure.com/
+### Provider keys
 
-# Hugging Face
-HF_TOKEN=hf_xxx
+Put the keys of your model providers in `.env` in the repository root. The
+LiteLLM proxy reads this file when it starts.
+
+```sh
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+GOOGLE_API_KEY=...
 ```
 
-The model files in `models/` reference the OpenAI, Anthropic and Google keys, so all three must be set; use a placeholder value for a provider you don't use. The Azure and Hugging Face keys are examples for models you add yourself.
+The model files in `models/` use these three. Set the key of each provider you
+use and leave out the others: the proxy still lists every model, but a model
+fails when it is called without its key. A model you add can use any other
+variable name, for example:
 
-## Using Environment Variables in Agents
+```sh
+AZURE_API_KEY=...
+AZURE_API_BASE=https://your-resource.openai.azure.com/
+HF_TOKEN=hf_...
+```
+
+In model files, refer to a variable with the `os.environ/` prefix instead of
+writing the key itself:
+
+```yaml
+- model_name: gpt-5.1
+  litellm_params:
+    model: openai/gpt-5.1
+    api_key: os.environ/OPENAI_API_KEY
+```
+
+::: warning
+Never write API keys into files that are committed. `.env` is listed in
+`.gitignore`.
+:::
+
+After you change `.env` or `models/`, restart the proxy with `just launch`.
+
+### SSEBench settings
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SSEBENCH_REGISTRY` | `ghcr.io/42-b3yond-6ug/ssebench` | Registry prefix for every image SSEBench builds or uses |
+| `SSEBENCH_CATALOG` | unset | Catalog server that `ssebench run` gets tasks from when `--local` is not given |
+
+## Using the variables in an agent
 
 ### Python
 
 ```python
 import os
 
-# Get LLM configuration
+# LLM access
 api_key = os.environ["SSE_API_KEY"]
 base_url = os.environ["SSE_BASE_URL"]
 model = os.environ["SSE_MODEL_NAME"]
 
-# Get task configuration
+# Run settings
 difficulty = int(os.environ.get("SSE_DIFFICULTY", "2"))
 timeout = int(os.environ.get("TIMEOUT", "3600"))
 archive_path = os.environ.get("SSE_ARCHIVE", "/tmp/sse-archive")
 ```
 
-### Shell Scripts
+### Shell
 
-```bash
+```sh
 #!/bin/bash
-
-# Access variables
 echo "Model: $SSE_MODEL_NAME"
 echo "Difficulty: $SSE_DIFFICULTY"
 
-# Use in commands
+# List the models this run's key can use
 curl -H "Authorization: Bearer $SSE_API_KEY" "$SSE_BASE_URL/models"
-```
-
-## Model Configuration
-
-In model YAML files, reference environment variables using the `os.environ/` prefix:
-
-```yaml
-# models/openai-gpt.yaml
-- model_name: gpt-4o
-  litellm_params:
-    model: openai/gpt-4o
-    api_key: os.environ/OPENAI_API_KEY  # References OPENAI_API_KEY
-```
-
-::: warning
-Never hard-code API keys in configuration files. Always use environment variable references.
-:::
-
-## .env File Example
-
-Complete example `.env` file:
-
-```bash
-# ===================
-# LLM Provider Keys
-# ===================
-OPENAI_API_KEY=sk-your-openai-key
-ANTHROPIC_API_KEY=sk-ant-your-anthropic-key
-GOOGLE_API_KEY=your-google-key
-
-# ===================
-# Azure Configuration
-# ===================
-AZURE_API_KEY=your-azure-key
-AZURE_API_BASE=https://your-resource.openai.azure.com/
-AZURE_API_VERSION=2024-02-01
-
-# ===================
-# Local Models
-# ===================
-OLLAMA_BASE_URL=http://localhost:11434
 ```
 
 ## Troubleshooting
 
-### Variable Not Set
+- **A model fails with an authentication error.** Check that its key is set in
+  `.env` under the name its model file uses, then run `just launch` so the
+  proxy picks it up.
+- **The proxy does not start.** `.env` must exist in the repository root, even
+  if it is empty. Run `docker compose -f deploy/compose/docker-compose.yaml config`
+  to see the configuration Compose resolves.
+- **You want to see a container's variables.** Start the run with
+  `--keep-container`, then run `docker exec <container> env`.
 
-```
-Error: SSE_API_KEY not set
-```
+## Next steps
 
-- Check `.env` file exists and contains the variable
-- Verify Docker Compose is reading the `.env` file
-- Run `docker compose -f deploy/compose/docker-compose.yaml config` to see resolved values
-
-### Variable Not Passed to Container
-
-- Check variable is listed in the `deploy/compose/docker-compose.yaml` environment section
-- Verify container can access host environment
-- Use `docker exec <container> env` to list container variables
-
-## Next Steps
-
-- [Adding Models](/guides/add-a-model) - Configure model providers
-- [MCP Server](/reference/mcp-server) - The `test_patch` tool
-- [Getting Started](/getting-started/quickstart) - The `ssebench run` command
+- [Add a model](/guides/add-a-model): configure model providers
+- [MCP server](/reference/mcp-server): the `test_patch` tool
+- [CLI](/reference/cli): the options of `ssebench run`
