@@ -124,16 +124,17 @@ The agent and the project run in **separate containers**:
 +-- agent container ---+          +-- task container ---+
 |  agent               |          |  ssebench-daemon    |
 |  MCP server          | <------> |  project toolchain  |
-|  evaluator           |          |                     |
+|  evaluator           |          |  task files         |
 +----------------------+          +---------------------+
-          \___ shared volume: the project's source tree ___/
+     \___ shared volumes: the source tree, the daemon's sockets ___/
 ```
 
 - The source tree is shared between the two containers through a Docker
   volume. The agent edits the files directly, but builds and tests run in the
-  task container, through the daemon.
+  task container, through the daemon. The task's files, including the
+  reference patch, stay in the task container.
 - **Use when** the agent needs dependencies that conflict with the task's
-  environment.
+  environment, or to build one agent image for every task.
 
 Sidecar mode is experimental. See [Sandbox and sidecar](/concepts/sandbox-and-sidecar).
 

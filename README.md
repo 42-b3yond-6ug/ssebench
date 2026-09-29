@@ -45,8 +45,9 @@ base    toolchain for the task's language (generic-c, generic-go, generic-rust)
 
 The tool layer comes in two variants. In **sandbox** mode (the default), the
 agent runs in the same container as the project. In **sidecar** mode
-(experimental), the agent runs in a separate container and reaches the project
-only through tools.
+(experimental), the agent runs in a separate container: it edits the project's
+source through a shared volume, and builds and tests it only through the
+daemon in the task container.
 
 ```mermaid
 flowchart LR

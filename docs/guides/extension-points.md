@@ -225,7 +225,7 @@ The package provides:
 | `Main()` | Runs the entrypoint with the process arguments and exits |
 | `Run(args []string) int` | The same, returning the exit status; for tests |
 | `Version` | Printed by `--version` |
-| `Configurer` | Optional interface with `Configure(cfg *Config)`, called before the `TIMEOUT`, `SSE_DAEMON_TIMEOUT` and `SSE_MCP_TIMEOUT` overrides; the sidecar mode uses it to move the sockets and paths |
+| `Configurer` | Optional interface with `Configure(cfg *Config)`, called before the `TIMEOUT`, `SSE_DAEMON_TIMEOUT` and `SSE_MCP_TIMEOUT` overrides; the sidecar mode uses it to read the daemon's socket from `SSE_DAEMON_SOCKET` and to move the MCP server and evaluator paths |
 
 Before `Run`, the entrypoint installs the SIGINT and SIGTERM handler, makes
 `SSE_ARCHIVE` world-writable and creates the log files. After `Run` returns,
@@ -333,14 +333,16 @@ A tool image, and so each agent image built from it, must:
 | `/tmp/sse-archive` | The run's results directory (`SSE_ARCHIVE`), bind-mounted from the host |
 | `/reference/patch.diff` | The task's reference patch, bind-mounted read-only for the `reference` agent and no other; see [Reference runs](/reference/cli#reference-runs) |
 
-In the sidecar agent image the MCP server is in `/mcp`, and the task files
-come from the environment container through a shared volume.
+In the sidecar agent image the MCP server is in `/mcp`. The project source
+and the daemon's sockets come from the environment container through shared
+volumes; `/ssebench`, `/ssebench-repo` and the daemon stay in the environment
+container. See [Sandbox and sidecar](/concepts/sandbox-and-sidecar#sidecar-mode).
 
 ### Environment variables
 
 `ssebench run` sets these in the task container. In sidecar mode, the agent
 container gets them all except `SSE_KEEP_ALIVE`, and the environment container
-gets `SSE_ARCHIVE`, `SSE_DAEMON_SOCKET` and `SSE_KEEP_ALIVE`.
+gets `SSE_ARCHIVE`, `SSE_DAEMON_SOCKET`, `SSE_DIFFICULTY` and `SSE_KEEP_ALIVE`.
 
 | Variable | Value |
 |----------|-------|
@@ -351,7 +353,7 @@ gets `SSE_ARCHIVE`, `SSE_DAEMON_SOCKET` and `SSE_KEEP_ALIVE`.
 | `SSE_DIFFICULTY` | The [difficulty level](/concepts/difficulty-levels), from 0 to 4 |
 | `TIMEOUT` | The agent's time limit in seconds (`--timeout`); the evaluator uses the same limit |
 | `SSE_KEEP_ALIVE` | `1` keeps the container running after the run (`--keep-container`), otherwise `0` |
-| `SSE_DAEMON_SOCKET` | Sidecar mode only: the daemon's Unix socket, `/tmp/sse-archive/please-work.sock` |
+| `SSE_DAEMON_SOCKET` | Sidecar mode only: the daemon's agent-facing Unix socket, `/run/ssebench/sse.sock` |
 
 A [reference run](/reference/cli#reference-runs) uses no model:
 `SSE_MODEL_NAME` is `none`, and `SSE_API_KEY` and `SSE_BASE_URL` are empty.
@@ -370,8 +372,8 @@ generated from the [environment variable registry](/reference/environment).
 | `SSE_DIFFICULTY` | `2` | daemon, MCP server | The [difficulty level](/concepts/difficulty-levels), from 0 to 4. The MCP server decides from it which checks `test_patch` runs, and the daemon refuses the withheld `bencher` actions on its agent-facing listeners. |
 | `TIMEOUT` | `14400` in the entrypoint, `1800` in the evaluator | entrypoint, evaluator, agents | How long the agent may run, in seconds (`--timeout`). The evaluator uses the same limit for grading. |
 | `SSE_KEEP_ALIVE` | `0` | entrypoint | `1` keeps the container running after grading (`--keep-container`), for the web UI. |
-| `SSE_DAEMON_SOCKET` | `/tmp/sse.sock` | entrypoint, daemon, SDK | The daemon's agent-facing Unix socket, mode `0666`. The entrypoint sets it for every process it starts; in sidecar mode `ssebench run` sets it to `/tmp/sse-archive/please-work.sock`, shared through the results directory. Without it, the daemon serves HTTP only. |
-| `SSE_ADMIN_SOCKET` | `/run/ssebench/admin.sock` | entrypoint, daemon | The daemon's privileged Unix socket, mode `0600`, root only: grading, the reference patch and phase changes. In sidecar mode it is `$SSE_ARCHIVE/admin.sock`. The daemon binds it only when this is set; the entrypoint sets it, and points the evaluator's `SSE_DAEMON_SOCKET` at it. |
+| `SSE_DAEMON_SOCKET` | `/tmp/sse.sock` | entrypoint, daemon, SDK | The daemon's agent-facing Unix socket, mode `0666`. The entrypoint sets it for every process it starts; in sidecar mode `ssebench run` sets it to `/run/ssebench/sse.sock`, on a root-owned volume the two containers share. Without it, the daemon serves HTTP only. |
+| `SSE_ADMIN_SOCKET` | `/run/ssebench/admin.sock` | entrypoint, daemon | The daemon's privileged Unix socket, mode `0600`, root only: grading, the reference patch and phase changes. In sidecar mode it is on the volume the two containers share, and the task container's entrypoint sets it. The daemon binds it only when this is set; the entrypoint sets it, and points the evaluator's `SSE_DAEMON_SOCKET` at it. |
 | `SSE_DAEMON_TIMEOUT` | `300` | entrypoint | Seconds to wait for the daemon's socket. |
 | `SSE_MCP_TIMEOUT` | `300` | entrypoint | Seconds to wait for the MCP server. |
 | `SSE_DEBUG` | unset | entrypoint | Any non-empty value turns on debug logs. |
@@ -391,11 +393,15 @@ generated from the [environment variable registry](/reference/environment).
 
 | Service | Address |
 |---------|---------|
-| Daemon, agent-facing Unix socket | `/tmp/sse.sock` in sandbox mode; `/tmp/sse-archive/please-work.sock` in sidecar mode, shared through the results directory. Mode `0666`, so the `model` user can connect. |
-| Daemon, admin Unix socket | `/run/ssebench/admin.sock` in sandbox mode; `/tmp/sse-archive/admin.sock` in sidecar mode. Mode `0600`, root-only: grading, the reference patch and phase changes. |
+| Daemon, agent-facing Unix socket | `/tmp/sse.sock` in sandbox mode; `/run/ssebench/sse.sock` in sidecar mode. Mode `0666`, so the `model` user can connect. |
+| Daemon, admin Unix socket | `/run/ssebench/admin.sock`. Mode `0600`, root-only: grading, the reference patch and phase changes. |
 | Daemon, HTTP | port `4263` on all interfaces; the web UI connects to it. Agent-facing, so difficulty-gated like the agent socket. |
 | MCP server | `http://localhost:3000/mcp`, streamable HTTP; see [MCP server](/reference/mcp-server) |
 | OpenCode server | port `4096` on all interfaces, in sandbox mode when `opencode` is on the `PATH` |
+
+In sidecar mode `/run/ssebench` is a volume the two containers share. It is
+owned by root and writable only by root, so the agent can use the sockets in it
+but cannot replace them.
 
 The reference patch is served at `GET /reference/patch` on the admin socket at
 any time, and on the agent-facing socket and HTTP only after the agent phase
@@ -475,6 +481,9 @@ environment container:
 | `ssebench.model` | The model name |
 | `ssebench.agent` | The agent name |
 | `ssebench.reference-run` | `true` on a [reference run](/reference/cli#reference-runs); absent otherwise |
+
+In sidecar mode, both containers and the two volumes of a run also carry
+`ssebench.run`, the run's ID.
 
 The [web UI](/webui/) lists the containers that have `ssebench.webui` and acts
 only on those.
