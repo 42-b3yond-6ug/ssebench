@@ -6,7 +6,8 @@ outline: deep
 
 The `ssebench` command builds the images for a task and runs one agent on one
 task with one model. From a clone of the repository, run it as
-`uv run ssebench` in the repository root.
+`uv run ssebench` in the repository root or any directory below it; see
+[Working directory](#working-directory).
 
 ## `ssebench run`
 
@@ -51,6 +52,21 @@ uv run ssebench build-case --benchmarks datasets/pilot --tasks gjson-196-bf4efcb
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--benchmarks DIR` | `datasets/pilot` | Dataset directory |
+| `--benchmarks DIR` | `datasets/pilot` in the [SSEBench home](#working-directory) | Dataset directory |
 | `--tasks IDS` | every task | Comma-separated task IDs |
 | `--force` | off | Rebuild images that already exist |
+
+## Working directory
+
+The CLI finds `agents/`, `images/`, `runtime/`, `datasets/` and the Compose
+file in the *SSEBench home*, which is the first of:
+
+1. the directory in `SSEBENCH_HOME`;
+2. the nearest directory at or above the working directory whose
+   `pyproject.toml` has a `[tool.ssebench]` table, which is the repository
+   root;
+3. the repository the CLI was installed from, for an editable install.
+
+From outside the repository, run `uv run --project /path/to/ssebench ssebench ...`
+or set `SSEBENCH_HOME`. Paths you pass, such as `--local` and `--benchmarks`,
+are relative to the working directory, and so is `results/`.
