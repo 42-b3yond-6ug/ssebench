@@ -20,7 +20,6 @@
       ],
       "files": {
         "Dockerfile": "7cbb48a403bbe3a7707ea0de2cae241834073c02206cf2ef22cdbf5cfdb6834c",
-        "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
         "harness/Cargo.toml": "2705b30415f541373d05d44c5091716a77c7293932750c4ba115dffc231e9bd0",
         "harness/src/main.rs": "35044381ef5b61198e297674825375cfe0b3ba7ab9757823daf346c66a91c1d4",
         "rust-smallvec/.gitignore": "f9b1ca6ae27d1c18215265024629a8960c31379f206d9ed20f64e0b2dcf79805",
@@ -100,7 +99,6 @@
       ],
       "files": {
         "Dockerfile": "c75118e2f42321582c67691b6571165150c1ff5780a66901f74d2e25904f3ada",
-        "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
         "harness/Cargo.toml": "8026c2b40ed79bb3e4110a2ad116b34a2c6cdf269a704041a4ca7ee75f5b0aa8",
         "harness/src/main.rs": "02c144ee5fa60f97e917658c36ba374e97d0320ef20ebe54325a95b56dda5518",
         "sse/build.sh": "bebb82cb818ed977fb771e6e5652c2e25363c73c07aeffb86437caa20d4a3df7",
@@ -185,7 +183,6 @@
       ],
       "files": {
         "Dockerfile": "f0f6604e1a13b3a54f5647a394e272bccbabddc0975ed4d94d11238cfd23cd7c",
-        "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
         "harness/Cargo.toml": "da182f9368aab7e98cc30e61643d9d8a4214cc1ca4b7141540e1878a86698914",
         "harness/src/main.rs": "a91af60566c23007695d7f363d5c1099ea44aa54ef48a64b98bcc0d0976dee36",
         "http/.gitignore": "f9b1ca6ae27d1c18215265024629a8960c31379f206d9ed20f64e0b2dcf79805",
@@ -297,7 +294,6 @@
       ],
       "files": {
         "Dockerfile": "4d26e097526a7ccce6818d98d12201de1b1e4380f6743be97f1b112be9cb7236",
-        "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
         "harness/Cargo.toml": "e631012427f5b4a2dd792777b1134a5c5b8386d8228006c1b1dbcc698366d42f",
         "harness/src/main.rs": "648b774776f0a8b2022f2b6a7ab42ad1aba034090a0775ff954a624b80221a49",
         "rust-smallvec/.gitignore": "80f68cc9e02e96598d54558392a01553a8b34cb14263658e99d572d863aba92c",
@@ -387,7 +383,6 @@
       ],
       "files": {
         "Dockerfile": "f304528bbf4c5e11467c1fa1f729d216bb3d9023c3b4f24d9b7e98aa9f30f8e3",
-        "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
         "harness/Cargo.toml": "7d741bb6b2d91ce1f37ba104d8040fce9cbcfa97884243390a1e23c2cbc867ab",
         "harness/src/main.rs": "b8ab6526de23fed4f51720deaeb3ae6bd931b48b9d52def78dd64009cd76aed3",
         "nano-arena/.gitignore": "7d5e0312e7229eea3e92df1d0c53b52298293fab05d7761be1b59f4e843e375f",
@@ -462,7 +457,6 @@
       ],
       "files": {
         "Dockerfile": "802e574b216a18ea2450767142bf8077b235262a4127fd7f695679c4c6833fff",
-        "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
         "harness/Cargo.toml": "aa48b22927e458c78841fc732156372b0aa8a4d79875ae2eec3c3466a7207c94",
         "harness/src/main.rs": "61862af203ce503fadb80825e5583fd246a6e8cba49a8ec6f8145b9be1a605df",
         "sse/build.sh": "bebb82cb818ed977fb771e6e5652c2e25363c73c07aeffb86437caa20d4a3df7",
@@ -545,7 +539,6 @@
       ],
       "files": {
         "Dockerfile": "e6724d93403e57d16c48f7acc47c692608a894e7e5360a0f581ed985b1cad108",
-        "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
         "harness/Cargo.lock": "0ca062667745dd6147254cd1fb3e3601fe33b225c71e0e587197636bae4fcee4",
         "harness/Cargo.toml": "ca72f160c055bd59af53453cfc2473f74326d5984e549edc57f723017ed2b79d",
         "harness/src/main.rs": "ed055bfb49386123ae2ee1a318ebfe965341a1144afdb5462244e370af43e62d",
@@ -617,7 +610,6 @@
       ],
       "files": {
         "Dockerfile": "c8812b89b0e6cc664f9815a5637b9cb8d5f34517c006d9734faa07604ced984b",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "ec145b00e197ebae7dd0f0621fc96da03af746aa524835942d2aff23e231692e",
         "sse/config.yaml": "53e58d9e0b79ecb8ea8bf1638496e230d5549b7ae3d7569ab797a0cb895c2a09",
         "sse/diffs/patch.diff": "5dfb80040855d5aa4e36499dc7d62c6ddb2b35e4300c5426b04d62894fdebd31",
@@ -687,7 +679,6 @@
       ],
       "files": {
         "Dockerfile": "fe2c3a0274e5117b549985d91a1f321a6b8c508d3789fc3400d0d4558362971a",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "f23141f5c285f3168da20ab4c3e6ce6c1a053bbd3d21fb932b83923968510b70",
         "sse/config.yaml": "0874418d5e00f493495b3083d0b2344c5e7464e352c70ff6d9fed6f5dacf22b7",
         "sse/diffs/patch.diff": "cdd64fa2165f0a0eff27d04bb2f234c52da558e573c02474e561f6c30db9bd7f",
@@ -755,7 +746,6 @@
       ],
       "files": {
         "Dockerfile": "7bfdc135835fa01e521cede64f731a651d155ff2d1b29ff97afbaef25bd4816a",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "6a98860426b23a02bc5d4122320ae20c4fe544730698a59afa1acd854d7c1dd5",
         "sse/config.yaml": "ff39da1086ec878076b2c72417525cc1f0c7089e3e62fab7b8dea83f91415401",
         "sse/diffs/patch.diff": "21056e46290393501198bb8bb059be5387188fc1bf01eb18e281694a20e5b8f0",
@@ -894,7 +884,6 @@
       ],
       "files": {
         "Dockerfile": "b04182f33e16fb5c07268e2f03e33fc32f91719ec879fe9845cb32b6f2a2ecc6",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "db2bcf14ba5b198b187edf0da7be510d81fb43d273b5e357304d8826baf6d2dd",
         "sse/config.yaml": "928d50205085c6ad05687717513a6df083b254e12389c63f034344d059146381",
         "sse/diffs/patch.diff": "414a1137b0b4e4a32aa3bd6a3c41f765690c0c0e578c54fb142b1a592718ed78",
@@ -962,7 +951,6 @@
       ],
       "files": {
         "Dockerfile": "4454cd53078722f2261e6b28f36372d68adcde85a8a0bc8e73d4625ecdf888be",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "0365d7a8b5556102c370a4f380ee5bf9c4b43733b748c04f3151a123336fa3dc",
         "sse/diffs/patch.diff": "19d6c95d29f4620f6b9776840bdc6f24476188b16f2198d6d409724b1e4238fb",
@@ -2409,7 +2397,6 @@
       ],
       "files": {
         "Dockerfile": "b6bf107673cc9faea31d0f1d63b77aded3977e729634e34ce1f6ed558e15a4c0",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "f01339f26af3727fa02de126ca0db2fb14ad44c46adb6d2484c6901c796f633c",
         "sse/diffs/patch.diff": "5e5b724cc7029fbb2167c3359f056b7b50a67afd05c54122f8d06aa9e2284a4a",
@@ -2478,7 +2465,6 @@
       ],
       "files": {
         "Dockerfile": "845d7a23080ddd0e846a272e937d5f5ac9aba7c175386f928e675cf1dcdf913a",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "87414fc59fea06f5e7c69875df85ae3e6dd5bd7003177973678f72645338b247",
         "sse/diffs/patch.diff": "b6f95375f687293ce334f72ccb6b98c0c05274914d1993f5d8425436bea33df4",
@@ -2689,7 +2675,6 @@
       ],
       "files": {
         "Dockerfile": "d08a54476c2c29102cb47749da3dd89cb1e606ff6179b88dda8f0b28e55ad134",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "6a98860426b23a02bc5d4122320ae20c4fe544730698a59afa1acd854d7c1dd5",
         "sse/config.yaml": "616be3433696fb8765084f899a299e123b21038003192f6f0af1b8584f5a1d54",
         "sse/diffs/patch.diff": "6bec1763adce9d3b52374745f7d8a347f5775749abe715f8f642a357b845bafc",
@@ -2826,7 +2811,6 @@
       ],
       "files": {
         "Dockerfile": "8ceba8e8c49a95bfe70a232681e0732529d99eb0e75f9e1173b9fb048c232abb",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "cf4e98b435e6d8e601e9fa4c6330146ef1194b80ed67d6a78c874088a76ab4c7",
         "sse/config.yaml": "c815f213a5eaa66bd21bc3cd28da8d5075d1f29d04810229f8d47b3ce3698c61",
         "sse/diffs/patch.diff": "c8ebe9d1304b72b8c6106ecce0edb920408a7d3406e299c0ed0a7faab5bd209b",
@@ -2966,7 +2950,6 @@
       ],
       "files": {
         "Dockerfile": "76ea8f767e7c69fa27e43ae3e5edfa00319035273012a2d725206ef20aee9f6e",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "a64f06ef8fd30819a9097ddec50b8cb25a61431dff265680c7f5cf5ec4031d2c",
         "sse/diffs/intent_test.diff": "794a66fcc3effe7b6adc5a5c7fa3911f5dbe0339567cdcf878ad7c898e0d77ce",
@@ -3035,7 +3018,6 @@
       ],
       "files": {
         "Dockerfile": "d207f105777ecf5537596e15f38cda10b5887cd36a7353bebb889df556758b91",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "10c00821115531817dd65e2f39452d8c66789a46ef8f40466dbb079690e66226",
         "sse/config.yaml": "2949d6b178442ad553af44e29885906340f7a4b084317cc045a83d5428eabaff",
         "sse/diffs/patch.diff": "0dcb9949f0aa2798903262b9d7cc748a7b47158ece1578549664ab9d25f374b4",
@@ -3103,7 +3085,6 @@
       ],
       "files": {
         "Dockerfile": "312831744d3a2d5242bc182f9c00297cb034aaf4cf52de1a3ff594eb81beafbb",
-        "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
         "harness/Cargo.lock": "3181f6fb9c0b694671a75a3dbdc07c4e7e96a820375298fd55344958d7911280",
         "harness/Cargo.toml": "2a5066e41e53adadcc30e1d2c726753ee016eb767f275d9cfb89eb335be313d9",
         "harness/src/main.rs": "837be95a9acd46f6fed50a3197909c4f85d9e05802d3875749f6fbfef4b91bfc",
@@ -3174,7 +3155,6 @@
       ],
       "files": {
         "Dockerfile": "d8f4ec2a1ce3c7d3db215cdabaa24d80030d5c5c6657d63d055b4e053a4522fe",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "719792aa685fab6b73a35abf6788333a46b0bbdad18e8ce47806fd8a6fe30165",
         "sse/diffs/patch.diff": "f8b29f383bdd2a6b99d62db1fe34961f99f2a5296f43eb125a51661cda26e4ab",
@@ -3245,7 +3225,6 @@
       ],
       "files": {
         "Dockerfile": "954fb13b5acd00dba9a120337ceee7729cfebb8f31c3a26b5e452675a59cd3a3",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "65b57e48f26581ca4562a1e8d3553af80237e5239a7b6df5a61023befa458683",
         "sse/config.yaml": "1fd29d7e8e3ea2624477644e0347cb74b5875a1aab8b9c1c3920ae8813adc7f8",
         "sse/diffs/patch.diff": "fbf0761264ffb3a5d374e80d7ae4a341acd6d6c406cc7497c81b2a7c8aaa78de",
@@ -3384,7 +3363,6 @@
       ],
       "files": {
         "Dockerfile": "7c2ed55c43a20234587fb9f38299ee710e9cdf2b6381300daca3ef9b4951fa33",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "e2287a0b459338eb18ba83cca61d591309af75e3857e0362563c66211257345c",
         "sse/diffs/patch.diff": "f0acb501a022a90632a8a34ae4c6a881fbfdf8febf841a60c466d04a3b8ecbef",
@@ -3455,7 +3433,6 @@
       ],
       "files": {
         "Dockerfile": "67ca0fe2cd0700e3b2911bd418473a5f8179954f884c62675685ba1ffebfeca3",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "31a736f9f10b29e2eae0a2db8cac4caee4c3aab2f9a285d9eb38a2e4b824799f",
         "sse/diffs/patch.diff": "c7dfbc77bf5b54db5b47ba28643812305f52643fa960f88f662a7adc5e956b60",
@@ -3523,7 +3500,6 @@
       ],
       "files": {
         "Dockerfile": "31cb132fa3458e82f0eefe0850ee491cb465cfc47f20cac8f932f3ccc77921ec",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "50edc7a8de0c860fd91ed7a7f3b85223e7bf611b0b82f70dec81c14178496695",
         "sse/diffs/patch.diff": "c92e35b8f527b3530359c124bcd0e31dcb773c11c854e1883ea5d0bf73ca0fb6",
@@ -3594,7 +3570,6 @@
       ],
       "files": {
         "Dockerfile": "da89d4cd56d61e6609a3d3ff80bcbd2ba01fe8a7bf0b4c34e97aab62579f0d37",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "bb8967c10704961edd8696ca3bcfdd9f14ce8e1e2f4067e9e422e7b7710ec6f6",
         "sse/config.yaml": "2d9d0045654b963ec80c4ee2cb6e4cd74a9e8a2e4eac27680968dbe4b9ec9acc",
         "sse/diffs/patch.diff": "a1e49daa5624eecb149331b0f0122f7e0d35ca18704c7f0a79249c252c908e74",
@@ -3662,7 +3637,6 @@
       ],
       "files": {
         "Dockerfile": "b17b9d3fb2d76411fe99f98299345a08fe6d8355ce2358463357a9c41536cbc8",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "d2c71c79d81a4b2e6f832537446f651208b27cd794194490a4eaa6942b059872",
         "sse/config.yaml": "05aa4561e7f78cf7ddd9e25eac771d036371ed434297c4d515dff391ea365c53",
         "sse/diffs/patch.diff": "664b774fb7ee080f6521c6df270bb01a6f9a514abcea2aefb90278f5eee74609",
@@ -3730,7 +3704,6 @@
       ],
       "files": {
         "Dockerfile": "7b2649903e26b09e201a68db6d0bda6e053da49f720840e854d581042da655dd",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "6a98860426b23a02bc5d4122320ae20c4fe544730698a59afa1acd854d7c1dd5",
         "sse/config.yaml": "6833b5a27d8c2a1d5c786a0b2c313f348845f779f9b347c8e4bef250fd4baca6",
         "sse/diffs/patch.diff": "9fe68793537c57603922be4f98376671e65d8235094e906163872b682241c8a8",
@@ -3799,7 +3772,6 @@
       ],
       "files": {
         "Dockerfile": "d775d8dac6adc9a7f5572c0ff45564f0db74f998b7e28c4ed150d32849aaa259",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "3d5cb21870b6ca927b5b994b2c89d48821ce959eba1c66e6f54d10b2f86ecea0",
         "sse/diffs/patch.diff": "2868ed68f769b7933c41df9f23378f493de16edd09132c643c640a245c2c1dbd",
@@ -3870,7 +3842,6 @@
       ],
       "files": {
         "Dockerfile": "a9efbdbfe614ba8940d4e55688a9eca3ce5719c08d230f18bd0a1f208bcc9a22",
-        "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "75b5a0d2371321a2ebb8af56fc1a395b942b3549348099801f654828f32435e1",
         "sse/diffs/patch.diff": "6017310550aa329efa50418defedd0b4315ace1ae8c3823413fdaed8691cea3b",
