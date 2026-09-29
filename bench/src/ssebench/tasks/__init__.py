@@ -1,5 +1,5 @@
+from .catalog import Catalog, CatalogError, CatalogTask, load_catalog
 from .local import LocalTask
-from .remote import RemoteTask
 from .task import Task
 
-__all__ = ["Task", "LocalTask", "RemoteTask"]
+__all__ = ["Catalog", "CatalogError", "CatalogTask", "LocalTask", "Task", "load_catalog"]

@@ -4,6 +4,8 @@
 from these models. Image names in the manifest carry no registry: clients prepend `$SSEBENCH_REGISTRY/`.
 """
 
+import hashlib
+from pathlib import Path
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -68,3 +70,9 @@ class Manifest(_Model):
         default=None, description="Commit of the SSEBench repository the manifest was generated from, if recorded."
     )
     tasks: list[ManifestTask] = Field(description="The tasks, sorted by id.")
+
+
+def task_files(task_dir: Path) -> dict[str, str]:
+    """The `files` of a task's manifest entry: the SHA-256 of every file in its folder, sorted by path."""
+    paths = sorted((p.relative_to(task_dir).as_posix(), p) for p in task_dir.rglob("*") if p.is_file())
+    return {name: hashlib.sha256(p.read_bytes()).hexdigest() for name, p in paths}

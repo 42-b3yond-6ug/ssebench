@@ -1,10 +1,9 @@
 """Generate a dataset's manifest.json from its task folders."""
 
-import hashlib
 import json
 from pathlib import Path
 
-from ssebench.tasks.manifest import Arch, Check, Manifest, ManifestTask
+from ssebench.tasks.manifest import Arch, Check, Manifest, ManifestTask, task_files
 from ssebench.tasks.metadata import TaskMetadata
 
 from .validate import DatasetReport, TaskReport, validate_dataset
@@ -33,11 +32,6 @@ def checks(m: TaskMetadata) -> list[Check]:
     if m.scripts.test and m.files.future_test:
         available.append("intent_test")
     return available
-
-
-def task_files(task_dir: Path) -> dict[str, str]:
-    paths = sorted((p.relative_to(task_dir).as_posix(), p) for p in task_dir.rglob("*") if p.is_file())
-    return {name: hashlib.sha256(p.read_bytes()).hexdigest() for name, p in paths}
 
 
 def manifest_task(dataset: str, task: TaskReport) -> ManifestTask:
