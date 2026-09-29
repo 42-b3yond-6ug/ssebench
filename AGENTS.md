@@ -55,6 +55,7 @@ catalog/               task catalog service (Go)
 webui/                 web UI: Vite + React client, Bun/Hono server, pty-proxy (Go)
 datasets/pilot/        the pilot dataset, one folder per task
 tools/bear/            compile_commands.json generation for C tasks
+tools/release/         bump.py: sets the version everywhere, or checks for drift with --check
 tools/report/          Typst report from results/
 tools/validate/        task validator
 docs/                  VitePress documentation site
@@ -86,7 +87,7 @@ per-component commands below.
 | `just images` | Build the base, tool and agent images. *planned* |
 | `just dataset-validate` | Check that tasks build, their PoCs reproduce and their tests behave. *planned* |
 | `just docs` | Serve or build the documentation site. *planned* |
-| `just release <version>` | Bump the single project version across every component. *planned* |
+| `just release <version>` | Set the version of every component and update the lockfiles. |
 
 Per component:
 
@@ -136,8 +137,12 @@ contains the working directory, otherwise the checkout it was installed from.
   Disclose AI assistance with an `Assisted-by:` trailer naming the tool and
   model.
 - **Comments** explain the non-obvious reason, not what the code does.
-- **Versions** move in lockstep: every component shares one version number.
-  Datasets are versioned separately (for example `pilot-v1`).
+- **Versions** move in lockstep: every component shares the version in
+  `VERSION` (SemVer; Python projects carry its PEP 440 form). Never edit a
+  version field by hand: use `just release <version>`, and
+  `uv run tools/release/bump.py --check` to find drift. Datasets are
+  versioned separately (for example `pilot-v1`); see
+  `docs/contributing/releasing.md`.
 - Never commit `.env`, API keys or `results/`.
 
 ## Invariants to preserve

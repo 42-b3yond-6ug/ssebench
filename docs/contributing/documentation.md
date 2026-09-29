@@ -68,9 +68,6 @@ you add a page, add it to the sidebar too.
 
 ## Version
 
-The version in the navigation bar comes from the `SSEBENCH_VERSION`
-environment variable at build time. Without it, the site shows `dev`.
-
-```sh
-SSEBENCH_VERSION=1.0.0 bun run build
-```
+The version in the navigation bar is read from the `VERSION` file at the
+repository root when the site is built; see
+[Releasing and versioning](/contributing/releasing).

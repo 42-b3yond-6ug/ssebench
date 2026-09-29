@@ -1,9 +1,9 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig, type DefaultTheme } from 'vitepress'
 
 const repo = 'https://github.com/42-b3yond-6ug/ssebench'
 
-// The release workflow sets SSEBENCH_VERSION; any other build is a development build.
-const version = process.env.SSEBENCH_VERSION?.trim() || 'dev'
+const version = readFileSync(new URL('../../VERSION', import.meta.url), 'utf8').trim()
 
 const sidebar: DefaultTheme.SidebarItem[] = [
   {
@@ -89,7 +89,8 @@ const sidebar: DefaultTheme.SidebarItem[] = [
     items: [
       { text: 'How to contribute', link: '/contributing/' },
       { text: 'Project structure', link: '/contributing/project-structure' },
-      { text: 'Writing documentation', link: '/contributing/documentation' }
+      { text: 'Writing documentation', link: '/contributing/documentation' },
+      { text: 'Releasing and versioning', link: '/contributing/releasing' }
     ]
   }
 ]
