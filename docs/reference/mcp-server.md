@@ -37,7 +37,7 @@ The checks run in this order. Which of them run depends on the [difficulty level
 
 ## Difficulty Levels
 
-The server reads `SSE_DIFFICULTY` once, at startup. `ssebench run --difficulty` sets it; when it is unset the server uses level 2. Any value other than an integer from 0 to 4 stops the server from starting.
+The server reads `SSE_DIFFICULTY` once, at startup. `ssebench run --difficulty` sets it; when it is unset the server uses level 2. Any value other than an integer from 0 to 4 stops the server from starting, as it stops the daemon.
 
 | Level | Name | Build | PoCs | Intent tests | Functional tests |
 |-------|------|-------|------|--------------|------------------|

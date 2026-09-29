@@ -1,6 +1,6 @@
 from typing import Literal, Self
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from ssebench.tasks.metadata import TaskMetadata
 
@@ -50,7 +50,7 @@ class RunConfig(BaseModel):
     model: str
     mode: Literal["sidecar", "sandbox"]
     timeout: int
-    difficulty: int
+    difficulty: int = Field(ge=0, le=4)
     tool_layer: str | None = None  # set in sandbox mode; sidecar mode has fixed layers
     egress: Literal["restricted", "open"] = "restricted"
     # The reference agent applied the task's known fix: the grade measures the task, not a model.

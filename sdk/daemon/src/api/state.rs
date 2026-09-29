@@ -17,19 +17,24 @@ pub enum Difficulty {
 }
 
 impl Difficulty {
-    /// Read `SSE_DIFFICULTY`. Anything unset or unparseable falls back to the
-    /// documented default (`NO_FUTURE_TEST`) rather than failing open.
-    pub fn from_env() -> Self {
-        match std::env::var("SSE_DIFFICULTY")
-            .ok()
-            .and_then(|v| v.trim().parse::<u8>().ok())
-        {
-            Some(0) => Difficulty::FullAssistance,
-            Some(1) => Difficulty::NoIntentTest,
-            Some(2) => Difficulty::NoFutureTest,
-            Some(3) => Difficulty::BuildOnly,
-            Some(4) => Difficulty::NoBuild,
-            _ => Difficulty::NoFutureTest,
+    /// Read `SSE_DIFFICULTY`: unset means the default, `NO_FUTURE_TEST`.
+    pub fn from_env() -> anyhow::Result<Self> {
+        Self::parse(std::env::var("SSE_DIFFICULTY").ok().as_deref())
+    }
+
+    /// Parse a level from 0 to 4. Any other value is an error rather than the
+    /// default, so a run never goes ahead at a level nobody asked for.
+    pub fn parse(value: Option<&str>) -> anyhow::Result<Self> {
+        let Some(value) = value else {
+            return Ok(Difficulty::NoFutureTest);
+        };
+        match value.trim().parse::<u8>() {
+            Ok(0) => Ok(Difficulty::FullAssistance),
+            Ok(1) => Ok(Difficulty::NoIntentTest),
+            Ok(2) => Ok(Difficulty::NoFutureTest),
+            Ok(3) => Ok(Difficulty::BuildOnly),
+            Ok(4) => Ok(Difficulty::NoBuild),
+            _ => anyhow::bail!("SSE_DIFFICULTY must be an integer from 0 to 4, got {value:?}"),
         }
     }
 
@@ -88,13 +93,13 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(project: BenchCore) -> Self {
+    pub fn new(project: BenchCore, difficulty: Difficulty) -> Self {
         let project = Arc::new(project);
         let router = ToolRouter::new(Arc::clone(&project));
         Self {
             project,
             tool_router: Arc::new(Mutex::new(router)),
-            difficulty: Difficulty::from_env(),
+            difficulty,
             agent_phase_ended: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -167,6 +172,37 @@ mod difficulty_tests {
     #[test]
     fn no_build_hides_everything() {
         assert!(allowed(Difficulty::NoBuild).is_empty());
+    }
+
+    #[test]
+    fn unset_level_is_the_default() {
+        assert_eq!(Difficulty::parse(None).unwrap(), Difficulty::NoFutureTest);
+    }
+
+    #[test]
+    fn levels_zero_to_four_parse() {
+        let levels: Vec<Difficulty> = ["0", "1", " 2 ", "3", "4"]
+            .into_iter()
+            .map(|v| Difficulty::parse(Some(v)).unwrap())
+            .collect();
+        assert_eq!(
+            levels,
+            vec![
+                Difficulty::FullAssistance,
+                Difficulty::NoIntentTest,
+                Difficulty::NoFutureTest,
+                Difficulty::BuildOnly,
+                Difficulty::NoBuild,
+            ],
+        );
+    }
+
+    #[test]
+    fn invalid_levels_are_rejected() {
+        for value in ["", "5", "-1", "256", "two", "2.0"] {
+            let err = Difficulty::parse(Some(value)).unwrap_err();
+            assert!(err.to_string().contains("0 to 4"), "{value:?}: {err}");
+        }
     }
 
     #[test]

@@ -6,7 +6,7 @@ use actix_web::{App, HttpServer, middleware::Logger, web};
 use env_logger::Env;
 use log::info;
 
-use ssebench::api::{Access, AppState, configure_routes};
+use ssebench::api::{Access, AppState, Difficulty, configure_routes};
 use ssebench::bench::BenchCore;
 
 /// Default HTTP port for WebUI access
@@ -26,7 +26,14 @@ async fn main() -> std::io::Result<()> {
 
     let bench_path = env::var("SSE_BENCH_PATH").unwrap_or_else(|_| "/ssebench".to_string());
     let bench = BenchCore::new(&bench_path).expect("failed to load project");
-    let state = AppState::new(bench);
+    let difficulty = match Difficulty::from_env() {
+        Ok(difficulty) => difficulty,
+        Err(e) => {
+            log::error!("{e}");
+            std::process::exit(2);
+        }
+    };
+    let state = AppState::new(bench, difficulty);
     info!("Difficulty gate: {:?}", state.difficulty);
 
     // Get HTTP port from environment or use default

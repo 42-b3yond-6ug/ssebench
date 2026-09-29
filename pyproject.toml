@@ -58,7 +58,7 @@ include = ["bench", "runtime/evaluator", "runtime/mcp", "runtime/plugins", "sdk/
 extraPaths = ["sdk/python"]
 
 [tool.pytest.ini_options]
-testpaths = ["bench/tests", "sdk/python/tests", "runtime/evaluator/tests", "tools/docs", "tools/report"]
+testpaths = ["bench/tests", "sdk/python/tests", "runtime/evaluator/tests", "runtime/mcp/tests", "tools/docs", "tools/report"]
 # The reference docs generators (tools/docs/refdocs) are not a package; their tests import them from here.
 pythonpath = ["tools/docs"]
 addopts = ["--import-mode=importlib"]
