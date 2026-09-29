@@ -1,4 +1,5 @@
-# The web UI server tests (bun test), which fake docker and the CLI.
+# The web UI server tests (bun test), which fake docker and the CLI. The
+# catalog tests read the bundled pilot manifest.
 { pkgs, flake, ... }:
 let
   inherit (pkgs) lib;
@@ -12,6 +13,7 @@ pkgs.stdenvNoCC.mkDerivation {
     fileset = lib.fileset.difference (lib.fileset.unions [
       (root + "/package.json")
       (root + "/webui")
+      (root + "/datasets/pilot/manifest.json")
     ]) (root + "/webui/pty-proxy");
   };
 
