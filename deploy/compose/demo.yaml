@@ -1,0 +1,58 @@
+# The demo stack: the task catalog and the web UI, next to the LiteLLM proxy
+# and its database from docker-compose.yaml. `ssebench demo up` (`just demo`)
+# starts all of it; to start it by hand, layer this file over the base one:
+#
+#   docker compose --env-file .env \
+#     -f deploy/compose/docker-compose.yaml -f deploy/compose/demo.yaml \
+#     --project-name ssebench-demo up --detach
+#
+# This file only adds services. It leaves the proxy and its database exactly
+# as the base file defines them, so `ssebench run` can manage them with the
+# base file alone. The ssebench.demo label marks what belongs to the demo; the
+# demo refuses to touch a Compose project without it.
+name: ssebench
+
+services:
+  catalog:
+    image: ${SSEBENCH_REGISTRY:-ghcr.io/42-b3yond-6ug/ssebench}/catalog:1.0.0-dev
+    build:
+      context: ../..
+      dockerfile: catalog/Dockerfile
+      args:
+        VERSION: "${SSEBENCH_VERSION:-dev}"
+    ports:
+      # Loopback only: the catalog needs no key, so nothing else should reach it.
+      - "127.0.0.1:${SSEBENCH_DEMO_CATALOG_PORT:-8090}:8080"
+    environment:
+      # The registry that the image names of /tasks are prefixed with.
+      SSEBENCH_REGISTRY: "${SSEBENCH_REGISTRY:-ghcr.io/42-b3yond-6ug/ssebench}"
+    labels:
+      ssebench.demo: "true"
+
+  webui:
+    image: ${SSEBENCH_REGISTRY:-ghcr.io/42-b3yond-6ug/ssebench}/webui:1.0.0-dev
+    build:
+      context: ../..
+      dockerfile: webui/Dockerfile
+      args:
+        VERSION: "${SSEBENCH_VERSION:-dev}"
+    depends_on:
+      - catalog
+    # The server reaches the daemon in each run container by the container's IP
+    # address, which only the host's network namespace can route to. It listens
+    # on the host's loopback interface, so it needs no token.
+    network_mode: host
+    environment:
+      PORT: "${SSEBENCH_DEMO_WEBUI_PORT:-3001}"
+      SSEBENCH_WEBUI_HOST: "127.0.0.1"
+      # The terminal opens a shell in a run container; turn it on with
+      # SSEBENCH_WEBUI_TERMINAL=1.
+      SSEBENCH_WEBUI_TERMINAL: "${SSEBENCH_WEBUI_TERMINAL:-0}"
+      SSEBENCH_CATALOG: "http://127.0.0.1:${SSEBENCH_DEMO_CATALOG_PORT:-8090}"
+    volumes:
+      # It lists and inspects the run containers through the Docker API. Access
+      # to the socket is root access to the host, which is why the demo keeps
+      # the server on loopback.
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      ssebench.demo: "true"

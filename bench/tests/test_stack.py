@@ -165,3 +165,20 @@ def test_image_matches_the_compose_file() -> None:
     image = compose["services"]["litellm"]["image"].replace("${SSEBENCH_REGISTRY:-ghcr.io/42-b3yond-6ug/ssebench}", "")
 
     assert stack.image() == f"{stack.REGISTRY}{image}"
+
+
+def test_compose_layers_overlays_over_the_base_file(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    docker = Docker(None)
+    monkeypatch.setattr(subprocess, "run", docker)
+    overlay = home / "deploy" / "compose" / "extra.yaml"
+
+    stack.compose("up", "--detach", overlays=[overlay])
+    stack.compose("down")
+
+    [layered, plain] = docker.compose()
+    assert [layered[i + 1] for i, arg in enumerate(layered) if arg == "--file"] == [
+        str(paths.compose_file()),
+        str(overlay),
+    ]
+    assert [plain[i + 1] for i, arg in enumerate(plain) if arg == "--file"] == [str(paths.compose_file())]
+    assert layered[-2:] == ["up", "--detach"]
