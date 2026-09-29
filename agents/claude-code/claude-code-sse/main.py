@@ -32,7 +32,7 @@ class DialogWriter:
     """
 
     def __init__(self, log_path: str | None = None):
-        # Default to $SSE_ARCHIVE/dialog.jsonl (archive is shared and world-writable)
+        # Default to $SSE_ARCHIVE/dialog.jsonl, in the agent's archive directory
         if log_path is None:
             archive = os.environ.get("SSE_ARCHIVE", "/tmp/sse-archive")
             log_path = f"{archive}/dialog.jsonl"

@@ -1,7 +1,9 @@
 import asyncio
 import logging
 import os
+import tempfile
 from collections.abc import Callable
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel
@@ -73,6 +75,33 @@ async def run_grading(timeout: float, grade_patch: Callable[[], SDKPatchResult] 
     return PatchResult.from_sdk(sdk_result), False
 
 
+def result_path() -> Path:
+    """Where the grade goes: result.json in the root-only results directory.
+
+    Without SSE_RESULTS (a container started by an older runner), /sse_result.
+    """
+    results = os.getenv("SSE_RESULTS")
+    return Path(results) / "result.json" if results else Path("/sse_result")
+
+
+def write_result(content: str) -> None:
+    """Write the grade in one step, so no reader sees a partial file."""
+    path = result_path()
+    if path == Path("/sse_result"):
+        # A bind-mounted file cannot be replaced, only rewritten.
+        _ = path.write_text(content)
+        return
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".result-")
+    try:
+        with os.fdopen(fd, "w") as f:
+            _ = f.write(content)
+        os.chmod(tmp, 0o644)
+        os.replace(tmp, path)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
+
+
 async def main_async():
     # archive asks the daemon for the task on import.
     from archive import backup_src
@@ -106,8 +135,7 @@ async def main_async():
     )
 
     try:
-        with open("/sse_result", "w") as f:
-            _ = f.write(evaluation_result.model_dump_json())
+        write_result(evaluation_result.model_dump_json())
     except OSError as e:
         logger.error(f"Failed to write results: {e}")
 

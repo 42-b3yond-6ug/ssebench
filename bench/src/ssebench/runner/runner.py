@@ -37,6 +37,13 @@ from ssebench.tasks import Task
 logger = logging.getLogger(__name__)
 
 ARCHIVE_PATH = "/tmp/sse-archive"
+"""Where a task container has the agent's archive (`SSE_ARCHIVE`): the run directory's `archive/`."""
+ARCHIVE_DIR = "archive"
+RESULTS_PATH = "/var/lib/ssebench/results"
+"""Where a task container has the run directory: root-only, for the grade, the graded patch and the logs."""
+REFERENCE_PATCH_FILE = "reference.patch"
+RESULTS_LABEL = "ssebench.results"
+"""Container label with the run directory on the host, for the web UI."""
 
 
 def clear_directory(path: Path) -> None:
@@ -56,6 +63,36 @@ def summary_path(task: str, agent: str, model: str) -> Path:
     return Path("results") / f"{task}-{agent}-{model}.json"
 
 
+def prepare_run_directory(results_path: Path) -> Path:
+    """Empty the run directory, create its agent archive, and return the path of its `result.json`."""
+    os.makedirs(results_path, exist_ok=True)
+    clear_directory(results_path)
+    (results_path / ARCHIVE_DIR).mkdir()
+    evaluator_file = results_path / "result.json"
+    evaluator_file.touch()
+    return evaluator_file
+
+
+def save_reference_patch(task: Task, results_path: Path) -> None:
+    """Copy the task's reference patch into the run directory after the run, for reports and the web UI.
+
+    The daemon serves it only on its admin socket, so this is how tools on the host get it.
+    """
+    patch = task.get_task_metadata().files.patch
+    source = task.task_file(patch) if patch is not None else None
+    if source is None:
+        logger.debug(f"No local copy of the reference patch of {task.name}")
+        return
+    _ = shutil.copyfile(source, results_path / REFERENCE_PATCH_FILE)
+
+
+def replace_file(path: Path, content: str) -> None:
+    """Replace `path` in one step. The container's root wrote it, so it cannot be rewritten in place."""
+    tmp = path.with_name(f".{path.name}.tmp")
+    _ = tmp.write_text(content)
+    _ = tmp.replace(path)
+
+
 def record_results(task: Task, run_config: RunConfig, spend: float, evaluator_file: Path) -> None:
     """Complete the run's result.json with the run settings, and write the summary to results/."""
     content = evaluator_file.read_text().strip()
@@ -68,7 +105,7 @@ def record_results(task: Task, run_config: RunConfig, spend: float, evaluator_fi
             runtime_result=RuntimeResult(agent_duration=0, agent_timeout=False, evaluator_timeout=False),
         )
     container_result.config = run_config
-    _ = evaluator_file.write_text(container_result.model_dump_json())
+    replace_file(evaluator_file, container_result.model_dump_json())
 
     per_task_result = PerTaskEvaluationResult.build(
         tm=task.get_task_metadata(),
@@ -174,10 +211,12 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
                 f"SSE_KEEP_ALIVE={'1' if self.keep_container else '0'}",
                 *(["-e", f"SSE_PLUGINS={','.join(self.plugins)}"] if self.select_plugins else []),
                 "-v",
-                f"{results_path / 'result.json'}:/sse_result",
+                f"{results_path}:{RESULTS_PATH}",
                 "-v",
-                f"{results_path}:{ARCHIVE_PATH}",
+                f"{results_path / ARCHIVE_DIR}:{ARCHIVE_PATH}",
                 *reference_patch_mount(self.agent.agent_name, reference_patch),
+                "--label",
+                f"{RESULTS_LABEL}={results_path}",
                 "--label",
                 "ssebench.webui=true",
                 "--label",
@@ -197,11 +236,7 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
         assert self.sandbox_image is not None
 
         results_path = (Path("results") / self.task.name / self.model.model_name / self.agent.agent_name).absolute()
-        os.makedirs(results_path, exist_ok=True)
-        clear_directory(results_path)
-
-        evaluator_file = results_path / "result.json"
-        evaluator_file.touch(exist_ok=True)
+        evaluator_file = prepare_run_directory(results_path)
 
         with reference_patch(self.agent.agent_name, self.task) as patch:
             try:
@@ -209,6 +244,7 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
                 _ = subprocess.run(self.docker_command(results_path, patch), check=True)
             except subprocess.CalledProcessError as e:
                 logger.error(f"Agent container stopped with a non-zero exit: {e}")
+        save_reference_patch(self.task, results_path)
 
         run_config = RunConfig(
             agent=self.agent.agent_name,
@@ -246,8 +282,10 @@ class SidecarPair:
     task_name: str
     source_dir: str
     """Absolute path of the project source, the same in both containers."""
+    results: str
+    """What to mount at the results path, root-only, in both containers: a host directory or a volume name."""
     archive: str
-    """What to mount at the archive path in both containers: a host directory or a volume name."""
+    """What to mount at the archive path, the agent's, in both containers: a host directory or a volume name."""
     network: str
     difficulty: int
     keep_alive: bool = False
@@ -288,6 +326,10 @@ class SidecarPair:
             f"{self.source_volume}:{self.source_dir}",
             "-v",
             f"{self.socket_volume}:{SIDECAR_SOCKET_DIR}",
+            "-v",
+            f"{self.results}:{RESULTS_PATH}",
+            "-e",
+            f"SSE_RESULTS={RESULTS_PATH}",
         ]
 
     def environment_options(self) -> list[str]:
@@ -300,16 +342,14 @@ class SidecarPair:
             f"SSE_KEEP_ALIVE={'1' if self.keep_alive else '0'}",
         ]
 
-    def agent_options(self, env: dict[str, str] | None = None, result_file: Path | None = None) -> list[str]:
+    def agent_options(self, env: dict[str, str] | None = None) -> list[str]:
         """`docker run` options of the agent container, before its image.
 
-        The evaluator writes the grade to `result_file` when one is given.
+        The evaluator writes the grade to `result.json` in the run directory.
         """
         options = self._shared_options()
         for name, value in (env or {}).items():
             options += ["-e", f"{name}={value}"]
-        if result_file is not None:
-            options += ["-v", f"{result_file}:/sse_result"]
         return options
 
     def remove(self) -> None:
@@ -364,16 +404,13 @@ class BenchmarkSidecarRunner(BenchmarkRunner):
         assert self.sidecar_environ_image is not None
 
         results_path = (Path("results") / self.task.name / self.model.model_name / self.agent.agent_name).absolute()
-        os.makedirs(results_path, exist_ok=True)
-        clear_directory(results_path)
-
-        evaluator_file = results_path / "result.json"
-        evaluator_file.touch(exist_ok=True)
+        evaluator_file = prepare_run_directory(results_path)
 
         pair = SidecarPair(
             task_name=self.task.name,
             source_dir=self.task.get_task_metadata().source,
-            archive=str(results_path),
+            results=str(results_path),
+            archive=str(results_path / ARCHIVE_DIR),
             network=stack.run_network(self.egress),
             difficulty=self.difficulty,
             keep_alive=self.keep_container,
@@ -388,6 +425,8 @@ class BenchmarkSidecarRunner(BenchmarkRunner):
             "--label",
             f"ssebench.agent={self.agent.agent_name}",
             *reference_run_labels(self.agent.agent_name),
+            "--label",
+            f"{RESULTS_LABEL}={results_path}",
         ]
 
         try:
@@ -409,7 +448,6 @@ class BenchmarkSidecarRunner(BenchmarkRunner):
                         "SSE_MODEL_NAME": self.model.model_name,
                         "TIMEOUT": str(self.timeout),
                     },
-                    result_file=evaluator_file,
                 )
                 docker_cmd += [*reference_patch_mount(self.agent.agent_name, patch), self.sidecar_agentrt_image]
                 _ = subprocess.run(docker_cmd, check=True)
@@ -420,6 +458,7 @@ class BenchmarkSidecarRunner(BenchmarkRunner):
                 logger.info(f"Kept the containers and volumes labelled ssebench.run={pair.run_id}")
             else:
                 pair.remove()
+        save_reference_patch(self.task, results_path)
 
         run_config = RunConfig(
             agent=self.agent.agent_name,

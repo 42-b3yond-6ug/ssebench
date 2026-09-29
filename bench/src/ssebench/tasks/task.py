@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 from ssebench.pipe import DockerLayerMixin
 from ssebench.tasks.metadata import TaskMetadata
@@ -33,3 +34,15 @@ class Task(DockerLayerMixin, ABC):
         always available after a pull, so they return True unconditionally.
         """
         pass
+
+    def task_folder(self) -> Path | None:
+        """The task's folder on this machine, if there is one."""
+        return None
+
+    def task_file(self, relative: Path | str) -> Path | None:
+        """A file of the task, by its path in the task config (relative to `sse/`), from the task folder."""
+        folder = self.task_folder()
+        if folder is None:
+            return None
+        path = folder / "sse" / relative
+        return path if path.is_file() else None

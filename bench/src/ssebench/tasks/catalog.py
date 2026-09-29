@@ -169,5 +169,9 @@ class CatalogTask(Task):
         return True
 
     @override
+    def task_folder(self) -> Path | None:
+        return self.catalog.task_folder(self.entry)
+
+    @override
     def get_task_metadata(self) -> TaskMetadata:
         return self.entry.metadata
