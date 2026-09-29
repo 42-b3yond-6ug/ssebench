@@ -1,32 +1,76 @@
-# Disclaimer: this is a purely experimental plugin for generating deterministic
-# oracles for SSEBench tasks.
+# Oracle plugin: generate material for a human to build a deterministic oracle
+# for a task, using the run's model. It never affects the grade.
 #
-# Plugin APIs and SDK AI APIs are not stable.
-# This plugin may be refactored in the near future.
+# It runs at after-grading, so the agent has finished and the reference patch is
+# available to post-agent tooling. It writes its outputs under `oracle/` in the
+# results directory.
 #
-# The plugin makes several assumptions, including some important ones:
-# 1. We are running inside an SSEBench container. The plugin is LLM-assisted and
-#    uses the run's model through LiteLLM, configured by `SSE_MODEL_NAME`,
-#    `SSE_BASE_URL` and `SSE_API_KEY`.
-# 2. An agent has successfully committed a patch to the original repo, meaning the
-#    repo now contains two and only two commits: a buggy commit and a fix commit.
-# 3. The project is not broken in a way that prevents fuzzing from running.
-# 4. Internet access is allowed. It will use the internet to install `afl++`.
-#    TODO: AFL++ will be included in the base image / tool layer so we don't
-#    need to install it again.
+# Assumptions:
+#  - It runs inside an SSEBench container, as root, at the grading phase.
+#  - The run's model is reachable through LiteLLM, configured by SSE_MODEL_NAME,
+#    SSE_BASE_URL and SSE_API_KEY (the plugin declares `llm: true`).
+#  - The agent's patch is committed on top of the buggy commit.
+#
+# Fuzzing (review then fuzz) is opt-in with SSE_ORACLE_FUZZ=1: it installs and
+# runs AFL++, so it needs `--egress open`. By default the plugin only produces
+# the LLM patch review, which needs no internet.
+
+from __future__ import annotations
 
 import asyncio
+import logging
+import os
+import sys
+from pathlib import Path
 
-from fuzz import run_fuzz
-from review import run_review
+logging.basicConfig(level=logging.INFO, format="[oracle] %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
 
-archive_folder = "/tmp/"
+LLM_VARS = ("SSE_API_KEY", "SSE_BASE_URL", "SSE_MODEL_NAME")
 
 
-async def main():
-    review_text = await run_review(archive_folder)
-    await run_fuzz(review_text)
+def output_dir() -> Path:
+    archive = Path(os.environ.get("SSE_ARCHIVE", "/tmp/sse-archive"))
+    return archive / "oracle"
+
+
+def llm_ready() -> bool:
+    missing = [v for v in LLM_VARS if not os.environ.get(v)]
+    if missing:
+        logger.warning("No LLM configured (%s unset); skipping", ", ".join(missing))
+        return False
+    return True
+
+
+async def run(out: Path) -> None:
+    # Import lazily: these modules reach the daemon and the model, which only
+    # exist inside a running container.
+    from fuzz import run_fuzz
+    from review import run_review
+
+    review_text = None
+    try:
+        review_text = await run_review(str(out))
+    except Exception as e:
+        logger.error("Patch review failed (non-fatal): %s", e)
+
+    if os.environ.get("SSE_ORACLE_FUZZ") == "1":
+        try:
+            await run_fuzz(review_text)
+        except Exception as e:
+            logger.error("Fuzzing failed (non-fatal): %s", e)
+    else:
+        logger.info("Fuzzing disabled (set SSE_ORACLE_FUZZ=1 with --egress open to enable)")
+
+
+def main() -> int:
+    if not llm_ready():
+        return 0
+    out = output_dir()
+    out.mkdir(parents=True, exist_ok=True)
+    asyncio.run(run(out))
+    return 0
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    sys.exit(main())

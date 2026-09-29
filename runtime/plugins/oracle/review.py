@@ -16,7 +16,7 @@ from pathlib import Path
 from sse import project as sse_project
 from sse.reference import get_reference_patch
 
-from config import opencode_agent
+from config import make_opencode_agent
 
 REVIEW_PROMPT_TEMPLATE = """\
 An AI agent has attempted to fix a bug in this directory ({source_dir}). \
@@ -67,9 +67,12 @@ async def run_review(archive_path: str) -> str | None:
         )
 
         logger.info("Starting AI patch review...")
-        async with opencode_agent as agent:
+        async with make_opencode_agent() as agent:
             session_id = await agent.create_session(title="Patch Review")
             response = await agent.send_prompt(session_id, prompt)
+
+        if not response.final_message.strip():
+            logger.warning("The model returned no review; check the model and its key")
 
         # Write review artifacts to archive
         archive = Path(archive_path)
