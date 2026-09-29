@@ -51,18 +51,17 @@ import type {
 } from "../types/launch"
 
 /**
- * Fetch ground truth patch from SDK (WebUI only)
- * Note: This endpoint is intentionally NOT available to agent clients
- * to maintain benchmark integrity
+ * Fetch the reference patch from the SDK. The daemon withholds it until the
+ * agent phase ends, so it is only available for a finished run.
  */
-export async function fetchGroundTruthPatch(
+export async function fetchReferencePatch(
   containerId: string
 ): Promise<DiffResponse> {
   const response = await apiFetch(
-    `/api/containers/${containerId}/cheating/ground_truth`
+    `/api/containers/${containerId}/reference/patch`
   )
   if (!response.ok) {
-    throw new Error(`Failed to fetch ground truth: ${response.status}`)
+    throw new Error(`Failed to fetch reference patch: ${response.status}`)
   }
   return response.json()
 }
