@@ -8,10 +8,11 @@ from typing import final, override
 from uuid import uuid4
 
 from ssebench.agents import Agent
+from ssebench.extensions import DEFAULT_TOOL_LAYER, get_tool_layer
 from ssebench.middleware import (
-    SandboxToolLayer,
     SidecarToolLayerAgentRuntime,
     SidecarToolLayerEnvironment,
+    ToolLayerContext,
 )
 from ssebench.models import Model
 from ssebench.pipe import build_pipe
@@ -65,6 +66,7 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
         timeout: int,
         difficulty: int,
         keep_container: bool = False,
+        tool_layer: str = DEFAULT_TOOL_LAYER,
     ):
         self.model = model
         self.agent = agent
@@ -72,16 +74,15 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
         self.timeout = timeout
         self.difficulty = difficulty
         self.keep_container = keep_container
+        self.tool_layer_name = tool_layer
+        self.tool_layer = get_tool_layer(tool_layer)
 
         self.sandbox_image = None
 
     @override
     def build(self):
         metadata = self.task.get_task_metadata()
-        tool_layer = SandboxToolLayer(
-            task_name=self.task.name,
-            source_dir=metadata.source,
-        )
+        tool_layer = self.tool_layer(ToolLayerContext(task_name=self.task.name, source_dir=metadata.source))
         self.sandbox_image = build_pipe([self.task, tool_layer, self.agent])
         logger.info(f"Build benchmark image {self.sandbox_image}")
 
@@ -156,6 +157,7 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
             mode="sandbox",
             timeout=self.timeout,
             difficulty=self.difficulty,
+            tool_layer=self.tool_layer_name,
         )
 
         per_task_result = PerTaskEvaluationResult.build(
@@ -197,14 +199,13 @@ class BenchmarkSidecarRuner(BenchmarkRunner):
 
     @override
     def build(self):
-        tool_layer_agentrt = SidecarToolLayerAgentRuntime()
+        context = ToolLayerContext(task_name=self.task.name, source_dir=self.task.get_task_metadata().source)
+
+        tool_layer_agentrt = SidecarToolLayerAgentRuntime(context)
         self.sidecar_agentrt_image = build_pipe([tool_layer_agentrt, self.agent])
         logger.info(f"[experimental] Build agent runtime image {self.sidecar_agentrt_image}")
 
-        tool_layer_environ = SidecarToolLayerEnvironment(
-            task_name=self.task.name,
-            source_dir=self.task.get_task_metadata().source,
-        )
+        tool_layer_environ = SidecarToolLayerEnvironment(context)
         self.sidecar_environ_image = build_pipe([self.task, tool_layer_environ])
         logger.info(f"[experimental] Build environment image {self.sidecar_environ_image}")
 

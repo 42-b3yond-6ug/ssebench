@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import time
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
@@ -13,6 +14,14 @@ import requests
 
 from ssebench import paths
 from ssebench.agents import Agent
+from ssebench.extensions import (
+    DEFAULT_TOOL_LAYER,
+    Command,
+    ExtensionError,
+    command_names,
+    get_tool_layer,
+    load_commands,
+)
 from ssebench.models import Model
 from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRuner
 from ssebench.tasks import LocalTask, RemoteTask
@@ -20,6 +29,8 @@ from ssebench.tasks import LocalTask, RemoteTask
 from .build import build_case_image, get_tasks
 
 logger = logging.getLogger(__name__)
+
+BUILTIN_COMMANDS = ("run", "build-case")
 
 
 class RunArgs(argparse.Namespace):
@@ -31,6 +42,7 @@ class RunArgs(argparse.Namespace):
         self.local: str
         self.catalog: str
         self.mode: Literal["sidecar", "sandbox"]
+        self.tool_layer: str | None
         self.timeout: int
         self.difficulty: int
         self.keep_container: bool
@@ -82,6 +94,17 @@ def cmd_run(args: argparse.Namespace) -> int:
         )
         return 1
 
+    if args.tool_layer is not None and args.mode != "sandbox":
+        logger.error("--tool-layer applies to sandbox mode only")
+        return 1
+    tool_layer = args.tool_layer or DEFAULT_TOOL_LAYER
+    # Reject an unknown or broken layer before starting the proxy.
+    try:
+        _ = get_tool_layer(tool_layer)
+    except ExtensionError as e:
+        logger.error(e)
+        return 1
+
     # Wait until LiteLLM is ready
     compose_file = paths.compose_file()
     try:
@@ -104,7 +127,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     runner: BenchmarkSandboxRunner | BenchmarkSidecarRuner
     match args.mode:
         case "sandbox":
-            runner = BenchmarkSandboxRunner(model, agent, task, timeout, difficulty, keep_container)
+            runner = BenchmarkSandboxRunner(model, agent, task, timeout, difficulty, keep_container, tool_layer)
         case "sidecar":
             runner = BenchmarkSidecarRuner(model, agent, task, timeout, difficulty, keep_container)
         case _:
@@ -146,7 +169,23 @@ def cmd_build_case(args: argparse.Namespace) -> int:
     return 0
 
 
-def main():
+def requested_extensions(argv: Sequence[str]) -> list[Command]:
+    """Import only the extension commands this invocation can use.
+
+    A built-in command imports none, so a slow or broken extension cannot affect it.
+    """
+    requested = argv[0] if argv and not argv[0].startswith("-") else None
+    if requested in BUILTIN_COMMANDS:
+        return []
+    if requested in command_names():
+        return load_commands(requested, reserved=BUILTIN_COMMANDS)
+    # Help, no command or an unknown one: list every extension command.
+    return load_commands(reserved=BUILTIN_COMMANDS)
+
+
+def main(argv: Sequence[str] | None = None):
+    argv = sys.argv[1:] if argv is None else list(argv)
+
     parser = argparse.ArgumentParser(
         description="SSEBench CLI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -166,6 +205,13 @@ def main():
         help="Catalog server URL, used when --local is not given (default: $SSEBENCH_CATALOG)",
     )
     run_parser.add_argument("--mode", choices=["sidecar", "sandbox"], default="sandbox")
+    run_parser.add_argument(
+        "--tool-layer",
+        type=str,
+        default=None,
+        metavar="NAME",
+        help=f"Tool layer to build in sandbox mode (default: {DEFAULT_TOOL_LAYER}); installed extensions can add more",
+    )
     run_parser.add_argument("--timeout", type=int, default=3600)
     run_parser.add_argument(
         "--difficulty",
@@ -199,7 +245,18 @@ def main():
         help="Force rebuild existing images",
     )
 
-    args = parser.parse_args()
+    extensions: dict[str, Command] = {}
+    for command in requested_extensions(argv):
+        try:
+            # argparse cannot remove a subcommand once added, so try the arguments on a scratch parser first.
+            command.configure(argparse.ArgumentParser())
+        except Exception as e:
+            logger.warning(f"Ignoring command {command.name!r}: configure() failed: {e}")
+            continue
+        command.configure(subparsers.add_parser(command.name, help=command.help, description=command.help))
+        extensions[command.name] = command
+
+    args = parser.parse_args(argv)
 
     if args.command is None:
         parser.print_help()
@@ -211,6 +268,8 @@ def main():
             sys.exit(cmd_run(args))
         elif args.command == "build-case":
             sys.exit(cmd_build_case(args))
+        elif args.command in extensions:
+            sys.exit(extensions[args.command].run(args))
         else:
             parser.print_help()
             sys.exit(1)
