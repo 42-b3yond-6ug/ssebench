@@ -27,8 +27,8 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent <agent> --mo
 | `--model NAME` | *(required)* | Model name, as defined in `models/*.yaml` |
 | `--agent NAME` | *(required)* | Agent name, a directory under `agents/` |
 | `--task ID` | *(required)* | Task ID, the name of the task's folder |
-| `--local DIR` | | Dataset directory that contains the task folder, for example `datasets/pilot` |
-| `--catalog URL` | `$SSEBENCH_CATALOG` | Catalog server to get the task from when `--local` is not given |
+| `--local DIR` | | Dataset directory that contains the task folder, for example `datasets/pilot`; the case image is built from the folder |
+| `--catalog PATH\|URL` | `$SSEBENCH_CATALOG`, else the bundled pilot manifest | [Catalog](#task-catalog) to get the task from when `--local` is not given |
 | `--mode MODE` | `sandbox` | Execution mode: `sandbox`, or `sidecar` (experimental); see [Sandbox and sidecar](/concepts/sandbox-and-sidecar) |
 | `--tool-layer NAME` | `sandbox` | The [tool layer](/guides/extension-points#tool-layers) to build, in sandbox mode; installed extensions can add more |
 | `--timeout SECONDS` | `3600` | How long the agent may run |
@@ -36,7 +36,12 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent <agent> --mo
 | `--keep-container` | off | Keep the container after the run, for example to inspect it from the [web UI](/webui/) |
 | `--egress POLICY` | `restricted` | `restricted`: the run container reaches the LiteLLM proxy but not the internet. `open`: it also has internet access, for tasks that need network at test time. Recorded as `config.egress` in the run summary |
 
-Either `--local` or a catalog (`--catalog` or `SSEBENCH_CATALOG`) is required.
+Without `--local`, the task comes from the [task catalog](#task-catalog), and
+its case image is pulled from `$SSEBENCH_REGISTRY`. When the pull fails, the CLI
+says so and builds the image from the task's folder instead, if a copy of the
+folder whose files match the catalog is available locally: next to a local
+manifest, or in `datasets/<dataset>/` of the
+[SSEBench home](#working-directory), as for the bundled pilot dataset.
 
 In order, `run`:
 
@@ -48,6 +53,43 @@ In order, `run`:
 3. builds the case, tool and agent [image layers](/concepts/image-layers);
 4. runs the task container, which runs the agent and then the evaluator;
 5. writes the grade, the run settings and the model spend to `results/`.
+
+## `ssebench tasks list`
+
+Lists the tasks of a catalog or of a local dataset. It reads nothing over the
+network unless the catalog is a URL, so it works offline with the bundled pilot
+manifest.
+
+```sh
+uv run ssebench tasks list
+uv run ssebench tasks list --json --catalog https://catalog.example.org
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--catalog PATH\|URL` | `$SSEBENCH_CATALOG`, else the bundled pilot manifest | [Catalog](#task-catalog) to list |
+| `--local DIR` | | Dataset directory: list its task folders instead of a catalog |
+| `--json` | off | Print a JSON array of the tasks, as the [catalog service](/dataset/manifest#catalog-service) returns them from `GET /tasks`: without `files` and `metadata`, with image names prefixed by `$SSEBENCH_REGISTRY` |
+
+Without `--json`, it prints a table of task IDs, languages and projects.
+
+## Task catalog
+
+A catalog is a [dataset manifest](/dataset/manifest). `--catalog`, or the
+`SSEBENCH_CATALOG` [setting](/reference/environment#ssebench-settings) when the
+option is not given, names it as one of:
+
+| Value | Manifest read |
+|-------|---------------|
+| path of a file, such as `datasets/pilot/manifest.json` | the file |
+| path of a directory, such as `datasets/pilot` | `manifest.json` in it |
+| `http(s)` URL whose path ends in `.json` | the URL |
+| any other `http(s)` URL, such as a [catalog service](/dataset/manifest#catalog-service) at `http://localhost:8080` | `manifest.json` under it |
+
+With neither, the catalog is `datasets/pilot/manifest.json` in the
+[SSEBench home](#working-directory), the pilot dataset's manifest that ships
+with SSEBench. The [web UI](/webui/) reads the same variable and passes its
+catalog on to the runs it launches.
 
 ## `ssebench build-case`
 
@@ -147,5 +189,6 @@ file in the *SSEBench home*, which is the first of:
 
 From outside the repository, run `uv run --project /path/to/ssebench ssebench ...`
 or set `SSEBENCH_HOME`. The CLI reads `.env` in the SSEBench home; variables
-set in the environment take precedence over it. Paths you pass, such as `--local` and `--benchmarks`,
-are relative to the working directory, and so is `results/`.
+set in the environment take precedence over it. Paths you pass, such as
+`--local`, `--catalog` and `--benchmarks`, are relative to the working
+directory, and so is `results/`.

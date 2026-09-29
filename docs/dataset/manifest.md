@@ -249,6 +249,12 @@ go run ./catalog/cmd/ssebench-catalog serve --manifest datasets/pilot/manifest.j
 | `GET /manifest.json` | The manifest as loaded, with image names relative to the registry |
 
 `docker build -f catalog/Dockerfile .`, from the repository root, builds an
-image that serves the committed `datasets/pilot/manifest.json`. `ssebench run
---catalog URL` and the web UI (`SSEBENCH_CATALOG_URL`) get remote tasks from
-this service.
+image that serves the committed `datasets/pilot/manifest.json`.
+
+The service is optional. The CLI and the web UI read a manifest directly from
+a file or URL, and default to the bundled `datasets/pilot/manifest.json`, so
+they list tasks without any server or network. To use a service, set
+`SSEBENCH_CATALOG` (or pass `ssebench run --catalog`) to its base URL, such as
+`http://localhost:8080`; they read its `GET /manifest.json` and prefix image
+names with their own `$SSEBENCH_REGISTRY`. See
+[Task catalog](/reference/cli#task-catalog).
