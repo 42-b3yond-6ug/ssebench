@@ -4,7 +4,7 @@ import argparse
 import subprocess
 from typing import override
 
-from ssebench.extensions import REGISTRY, Command, SandboxToolLayer, ToolLayer
+from ssebench.extensions import REGISTRY, TAG, Command, SandboxToolLayer, ToolLayer
 
 # Builds on the standard runtime rather than replacing it: the agent layer and the
 # entrypoint still need the daemon, the MCP server and the evaluator it installs.
@@ -20,7 +20,7 @@ class ExampleToolLayer(ToolLayer):
     @override
     def docker_image(self, base: str | None) -> str:
         runtime = SandboxToolLayer(self.context).docker_image(base)
-        image = f"{REGISTRY}/tool-example/{self.context.task_name.lower()}"
+        image = f"{REGISTRY}/tool-example/{self.context.task_name.lower()}:{TAG}"
         _ = subprocess.run(
             [
                 "docker",
