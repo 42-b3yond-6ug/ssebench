@@ -484,24 +484,38 @@ async fn agent_exited(
     Ok(HttpResponse::Ok().json(json!({ "success": true })))
 }
 
-/// Configure all routes for the application.
-pub fn configure_routes(cfg: &mut web::ServiceConfig) {
-    cfg.route("/version", web::get().to(version))
-        .route("/project", web::get().to(project))
-        .route("/capabilities", web::get().to(capabilities))
-        .route("/tool/{name}", web::post().to(tool))
-        // WebUI endpoints for code change monitoring
-        .route("/diff", web::get().to(diff))
-        .route("/files", web::get().to(files))
-        // Agent dialog endpoint
-        .route("/agent/dialog", web::get().to(agent_dialog))
-        // Evaluation result endpoint
-        .route("/result", web::get().to(result))
-        // Grading endpoints (privileged admin socket only - NOT for agents!)
-        .route("/prepare_grading", web::post().to(prepare_grading_handler))
-        .route("/final_diff", web::get().to(final_diff))
-        // Phase control (privileged admin socket only)
-        .route("/admin/agent_exited", web::post().to(agent_exited))
-        // Reference patch: privileged, or agent-facing only after the agent phase
-        .route("/reference/patch", web::get().to(reference_patch));
+/// Declares every route once: `configure_routes` registers them and `ROUTES`
+/// lists them, so the OpenAPI contract test sees exactly what is served.
+macro_rules! routes {
+    ($($method:ident $path:literal => $handler:ident,)*) => {
+        /// Every route as (lowercase HTTP method, path template), in the order
+        /// they are registered. `openapi.yaml` must describe exactly these.
+        pub const ROUTES: &[(&str, &str)] = &[$((stringify!($method), $path),)*];
+
+        /// Configure all routes for the application.
+        pub fn configure_routes(cfg: &mut web::ServiceConfig) {
+            $(cfg.route($path, web::$method().to($handler));)*
+        }
+    };
+}
+
+routes! {
+    get "/version" => version,
+    get "/project" => project,
+    get "/capabilities" => capabilities,
+    post "/tool/{name}" => tool,
+    // WebUI endpoints for code change monitoring
+    get "/diff" => diff,
+    get "/files" => files,
+    // Agent dialog endpoint
+    get "/agent/dialog" => agent_dialog,
+    // Evaluation result endpoint
+    get "/result" => result,
+    // Grading: only the admin socket prepares it; the diff it saved is readable on every listener
+    post "/prepare_grading" => prepare_grading_handler,
+    get "/final_diff" => final_diff,
+    // Phase control (privileged admin socket only)
+    post "/admin/agent_exited" => agent_exited,
+    // Reference patch: privileged, or agent-facing only after the agent phase
+    get "/reference/patch" => reference_patch,
 }
