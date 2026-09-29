@@ -11,6 +11,7 @@ from typing import Literal
 
 import requests
 
+from ssebench import paths
 from ssebench.agents import Agent
 from ssebench.models import Model
 from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRuner
@@ -19,13 +20,6 @@ from ssebench.tasks import LocalTask, RemoteTask
 from .build import build_case_image, get_tasks
 
 logger = logging.getLogger(__name__)
-
-# Default paths (relative to the repository root)
-DEFAULT_BENCHMARKS_DIR = Path("datasets/pilot")
-
-# bench/ is installed in editable mode, so the repository root is four levels above this module.
-REPO_ROOT = Path(__file__).resolve().parents[4]
-COMPOSE_FILE = REPO_ROOT / "deploy" / "compose" / "docker-compose.yaml"
 
 
 class RunArgs(argparse.Namespace):
@@ -89,8 +83,9 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 1
 
     # Wait until LiteLLM is ready
+    compose_file = paths.compose_file()
     try:
-        docker_compose_up(compose_file=str(COMPOSE_FILE))
+        docker_compose_up(compose_file=str(compose_file))
         wait_for_health()
     except TimeoutError as e:
         logger.error(f"timeout: {e}")
@@ -122,7 +117,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 def cmd_build_case(args: argparse.Namespace) -> int:
     """Build case images."""
-    benchmarks_dir = Path(args.benchmarks).resolve()
+    benchmarks_dir = Path(args.benchmarks).resolve() if args.benchmarks else paths.default_dataset_dir()
     tasks = get_tasks(benchmarks_dir, args.tasks)
 
     if not tasks:
@@ -189,8 +184,8 @@ def main():
     build_case_parser.add_argument(
         "--benchmarks",
         type=str,
-        default=str(DEFAULT_BENCHMARKS_DIR),
-        help="Path to benchmarks directory",
+        default=None,
+        help="Path to benchmarks directory (default: datasets/pilot in the SSEBench home)",
     )
     build_case_parser.add_argument(
         "--tasks",
@@ -211,10 +206,14 @@ def main():
         sys.exit(1)
 
     # Dispatch to appropriate command
-    if args.command == "run":
-        sys.exit(cmd_run(args))
-    elif args.command == "build-case":
-        sys.exit(cmd_build_case(args))
-    else:
-        parser.print_help()
+    try:
+        if args.command == "run":
+            sys.exit(cmd_run(args))
+        elif args.command == "build-case":
+            sys.exit(cmd_build_case(args))
+        else:
+            parser.print_help()
+            sys.exit(1)
+    except paths.HomeNotFoundError as e:
+        logger.error(e)
         sys.exit(1)

@@ -4,6 +4,7 @@ from abc import ABC
 from pathlib import Path
 from typing import final, override
 
+from ssebench import paths
 from ssebench.pipe import REGISTRY, DockerLayerMixin
 
 DOCKER_IMAGE_PREFIX_SANDBOX = f"{REGISTRY}/tool"
@@ -24,11 +25,11 @@ class SandboxToolLayer(ToolLayer):
         self,
         task_name: str,
         source_dir: str,
-        build_root: Path = Path("."),
+        build_root: Path | None = None,
     ):
         self.task_name = task_name
         self.source_dir = source_dir
-        self.build_root = build_root
+        self.build_root = build_root or paths.home()
 
     @override
     def docker_image(self, base: str | None) -> str:
@@ -65,8 +66,8 @@ class SandboxToolLayer(ToolLayer):
 
 @final
 class SidecarToolLayerAgentRuntime(ToolLayer):
-    def __init__(self, build_root: Path = Path(".")):
-        self.build_root = build_root
+    def __init__(self, build_root: Path | None = None):
+        self.build_root = build_root or paths.home()
 
     @override
     def docker_image(self, base: str | None) -> str:
@@ -103,11 +104,11 @@ class SidecarToolLayerEnvironment(ToolLayer):
         self,
         task_name: str,
         source_dir: str,
-        build_root: Path = Path("."),
+        build_root: Path | None = None,
     ):
         self.task_name = task_name
         self.source_dir = source_dir
-        self.build_root = build_root
+        self.build_root = build_root or paths.home()
 
     @override
     def docker_image(self, base: str | None) -> str:
