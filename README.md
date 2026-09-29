@@ -158,7 +158,7 @@ component.
 
 | Path | What it is |
 |---|---|
-| `bench/` | The `ssebench` CLI: builds image layers and runs agent × model × task. |
+| `bench/` | The `ssebench` CLI (package `ssebench`): builds image layers and runs agent × model × task. |
 | `runtime/entrypoint/` | Container entrypoint (Go). Starts the daemon, MCP server, agent and evaluator. |
 | `runtime/evaluator/` | Grades the final state of the source tree. |
 | `runtime/mcp/` | MCP server exposing `test_patch`. |

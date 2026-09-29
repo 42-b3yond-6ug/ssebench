@@ -47,7 +47,7 @@ While iterating on one component, you can run its tools directly:
 
 | Component | Paths | Commands |
 |---|---|---|
-| Python | `bench/`, `runtime/evaluator/`, `runtime/mcp/`, `runtime/plugins/`, `sdk/python/` | `uv run ruff format`, `uv run ruff check`, `uv run basedpyright`, `uv run pytest` |
+| Python | `bench/`, `runtime/evaluator/`, `runtime/mcp/`, `runtime/plugins/`, `sdk/python/`, `agents/*/*-sse/` | `uv run ruff format`, `uv run ruff check`, `uv run basedpyright`, `uv run pytest` (one uv workspace; run from the repository root) |
 | Rust | `sdk/daemon/` | `cargo fmt`, `cargo clippy --all-targets -- -D warnings`, `cargo test` |
 | Go | `runtime/entrypoint/`, `catalog/`, `webui/pty-proxy/` | `gofmt -l .`, `go vet ./...`, `go test ./...` |
 | TypeScript | `webui/` | `bun run lint`, `bun run typecheck`, `bun run build` |

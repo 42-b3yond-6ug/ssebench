@@ -41,7 +41,7 @@ The difficulty level (`SSE_DIFFICULTY`) controls which checks the agent's
 ## Where things live
 
 ```
-bench/                 ssebench CLI (Python): agents, models, tasks, image pipeline, runner
+bench/                 ssebench CLI (Python package in bench/src/ssebench): agents, models, tasks, image pipeline, runner
 runtime/entrypoint/    container entrypoint (Go)
 runtime/evaluator/     final grading (Python)
 runtime/mcp/           MCP server exposing test_patch (Python)
@@ -60,6 +60,7 @@ tools/validate/        task validator
 docs/                  VitePress documentation site
 deploy/compose/        Docker Compose stack (LiteLLM proxy and Postgres)
 deploy/helm/           Helm chart (planned)
+pyproject.toml         uv workspace root (every Python project above is a member); uv.lock pins them all
 .github/workflows/     CI (GitHub Actions)
 ```
 
@@ -90,11 +91,12 @@ per-component commands below.
 Per component:
 
 ```sh
-# Python projects (bench, runtime/evaluator, runtime/mcp, runtime/plugins/*, sdk/python)
+# Python: one uv workspace (bench, runtime/evaluator, runtime/mcp, runtime/plugins/*,
+# sdk/python, agents/*/*-sse); run from the repository root
 uv sync
-uv run ruff format . && uv run ruff check .
+uv run ruff format && uv run ruff check
 uv run basedpyright
-uv run pytest                      # where the project has tests
+uv run pytest
 
 # Rust (sdk/daemon)
 cargo fmt --check
@@ -113,7 +115,10 @@ bun run build                                          # docs
 uv run ssebench run --local datasets/pilot --task <task-id> --agent dummy --model <model-name>
 ```
 
-Run results land in `results/<task>/<model>/<agent>/`.
+Run results land in `results/<task>/<model>/<agent>/` under the working
+directory. The CLI finds `agents/`, `images/`, `datasets/` and the Compose file
+through `ssebench.paths`: `SSEBENCH_HOME` if set, otherwise the checkout that
+contains the working directory, otherwise the checkout it was installed from.
 
 ## Conventions
 

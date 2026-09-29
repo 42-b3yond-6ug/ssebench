@@ -98,6 +98,7 @@ After you change `.env` or `models/`, restart the proxy with `just launch`.
 |----------|---------|-------------|
 | `SSEBENCH_REGISTRY` | `ghcr.io/42-b3yond-6ug/ssebench` | Registry prefix for every image SSEBench builds or uses |
 | `SSEBENCH_CATALOG` | unset | Catalog server that `ssebench run` gets tasks from when `--local` is not given |
+| `SSEBENCH_HOME` | see [CLI](/reference/cli#working-directory) | Directory that holds `agents/`, `images/`, `runtime/`, `models/`, `deploy/` and `datasets/`, normally the repository root |
 
 ## Using the variables in an agent
 

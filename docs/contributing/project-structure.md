@@ -10,7 +10,7 @@ This page documents the SSEBench repository layout and key files.
 
 ```
 ssebench/
-├── bench/               # The ssebench CLI (Python)
+├── bench/               # The ssebench CLI (Python package `ssebench`)
 ├── runtime/
 │   ├── entrypoint/      # Container entrypoint (Go)
 │   ├── evaluator/       # Final grading (Python)
@@ -35,7 +35,8 @@ ssebench/
 │   └── compose/         # Docker Compose stack: LiteLLM proxy and Postgres
 ├── just/                # Just recipes, imported by the Justfile
 ├── Justfile             # Task runner entry point
-├── pyproject.toml       # Makes `uv run ssebench` work from the repository root
+├── pyproject.toml       # uv workspace root for every Python project
+├── uv.lock              # The workspace's single lockfile
 └── .env                 # Your API keys (not committed)
 ```
 
@@ -44,6 +45,12 @@ Run results are written to `results/`, which is not committed.
 ## bench/
 
 The `ssebench` CLI. It loads the task, the agent and the model, builds the image layers for the task, runs the container and collects the results. See the [CLI reference](/reference/cli).
+
+The code is the `ssebench` package in `bench/src/ssebench/`, with one subpackage per concern: `ssebench.cli`, `ssebench.tasks`, `ssebench.agents`, `ssebench.models`, `ssebench.pipe` (the image build pipeline), `ssebench.middleware` (the tool layers) and `ssebench.runner`. `ssebench.paths` locates the SSEBench home that holds `agents/`, `images/`, `datasets/` and the other assets. Tests are in `bench/tests/`.
+
+## Python workspace
+
+The Python projects form one [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) rooted at the repository's `pyproject.toml`: `bench`, `runtime/evaluator`, `runtime/mcp`, `runtime/plugins/*`, `sdk/python` and the agent wrappers `agents/*/*-sse`. `uv sync` at the root installs all of them into one `.venv`, and `uv.lock` pins their dependencies. The ruff, basedpyright and pytest settings live in the root `pyproject.toml`.
 
 ## runtime/
 
