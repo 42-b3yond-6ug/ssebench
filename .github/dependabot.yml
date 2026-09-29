@@ -1,0 +1,87 @@
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/*
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      python:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      rust:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: gomod
+    directories:
+      - /catalog
+      - /runtime/entrypoint
+      - /webui/pty-proxy
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      go:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      javascript:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # images/base-images is left out: those images pin the compilers that the
+  # dataset's tasks are built and graded with, so they change with the dataset.
+  - package-ecosystem: docker
+    directories:
+      - /catalog
+      - /images/litellm
+      - /images/sandbox
+      - /images/sidecar-agent
+      - /images/sidecar-case
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
+    ignore:
+      # The rust image tags follow rust-toolchain.toml and move with it.
+      - dependency-name: rust
+    groups:
+      docker:
+        patterns: ["*"]
