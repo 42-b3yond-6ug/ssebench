@@ -75,7 +75,7 @@ SSEBench includes state-of-the-art code agents:
 
 ## Next Steps
 
-- [Getting Started](/guide/getting-started) - Set up SSEBench on your machine
-- [Architecture](/guide/architecture) - Understand how SSEBench works
-- [Adding Models](/guide/models) - Integrate new LLM models
-- [MCP Server](/guide/mcp-server) - The `test_patch` tool agents use to check their work
+- [Getting Started](/getting-started/quickstart) - Set up SSEBench on your machine
+- [Architecture](/concepts/architecture) - Understand how SSEBench works
+- [Adding Models](/guides/add-a-model) - Integrate new LLM models
+- [MCP Server](/reference/mcp-server) - The `test_patch` tool agents use to check their work

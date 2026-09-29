@@ -361,5 +361,5 @@ The Claude Code agent wrapper at `agents/claude-code/claude-code-sse/main.py` is
 
 ## Next Steps
 
-- [MCP Server](/guide/mcp-server) - The `test_patch` tool
-- [Environment Variables](/guide/environment) - All available environment variables
+- [MCP Server](/reference/mcp-server) - The `test_patch` tool
+- [Environment Variables](/reference/environment) - All available environment variables

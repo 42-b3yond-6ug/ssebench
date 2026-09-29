@@ -57,7 +57,7 @@ The `ssebench` CLI. It builds the image layers for a task and runs one agent × 
 
 ## runtime/
 
-Everything that runs inside the task container besides the agent. The entrypoint starts the SDK daemon, then the [MCP server](/guide/mcp-server), then the agent as the unprivileged user `model`, and finally the evaluator, which writes `result.json`.
+Everything that runs inside the task container besides the agent. The entrypoint starts the SDK daemon, then the [MCP server](/reference/mcp-server), then the agent as the unprivileged user `model`, and finally the evaluator, which writes `result.json`.
 
 ## images/
 
@@ -96,7 +96,7 @@ models/
 └── openai-gpt.yaml          # OpenAI models
 ```
 
-See [Adding Models](/guide/models) for the format.
+See [Adding Models](/guides/add-a-model) for the format.
 
 ## datasets/pilot/
 
@@ -117,18 +117,25 @@ datasets/pilot/<task-id>/
 
 ## docs/
 
-Documentation source (VitePress):
+Documentation source (VitePress), one directory per section. See
+[Writing documentation](/contributing/documentation).
 
 ```
 docs/
 ├── .vitepress/
-│   └── config.mts      # Site configuration
-├── guide/              # User guides
-├── reference/          # Reference pages
+│   └── config.mts      # Site configuration: navigation, sidebar, search
+├── getting-started/
+├── concepts/
+├── guides/
+├── dataset/
+├── reference/
+├── webui/
+├── deployment/
+├── contributing/
 └── index.md            # Homepage
 ```
 
 ## Next Steps
 
-- [Getting Started](/guide/getting-started) - Setup guide
-- [Architecture](/guide/architecture) - System design
+- [Getting Started](/getting-started/quickstart) - Setup guide
+- [Architecture](/concepts/architecture) - System design
