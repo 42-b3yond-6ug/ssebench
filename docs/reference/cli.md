@@ -26,6 +26,7 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent <agent> --mo
 | `--local DIR` | | Dataset directory that contains the task folder, for example `datasets/pilot` |
 | `--catalog URL` | `$SSEBENCH_CATALOG` | Catalog server to get the task from when `--local` is not given |
 | `--mode MODE` | `sandbox` | Execution mode: `sandbox`, or `sidecar` (experimental); see [Sandbox and sidecar](/concepts/sandbox-and-sidecar) |
+| `--tool-layer NAME` | `sandbox` | The [tool layer](/guides/extension-points#tool-layers) to build, in sandbox mode; installed extensions can add more |
 | `--timeout SECONDS` | `3600` | How long the agent may run |
 | `--difficulty LEVEL` | `2` | Which checks the agent's `test_patch` tool may run, from 0 to 4; see [Difficulty levels](/reference/mcp-server#difficulty-levels) |
 | `--keep-container` | off | Keep the container after the run, for example to inspect it from the [web UI](/webui/) |
@@ -55,6 +56,11 @@ uv run ssebench build-case --benchmarks datasets/pilot --tasks gjson-196-bf4efcb
 | `--benchmarks DIR` | `datasets/pilot` in the [SSEBench home](#working-directory) | Dataset directory |
 | `--tasks IDS` | every task | Comma-separated task IDs |
 | `--force` | off | Rebuild images that already exist |
+
+## Commands from extensions
+
+Installed packages can add subcommands; `ssebench --help` lists them. See
+[Extension points](/guides/extension-points#commands).
 
 ## Working directory
 
