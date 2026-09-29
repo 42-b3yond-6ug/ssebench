@@ -60,6 +60,7 @@ import {
   getAgents,
   hasLocalBenchmarks,
   isCatalogConfigured,
+  CATALOG,
   CATALOG_NOT_CONFIGURED,
   launchTask,
   getLaunchStatus,
@@ -1057,10 +1058,15 @@ console.log(
 )
 console.log(`   - POST /api/launch/cancel                Cancel current launch`)
 console.log(``)
-if (!isCatalogConfigured()) {
+if (CATALOG) {
+  console.log(`   Task catalog: ${CATALOG.location}`)
+  if (CATALOG.deprecated) {
+    console.log(`   SSEBENCH_CATALOG_URL is deprecated; set SSEBENCH_CATALOG`)
+  }
+} else {
   console.log(`   ${CATALOG_NOT_CONFIGURED}; listing local tasks only`)
-  console.log(``)
 }
+console.log(``)
 console.log(`   Press Ctrl+C to shut down gracefully`)
 
 // =============================================================================

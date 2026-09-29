@@ -145,7 +145,7 @@ export function StepTask({
           }`}
           title={
             !catalogConfigured
-              ? "Task catalog not configured (SSEBENCH_CATALOG_URL)"
+              ? "Task catalog not configured (SSEBENCH_CATALOG)"
               : undefined
           }
         >
@@ -238,7 +238,7 @@ export function StepTask({
           <div className="text-fg-4 flex h-full flex-col items-center justify-center gap-1 px-6 text-center text-sm">
             <p className="text-fg font-medium">Task catalog not configured</p>
             <p>
-              Set <code className="font-mono">SSEBENCH_CATALOG_URL</code> for
+              Set <code className="font-mono">SSEBENCH_CATALOG</code> for
               the webui server to list catalog tasks, or use local tasks.
             </p>
           </div>

@@ -13,6 +13,7 @@
 import { spawn, type Subprocess } from "bun"
 import { readdirSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
+import { loadCatalogTasks, resolveCatalog, type CatalogTask } from "./catalog"
 import { listContainers } from "./docker"
 
 // =============================================================================
@@ -28,23 +29,21 @@ const LOCAL_TASKS_PATH =
 const MODELS_PATH = join(SSEBENCH_PATH, "models")
 const AGENTS_PATH = join(SSEBENCH_PATH, "agents")
 
-// Base URL of a task catalog service (serves GET /tasks). There is no
-// default: without it only local tasks can be listed and launched.
-const CATALOG_URL =
-  process.env.SSEBENCH_CATALOG_URL?.trim().replace(/\/+$/, "") || null
+// Task catalog for the "Catalog" source, handed to the CLI as --catalog so
+// that both read the same one.
+export const CATALOG = resolveCatalog(
+  process.env,
+  join(SSEBENCH_PATH, "datasets", "pilot", "manifest.json")
+)
 
 export const CATALOG_NOT_CONFIGURED =
-  "Task catalog not configured: set SSEBENCH_CATALOG_URL for the webui server"
+  "Task catalog not configured: set SSEBENCH_CATALOG for the webui server"
 
 // =============================================================================
 // Types
 // =============================================================================
 
-interface Task {
-  id: string
-  language?: string
-  project?: string
-}
+type Task = CatalogTask
 
 export interface LaunchConfig {
   task: string
@@ -222,38 +221,18 @@ export function getLocalTasks(): Task[] {
 }
 
 export function isCatalogConfigured(): boolean {
-  return CATALOG_URL !== null
+  return CATALOG !== null
 }
 
 export async function getRemoteTasks(): Promise<Task[]> {
-  if (!CATALOG_URL) {
+  if (!CATALOG) {
     throw new Error(CATALOG_NOT_CONFIGURED)
   }
 
   try {
-    const response = await fetch(`${CATALOG_URL}/tasks`, {
-      signal: AbortSignal.timeout(10000),
-    })
-
-    if (!response.ok) {
-      throw new Error(`API returned ${response.status}`)
-    }
-
-    const data = await response.json()
-
-    if (Array.isArray(data)) {
-      return data.map(
-        (t: { id: string; language?: string; project?: string }) => ({
-          id: t.id,
-          language: t.language,
-          project: t.project,
-        })
-      )
-    }
-
-    return []
+    return await loadCatalogTasks(CATALOG.location)
   } catch (error) {
-    console.error("Failed to fetch remote tasks:", error)
+    console.error("Failed to read the task catalog:", error)
     throw error
   }
 }
@@ -405,6 +384,8 @@ export function buildLaunchArgs(config: LaunchConfig): string[] {
 
   if (config.source === "local") {
     args.push(`--local=${LOCAL_TASKS_PATH}`)
+  } else if (CATALOG) {
+    args.push(`--catalog=${CATALOG.location}`)
   }
 
   if (config.timeout !== undefined) {
