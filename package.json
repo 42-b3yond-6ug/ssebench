@@ -1,0 +1,12 @@
+{
+  "name": "ssebench",
+  "private": true,
+  "workspaces": ["webui", "docs"],
+  "packageManager": "bun@1.3.13",
+  "scripts": {
+    "build": "bun run --cwd webui build && bun run --cwd docs build",
+    "webui:dev": "bun run --cwd webui dev",
+    "docs:dev": "bun run --cwd docs dev",
+    "docs:build": "bun run --cwd docs build"
+  }
+}
