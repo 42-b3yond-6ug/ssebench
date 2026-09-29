@@ -7,7 +7,8 @@ from typing import final
 import httpx
 from pydantic import BaseModel
 
-LITELLM_LOCAL_ADMIN_KEY = "sk-12345"
+from ssebench import settings, stack
+
 MAX_BUDGET = 10
 
 
@@ -29,12 +30,12 @@ class UserInfoResult(BaseModel):
 class Model:
     def __init__(self, model: str):
         self.model_name = model
-        self.host_url = "http://localhost:4000"
-        self.service_url = "http://litellm:4000"
+        self.host_url = stack.host_url()
+        self.service_url = stack.service_url()
 
         self.client = httpx.Client(
             headers={
-                "Authorization": f"Bearer {LITELLM_LOCAL_ADMIN_KEY}",
+                "Authorization": f"Bearer {settings.litellm_master_key()}",
                 "Accept": "application/json",
             }
         )

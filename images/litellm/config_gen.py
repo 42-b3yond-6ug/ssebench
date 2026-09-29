@@ -10,7 +10,7 @@ BASE_TEMPLATE = """
 model_list: []
 
 general_settings:
-  master_key: sk-12345
+  master_key: os.environ/LITELLM_MASTER_KEY
 
 litellm_settings:
   request_timeout: 600
