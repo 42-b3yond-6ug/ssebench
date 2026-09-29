@@ -24,7 +24,9 @@ RUN apt-get update && \
 
 # Create user "model" with uid/gid 1000 for running agents as non-root
 # This allows agents to use --dangerously-skip-permissions (requires non-root)
-RUN groupadd -g 1000 model && \
+# ubuntu:24.04 already has a user "ubuntu" with uid/gid 1000.
+RUN userdel --remove ubuntu && \
+    groupadd -g 1000 model && \
     useradd -m -u 1000 -g 1000 -s /bin/bash model
 
 # SSEBench shared assets
