@@ -129,20 +129,12 @@ jobs:
               - '**/Dockerfile'
               - deploy/compose/**
               - '!datasets/**'
+            # Only the flake itself: the other jobs cover the sources, and a
+            # full flake check costs about 20 runner minutes.
             nix:
-              - *workflow
               - flake.nix
               - flake.lock
               - nix/**
-              - VERSION
-              - rust-toolchain.toml
-              - uv.lock
-              - Cargo.lock
-              - bun.lock
-              - package.json
-              - '**/go.sum'
-              - '**/package.json'
-              - '!datasets/**'
 
   secrets:
     name: Secret scan
