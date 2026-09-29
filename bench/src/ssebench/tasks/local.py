@@ -11,46 +11,6 @@ from ssebench.tasks.metadata import TaskMetadata
 
 from .task import Task
 
-# Language mapping from base type
-LANGUAGE_MAP = {
-    "generic-c": "c",
-    "generic-cpp": "cpp",
-    "generic-java": "java",
-    "generic-python": "python",
-    "generic-rust": "rust",
-    "generic-go": "go",
-    "aixcc-c": "c",
-    "aixcc-cpp": "cpp",
-}
-
-
-def _parse_task_id(name: str) -> tuple[str, str]:
-    """Parse task_id to extract base image type and project info.
-
-    Format: <base-type>-<project>-<issue_id>
-    Example: generic-c-jq-jq_gh_2825
-
-    Returns:
-        tuple of (base_type, project)
-    """
-    parts = name.split("-")
-
-    # Determine base image type (first 1-2 parts)
-    if parts[0] == "generic" and len(parts) > 1:
-        base_type = f"{parts[0]}-{parts[1]}"
-        remaining = parts[2:]
-    elif parts[0] == "aixcc" and len(parts) > 1:
-        base_type = f"{parts[0]}-{parts[1]}"
-        remaining = parts[2:]
-    else:
-        base_type = parts[0]
-        remaining = parts[1:]
-
-    # Extract project name (usually the first part of remaining)
-    project = remaining[0] if remaining else "unknown"
-
-    return base_type, project
-
 
 @final
 class LocalTask(Task):
@@ -67,7 +27,6 @@ class LocalTask(Task):
         self.task_metadata = self.get_task_metadata()
         self.dataset = localpath.resolve().name
         self.docker_image_name = f"{REGISTRY}/case/{self.dataset}/{name}".lower()
-        self._base_type, self._project = _parse_task_id(name)
         assert self._validate()
 
     @override
@@ -111,26 +70,6 @@ class LocalTask(Task):
         """
         return self.task_path.exists()
 
-    @property
-    def base_type(self) -> str:
-        """Return the base image type (e.g., 'generic-c', 'aixcc-c')."""
-        return self._base_type
-
-    @property
-    def base_image_name(self) -> str:
-        """Return the base image name for this task."""
-        return f"{REGISTRY}/base-{self._base_type}"
-
-    @property
-    def project(self) -> str:
-        """Return the project name extracted from task_id."""
-        return self._project
-
-    @property
-    def language(self) -> str:
-        """Return the programming language for this task."""
-        return LANGUAGE_MAP.get(self._base_type, "unknown")
-
     @override
     def case_image_exists(self) -> bool:
         """Check if the case image already exists in Docker."""
@@ -150,6 +89,10 @@ class LocalTask(Task):
                 raise ValueError("Task metadata config.yaml file cannot be found")
         with open(metadata_filepath) as f:
             task_metadata = TaskMetadata.model_validate(yaml.safe_load(f))
+        if task_metadata.id != self.name:
+            raise ValueError(
+                f"{metadata_filepath}: id {task_metadata.id!r} must match the task folder name {self.name!r}"
+            )
         return task_metadata
 
 

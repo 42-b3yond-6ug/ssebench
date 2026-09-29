@@ -1,4 +1,4 @@
-id: "generic-rust-rust-smallvec-rustsec20210003"
+id: RUSTSEC-2021-0003
 project: "rust-smallvec"
 language: "rust"
 source: "/src/rust-smallvec"

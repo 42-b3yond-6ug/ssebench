@@ -1,4 +1,4 @@
-id: "generic-rust-stack_dst-rs-rustsec20210033"
+id: RUSTSEC-2021-0033
 project: "stack_dst-rs"
 language: "rust"
 source: "/src/stack_dst-rs"
