@@ -34,6 +34,7 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent <agent> --mo
 | `--timeout SECONDS` | `3600` | How long the agent may run |
 | `--difficulty LEVEL` | `2` | Which checks the agent's `test_patch` tool may run, from 0 to 4; see [Difficulty levels](/reference/mcp-server#difficulty-levels) |
 | `--keep-container` | off | Keep the container after the run, for example to inspect it from the [web UI](/webui/) |
+| `--egress POLICY` | `restricted` | `restricted`: the run container reaches the LiteLLM proxy but not the internet. `open`: it also has internet access, for tasks that need network at test time. Recorded as `config.egress` in the run summary |
 
 Either `--local` or a catalog (`--catalog` or `SSEBENCH_CATALOG`) is required.
 

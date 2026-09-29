@@ -239,12 +239,13 @@ The components in the container read these, with these defaults:
 | Variable | Read by | Default | Description |
 |----------|---------|---------|-------------|
 | `SSE_ARCHIVE` | entrypoint, daemon, evaluator, agents | required by the entrypoint; `/tmp/sse-archive` in the daemon and agents | Where logs, `dialog.jsonl` and the final patch go |
-| `SSE_DAEMON_SOCKET` | entrypoint (sidecar mode), daemon, SDK | `/tmp/sse.sock` in sandbox mode | The daemon's Unix socket. The entrypoint sets it for every process it starts; without it, the daemon serves HTTP only |
-| `SSE_HTTP_PORT` | daemon | `4263` | The daemon's HTTP port |
+| `SSE_DAEMON_SOCKET` | entrypoint (sidecar mode), daemon, SDK | `/tmp/sse.sock` in sandbox mode | The daemon's agent-facing Unix socket (mode `0666`). The entrypoint sets it for every process it starts; without it, the daemon serves HTTP only |
+| `SSE_ADMIN_SOCKET` | entrypoint, daemon, evaluator | `/run/ssebench/admin.sock` in sandbox mode | The daemon's privileged Unix socket (mode `0600`, root-only). Grading, the reference patch and phase changes go here; the agent cannot reach it |
+| `SSE_HTTP_PORT` | daemon | `4263` | The daemon's agent-facing HTTP port |
 | `SSE_BENCH_PATH` | daemon | `/ssebench` | The task's scripts and files |
 | `SSE_REPO_PATH` | daemon | `/ssebench-repo` | The original project source |
 | `SSE_AGENT_DOCKER` | SDK | unset | `host:port` of the daemon's HTTP API, used when `SSE_DAEMON_SOCKET` is not set |
-| `SSE_DIFFICULTY` | MCP server | `2` | Which checks `test_patch` runs |
+| `SSE_DIFFICULTY` | MCP server, daemon | `2` | Which checks `test_patch` runs. The daemon reads it too and rejects withheld `bencher` actions (403) on the agent-facing listeners |
 | `MCP_LOG_DIR` | MCP server | `/tmp/mcp/logs` | Where the full logs of long check results go |
 | `TIMEOUT` | entrypoint, evaluator | `14400` (entrypoint), `1800` (evaluator) | Time limits in seconds |
 | `SSE_DAEMON_TIMEOUT` | entrypoint | `300` | Seconds to wait for the daemon socket |
@@ -260,14 +261,23 @@ agent hit its time limit.
 
 | Service | Address |
 |---------|---------|
-| Daemon, Unix socket | `/tmp/sse.sock` in sandbox mode; `/tmp/sse-archive/please-work.sock` in sidecar mode, shared through the results directory. Mode `0666`, so the `model` user can connect. |
-| Daemon, HTTP | port `4263` on all interfaces; the web UI connects to it |
+| Daemon, agent-facing Unix socket | `/tmp/sse.sock` in sandbox mode; `/tmp/sse-archive/please-work.sock` in sidecar mode, shared through the results directory. Mode `0666`, so the `model` user can connect. |
+| Daemon, admin Unix socket | `/run/ssebench/admin.sock` in sandbox mode; `/tmp/sse-archive/admin.sock` in sidecar mode. Mode `0600`, root-only: grading, the reference patch and phase changes. |
+| Daemon, HTTP | port `4263` on all interfaces; the web UI connects to it. Agent-facing, so difficulty-gated like the agent socket. |
 | MCP server | `http://localhost:3000/mcp`, streamable HTTP; see [MCP server](/reference/mcp-server) |
 | OpenCode server | port `4096` on all interfaces, in sandbox mode when `opencode` is on the `PATH` |
 
-The task container joins the Docker network of the LiteLLM proxy's Compose
-project, `<project>_default` (`ssebench_default` by default), where the proxy is
-`litellm:4000`.
+The reference patch is served at `GET /reference/patch` on the admin socket at
+any time, and on the agent-facing socket and HTTP only after the agent phase
+ends (the entrypoint sends `POST /admin/agent_exited` over the admin socket when
+the agent exits, which is how the web UI reads it from the host post-run).
+Post-agent SDK tooling uses `sse.reference.get_reference_patch()`.
+
+The LiteLLM proxy is `litellm:4000` on two networks of its Compose project. By
+default the task container joins the internal one, `<project>_agents`
+(`ssebench_agents` by default), which reaches the proxy but not the internet.
+`ssebench run --egress open` puts it on `<project>_default` instead, a normal
+bridge.
 
 ### Result files
 
@@ -304,8 +314,8 @@ If the container leaves `result.json` empty, `ssebench run` records a failed
 run with the error `No result: evaluator did not produce output`. It then
 writes the summary, `results/<task>-<agent>-<model>.json`: the task metadata
 (`task`), the run settings (`config`: `agent`, `model`, `mode`, `timeout`,
-`difficulty` and `tool_layer`), `patch_result`, `runtime_result` and the
-model `spend` in US dollars.
+`difficulty`, `tool_layer` and `egress`), `patch_result`, `runtime_result` and
+the model `spend` in US dollars.
 
 ### Container labels
 
