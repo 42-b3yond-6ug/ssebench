@@ -192,8 +192,11 @@ The catalog service reads these; each has a command-line option too. See
 
 | Variable | Default | Used by | Description |
 |---|---|---|---|
-| `SSEBENCH_INTEGRITY_IMAGE` | the tool image that `ssebench run` builds for `gjson-196-bf4efcb` | integrity tests | Tool image that `tests/integrity` attacks. |
-| `SSEBENCH_INTEGRITY_SOURCE` | `/src/gjson` | integrity tests | Source directory inside that image. |
+| `SSEBENCH_INTEGRITY_IMAGE` | the tool image that `ssebench run` builds for `gjson-196-bf4efcb` | integrity tests | Sandbox tool image that `tests/integrity` attacks. |
+| `SSEBENCH_INTEGRITY_SIDECAR_ENV_IMAGE` | the task image that `ssebench run --mode sidecar` builds for `gjson-196-bf4efcb` | integrity tests | Sidecar task image, with the daemon, that `tests/integrity` attacks. |
+| `SSEBENCH_INTEGRITY_SIDECAR_AGENT_IMAGE` | the sidecar runtime image of this version | integrity tests | Sidecar agent runtime image that `tests/integrity` runs the fake agent in. |
+| `SSEBENCH_INTEGRITY_SOURCE` | `/src/gjson` | integrity tests | Source directory inside those images. |
+| `SSE_DAEMON_HTTP` | `http://localhost:4263` | integrity tests | The daemon's HTTP listener that `tests/integrity/fake_agent.sh` probes; in sidecar mode, the task container's. |
 
 <!-- end generated -->
 
