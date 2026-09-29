@@ -1,39 +1,22 @@
 {
-  description = "SSEBench development shell";
+  description = "SSEBench: a benchmark for AI coding agents on real security vulnerabilities";
 
   inputs = {
     nixpkgs.url = "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.xz";
-    flake-utils.url = "github:numtide/flake-utils";
+
+    blueprint.url = "github:numtide/blueprint";
+    blueprint.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
-    {
-      nixpkgs,
-      flake-utils,
-      ...
-    }:
-    flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-      in
-      {
-        devShells.default = pkgs.mkShell {
-          packages = [
-            # languages required
-            pkgs.python3 # Infra
-            pkgs.go # Tool layer
-            pkgs.typst # Report generation
-            pkgs.bun # WebUI
-
-            # tools required
-            pkgs.uv # Python package manager
-            pkgs.just # SSEBench host entrypoint
-            pkgs.fzf # Interactive selection in bench/test recipes
-            pkgs.jq # report + remote recipes
-            pkgs.curl # API calls
-          ];
-        };
-      }
-    );
+    inputs:
+    inputs.blueprint {
+      inherit inputs;
+      prefix = "nix";
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+      ];
+    };
 }
