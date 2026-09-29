@@ -28,6 +28,7 @@ bench/src/ssebench/cli/, then run `just docs-gen`. -->
 | `ssebench dataset validate` | Check every task folder of a dataset against the task schema |
 | `ssebench dataset manifest` | Validate a dataset and write its manifest.json |
 | `ssebench dataset schema` | Write the JSON Schemas of the task config, dataset.yaml and the manifest |
+| `ssebench dataset verify` | Grade tasks with the reference and dummy agents and check that they grade as sound tasks do |
 | `ssebench tasks list` | List the tasks of a catalog or a local dataset |
 | `ssebench proxy` | Start, rebuild or stop the local LiteLLM proxy |
 | `ssebench init` | Write .env with generated secrets, models/ and results/ to the current directory |
@@ -264,6 +265,54 @@ ssebench dataset schema [-h] [-o DIR] [--check]
 |---|---|---|
 | `-o, --output DIR` | `datasets/schema` in the SSEBench home | Output directory |
 | `--check` | off | Fail if the files are out of date; write nothing |
+
+<!-- end generated -->
+
+### `ssebench dataset verify`
+
+Grades tasks end to end, each with two `ssebench run`s: the `reference` agent,
+whose upstream fix must pass every check the task has, and the `dummy` agent,
+whose unmodified project must build and pass its functional tests while every
+proof of concept still triggers the bug. The dummy's intent tests should fail
+too; when they pass, the summary warns that they do not check the fix. It
+starts the [LiteLLM proxy](/concepts/litellm-proxy) once, like `ssebench run`,
+and needs the base images of the tasks (`make -C images/base-images <name>`).
+
+```sh
+uv run ssebench dataset verify gjson-196-bf4efcb
+uv run ssebench dataset verify --changed-since origin/main --jobs 4
+```
+
+It writes, under the output directory, one JSON file per task in `tasks/`, the
+log of every run in `logs/`, the run directories in `runs/results/`, and
+`summary.md` and `summary.json`, a table of every task result in the directory
+by check. It exits 1 when a task does not grade as expected. The
+[Dataset](https://github.com/42-b3yond-6ug/ssebench/blob/main/.github/workflows/dataset.yml)
+workflow runs it for the tasks a pull request changes, and weekly for all of
+them.
+
+<!-- generated: cli dataset verify -->
+
+```sh
+ssebench dataset verify [-h] [--dir DIR] [--changed-since REV] [--list] [-j JOBS]
+                        [-o OUTPUT] [--model MODEL] [--difficulty DIFFICULTY]
+                        [--timeout TIMEOUT] [--retries RETRIES] [--summarize]
+                        [TASK ...]
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `TASK` | every task | Tasks to verify |
+| `--dir DIR` | `datasets/pilot` in the SSEBench home | Dataset directory |
+| `--changed-since REV` |  | Verify the tasks that changed since the merge base of REV and HEAD, including those whose base image changed under `images/base-images` |
+| `--list` | off | Print the selected tasks and their base images as JSON; run nothing |
+| `-j, --jobs JOBS` | `2` | Tasks to verify in parallel |
+| `-o, --output OUTPUT` | `results/dataset-verify` | Output directory |
+| `--model MODEL` | `claude-sonnet-4-6` | Model of the dummy runs, which make no model calls |
+| `--difficulty DIFFICULTY` | `2` | Difficulty level of the runs |
+| `--timeout TIMEOUT` | `3600` | Time limit of each run's agent and grading |
+| `--retries RETRIES` | `0` | Times to repeat a run that ends without a result, as when a build loses the network |
+| `--summarize` | off | Write the summary of the task results already in `OUTPUT/tasks/`; run nothing |
 
 <!-- end generated -->
 
