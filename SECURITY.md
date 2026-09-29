@@ -6,6 +6,8 @@ Please report vulnerabilities privately through GitHub's private vulnerability
 reporting:
 [open a draft security advisory](https://github.com/42-b3yond-6ug/ssebench/security/advisories/new)
 (the "Report a vulnerability" button on the repository's Security tab).
+If you cannot use GitHub, email [whexy@outlook.com](mailto:whexy@outlook.com)
+instead.
 
 Do not open a public issue, pull request or discussion for a vulnerability.
 This includes benchmark-integrity bypasses: once a bypass is public, anyone
