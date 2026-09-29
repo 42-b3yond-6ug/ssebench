@@ -94,6 +94,22 @@ func TestBuiltinModes(t *testing.T) {
 	}
 }
 
+func TestInitLogFilesKeepsLogsThatAreAlreadyBeingWritten(t *testing.T) {
+	rt := newRuntime(Config{ArchivePath: t.TempDir()}, []string{"true"})
+	if err := os.WriteFile(rt.LogPath("daemon"), []byte("daemon started\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	rt.initLogFiles()
+
+	if data, err := os.ReadFile(rt.LogPath("daemon")); err != nil || string(data) != "daemon started\n" {
+		t.Errorf("daemon log = %q, %v; want it kept", data, err)
+	}
+	if _, err := os.Stat(rt.LogPath("agent")); err != nil {
+		t.Errorf("agent log not created: %v", err)
+	}
+}
+
 func TestRunRejectsUnknownModeAndMissingInput(t *testing.T) {
 	t.Setenv("SSE_ARCHIVE", t.TempDir())
 	if status := Run([]string{"entrypoint", "--mode", "no-such-mode", "--", "true"}); status != 1 {
