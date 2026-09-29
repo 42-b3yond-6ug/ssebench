@@ -85,7 +85,12 @@ from ssebench.extensions import ToolLayer, ToolLayerContext
   - `task_name`: the task ID, for example `gjson-196-bf4efcb`;
   - `source_dir`: the absolute path of the project source in the case image;
   - `build_root`: the SSEBench home, which holds `images/`, `runtime/` and
-    `sdk/` and is the build context of the built-in layers.
+    `sdk/` and is the build context of the built-in layers. Without a clone
+    of the repository, it is the copy of these directories that `ssebench`
+    carries. That copy has no sources of the daemon and the entrypoint, which
+    the built-in layers take from the published `runtime` image instead; a
+    layer that builds on `SandboxToolLayer`, as the example below does,
+    needs no change.
 - `docker_image(base)` gets the name of the case image, builds the tool image
   on top of it and returns the tool image's name. The agent image is then built
   from that image. The tool image must meet the

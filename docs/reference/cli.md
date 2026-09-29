@@ -7,7 +7,8 @@ outline: deep
 The `ssebench` command builds the images for a task and runs one agent on one
 task with one model. From a clone of the repository, run it as
 `uv run ssebench` in the repository root or any directory below it; see
-[Working directory](#working-directory).
+[Working directory](#working-directory). Without a clone, run `uvx ssebench`
+or install the package from PyPI; see [Without a clone](#without-a-clone).
 
 `ssebench --version` prints the SSEBench version, which is also the tag of the
 tool layer and agent images the CLI builds; see
@@ -296,8 +297,8 @@ proxy listens on `LITELLM_PORT` (default 4000); see
 ## `ssebench init`
 
 Sets up the current directory as a workspace, the way `just setup` does in a
-checkout. Run it once, in an empty directory, when you run `ssebench` without a
-clone of the repository.
+checkout. Run it once, in an empty directory, when you run `ssebench` from a
+[package install](#without-a-clone).
 
 ```sh
 ssebench init
@@ -367,10 +368,51 @@ file in the *SSEBench home*, which is the first of:
 2. the nearest directory at or above the working directory whose
    `pyproject.toml` has a `[tool.ssebench]` table, which is the repository
    root;
-3. the repository the CLI was installed from, for an editable install.
+3. the repository the CLI was installed from, for an editable install;
+4. the copy of these directories that the `ssebench` package carries; see
+   [Without a clone](#without-a-clone).
 
 From outside the repository, run `uv run --project /path/to/ssebench ssebench ...`
-or set `SSEBENCH_HOME`. The CLI reads `.env` in the SSEBench home; variables
-set in the environment take precedence over it. Paths you pass, such as
-`--local`, `--catalog` and `--benchmarks`, are relative to the working
-directory, and so is `results/`.
+or set `SSEBENCH_HOME`. The CLI reads `.env` in the workspace; variables set in
+the environment take precedence over it. Paths you pass, such as `--local`,
+`--catalog` and `--benchmarks`, are relative to the working directory, and so
+is `results/`.
+
+The *workspace* holds what you edit and what runs produce: `.env`, `models/`
+and `results/`. In a checkout it is the SSEBench home. Without a clone it is
+the working directory, so run `ssebench` from the directory that
+`ssebench init` set up.
+
+## Without a clone
+
+`ssebench` runs from the wheel alone, as `uvx ssebench` or after
+`pip install ssebench`. A checkout, or `SSEBENCH_HOME`, still takes precedence
+when there is one.
+
+The wheel carries, under `ssebench/_data/` and laid out like the repository:
+
+- the agent definitions in `agents/`, with their Dockerfiles;
+- `models/` and the Compose file with the LiteLLM image's sources;
+- the tool layer Dockerfiles, the sources of the SDK, the evaluator and the MCP
+  server, `uv.lock`, and `runtime/plugins/`;
+- the pilot manifest, `datasets/pilot/manifest.json`, but not the task folders.
+
+What a run needs beyond that comes from the registry and the network:
+
+- The task's **case image** is pulled from
+  `$SSEBENCH_REGISTRY/case/<dataset>/<task>`. Without a task folder to build
+  it from, a failed pull ends the run.
+- The **tool layer** and the **agent image** are built on top of the case
+  image from the packaged files, as in a checkout. The daemon and the
+  entrypoint, which need Rust and Go to build, come from the published
+  `runtime` image of the same version, passed as `--build-context
+  runtime=docker-image://$SSEBENCH_REGISTRY/runtime:<version>`. The Python
+  environments of the evaluator and the MCP server are built from the packaged
+  `uv.lock`, which downloads packages.
+- The **proxy image** is built from the packaged Dockerfile with the models in
+  the workspace's `models/`, and rebuilt when they change.
+
+Commands that read task folders, such as `ssebench build-case` and
+`ssebench dataset validate` without a directory, need a checkout or an explicit
+directory.
+
