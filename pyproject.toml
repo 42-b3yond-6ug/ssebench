@@ -61,4 +61,7 @@ testpaths = ["bench/tests", "sdk/python/tests", "tools/docs", "tools/report"]
 # The reference docs generators (tools/docs/refdocs) are not a package; their tests import them from here.
 pythonpath = ["tools/docs"]
 addopts = ["--import-mode=importlib"]
-markers = ["integrity: benchmark-integrity bypass tests; need Docker and the images of a sandbox or sidecar run"]
+markers = [
+  "integrity: benchmark-integrity bypass tests; need Docker and the images of a sandbox or sidecar run",
+  "agents: run each bundled agent with no internet against a stub model; need Docker and the base image",
+]
