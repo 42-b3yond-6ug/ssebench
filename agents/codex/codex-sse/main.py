@@ -5,8 +5,9 @@ from asyncio.streams import StreamReader
 from pathlib import Path
 
 import toml
-from config import CONFIG_TEMPLATE
 from sse import project
+
+from config import CONFIG_TEMPLATE
 
 metadata = project.metadata
 task_description = metadata.task_description

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, TypeVar
+from typing import Any
 
 from sse.error import SDKError
 
@@ -11,10 +12,8 @@ __all__ = [
     "wrap_result",
 ]
 
-T = TypeVar("T")
 
-
-def wrap_result(
+def wrap_result[T](
     cls: type[T],
 ) -> Callable[[Callable[..., Any]], Callable[..., T]]:
     """Decorator to wrap daemon results into dataclass instances.

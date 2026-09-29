@@ -22,10 +22,10 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any, Literal, Required
 
 import httpx
-from typing_extensions import Required, TypedDict
+from typing_extensions import TypedDict
 
 log = logging.getLogger(__name__)
 
@@ -353,7 +353,7 @@ class OpenCodeAgent:
                 proc.terminate()
                 try:
                     await asyncio.wait_for(proc.wait(), timeout=5)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     proc.kill()
                     await proc.wait()
                 log.info("Server stopped")

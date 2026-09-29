@@ -3,13 +3,12 @@ import json
 import os
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import httpx
 from httpx_sse import aconnect_sse
-
 from sse import project
 from sse.prompt import TASK_PROMPT
 
@@ -53,7 +52,7 @@ class DialogWriter:
         return seq
 
     def _now(self) -> str:
-        return datetime.now(timezone.utc).isoformat()
+        return datetime.now(UTC).isoformat()
 
     def init(self, task: str, cwd: str, model: str, agent: str):
         self._write(
@@ -637,7 +636,7 @@ async def run_opencode(dialog: DialogWriter):
         agent_timeout = int(os.environ.get("TIMEOUT", "3600"))
         try:
             await asyncio.wait_for(event_task, timeout=agent_timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             if not processor.completed:
                 processor._flush_buffered()
                 dialog.complete("timeout", message="Agent execution timed out")
@@ -662,7 +661,7 @@ async def run_opencode(dialog: DialogWriter):
             server_proc.terminate()
             try:
                 await asyncio.wait_for(server_proc.wait(), timeout=5)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 server_proc.kill()
             print("[opencode] Agent server stopped")
 
