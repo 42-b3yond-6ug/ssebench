@@ -57,6 +57,9 @@ and takes the same environment variables (see `webui/README.md`). Access to
 the socket is root access to the host, so run it only on a machine you
 control.
 
+`just demo` starts this image, with the catalog and the LiteLLM proxy, and opens
+a finished run in it; see [Try the demo](/getting-started/demo).
+
 The image shows runs but cannot launch them, since it has no SSEBench checkout
 and no `uv`: start runs with `ssebench run --keep-container`, or start the web
 UI from a checkout to launch runs from the browser. To build the image
