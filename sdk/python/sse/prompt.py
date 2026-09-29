@@ -1,7 +1,13 @@
+"""The task prompt that the bundled agents give their model.
+
+Importing it imports :mod:`sse.project`, so it needs the daemon too.
+"""
+
 from sse.project import metadata
 
 
 def task_description() -> str:
+    """The task's crash reports, as a section of the prompt."""
     prompt_string = " Vulnerability description / crash trace:\n"
     task = metadata.task_description
 
@@ -12,10 +18,12 @@ def task_description() -> str:
 
 
 def source_code_instructions() -> str:
+    """Where the source code is, as a section of the prompt."""
     return f"Source code is located at: {metadata.source}\n"
 
 
 def build_and_test_instructions() -> str:
+    """The build and test scripts, as a section of the prompt."""
     prompt_string = "Build / test instructions:\n"
 
     if metadata.build_script:
@@ -34,7 +42,7 @@ def build_and_test_instructions() -> str:
     return prompt_string
 
 
-TASK_PROMPT = f"""
+TASK_PROMPT: str = f"""
 Role: You are a software security engineer tasked with fixing a confirmed vulnerability in {metadata.project} by modifying its source code.
 
 Objective:
@@ -64,3 +72,5 @@ The validation includes:
 {source_code_instructions()}
 {build_and_test_instructions()}
 """
+"""The whole prompt: the role and requirements, then the task description and the build and test
+instructions of this task."""

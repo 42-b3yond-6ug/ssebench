@@ -140,15 +140,12 @@ class _MessageEntry(TypedDict):
 
 @dataclass(frozen=True)
 class AgentResponse:
-    """Structured response from an OpenCode agent session.
-
-    Attributes:
-        final_message: Text parts from the last assistant message only.
-        full_log: All text parts from every message in the session.
-    """
+    """Structured response from an OpenCode agent session."""
 
     final_message: str
+    """Text parts from the last assistant message only."""
     full_log: str
+    """All text parts from every message in the session."""
 
 
 # ---------------------------------------------------------------------------
@@ -160,18 +157,24 @@ def build_opencode_config(
     model_name: str | None = None,
     mcp_url: str | None = None,
 ) -> dict[str, Any]:
-    """Build a complete OpenCode config for the Anthropic provider.
+    """Build a complete OpenCode config.
 
-    The Anthropic API key is read from the ``ANTHROPIC_API_KEY`` environment
-    variable by the built-in Anthropic provider at runtime -- it does **not**
-    need to be embedded in the config dict.
+    When ``SSE_MODEL_NAME``, ``SSE_BASE_URL`` and ``SSE_API_KEY`` are set, as they are in a task
+    container, the config uses the run's model through the LiteLLM proxy and ignores
+    ``model_name``. Otherwise it uses ``model_name`` with OpenCode's built-in Anthropic provider,
+    which reads the ``ANTHROPIC_API_KEY`` environment variable at runtime -- the key is **not**
+    embedded in the config dict.
 
     Args:
-        model_name: Anthropic model identifier (e.g. ``claude-sonnet-4-20250514``).
+        model_name: Anthropic model identifier (e.g. ``claude-sonnet-4-20250514``); required
+            when the ``SSE_*`` variables are not all set.
         mcp_url: Optional MCP server URL to register.
 
     Returns:
         Config dict suitable for the ``OPENCODE_CONFIG_CONTENT`` env var.
+
+    Raises:
+        ValueError: If ``model_name`` is missing and the ``SSE_*`` variables are not all set.
     """
     config: dict[str, Any] = {}
 
@@ -252,8 +255,10 @@ class OpenCodeAgent:
     Manages the full lifecycle: start the server, create sessions,
     send prompts, collect responses, and shut down cleanly.
 
-    The Anthropic API key must be available as the ``ANTHROPIC_API_KEY``
-    environment variable in the process that runs this agent.
+    With a config that uses OpenCode's built-in Anthropic provider (see
+    :func:`build_opencode_config`), the Anthropic API key must be available as
+    the ``ANTHROPIC_API_KEY`` environment variable in the process that runs
+    this agent.
 
     Usage::
 

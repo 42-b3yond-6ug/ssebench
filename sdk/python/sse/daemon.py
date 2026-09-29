@@ -1,3 +1,10 @@
+"""HTTP client of ``ssebench-daemon``, which the rest of the SDK goes through.
+
+The client connects to the Unix socket in ``SSE_DAEMON_SOCKET``, or, when that is unset, over
+TCP to the ``host:port`` in ``SSE_AGENT_DOCKER``. The daemon's HTTP API is described in
+docs/reference/daemon-api.md.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -29,8 +36,11 @@ def same_version(sdk_version: str, daemon_version: object) -> bool:
 
 
 class Daemon:
-    """
-    Daemon wrapper, this connect with the daemon.sock
+    """A connection to the daemon.
+
+    Creating one asks the daemon for its version and logs a warning when it differs from the
+    SDK's. Raises ``Exception`` when neither ``SSE_DAEMON_SOCKET`` nor ``SSE_AGENT_DOCKER`` is
+    set, and ``RuntimeError`` when the daemon does not answer.
     """
 
     def __init__(self):
@@ -65,6 +75,11 @@ class Daemon:
             raise RuntimeError(f"Failed to verify daemon version: {e}") from e
 
     def get(self, path, headers=None):
+        """Send ``GET path`` and return the JSON body.
+
+        Raises :class:`~sse.error.SDKError` with the daemon's message when it answers with an
+        error status, and on network errors.
+        """
         merged_headers = {"Connection": "close"}
         if headers:
             merged_headers.update(headers)
@@ -80,6 +95,10 @@ class Daemon:
             raise SDKError(f"network error: {e}") from e
 
     def post(self, path, data, headers=None):
+        """Send ``POST path`` with ``data`` as the JSON body and return the JSON body of the answer.
+
+        Raises :class:`~sse.error.SDKError` as :meth:`get` does.
+        """
         merged_headers = {"Connection": "close"}
         if headers:
             merged_headers.update(headers)
@@ -97,18 +116,26 @@ class Daemon:
             raise SDKError(f"network error: {e}") from e
 
     def prepare_grading(self):
+        """``POST /prepare_grading``: save the agent's diff and apply it to the copy that is graded.
+
+        Only the admin socket accepts it.
+        """
         return self.post("/prepare_grading", {})
 
     def version(self):
+        """``GET /version``: the daemon's version."""
         return self.get("/version")
 
     def project(self):
+        """``GET /project``: the task's metadata, as :class:`sse.project.Metadata` holds it."""
         return self.get("/project")
 
     def capabilities(self):
+        """``GET /capabilities``: the checks the task supports."""
         return self.get("/capabilities")
 
     def tool(self, name, action, data):
+        """``POST /tool/{name}?action={action}`` with ``data`` as the JSON body."""
         return self.post(
             f"/tool/{name}?action={action}",
             data,

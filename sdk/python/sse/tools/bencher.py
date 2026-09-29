@@ -1,3 +1,12 @@
+"""The daemon's ``bencher`` tool: build, test and run proofs of concept on a copy of the source tree.
+
+:mod:`sse.project` wraps these functions for agents. The evaluator calls them with
+``grading=True`` over the daemon's admin socket, which runs every check whatever the difficulty
+level. Each function raises :class:`~sse.error.SDKError` when the task does not support the check,
+when the daemon refuses it, or when the daemon fails; a check that fails is a result with a
+non-zero exit code.
+"""
+
 from __future__ import annotations
 
 from sse.daemon import Daemon
@@ -23,23 +32,39 @@ def _check(cap_key: str, action: str) -> None:
 
 @wrap_result(ScriptResult)
 def build(*, grading: bool = False):
+    """Build the project, and keep the build for :func:`run_poc`.
+
+    With ``grading``, build the clean copy of the repository that ``POST /prepare_grading``
+    applied the agent's diff to, instead of the source tree the agent edits.
+    """
     _check("can_build", "build")
     return Daemon().tool("bencher", "build", {"grading": grading})
 
 
 @wrap_result(ScriptResult)
 def run_poc(poc, *, grading: bool = False):
+    """Run the proof of concept ``poc`` against the last :func:`build`.
+
+    Exit code 0 means that the vulnerability no longer triggers; without a build the exit code is
+    -1. ``grading`` has no effect: the proof of concept runs in whatever the last build built.
+    """
     _check("can_run_poc", "run_poc")
     return Daemon().tool("bencher", "run_poc", {"poc": str(poc)})
 
 
 @wrap_result(ScriptResult)
 def function_test(*, grading: bool = False):
+    """Run the project's tests on a copy of the source tree, or with ``grading`` of the graded copy."""
     _check("has_function_test", "function_test")
     return Daemon().tool("bencher", "function_test", {"grading": grading})
 
 
 def intent_test(*, grading: bool = False) -> ScriptResult:
+    """Apply the hidden tests of the fix to a copy of the source tree and run the project's tests.
+
+    With ``grading``, the copy is of the graded repository. Hidden tests that do not apply to the
+    agent's changes give exit code 1 instead of an error.
+    """
     _check("has_intent_test", "intent_test")
     # NOTE: Unlike other bencher functions, we selectively catch SDKError here.
     # During an intent test, the daemon applies a patch before running the test.
