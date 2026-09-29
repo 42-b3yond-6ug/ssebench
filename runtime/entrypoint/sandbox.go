@@ -34,6 +34,7 @@ func (r *runner) runSandbox() int {
 	}
 
 	status, elapsed := r.waitAgent(agentCmd, agentStart)
+	r.notifyAgentExited()
 	r.runEvaluator(elapsed)
 	r.handleKeepAlive()
 

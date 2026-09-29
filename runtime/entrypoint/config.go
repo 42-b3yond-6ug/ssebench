@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 )
 
@@ -29,6 +30,7 @@ type config struct {
 
 	// Paths
 	daemonSocketPath string
+	adminSocketPath  string // root-only privileged socket (grading, phase, reference patch)
 	daemonBinaryPath string
 	mcpServerPath    string
 	evaluatorPath    string
@@ -54,6 +56,7 @@ func configFromEnv(m mode) config {
 		waitLogInterval:     10,
 		httpRequestTimeout:  2,
 		daemonSocketPath:    "/tmp/sse.sock",
+		adminSocketPath:     "/run/ssebench/admin.sock",
 		daemonBinaryPath:    "/ssebench/ssebench-daemon",
 		mcpServerPath:       "/ssebench/mcp",
 		evaluatorPath:       "/evaluator",
@@ -69,6 +72,9 @@ func configFromEnv(m mode) config {
 		if v := os.Getenv("SSE_DAEMON_SOCKET"); v != "" {
 			c.daemonSocketPath = v
 		}
+		// The daemon (in the case container) exposes the admin socket on the
+		// shared archive volume; both containers reach it there.
+		c.adminSocketPath = filepath.Join(c.archivePath, "admin.sock")
 		// Sidecar has MCP and evaluator at different paths
 		c.mcpServerPath = "/mcp"
 		c.evaluatorPath = "/evaluator"

@@ -38,6 +38,7 @@ func (r *runner) runSidecar() int {
 	}
 
 	status, elapsed := r.waitAgent(agentCmd, agentStart)
+	r.notifyAgentExited()
 	r.runEvaluator(elapsed)
 
 	return status
