@@ -10,7 +10,7 @@ from .validate import DatasetReport, TaskReport, validate_dataset
 
 MANIFEST = "manifest.json"
 
-# The tool layers build the entrypoint for amd64 only, and the generic-c base installs an x86_64 ccache.
+# The tool layers build the entrypoint for amd64 only.
 DEFAULT_ARCH: list[Arch] = ["amd64"]
 
 
