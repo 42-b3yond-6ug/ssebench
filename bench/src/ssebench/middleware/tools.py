@@ -5,13 +5,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import final, override
 
-from ssebench import paths
+from ssebench import paths, settings
 from ssebench.pipe import REGISTRY, TAG, DockerLayerMixin
 from ssebench.version import VERSION
 
 DOCKER_IMAGE_PREFIX_SANDBOX = f"{REGISTRY}/tool"
 DOCKER_IMAGE_PREFIX_SIDECAR_AGENTRT = f"{REGISTRY}/tool-sidecar-agent"
 DOCKER_IMAGE_PREFIX_SIDECAR_ENVIRON = f"{REGISTRY}/tool-sidecar"
+
+RUNTIME_IMAGE_ENV = "SSEBENCH_RUNTIME_IMAGE"
 
 logger = logging.getLogger(__name__)
 
@@ -22,11 +24,16 @@ def runtime_image() -> str:
 
 
 def runtime_build_args(build_root: Path) -> list[str]:
-    """`docker buildx build` arguments that take the daemon and the entrypoint from the runtime image.
+    """`docker buildx build` arguments that take the daemon and the entrypoint from a runtime image.
 
     The Dockerfiles of the tool layers build both from source unless a `runtime` build context replaces
-    that stage. A home without their sources, as in an installation without a checkout, cannot build them.
+    that stage. A home without their sources, as in an installation without a checkout, cannot build them
+    and uses the published image of this version. `SSEBENCH_RUNTIME_IMAGE` names another image to use in
+    either case, which also saves compiling in a checkout.
     """
+    configured = settings.get(RUNTIME_IMAGE_ENV)
+    if configured:
+        return ["--build-context", f"runtime=docker-image://{configured}"]
     if (build_root / "sdk" / "daemon").is_dir() and (build_root / "runtime" / "entrypoint").is_dir():
         return []
     return ["--build-context", f"runtime=docker-image://{runtime_image()}"]
