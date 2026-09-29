@@ -5,10 +5,13 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from ssebench.tasks.manifest import DatasetInfo, Manifest
 from ssebench.tasks.metadata import TaskMetadata
 
 SCHEMAS: dict[str, type[BaseModel]] = {
     "task.schema.json": TaskMetadata,
+    "dataset.schema.json": DatasetInfo,
+    "manifest.schema.json": Manifest,
 }
 
 
