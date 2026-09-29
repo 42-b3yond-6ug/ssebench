@@ -1,25 +1,26 @@
-import re
-import hashlib
-from typing import List, Optional, Tuple, Dict, Any, Union
-from enum import StrEnum
-from pathlib import Path
 import logging
+import re
+from typing import Any, Optional
 
 from parser.sanitizer import Sanitizer, SanitizerReport
 
 # Combined regex patterns that work for all sanitizer types
-SANITIZER_NAME_PATTERN = r"(?:AddressSanitizer|MemorySanitizer|UndefinedBehaviorSanitizer|ThreadSanitizer|LeakSanitizer|libFuzzer)"
+SANITIZER_NAME_PATTERN = (
+    r"(?:AddressSanitizer|MemorySanitizer|UndefinedBehaviorSanitizer|ThreadSanitizer|LeakSanitizer|libFuzzer)"
+)
 
 # Pattern for traditional format with process ID
-TRADITIONAL_PATTERN = fr"((?:==[0-9]+==)?\s*(?:ERROR|WARNING): ({SANITIZER_NAME_PATTERN})(?:: .*)?)SUMMARY: ({SANITIZER_NAME_PATTERN})"
-TRADITIONAL_HEADER_PATTERN = fr"(?:==[0-9]+==)?\s*(?:ERROR|WARNING): ({SANITIZER_NAME_PATTERN}): (.*)(?:\r|\n|\r\n)"
+TRADITIONAL_PATTERN = (
+    rf"((?:==[0-9]+==)?\s*(?:ERROR|WARNING): ({SANITIZER_NAME_PATTERN})(?:: .*)?)SUMMARY: ({SANITIZER_NAME_PATTERN})"
+)
+TRADITIONAL_HEADER_PATTERN = rf"(?:==[0-9]+==)?\s*(?:ERROR|WARNING): ({SANITIZER_NAME_PATTERN}): (.*)(?:\r|\n|\r\n)"
 
 # Pattern for simpler format (file:line:col: error message)
-SIMPLE_PATTERN = fr"([^\r\n]*?:[0-9]+:[0-9]+: runtime error: .*?)SUMMARY: ({SANITIZER_NAME_PATTERN})"
-SIMPLE_HEADER_PATTERN = fr"(.*?):([0-9]+):([0-9]+): runtime error: (.*)(?:\r|\n|\r\n)"
+SIMPLE_PATTERN = rf"([^\r\n]*?:[0-9]+:[0-9]+: runtime error: .*?)SUMMARY: ({SANITIZER_NAME_PATTERN})"
+SIMPLE_HEADER_PATTERN = r"(.*?):([0-9]+):([0-9]+): runtime error: (.*)(?:\r|\n|\r\n)"
 
 # Common summary pattern
-SANITIZER_SUMMARY_PATTERN = fr"SUMMARY: ({SANITIZER_NAME_PATTERN}): (.*?)(?:[ \t]*(?:\r|\n|\r\n)|$)"
+SANITIZER_SUMMARY_PATTERN = rf"SUMMARY: ({SANITIZER_NAME_PATTERN}): (.*?)(?:[ \t]*(?:\r|\n|\r\n)|$)"
 
 # Special case for LeakSanitizer
 LEAK_SANITIZER_PATTERN = r"((?:==[0-9]+==)?ERROR: LeakSanitizer: detected memory leaks.*)"
@@ -35,7 +36,7 @@ class UnifiedSanitizerReport(SanitizerReport):
         content: str,
         cwe: str,
         trigger_point: str,
-        additional_info: Dict[str, Any] = {},
+        additional_info: dict[str, Any] | None = None,
     ):
         super().__init__(sanitizer, content, cwe, trigger_point, additional_info)
 
@@ -77,16 +78,14 @@ class UnifiedSanitizerReport(SanitizerReport):
                 try:
                     sanitizer_type = Sanitizer(sanitizer_name)
                 except ValueError:
-                    logging.warning(
-                        f"Unknown sanitizer type: {sanitizer_name}")
+                    logging.warning(f"Unknown sanitizer type: {sanitizer_name}")
                     return None
 
                 summary = summary_match.group(2)
                 location = f"{file_path}:{line_num}:{col_num}"
 
                 # Extract CWE from error message
-                cwe = error_msg.split(
-                    ":")[0] if ":" in error_msg else error_msg
+                cwe = error_msg.split(":")[0] if ":" in error_msg else error_msg
                 if "implicit conversion" in cwe:
                     cwe = "implicit conversion"  # troublesome UBSAN bug type with values in it
 
@@ -114,7 +113,9 @@ class UnifiedSanitizerReport(SanitizerReport):
         return None
 
     @staticmethod
-    def _parse_with_header(raw_content: str, sanitizer_name: str, header: str, pattern: str) -> Optional["UnifiedSanitizerReport"]:
+    def _parse_with_header(
+        raw_content: str, sanitizer_name: str, header: str, pattern: str
+    ) -> Optional["UnifiedSanitizerReport"]:
         """Helper method to parse reports with a standard header format"""
         try:
             sanitizer_type = Sanitizer(sanitizer_name)
@@ -148,8 +149,7 @@ class UnifiedSanitizerReport(SanitizerReport):
                 # Fallback to first word if no common substring found
                 cwe = summary_words[0]
 
-        trigger_point = summary.split(
-            cwe)[1].strip() if cwe in summary else summary
+        trigger_point = summary.split(cwe)[1].strip() if cwe in summary else summary
         if not trigger_point:
             trigger_point = "N/A"
 

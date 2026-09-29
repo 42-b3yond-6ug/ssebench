@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Union
 
 
 class Sanitizer(StrEnum):
@@ -8,7 +8,7 @@ class Sanitizer(StrEnum):
     UndefinedBehaviorSanitizer = "UndefinedBehaviorSanitizer"
     ThreadSanitizer = "ThreadSanitizer"
     LeakSanitizer = "LeakSanitizer"
-    LibFuzzer = "libFuzzer" # This is for timeout or strange signals that sanitizers couldn't catch
+    LibFuzzer = "libFuzzer"  # This is for timeout or strange signals that sanitizers couldn't catch
     Jazzer = "Jazzer"
 
 
@@ -19,24 +19,20 @@ class SanitizerReport:
         content: str,
         cwe: str,
         trigger_point: str,
-        additional_info: Dict[str, Any] = {},
+        additional_info: dict[str, Any] | None = None,
     ):
 
         self.sanitizer: Sanitizer = sanitizer
         self.content: str = content
         self.cwe: str = cwe
         self.trigger_point: str = trigger_point
-        self.additional_info: Dict[str, Any] = additional_info
+        self.additional_info: dict[str, Any] = {} if additional_info is None else additional_info
 
     def __getitem__(self, key: str) -> Any:
         return self.additional_info[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
         self.additional_info[key] = value
-
-    @property
-    def summary(self) -> str:
-        raise NotImplementedError("summary method must be implemented in child class")
 
     @property
     def summary(self) -> str:
