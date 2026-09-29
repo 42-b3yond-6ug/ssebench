@@ -265,8 +265,9 @@ agent hit its time limit.
 | MCP server | `http://localhost:3000/mcp`, streamable HTTP; see [MCP server](/reference/mcp-server) |
 | OpenCode server | port `4096` on all interfaces, in sandbox mode when `opencode` is on the `PATH` |
 
-The task container joins the Docker network `ssebench_net`, where the LiteLLM
-proxy is `litellm:4000`.
+The task container joins the Docker network of the LiteLLM proxy's Compose
+project, `<project>_default` (`ssebench_default` by default), where the proxy is
+`litellm:4000`.
 
 ### Result files
 

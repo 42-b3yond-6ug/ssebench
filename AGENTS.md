@@ -76,22 +76,27 @@ regenerate the manifest, which records a checksum of every task file.
 
 ## Commands
 
-The root `Justfile` is the front door. Recipes marked *planned* are not in the
-Justfile yet; `just --list` shows what exists. Until then, use the
-per-component commands below.
+The root `Justfile` is the front door; `just` lists its recipes by group.
+Every recipe runs without prompts. Recipes marked *planned* are not in the
+Justfile yet.
 
 | Recipe | What it does |
 |---|---|
-| `just setup` | Install dependencies and write `.env` with generated local secrets. *planned* |
+| `just setup` | Install dependencies and write `.env` with generated local secrets. |
+| `just doctor` | Check Docker, disk, CPU, `.env`, the LiteLLM proxy and provider keys. |
 | `just demo` | Apply the known fix to a pilot task, grade it and show the run in the web UI, without an API key. *planned* |
-| `just run` | Run an agent × model × task; interactive pickers when arguments are omitted. *planned* |
-| `just test` | Unit tests for every component. *planned* |
-| `just lint` | ruff, basedpyright, clippy, go vet, eslint. *planned* |
-| `just fmt` | ruff format, cargo fmt, gofmt, prettier. *planned* |
-| `just images` | Build the base, tool and agent images. *planned* |
-| `just dataset-validate` | Check that tasks build, their PoCs reproduce and their tests behave. *planned* |
-| `just docs` | Serve or build the documentation site. *planned* |
+| `just run --task <id> --agent <agent> --model <model>` | Run an agent × model × task on the pilot dataset; other options go to `ssebench run`. Without arguments it opens the fzf pickers (`just pick`). |
+| `just launch` / `just stop` | Start (rebuilding when `models/` changed) or stop the LiteLLM proxy. |
+| `just test [components]` | Unit tests: pytest, `cargo test`, `go test`, `bun test` in webui. |
+| `just lint [components]` | ruff, basedpyright, cargo fmt and clippy, gofmt and go vet, webui typecheck and eslint (eslint findings are reported, not enforced yet). |
+| `just fmt [components]` | ruff, cargo fmt, gofmt, prettier. |
+| `just images` | Build the base images and the runtime, LiteLLM and catalog images. |
+| `just dataset-validate [tasks]` | Check that tasks build, their PoCs reproduce and their tests behave. |
+| `just docs [build]` | Serve or build the documentation site. |
 | `just release <version>` | Set the version of every component and update the lockfiles. |
+
+Components are `python`, `rust`, `go` and `webui`; without arguments a recipe
+covers all of them.
 
 Per component:
 

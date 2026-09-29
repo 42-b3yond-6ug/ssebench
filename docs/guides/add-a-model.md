@@ -41,11 +41,14 @@ OPENAI_API_KEY=sk-...
 
 ### 3. Rebuild the proxy
 
-The model list is built into the proxy image, so rebuild and restart it:
+The model list is built into the proxy image. `just launch` sees that
+`models/` changed, rebuilds the image and restarts the proxy:
 
 ```sh
 just launch
 ```
+
+`ssebench run` does the same when it starts, so this step is optional.
 
 The model is now available:
 
