@@ -28,6 +28,8 @@ jobs:
       webui: ${{ steps.filter.outputs.webui }}
       docs: ${{ steps.filter.outputs.docs }}
       dataset: ${{ steps.filter.outputs.dataset }}
+      sdk: ${{ steps.filter.outputs.sdk }}
+      e2e: ${{ steps.filter.outputs.e2e }}
     steps:
       # Pull requests are diffed through the API; pushes to main need the checkout.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -86,6 +88,27 @@ jobs:
               - datasets/**
               - tools/dataset/**
               - bench/src/ssebench/tasks/**
+            sdk:
+              - *workflow
+              - Cargo.toml
+              - Cargo.lock
+              - rust-toolchain.toml
+              - sdk/**
+            e2e:
+              - *workflow
+              - VERSION
+              - pyproject.toml
+              - uv.lock
+              - Cargo.toml
+              - Cargo.lock
+              - bench/**
+              - runtime/**
+              - images/**
+              - sdk/**
+              - agents/**
+              - models/**
+              - deploy/compose/**
+              - datasets/pilot/gjson-196-bf4efcb/**
 
   python:
     name: Python
@@ -210,10 +233,103 @@ jobs:
       - name: THIRD_PARTY.md is up to date
         run: uv run python tools/dataset/third_party.py --check
 
+  sdk-integration:
+    name: SDK integration
+    needs: changes
+    if: needs.changes.outputs.sdk == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build the test image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: sdk/tests/integration/Dockerfile
+          tags: ssebench-sdk-integration
+          load: true
+          cache-from: type=gha,scope=sdk-integration
+          cache-to: type=gha,mode=max,scope=sdk-integration
+      - name: Run the SDK against the daemon
+        run: docker run --rm ssebench-sdk-integration
+
+  e2e:
+    name: End-to-end smoke run
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.e2e == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      # A prefix that no registry serves, so every image comes from this checkout.
+      SSEBENCH_REGISTRY: ssebench-ci
+      TASK: gjson-196-bf4efcb
+      MODEL: claude-sonnet-4-6
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-python
+      - name: Switch Docker to the containerd image store
+        # With it, the default builder, which the CLI uses and which can see
+        # local images, can import and export the GitHub Actions build cache.
+        run: |
+          config=/etc/docker/daemon.json
+          current=$(sudo cat "$config" 2>/dev/null || echo '{}')
+          echo "$current" | jq '.features["containerd-snapshotter"] = true' | sudo tee "$config"
+          sudo systemctl restart docker
+          docker info -f '{{ .DriverStatus }}'
+      - name: Build the daemon stage from the cache
+        # The release build of the daemon dominates the run; building this
+        # stage first leaves it in the local cache for the CLI's sandbox build.
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: images/sandbox/Dockerfile
+          target: daemon-builder
+          builder: default
+          load: true
+          tags: ${{ env.SSEBENCH_REGISTRY }}/cache/daemon-builder
+          cache-from: type=gha,scope=sandbox-daemon
+          cache-to: type=gha,mode=max,scope=sandbox-daemon
+      - name: Build the Go base image
+        run: make -C images/base-images generic-go
+      - name: Write .env with generated secrets
+        # As `just setup` does; the dummy agent never calls a model, so no provider key is needed.
+        run: |
+          secret() { head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n'; }
+          sed -e "s|^LITELLM_MASTER_KEY=.*|LITELLM_MASTER_KEY=sk-$(secret)|" \
+              -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(secret)|" \
+              .env.example > .env
+      - name: Run the dummy agent in the sandbox
+        run: uv run ssebench run --model "$MODEL" --agent dummy --task "$TASK" --mode sandbox --local datasets/pilot
+      - name: Check the graded result
+        run: |
+          result="results/$TASK/$MODEL/dummy/result.json"
+          jq . "$result"
+          # The unpatched project must build and its PoC must still fail.
+          jq -e '.patch_result.build_success and .patch_result.pov_total > 0 and .patch_result.pov_passed == 0' "$result"
+      - name: Check the host
+        if: always()
+        continue-on-error: true
+        run: uv run ssebench doctor
+      - name: Show the LiteLLM logs
+        if: failure()
+        run: docker compose --env-file .env -f deploy/compose/docker-compose.yaml logs --no-color --tail 200
+      - name: Upload the run directory
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-results
+          path: results/
+          retention-days: 7
+
   ci-ok:
     name: ci-ok
     if: always()
-    needs: [changes, python, rust, go, webui, docs, dataset]
+    needs: [changes, python, rust, go, webui, docs, dataset, sdk-integration, e2e]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
