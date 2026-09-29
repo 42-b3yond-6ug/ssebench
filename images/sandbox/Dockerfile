@@ -1,9 +1,11 @@
+FROM ghcr.io/astral-sh/uv:0.12.20@sha256:100047e74f30778ab704942321a09750d6158739573ff58bf3924085cc6cd2d8 AS uv
+
 # The evaluator and the MCP server are members of the uv workspace at the
 # repository root. Each venv is synced from a copy of just the workspace files
 # it needs, directly at its final location; --no-editable installs the SDK into
 # the venv, so /src is not needed at run time.
 FROM ubuntu:24.04 AS python-builder
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/
+COPY --from=uv /uv /bin/
 WORKDIR /src
 COPY pyproject.toml uv.lock ./
 COPY sdk/python/pyproject.toml sdk/python/
@@ -18,11 +20,13 @@ COPY runtime/evaluator/pyproject.toml runtime/evaluator/*.py /evaluator/
 COPY runtime/mcp/pyproject.toml runtime/mcp/*.py /ssebench/mcp/
 
 
-FROM alpine AS opencode-downloader
+FROM alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8 AS opencode-downloader
 RUN apk add --no-cache wget ca-certificates
 ARG OPENCODE_VERSION=1.2.10
+ARG OPENCODE_SHA256=ebcc24012e8f067b10d7416430c88e9c429115ecfbccf8da9eb59db3b629a358
 RUN wget -qO /tmp/opencode.tar.gz \
         "https://github.com/anomalyco/opencode/releases/download/v${OPENCODE_VERSION}/opencode-linux-x64.tar.gz" && \
+    echo "${OPENCODE_SHA256}  /tmp/opencode.tar.gz" | sha256sum -c - && \
     tar -xzf /tmp/opencode.tar.gz -C /usr/local/bin/ && \
     chmod +x /usr/local/bin/opencode && \
     rm /tmp/opencode.tar.gz
