@@ -91,7 +91,8 @@ for f in \
 	/ssebench/diffs/test.diff \
 	/ssebench/diffs/security_test.diff \
 	/ssebench/pocs/poc.go \
-	/ssebench-repo; do
+	/ssebench-repo \
+	/reference/patch.diff; do
 	if cat "$f" >/dev/null 2>&1 || ls "$f" >/dev/null 2>&1; then
 		bad "readable: $f"
 	else
