@@ -2,8 +2,9 @@
 # The entrypoint starts the OpenCode server; this agent acts as an HTTP client.
 FROM ssebench-agent
 
-# The wrapper depends on the SDK at ../../../sdk/python, so /app mirrors the
-# repository layout; the SDK comes from the `sdk` build context.
+# The wrapper is a member of the uv workspace at the repository root, so /app
+# holds the workspace files it needs (from the `workspace` build context) in the
+# repository layout.
 RUN mkdir -p /app/agents/opencode/opencode-sse && chown -R model:model /app
 WORKDIR /app/agents/opencode/opencode-sse
 
@@ -12,9 +13,11 @@ RUN mkdir -p /home/model/.cache && \
     rm -rf /home/model/.cache/uv && \
     chown -R model:model /home/model
 
-# Owned by model: uv builds the SDK inside its source tree when the agent starts.
-COPY --from=sdk --chown=model:model pyproject.toml /app/sdk/python/
-COPY --from=sdk --chown=model:model sse/ /app/sdk/python/sse/
+# Owned by model: uv creates /app/.venv and builds the SDK inside its source
+# tree when the agent starts.
+COPY --from=workspace --chown=model:model pyproject.toml uv.lock /app/
+COPY --from=workspace --chown=model:model sdk/python/pyproject.toml /app/sdk/python/
+COPY --from=workspace --chown=model:model sdk/python/sse/ /app/sdk/python/sse/
 COPY --chown=model:model opencode-sse/ /app/agents/opencode/opencode-sse
 
 CMD ["./run.sh"]

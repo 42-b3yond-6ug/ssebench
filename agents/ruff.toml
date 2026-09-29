@@ -1,0 +1,3 @@
+# The agent wrappers keep the default 88-column style.
+extend = "../pyproject.toml"
+line-length = 88

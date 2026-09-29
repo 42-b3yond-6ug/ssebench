@@ -9,6 +9,3 @@
 
 # Cache
 **/.cache
-
-# uv lock file (regenerated at runtime)
-**/uv.lock

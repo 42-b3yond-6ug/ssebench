@@ -1,24 +1,21 @@
-# The Python projects resolve the SDK as a path relative to their place in the
-# repository, so they are synced from a copy of that layout under /src; each
-# venv is created directly at its final location.
-FROM ubuntu:24.04 AS evaluator-builder
+# The evaluator and the MCP server are members of the uv workspace at the
+# repository root. Each venv is synced from a copy of just the workspace files
+# it needs, directly at its final location; --no-editable installs the SDK into
+# the venv, so /src is not needed at run time.
+FROM ubuntu:24.04 AS python-builder
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/
-COPY sdk/python/pyproject.toml /src/sdk/python/
-COPY sdk/python/sse/ /src/sdk/python/sse/
-COPY runtime/evaluator/pyproject.toml /src/runtime/evaluator/
-COPY runtime/evaluator/pyproject.toml /evaluator/
-COPY runtime/evaluator/*.py /evaluator/
-RUN cd /src/runtime/evaluator && UV_PROJECT_ENVIRONMENT=/evaluator/.venv uv sync --no-dev
-
-
-FROM ubuntu:24.04 AS mcp-builder
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/
-COPY sdk/python/pyproject.toml /src/sdk/python/
-COPY sdk/python/sse/ /src/sdk/python/sse/
-COPY runtime/mcp/pyproject.toml /src/runtime/mcp/
-COPY runtime/mcp/pyproject.toml /ssebench/mcp/
-COPY runtime/mcp/*.py /ssebench/mcp/
-RUN cd /src/runtime/mcp && UV_PROJECT_ENVIRONMENT=/ssebench/mcp/.venv uv sync --no-dev
+WORKDIR /src
+COPY pyproject.toml uv.lock ./
+COPY sdk/python/pyproject.toml sdk/python/
+COPY sdk/python/sse/ sdk/python/sse/
+COPY runtime/evaluator/pyproject.toml runtime/evaluator/
+COPY runtime/mcp/pyproject.toml runtime/mcp/
+RUN UV_PROJECT_ENVIRONMENT=/evaluator/.venv \
+        uv sync --package ssebench-evaluator --frozen --no-dev --no-editable && \
+    UV_PROJECT_ENVIRONMENT=/ssebench/mcp/.venv \
+        uv sync --package ssebench-mcp --frozen --no-dev --no-editable
+COPY runtime/evaluator/pyproject.toml runtime/evaluator/*.py /evaluator/
+COPY runtime/mcp/pyproject.toml runtime/mcp/*.py /ssebench/mcp/
 
 
 FROM alpine AS opencode-downloader
@@ -58,9 +55,9 @@ COPY --from=case-image-builder --chown=1000:1000 ${SOURCE_DIR}/ ${SOURCE_DIR}/
 COPY --chmod=755 images/common/setup-source.sh /tmp/setup-source.sh
 RUN /tmp/setup-source.sh "${SOURCE_DIR}" && rm /tmp/setup-source.sh
 
-COPY --from=evaluator-builder /root/.local/share/uv/python /root/.local/share/uv/python
-COPY --from=evaluator-builder /evaluator /evaluator
-COPY --from=mcp-builder /ssebench/mcp /ssebench/mcp
+COPY --from=python-builder /root/.local/share/uv/python /root/.local/share/uv/python
+COPY --from=python-builder /evaluator /evaluator
+COPY --from=python-builder /ssebench/mcp /ssebench/mcp
 COPY --from=opencode-downloader /usr/local/bin/opencode /usr/local/bin/opencode
 COPY --from=daemon-builder /build/target/release/ssebench-daemon /ssebench/ssebench-daemon
 

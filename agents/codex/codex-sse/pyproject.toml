@@ -1,9 +1,9 @@
 [project]
-name = "codex_sse"
+name = "codex-sse"
 version = "0.1.0"
 description = "OpenAICodex"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
   "fastmcp",
   "ssebench-sdk",
@@ -11,4 +11,4 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-ssebench-sdk = { path = "../../../sdk/python", editable = false }
+ssebench-sdk = { workspace = true }

@@ -9,8 +9,9 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 # Stage 2: Final image
 FROM ssebench-agent
 
-# The wrapper depends on the SDK at ../../../sdk/python, so /app mirrors the
-# repository layout; the SDK comes from the `sdk` build context.
+# The wrapper is a member of the uv workspace at the repository root, so /app
+# holds the workspace files it needs (from the `workspace` build context) in the
+# repository layout.
 # Create /app owned by model user (WORKDIR creates as root)
 RUN mkdir -p /app/agents/claude-code/claude-code-sse && chown -R model:model /app
 WORKDIR /app/agents/claude-code/claude-code-sse
@@ -29,9 +30,11 @@ RUN mkdir -p /home/model/.cache && \
 # Setting HOME globally causes MCP server (running as root) to pollute model's cache
 ENV CLAUDE=/home/model/.local/bin/claude
 
-# Owned by model: uv builds the SDK inside its source tree when the agent starts.
-COPY --from=sdk --chown=model:model pyproject.toml /app/sdk/python/
-COPY --from=sdk --chown=model:model sse/ /app/sdk/python/sse/
+# Owned by model: uv creates /app/.venv and builds the SDK inside its source
+# tree when the agent starts.
+COPY --from=workspace --chown=model:model pyproject.toml uv.lock /app/
+COPY --from=workspace --chown=model:model sdk/python/pyproject.toml /app/sdk/python/
+COPY --from=workspace --chown=model:model sdk/python/sse/ /app/sdk/python/sse/
 
 # Copy agent code (changes frequently, but doesn't invalidate cached stages above)
 # .dockerignore excludes .venv, __pycache__, etc.

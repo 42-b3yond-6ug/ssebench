@@ -1,7 +1,8 @@
 FROM ssebench-agent
 
-# The wrapper depends on the SDK at ../../../sdk/python, so /app mirrors the
-# repository layout; the SDK comes from the `sdk` build context.
+# The wrapper is a member of the uv workspace at the repository root, so /app
+# holds the workspace files it needs (from the `workspace` build context) in the
+# repository layout.
 WORKDIR /app/agents/codex/codex-sse
 
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
@@ -13,8 +14,9 @@ RUN npm install -g @openai/codex
 RUN uv python install 3.14
 
 # Owned by model: uv builds the SDK inside its source tree when the agent starts.
-COPY --from=sdk --chown=model:model pyproject.toml /app/sdk/python/
-COPY --from=sdk --chown=model:model sse/ /app/sdk/python/sse/
+COPY --from=workspace --chown=model:model pyproject.toml uv.lock /app/
+COPY --from=workspace --chown=model:model sdk/python/pyproject.toml /app/sdk/python/
+COPY --from=workspace --chown=model:model sdk/python/sse/ /app/sdk/python/sse/
 COPY codex-sse/ /app/agents/codex/codex-sse
 
 CMD ["./run.sh"]
