@@ -1,0 +1,1302 @@
+{
+  "advisory_urls": {
+    "GHSA-x6c3-qv5r-7q22": "https://github.com/jqlang/jq/security/advisories/GHSA-x6c3-qv5r-7q22"
+  },
+  "upstreams": {
+    "https://github.com/Consensys/gnark-crypto": {
+      "name": "gnark-crypto",
+      "license": "Apache-2.0",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/Exiv2/exiv2": {
+      "name": "Exiv2",
+      "license": "GPL-2.0-or-later",
+      "license_files": [
+        "COPYING",
+        "license.txt"
+      ],
+      "note": "copyleft. The source headers grant GPL version 2 or any later version. The task's fix and test diffs are covered by the GPL; the test diff adds the PoC image to the upstream test data."
+    },
+    "https://github.com/MicahParks/jwkset": {
+      "name": "jwkset",
+      "license": "Apache-2.0",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/Robbepop/string-interner": {
+      "name": "string-interner",
+      "license": "MIT OR Apache-2.0",
+      "license_files": [
+        "Cargo.toml",
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ]
+    },
+    "https://github.com/WebAssembly/wabt": {
+      "name": "WABT",
+      "license": "Apache-2.0",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/argoproj/argo-workflows": {
+      "name": "Argo Workflows",
+      "license": "Apache-2.0",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/bennetthardwick/nano-arena": {
+      "name": "nano-arena",
+      "license": "MIT",
+      "license_files": [
+        "Cargo.toml"
+      ]
+    },
+    "https://github.com/containrrr/shoutrrr": {
+      "name": "Shoutrrr",
+      "license": "MIT",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/crewjam/saml": {
+      "name": "crewjam/saml",
+      "license": "BSD-2-Clause",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/dgrijalva/jwt-go": {
+      "name": "jwt-go",
+      "license": "MIT",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/gin-gonic/gin": {
+      "name": "Gin",
+      "license": "MIT",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/go-goyave/goyave": {
+      "name": "Goyave",
+      "license": "MIT",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/go-yaml/yaml": {
+      "name": "go-yaml",
+      "license": "Apache-2.0 AND MIT",
+      "license_files": [
+        "LICENSE"
+      ],
+      "note": "two licenses in one repository. The files ported from libyaml keep the MIT license and the rest is Apache-2.0, as its `LICENSE` (at older commits, `LICENSE` and `LICENSE.libyaml`) explains."
+    },
+    "https://github.com/gofiber/fiber": {
+      "name": "Fiber",
+      "license": "MIT",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/hyperium/http": {
+      "name": "http",
+      "license": "MIT OR Apache-2.0",
+      "license_files": [
+        "Cargo.toml",
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ]
+    },
+    "https://github.com/jqlang/jq": {
+      "name": "jq",
+      "license": "MIT",
+      "license_files": [
+        "COPYING"
+      ],
+      "note": "jq itself is MIT, but its `COPYING` also covers bundled code under other terms: decNumber under the ICU license (the code where this task's crash occurs), David M. Gay's `dtoa.c` and `g_fmt.c` under their own permission notices, and the documentation under CC BY 3.0."
+    },
+    "https://github.com/kubernetes-sigs/aws-iam-authenticator": {
+      "name": "AWS IAM Authenticator",
+      "license": "Apache-2.0",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/kubernetes/kubernetes": {
+      "name": "Kubernetes",
+      "license": "Apache-2.0",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/microcosm-cc/bluemonday": {
+      "name": "bluemonday",
+      "license": "BSD-3-Clause",
+      "license_files": [
+        "LICENSE.md"
+      ]
+    },
+    "https://github.com/miekg/dns": {
+      "name": "miekg/dns",
+      "license": "BSD-3-Clause",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/nyaruka/phonenumbers": {
+      "name": "phonenumbers",
+      "license": "MIT",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/open-policy-agent/opa": {
+      "name": "Open Policy Agent",
+      "license": "Apache-2.0",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/php/php-src": {
+      "name": "PHP",
+      "license": "PHP-3.01",
+      "license_files": [
+        "LICENSE"
+      ],
+      "note": "the PHP License 3.01, a BSD-style license that restricts use of the name \"PHP\" for derived products and requires an acknowledgment in redistributions."
+    },
+    "https://github.com/pion/interceptor": {
+      "name": "Pion Interceptor",
+      "license": "MIT",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/python/cpython": {
+      "name": "CPython",
+      "license": "Python-2.0",
+      "license_files": [
+        "LICENSE"
+      ],
+      "note": "the Python Software Foundation License Version 2, together with the historical BeOpen, CNRI and CWI terms that make up CPython's `LICENSE`. Code examples in the CPython documentation are also offered under 0BSD."
+    },
+    "https://github.com/quickjs-ng/quickjs": {
+      "name": "QuickJS-ng",
+      "license": "MIT",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/revel/revel": {
+      "name": "Revel",
+      "license": "MIT",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/rust-ammonia/ammonia": {
+      "name": "ammonia",
+      "license": "MIT OR Apache-2.0",
+      "license_files": [
+        "Cargo.toml",
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ]
+    },
+    "https://github.com/sajari/docconv": {
+      "name": "docconv",
+      "license": "MIT",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/servo/rust-smallvec": {
+      "name": "smallvec",
+      "license": "MIT OR Apache-2.0",
+      "license_files": [
+        "Cargo.toml",
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ]
+    },
+    "https://github.com/submariner-io/submariner-operator": {
+      "name": "Submariner Operator",
+      "license": "Apache-2.0",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/thepowersgang/stack_dst-rs": {
+      "name": "stack_dst",
+      "license": "MIT OR Apache-2.0",
+      "license_files": [
+        "Cargo.toml",
+        "LICENCE",
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ]
+    },
+    "https://github.com/tidwall/gjson": {
+      "name": "GJSON",
+      "license": "MIT",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/ulikunitz/xz": {
+      "name": "ulikunitz/xz",
+      "license": "BSD-3-Clause",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://github.com/vim/vim": {
+      "name": "Vim",
+      "license": "Vim",
+      "license_files": [
+        "LICENSE"
+      ],
+      "note": "the Vim license. Unmodified copies may be redistributed with the license text; distributing a modified version carries extra conditions, such as making the changes available. `xxd`, which `generic-c-vim-vim_gh_14738` targets, is also offered by its author under MIT or GPL-2.0."
+    },
+    "https://github.com/viz-rs/nano-id": {
+      "name": "nano-id",
+      "license": "MIT OR Apache-2.0",
+      "license_files": [
+        "Cargo.toml",
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ]
+    },
+    "https://github.com/wireshark/wireshark": {
+      "name": "Wireshark",
+      "license": "GPL-2.0-or-later",
+      "license_files": [
+        "COPYING"
+      ],
+      "note": "copyleft. Wireshark's `COPYING` is GPL version 2 and its sources carry `SPDX-License-Identifier: GPL-2.0-or-later`. The task's fix and test diffs are covered by the GPL."
+    },
+    "https://github.com/woodpecker-ci/woodpecker": {
+      "name": "Woodpecker",
+      "license": "Apache-2.0",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    "https://gitlab.com/libtiff/libtiff": {
+      "name": "LibTIFF",
+      "license": "libtiff",
+      "license_files": [
+        "LICENSE.md"
+      ],
+      "note": "the permissive LibTIFF license. The copyright and permission notices must be kept in all copies, and the names of Sam Leffler and Silicon Graphics may not be used in advertising without permission."
+    },
+    "https://gitlab.gnome.org/GNOME/libxml2": {
+      "name": "libxml2",
+      "license": "MIT",
+      "license_files": [
+        "Copyright"
+      ]
+    }
+  },
+  "tasks": {
+    "RUSTSEC-2019-0009": {
+      "upstream": "https://github.com/servo/rust-smallvec",
+      "report": "https://github.com/servo/rust-smallvec/issues/148",
+      "advisories": [
+        "CVE-2019-15551",
+        "GHSA-mm7v-vpv8-xfc3",
+        "RUSTSEC-2019-0009"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/src/main.rs"
+          ],
+          "kind": "report"
+        }
+      ],
+      "vendored": {
+        "dir": "rust-smallvec",
+        "name": "smallvec",
+        "version": "0.6.9",
+        "revision": "dfd78d18b790c18bd103c3e7b4930bb54cb6b8f0",
+        "license_files": [
+          "LICENSE-APACHE",
+          "LICENSE-MIT"
+        ]
+      }
+    },
+    "RUSTSEC-2019-0023": {
+      "upstream": "https://github.com/Robbepop/string-interner",
+      "report": "https://github.com/Robbepop/string-interner/issues/9",
+      "advisories": [
+        "CVE-2019-16882",
+        "GHSA-49fq-pw77-6qxj",
+        "RUSTSEC-2019-0023"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/src/main.rs"
+          ],
+          "kind": "report"
+        }
+      ],
+      "vendored": {
+        "dir": "string-interner",
+        "name": "string-interner",
+        "version": "0.7.0",
+        "revision": "313a32019363b1eed87988ea5051311afca40889",
+        "license_files": [
+          "LICENSE-APACHE",
+          "LICENSE-MIT"
+        ]
+      }
+    },
+    "RUSTSEC-2019-0034": {
+      "upstream": "https://github.com/hyperium/http",
+      "report": "https://github.com/hyperium/http/issues/354",
+      "advisories": [
+        "CVE-2019-25009",
+        "GHSA-6rhx-hqxm-8p36",
+        "RUSTSEC-2019-0034"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/src/main.rs"
+          ],
+          "kind": "derived"
+        }
+      ],
+      "vendored": {
+        "dir": "http",
+        "name": "http",
+        "version": "0.1.19",
+        "revision": "9c05e391e00474abaa8c14a86bcb0fc5eff1120e",
+        "license_files": [
+          "LICENSE-APACHE",
+          "LICENSE-MIT"
+        ],
+        "note": "`http/src/header/map.rs` differs from upstream by three small edits so that the crate builds with the task's toolchain."
+      }
+    },
+    "RUSTSEC-2021-0003": {
+      "upstream": "https://github.com/servo/rust-smallvec",
+      "report": "https://github.com/servo/rust-smallvec/issues/252",
+      "advisories": [
+        "CVE-2021-25900",
+        "GHSA-43w2-9j62-hq99",
+        "RUSTSEC-2021-0003"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/src/main.rs"
+          ],
+          "kind": "derived"
+        }
+      ],
+      "vendored": {
+        "dir": "rust-smallvec",
+        "name": "smallvec",
+        "version": "1.6.0",
+        "revision": "0b2b4e53a5cf86740b2515907dd53252b3b59401",
+        "license_files": [
+          "LICENSE-APACHE",
+          "LICENSE-MIT"
+        ]
+      }
+    },
+    "RUSTSEC-2021-0031": {
+      "upstream": "https://github.com/bennetthardwick/nano-arena",
+      "report": "https://github.com/bennetthardwick/nano-arena/issues/1",
+      "advisories": [
+        "CVE-2021-28032",
+        "GHSA-wp34-mqw5-jj85",
+        "RUSTSEC-2021-0031"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/src/main.rs"
+          ],
+          "kind": "derived"
+        }
+      ],
+      "vendored": {
+        "dir": "nano-arena",
+        "name": "nano_arena",
+        "version": "0.5.0",
+        "revision": "1ba84c2a1b2b38653fe9a28de4a5c3d6ad6483f7",
+        "license_files": [
+          "LICENSE"
+        ],
+        "note": "upstream publishes no license file. SSEBench added `nano-arena/LICENSE` with the MIT text that the crate's `Cargo.toml` declares (`license = \"MIT\"`) and the copyright line of the author named in its `authors` field."
+      }
+    },
+    "RUSTSEC-2021-0033": {
+      "upstream": "https://github.com/thepowersgang/stack_dst-rs",
+      "report": "https://github.com/thepowersgang/stack_dst-rs/issues/5",
+      "advisories": [
+        "CVE-2021-28034",
+        "CVE-2021-28035",
+        "GHSA-45w7-7g63-2m5w",
+        "GHSA-8mjx-h23h-w2pg",
+        "RUSTSEC-2021-0033"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/src/main.rs"
+          ],
+          "kind": "report"
+        }
+      ],
+      "vendored": {
+        "dir": "stack_dst-rs",
+        "name": "stack_dst",
+        "version": "0.6.0",
+        "revision": "807e9d45019c02369e11d40bd181cbf7bb7981fc",
+        "license_files": [
+          "LICENCE",
+          "LICENSE-APACHE",
+          "LICENSE-MIT"
+        ]
+      }
+    },
+    "ammonia-142-4b8426b": {
+      "upstream": "https://github.com/rust-ammonia/ammonia",
+      "report": "https://github.com/advisories/GHSA-5325-xw5m-phm3",
+      "advisories": [
+        "CVE-2021-38193",
+        "GHSA-5325-xw5m-phm3",
+        "RUSTSEC-2021-0074"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/src/main.rs"
+          ],
+          "kind": "derived"
+        }
+      ],
+      "license_checked_at": "ae3fb569e1f0019a8a9793616d1944614d79e7a0"
+    },
+    "argo-workflows-2a2ecc9": {
+      "upstream": "https://github.com/argoproj/argo-workflows",
+      "report": "https://github.com/argoproj/argo-workflows/issues/6441",
+      "advisories": [
+        "CVE-2021-37914",
+        "GHSA-h563-xh25-x54q",
+        "GO-2022-0928"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "written"
+        }
+      ],
+      "license_checked_at": "7bf825bfcdcd894ba12ef160cd9913a26844d6b6"
+    },
+    "aws-iam-authenticator-029d1dc": {
+      "upstream": "https://github.com/kubernetes-sigs/aws-iam-authenticator",
+      "report": "https://github.com/kubernetes-sigs/aws-iam-authenticator/issues/472",
+      "advisories": [
+        "CVE-2022-2385",
+        "GHSA-pp3f-98qg-5g75",
+        "GO-2022-0547"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "written"
+        }
+      ],
+      "license_checked_at": "0a72c12090fb71ebefbc5036dc1b548b123a91a6"
+    },
+    "bluemonday-524f142": {
+      "upstream": "https://github.com/microcosm-cc/bluemonday",
+      "report": "https://github.com/microcosm-cc/bluemonday/issues/111",
+      "advisories": [
+        "CVE-2021-29272",
+        "GHSA-3x58-xr87-2fcj",
+        "GO-2022-0762"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "derived"
+        }
+      ],
+      "license_checked_at": "3cce251c9ed2a9ee66c8f8984fff3d19d45999df"
+    },
+    "dns-745-501e858": {
+      "upstream": "https://github.com/miekg/dns",
+      "report": "https://github.com/miekg/dns/issues/742",
+      "advisories": [
+        "CVE-2018-17419",
+        "GHSA-9jcx-pr2f-qvq5",
+        "GO-2020-0028"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "report"
+        }
+      ],
+      "license_checked_at": "833bf76c282d338e307ff7ec181b95cfc117deb2"
+    },
+    "docconv-b19021a": {
+      "upstream": "https://github.com/sajari/docconv",
+      "report": "https://github.com/advisories/GHSA-6m4h-hfpp-x8cx",
+      "advisories": [
+        "CVE-2022-4643",
+        "GHSA-6m4h-hfpp-x8cx",
+        "GO-2022-1184"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "written"
+        }
+      ],
+      "license_checked_at": "44d673994791482c8aec902e0f949c354ce8dc0f"
+    },
+    "fiber-b8c9ede": {
+      "upstream": "https://github.com/gofiber/fiber",
+      "report": "https://github.com/gofiber/fiber/security/advisories/GHSA-3q5p-3558-364f",
+      "advisories": [
+        "CVE-2023-41338",
+        "GHSA-3q5p-3558-364f",
+        "GO-2023-2052"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "written"
+        }
+      ],
+      "license_checked_at": "d570d95e844252d390a7209c5e7a67dddb85e016"
+    },
+    "generic-c-cpython-py_pr_102397": {
+      "upstream": "https://github.com/python/cpython",
+      "report": "https://github.com/python/cpython/issues/102397",
+      "advisories": [],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.py"
+          ],
+          "kind": "report"
+        }
+      ],
+      "license_checked_at": "8bf8e3d9a001f1d955a9f0875ac5a70f6d5a5f5c"
+    },
+    "generic-c-cpython-py_pr_124513": {
+      "upstream": "https://github.com/python/cpython",
+      "report": "https://github.com/python/cpython/issues/124513",
+      "advisories": [],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.py"
+          ],
+          "kind": "derived"
+        }
+      ],
+      "license_checked_at": "0d9d56c4e4246495f506f7fb319548fb105b535b"
+    },
+    "generic-c-cpython-py_pr_124555": {
+      "upstream": "https://github.com/python/cpython",
+      "report": "https://github.com/python/cpython/issues/120378",
+      "advisories": [],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.bin"
+          ],
+          "kind": "report"
+        }
+      ],
+      "license_checked_at": "7bd9dbf8e148f14f9c9c6715a820bfda6adff957"
+    },
+    "generic-c-cpython-py_pr_125723": {
+      "upstream": "https://github.com/python/cpython",
+      "report": "https://github.com/python/cpython/issues/125723",
+      "advisories": [],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.py"
+          ],
+          "kind": "report"
+        }
+      ],
+      "license_checked_at": "24c84d816f2f2ecb76b80328c3f1d8c05ead0b10"
+    },
+    "generic-c-cpython-py_pr_126033": {
+      "upstream": "https://github.com/python/cpython",
+      "report": "https://github.com/python/cpython/issues/126033",
+      "advisories": [],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.py"
+          ],
+          "kind": "report"
+        }
+      ],
+      "license_checked_at": "c57623c221d46daeaedfbf2b32d041fde0c882de"
+    },
+    "generic-c-cpython-py_pr_132747": {
+      "upstream": "https://github.com/python/cpython",
+      "report": "https://github.com/python/cpython/issues/132747",
+      "advisories": [],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.py"
+          ],
+          "kind": "report"
+        }
+      ],
+      "license_checked_at": "c8e0b6e6849fc3d93c33050b43fe866391625157"
+    },
+    "generic-c-exiv2-exiv2_gh_789": {
+      "upstream": "https://github.com/Exiv2/exiv2",
+      "report": "https://github.com/Exiv2/exiv2/issues/789",
+      "advisories": [
+        "CVE-2019-13108"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/issue_789_poc1.png",
+            "sse/reports/poc1.png"
+          ],
+          "text": "byte-identical to the `poc1.png` attachment on the public report <https://github.com/Exiv2/exiv2/issues/789> and to `test/data/issue_789_poc1.png` in the upstream test suite."
+        }
+      ],
+      "license_checked_at": "f05d100579effd7459fd0715b26239d4cd2c9bcc"
+    },
+    "generic-c-jq-jq_gh_3196": {
+      "upstream": "https://github.com/jqlang/jq",
+      "report": "https://github.com/jqlang/jq/issues/3196",
+      "advisories": [
+        "CVE-2024-53427",
+        "GHSA-x6c3-qv5r-7q22"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.jq"
+          ],
+          "text": "the base64-encoded fuzzer input from the public report <https://github.com/jqlang/jq/issues/3196>, decoded."
+        }
+      ],
+      "license_checked_at": "64bd8ba3749fe473b0708f999e088dfa94d37a2c"
+    },
+    "generic-c-libtiff-tif_gh_647": {
+      "upstream": "https://gitlab.com/libtiff/libtiff",
+      "report": "https://gitlab.com/libtiff/libtiff/-/issues/643",
+      "advisories": [],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.tiff"
+          ],
+          "text": "the `poc.tiff` reproducer attached to the public report <https://gitlab.com/libtiff/libtiff/-/issues/643>. The upstream attachment requires a GitLab sign-in and was not compared byte for byte."
+        }
+      ],
+      "license_checked_at": "b00d0060ba2fb4c0f8bcb4bbb9fe4426ab5457dc"
+    },
+    "generic-c-libxml2-xml_commit_0bcd05c": {
+      "upstream": "https://gitlab.gnome.org/GNOME/libxml2",
+      "report": "https://bugzilla.gnome.org/show_bug.cgi?id=758606",
+      "advisories": [
+        "CVE-2016-1833"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.html"
+          ],
+          "text": "byte-identical to `test/HTML/758606.html`, which the fix commit adds to the upstream test suite for GNOME Bugzilla bug 758606 <https://bugzilla.gnome.org/show_bug.cgi?id=758606>."
+        }
+      ],
+      "license_checked_at": "00906759053986b8079985644172085f74331f83"
+    },
+    "generic-c-libxml2-xml_commit_a820dbe": {
+      "upstream": "https://gitlab.gnome.org/GNOME/libxml2",
+      "report": "https://bugzilla.gnome.org/show_bug.cgi?id=758605",
+      "advisories": [
+        "CVE-2016-1839"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/attachment_316182"
+          ],
+          "text": "attachment 316182 on GNOME Bugzilla bug 758605 <https://bugzilla.gnome.org/attachment.cgi?id=316182>; the file is the xz-decompressed attachment, byte for byte."
+        }
+      ],
+      "license_checked_at": "db07dd613e461df93dde7902c6505629bf0734e9"
+    },
+    "generic-c-libxml2-xml_gh_931": {
+      "upstream": "https://gitlab.gnome.org/GNOME/libxml2",
+      "report": "https://gitlab.gnome.org/GNOME/libxml2/-/issues/931",
+      "advisories": [
+        "CVE-2025-49794"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc",
+            "sse/run.sh"
+          ],
+          "text": "the schema and instance documents embedded in the C test program in `sse/run.sh` are those of the upstream regression test `test/schematron/cve-2025-49794.sct` and `test/schematron/cve-2025-49794_0.xml`, added by the fix commit. `sse/pocs/poc` is an empty placeholder."
+        }
+      ],
+      "license_checked_at": "24d7e15914588cb45e7fb41cbe4fcf785e1a4861"
+    },
+    "generic-c-libxml2-xml_gh_932": {
+      "upstream": "https://gitlab.gnome.org/GNOME/libxml2",
+      "report": "https://gitlab.gnome.org/GNOME/libxml2/-/issues/932",
+      "advisories": [
+        "CVE-2025-49795"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc",
+            "sse/run.sh"
+          ],
+          "text": "the schema and instance documents embedded in the C test program in `sse/run.sh` are those of the upstream regression test `test/schematron/zvon16.sct` and `test/schematron/zvon16_0.xml`, added by the fix commit. `sse/pocs/poc` is an empty placeholder."
+        }
+      ],
+      "license_checked_at": "069bcda17d8194e9582c64dd4bc9dac99b015810"
+    },
+    "generic-c-libxml2-xml_gh_933": {
+      "upstream": "https://gitlab.gnome.org/GNOME/libxml2",
+      "report": "https://gitlab.gnome.org/GNOME/libxml2/-/issues/933",
+      "advisories": [
+        "CVE-2025-49796"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc",
+            "sse/run.sh"
+          ],
+          "text": "the schema and instance documents embedded in the C test program in `sse/run.sh` are those of the upstream regression test `test/schematron/cve-2025-49796.sct` and `test/schematron/cve-2025-49796_0.xml`, added by the fix commit. `sse/pocs/poc` is an empty placeholder."
+        }
+      ],
+      "license_checked_at": "24d7e15914588cb45e7fb41cbe4fcf785e1a4861"
+    },
+    "generic-c-php-php_gh_16589": {
+      "upstream": "https://github.com/php/php-src",
+      "report": "https://github.com/php/php-src/issues/16589",
+      "advisories": [],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.bin"
+          ],
+          "kind": "report"
+        }
+      ],
+      "license_checked_at": "992ac1c25a790d413a8029ed052a1436cc8f50a1"
+    },
+    "generic-c-quickjs-qjs_gh_567": {
+      "upstream": "https://github.com/quickjs-ng/quickjs",
+      "report": "https://github.com/quickjs-ng/quickjs/issues/567",
+      "advisories": [],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.bin",
+            "sse/run.sh"
+          ],
+          "text": "the two modules written by `sse/run.sh` are adapted from the public report <https://github.com/quickjs-ng/quickjs/issues/567> and from the upstream regression test `tests/test_cyclic_import.js` with `tests/fixture_cyclic_import.js`, added by the fix commit. `sse/pocs/poc.bin` is an empty placeholder."
+        }
+      ],
+      "license_checked_at": "d9d6939b20ae6e74399ed88433b3a121afdd642d"
+    },
+    "generic-c-vim-vim_gh_14738": {
+      "upstream": "https://github.com/vim/vim",
+      "report": "https://github.com/vim/vim/pull/14738",
+      "advisories": [],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.vim"
+          ],
+          "text": "an input file of repeated `a` bytes written for SSEBench. The `xxd` command line in `sse/run.sh` is the one from the public report <https://github.com/vim/vim/pull/14738>."
+        }
+      ],
+      "license_checked_at": "8c35c26c1f68950a75a1a93339410244fec23afc"
+    },
+    "generic-c-vim-vim_gh_17005": {
+      "upstream": "https://github.com/vim/vim",
+      "report": "https://github.com/vim/vim/pull/17005",
+      "advisories": [],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.vim"
+          ],
+          "text": "adapted from the upstream test `Test_pum_maxwidth_with_many_items`, added by the fix in the public report <https://github.com/vim/vim/pull/17005>."
+        }
+      ],
+      "license_checked_at": "c6336acfe3e80904458d7ea735929b4c91346702"
+    },
+    "generic-c-wabt-wabt_gh_2398": {
+      "upstream": "https://github.com/WebAssembly/wabt",
+      "report": "https://github.com/WebAssembly/wabt/issues/2398",
+      "advisories": [],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/wasm-poc-03",
+            "sse/reports/wasm-poc-03.zip"
+          ],
+          "text": "`wasm-poc-03.zip` is byte-identical to the attachment on the public report <https://github.com/WebAssembly/wabt/issues/2398>, and `wasm-poc-03` is the file it contains."
+        }
+      ],
+      "license_checked_at": "c6853eb4857908072fd1d7c28dffb1d2613a0ee6"
+    },
+    "generic-c-wireshark-wireshark_commit_129565f": {
+      "upstream": "https://github.com/wireshark/wireshark",
+      "report": "https://gitlab.com/wireshark/wireshark/-/merge_requests/18298",
+      "advisories": [],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.wireshark"
+          ],
+          "text": "the display filter quoted in the upstream fix commit and its merge request <https://gitlab.com/wireshark/wireshark/-/merge_requests/18298>."
+        }
+      ],
+      "license_checked_at": "10e9024c12ba35fcd213f8b8aa6d68ef9dd802c2"
+    },
+    "gin-5929d52": {
+      "upstream": "https://github.com/gin-gonic/gin",
+      "report": "https://github.com/gin-gonic/gin/issues/2862",
+      "advisories": [
+        "CVE-2020-28483",
+        "GHSA-h395-qcrw-5vmq",
+        "GO-2021-0052"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "derived"
+        }
+      ],
+      "license_checked_at": "21125bbb3f550dbfa4c64151f7e01f58dd64e2b8"
+    },
+    "gin-bfc8ca2": {
+      "upstream": "https://github.com/gin-gonic/gin",
+      "report": "https://github.com/gin-gonic/gin/issues/2473",
+      "advisories": [
+        "CVE-2020-28483",
+        "GHSA-h395-qcrw-5vmq",
+        "GO-2021-0052"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "derived"
+        }
+      ],
+      "license_checked_at": "f3de8132c5d955784deeadb9bcf5752e9fdf0d8c"
+    },
+    "gjson-192-f0ee9eb": {
+      "upstream": "https://github.com/tidwall/gjson",
+      "report": "https://github.com/tidwall/gjson/issues/192",
+      "advisories": [
+        "CVE-2020-35380",
+        "GHSA-w942-gw6m-p62c",
+        "GO-2021-0059"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "derived"
+        }
+      ],
+      "license_checked_at": "5100d6926a4bea3753fc72352fca70654f04cedc"
+    },
+    "gjson-196-bf4efcb": {
+      "upstream": "https://github.com/tidwall/gjson",
+      "report": "https://github.com/tidwall/gjson/issues/196",
+      "advisories": [
+        "CVE-2020-36067",
+        "GHSA-p64j-r5f4-pwwx",
+        "GO-2021-0054"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "derived"
+        }
+      ],
+      "license_checked_at": "9f58baa7a613f89dfdc764c39e47fd3a15606153"
+    },
+    "gnark-crypto-5660088": {
+      "upstream": "https://github.com/Consensys/gnark-crypto",
+      "report": "https://github.com/Consensys-Incorporated/gnark/issues/1483",
+      "advisories": [
+        "CVE-2025-58157",
+        "GHSA-9fvj-xqr2-xwg8",
+        "GO-2025-3929"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "derived"
+        }
+      ],
+      "license_checked_at": "1873045cbd7d0e690a74c0c30c4a00335776de5f"
+    },
+    "goyave-20243293-5836bff3efaa": {
+      "upstream": "https://github.com/go-goyave/goyave",
+      "report": "https://github.com/golang/vulndb/issues/3293",
+      "advisories": [
+        "GO-2024-3293"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go",
+            "sse/pocs/config.json"
+          ],
+          "kind": "derived"
+        }
+      ],
+      "license_checked_at": "fc57b4c103252191ba7643280a1225fb7332e312"
+    },
+    "interceptor-fa5b35e": {
+      "upstream": "https://github.com/pion/interceptor",
+      "report": "https://github.com/pion/webrtc/issues/3148",
+      "advisories": [
+        "CVE-2025-49140",
+        "GHSA-f26w-gh5m-qq77",
+        "GO-2025-3748"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "derived"
+        }
+      ],
+      "license_checked_at": "791455129d4ef736c4009692e8ce108afe0fff14"
+    },
+    "jwkset-41-01db49a": {
+      "upstream": "https://github.com/MicahParks/jwkset",
+      "report": "https://github.com/MicahParks/jwkset/issues/40",
+      "advisories": [
+        "CVE-2025-22149",
+        "GHSA-675f-rq2r-jw82",
+        "GO-2025-3376"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "report"
+        }
+      ],
+      "license_checked_at": "ce57ded280d99191ea54e3c4c5460c58207c3bbf"
+    },
+    "jwt-go-ec0a89a": {
+      "upstream": "https://github.com/dgrijalva/jwt-go",
+      "report": "https://github.com/dgrijalva/jwt-go/issues/422",
+      "advisories": [
+        "CVE-2020-26160",
+        "GHSA-w73w-5m7g-f7qc",
+        "GO-2020-0017"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "written"
+        }
+      ],
+      "license_checked_at": "32acca36b99f04b2b52d117d57bb17e17cbd35a8"
+    },
+    "kubernetes-dad0e93": {
+      "upstream": "https://github.com/kubernetes/kubernetes",
+      "report": "https://github.com/kubernetes/kubernetes/issues/101695",
+      "advisories": [
+        "CVE-2021-25743",
+        "GHSA-f9jg-8p32-2f55",
+        "GO-2022-0983"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "written"
+        }
+      ],
+      "license_checked_at": "90f50488c7b1ab810dd98061d196568e61c47adb"
+    },
+    "nanoid-10-a902277": {
+      "upstream": "https://github.com/viz-rs/nano-id",
+      "report": "https://github.com/viz-rs/nano-id/security/advisories/GHSA-9hc7-6w9r-wj94",
+      "advisories": [
+        "CVE-2024-36400",
+        "GHSA-9hc7-6w9r-wj94",
+        "RUSTSEC-2024-0343"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/src/main.rs"
+          ],
+          "kind": "report"
+        }
+      ],
+      "license_checked_at": "d8d2113aa68095ca129c32276ea883ca6324cdc5"
+    },
+    "opa-064f616": {
+      "upstream": "https://github.com/open-policy-agent/opa",
+      "report": "https://github.com/open-policy-agent/opa/issues/4762",
+      "advisories": [
+        "CVE-2022-33082",
+        "GHSA-2m4x-4q9j-w97g",
+        "GO-2022-0574"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "written"
+        }
+      ],
+      "license_checked_at": "243f526280343b0524bf9e8637182c57f0d105f9"
+    },
+    "opa-ad20632": {
+      "upstream": "https://github.com/open-policy-agent/opa",
+      "report": "https://github.com/open-policy-agent/opa/security/advisories/GHSA-6m8w-jc87-6cr7",
+      "advisories": [
+        "CVE-2025-46569",
+        "GHSA-6m8w-jc87-6cr7",
+        "GO-2025-3660"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "written"
+        }
+      ],
+      "license_checked_at": "24ff9cfb3ad0a6a5629f0b21458982d325ee03c5"
+    },
+    "phonenumbers-152-0479e35": {
+      "upstream": "https://github.com/nyaruka/phonenumbers",
+      "report": "https://github.com/nyaruka/phonenumbers/issues/148",
+      "advisories": [
+        "CVE-2025-10954",
+        "GHSA-fmjh-f678-cv3x",
+        "GO-2025-3987"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "derived"
+        }
+      ],
+      "license_checked_at": "ccd8c4bbabf867cf0edce16aa0db7209ee1af06e"
+    },
+    "revel-d160ecb": {
+      "upstream": "https://github.com/revel/revel",
+      "report": "https://github.com/revel/revel/issues/1424",
+      "advisories": [
+        "CVE-2020-36568",
+        "GHSA-hggr-p7v6-73p5",
+        "GO-2020-0003"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "written"
+        }
+      ],
+      "license_checked_at": "60c3d7ac38ffd6f759401147ad128a3e88c88242"
+    },
+    "saml-8e92368": {
+      "upstream": "https://github.com/crewjam/saml",
+      "report": "https://github.com/crewjam/saml/security/advisories/GHSA-5mqj-xc49-246p",
+      "advisories": [
+        "CVE-2023-28119",
+        "GHSA-5mqj-xc49-246p",
+        "GO-2023-1664"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "written"
+        }
+      ],
+      "license_checked_at": "2aeb2efd8c405fb7b40aa75b591b0828ef552670"
+    },
+    "shoutrrr-6a27056": {
+      "upstream": "https://github.com/containrrr/shoutrrr",
+      "report": "https://github.com/containrrr/shoutrrr/issues/240",
+      "advisories": [
+        "CVE-2022-25891",
+        "GHSA-477v-w82m-634j",
+        "GO-2022-0528"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "report"
+        }
+      ],
+      "license_checked_at": "2c9378b69b079db2bbad29d383b54a7919434472"
+    },
+    "submariner-operator-b27a04c": {
+      "upstream": "https://github.com/submariner-io/submariner-operator",
+      "report": "https://github.com/submariner-io/submariner-operator/issues/3041",
+      "advisories": [
+        "CVE-2024-5042",
+        "GHSA-2rhx-qhxp-5jpw",
+        "GO-2024-2866"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "written"
+        }
+      ],
+      "license_checked_at": "7c944489ad3e1da187fd7aaf59e8f6aca6e7f8b9"
+    },
+    "woodpecker-8aa3e5e": {
+      "upstream": "https://github.com/woodpecker-ci/woodpecker",
+      "report": "https://github.com/woodpecker-ci/woodpecker/issues/3929",
+      "advisories": [
+        "CVE-2024-41122",
+        "GHSA-3wf2-2pq4-4rvc",
+        "GO-2024-2998"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "derived"
+        }
+      ],
+      "license_checked_at": "904d8da51ae1bdb9dde818a7574fcf4c03f03150"
+    },
+    "xz-69c6093": {
+      "upstream": "https://github.com/ulikunitz/xz",
+      "report": "https://github.com/ulikunitz/xz/issues/35",
+      "advisories": [
+        "CVE-2021-29482",
+        "GHSA-25xm-hr59-7c27",
+        "GO-2020-0016"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "written"
+        }
+      ],
+      "license_checked_at": "067145b4480ef600b25a0403f386ea25ffe42fd5"
+    },
+    "yaml-8f96da9": {
+      "upstream": "https://github.com/go-yaml/yaml",
+      "report": "https://github.com/go-yaml/yaml/issues/666",
+      "advisories": [
+        "CVE-2022-28948",
+        "GHSA-hp87-p4gw-j4gq",
+        "GO-2022-0603"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "report"
+        }
+      ],
+      "license_checked_at": "539c8e751b99281a79dc659ba8dc44d91e444723",
+      "fix_commits": [
+        "8f96da9f5d5eff988554c1aae1784627c4bf6754"
+      ]
+    },
+    "yaml-bb4e33b": {
+      "upstream": "https://github.com/go-yaml/yaml",
+      "report": "https://github.com/go-yaml/yaml/pull/375",
+      "advisories": [
+        "CVE-2021-4235",
+        "GHSA-r88r-gmrh-7j83",
+        "GO-2021-0061"
+      ],
+      "pocs": [
+        {
+          "files": [
+            "sse/pocs/poc.go"
+          ],
+          "kind": "derived"
+        }
+      ],
+      "license_checked_at": "7b8349ac747c6a24702b762d2c4fd9266cf4f1d6"
+    }
+  }
+}
