@@ -42,7 +42,7 @@ The difficulty level (`SSE_DIFFICULTY`) controls which checks the agent's
 
 ```
 bench/                 ssebench CLI (Python package in bench/src/ssebench): agents, models, tasks, image pipeline, runner
-runtime/entrypoint/    container entrypoint (Go)
+runtime/entrypoint/    container entrypoint (Go): library in pkg/entrypoint, binary in cmd/ssebench-entrypoint
 runtime/evaluator/     final grading (Python)
 runtime/mcp/           MCP server exposing test_patch (Python)
 runtime/plugins/       plugins and plugins.yaml (hooks around agent and grading)
@@ -206,8 +206,9 @@ contains the working directory, otherwise the checkout it was installed from.
 
 - **The extension API is stable.** Other packages register tool layers and
   CLI commands under the `ssebench.tool_layers` and `ssebench.commands`
-  entry-point groups and import from `ssebench.extensions`; keep both
-  backward compatible.
+  entry-point groups and import from `ssebench.extensions`, and Go programs
+  add container modes through `runtime/entrypoint/pkg/entrypoint`; keep all
+  of them backward compatible.
 - **Dataset licensing.** Task material is CC BY 4.0; upstream code in a task
   keeps its own license and license files. Only add publicly disclosed
   vulnerabilities with an upstream fix, and record them in
