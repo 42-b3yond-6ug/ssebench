@@ -1,0 +1,42 @@
+ARG SSEBENCH_REGISTRY=ghcr.io/42-b3yond-6ug/ssebench
+FROM ${SSEBENCH_REGISTRY}/base-generic-rust:latest
+
+RUN rustup default nightly-2022-07-11
+RUN rustup install nightly-2023-11-24
+
+# this project uses deperecated std::error::Error::description
+ENV RUSTFLAGS="--cap-lints warn -A deprecated"
+
+RUN mkdir -p /src
+
+COPY ./http /src/http
+
+# Make the project a git repo
+RUN cd /src/http && \
+    git config --global user.name "tmp" && \
+    git config --global user.email "tmp@example.com" && \
+    rm -rf .git && git init && git add --all && git commit -m "buggy commit"
+
+# Copy harness
+COPY ./harness /ssebench/harness
+# can only build in nightly-2022-07-11
+# can only test in nightly-2023-11-24
+# so we download both their deps because each toolchain has different cache
+RUN cd /src/http \
+    && cargo fetch \
+    && cp Cargo.lock /ssebench/harness/Cargo.lock \
+    && rustup run nightly-2023-11-24 cargo fetch
+
+# Copy config file
+COPY sse/config.yaml /ssebench/config.yaml
+# Copy interaction scripts
+COPY sse/build.sh /ssebench/scripts/build.sh
+COPY sse/run.sh /ssebench/scripts/run.sh
+COPY sse/test.sh /ssebench/scripts/test.sh
+RUN chmod +x /ssebench/scripts/build.sh \
+    && chmod +x /ssebench/scripts/run.sh \
+    && chmod +x /ssebench/scripts/test.sh
+# Copy related files
+COPY sse/diffs /ssebench/diffs
+COPY sse/pocs /ssebench/pocs
+COPY sse/reports /ssebench/reports

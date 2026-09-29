@@ -1,0 +1,35 @@
+diff --git a/internal/rtpbuffer/errors.go b/internal/rtpbuffer/errors.go
+index 57fca02..4c3112b 100644
+--- a/internal/rtpbuffer/errors.go
++++ b/internal/rtpbuffer/errors.go
+@@ -12,4 +12,5 @@ var (
+ 	errPacketReleased          = errors.New("could not retain packet, already released")
+ 	errFailedToCastHeaderPool  = errors.New("could not access header pool, failed cast")
+ 	errFailedToCastPayloadPool = errors.New("could not access payload pool, failed cast")
++	errPaddingOverflow         = errors.New("padding size exceeds payload size")
+ )
+diff --git a/internal/rtpbuffer/packet_factory.go b/internal/rtpbuffer/packet_factory.go
+index 3836acc..c0e3468 100644
+--- a/internal/rtpbuffer/packet_factory.go
++++ b/internal/rtpbuffer/packet_factory.go
+@@ -84,7 +84,7 @@ func (m *PacketFactoryCopy) NewPacket(
+ 		}
+ 	}
+ 
+-	if rtxSsrc != 0 && rtxPayloadType != 0 {
++	if rtxSsrc != 0 && rtxPayloadType != 0 { //nolint:nestif
+ 		if payload == nil {
+ 			retainablePacket.buffer, ok = m.payloadPool.Get().(*[]byte)
+ 			if !ok {
+@@ -105,6 +105,11 @@ func (m *PacketFactoryCopy) NewPacket(
+ 		if retainablePacket.header.Padding && retainablePacket.payload != nil && len(retainablePacket.payload) > 0 {
+ 			paddingLength := int(retainablePacket.payload[len(retainablePacket.payload)-1])
+ 			retainablePacket.header.Padding = false
++
++			if paddingLength > len(retainablePacket.payload) {
++				return nil, errPaddingOverflow
++			}
++
+ 			retainablePacket.payload = (*retainablePacket.buffer)[:len(retainablePacket.payload)-paddingLength]
+ 		}
+ 	}

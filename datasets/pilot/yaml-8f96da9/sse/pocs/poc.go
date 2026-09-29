@@ -1,0 +1,15 @@
+package main
+
+import (
+	"gopkg.in/yaml.v3"
+)
+
+func main() {
+	var t interface{}
+	payload := []byte{
+		0x30, 0x3a, 0x20,
+		0x5b, 0x3a, 0x21, 0x30, 0x30, 0x20,
+		0xef,
+	}
+	yaml.Unmarshal(payload, &t)
+}

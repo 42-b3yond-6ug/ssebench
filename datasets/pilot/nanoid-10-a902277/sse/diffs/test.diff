@@ -1,0 +1,27 @@
+diff --git a/tests/symbols.rs b/tests/symbols.rs
+new file mode 100644
+index 0000000..76a2517
+--- /dev/null
++++ b/tests/symbols.rs
+@@ -0,0 +1,21 @@
++#[cfg(feature = "base62")]
++#[test]
++fn symbols() {
++    use std::collections::BTreeMap;
++
++    let mut counts = BTreeMap::new();
++
++    for _ in 0..1_000_000 {
++        let id = nano_id::base62::<10>();
++        for c in id.chars() {
++            *counts.entry(c).or_insert(0) += 1;
++        }
++    }
++
++    println!("{} symbols generated", counts.len());
++    for (c, count) in &counts {
++        println!("{}: {}", c, count);
++    }
++
++    assert_eq!(counts.len(), 62);
++}

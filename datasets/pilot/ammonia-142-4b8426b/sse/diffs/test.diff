@@ -1,0 +1,62 @@
+diff --git a/tests/ns_sanitization.rs b/tests/ns_sanitization.rs
+new file mode 100644
+index 0000000..98a0795
+--- /dev/null
++++ b/tests/ns_sanitization.rs
+@@ -0,0 +1,56 @@
++use ammonia::Builder;
++
++#[test]
++fn ns_svg() {
++    // https://github.com/cure53/DOMPurify/pull/495
++    let fragment = r##"<svg><iframe><a title="</iframe><img src onerror=alert(1)>">test"##;
++    let result = String::from(Builder::new().add_tags(&["iframe"]).clean(fragment));
++    assert_eq!(result.to_string(), "test");
++
++    let fragment = "<svg><iframe>remove me</iframe></svg><iframe>keep me</iframe>";
++    let result = String::from(Builder::new().add_tags(&["iframe"]).clean(fragment));
++    assert_eq!(result.to_string(), "remove me<iframe>keep me</iframe>");
++
++    let fragment = "<svg><a>remove me</a></svg><iframe>keep me</iframe>";
++    let result = String::from(Builder::new().add_tags(&["iframe"]).clean(fragment));
++    assert_eq!(result.to_string(), "remove me<iframe>keep me</iframe>");
++
++    let fragment = "<svg><a>keep me</a></svg><iframe>keep me</iframe>";
++    let result = String::from(Builder::new().add_tags(&["iframe", "svg"]).clean(fragment));
++    assert_eq!(
++        result.to_string(),
++        "<svg><a rel=\"noopener noreferrer\">keep me</a></svg><iframe>keep me</iframe>"
++    );
++}
++
++#[test]
++fn ns_mathml() {
++    // https://github.com/cure53/DOMPurify/pull/495
++    let fragment = "<mglyph></mglyph>";
++    let result = String::from(
++        Builder::new()
++            .add_tags(&["math", "mtext", "mglyph"])
++            .clean(fragment),
++    );
++    assert_eq!(result.to_string(), "");
++
++    let fragment = "<math><mtext><div><mglyph>";
++    let result = String::from(
++        Builder::new()
++            .add_tags(&["math", "mtext", "mglyph"])
++            .clean(fragment),
++    );
++    assert_eq!(result.to_string(), "<math><mtext><div></div></mtext></math>");
++
++    let fragment = "<math><mtext><mglyph>";
++    let result = String::from(
++        Builder::new()
++            .add_tags(&["math", "mtext", "mglyph"])
++            .clean(fragment),
++    );
++    assert_eq!(
++        result.to_string(),
++        "<math><mtext><mglyph></mglyph></mtext></math>"
++    );
++}
++

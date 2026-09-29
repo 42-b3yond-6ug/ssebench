@@ -1,0 +1,27 @@
+id: aws-iam-authenticator-029d1dc
+project: aws-iam-authenticator
+language: go
+source: /src/aws-iam-authenticator
+task_description:
+  crash_report:
+  - reports/issue.md
+  bug_description: none
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  poc:
+  - pocs/poc.go
+  future_test: diffs/test.diff
+sanitizer: none
+type: Improper Input Validation
+binary: none
+trigger_commit: 0a72c12090fb71ebefbc5036dc1b548b123a91a6
+patch_commit: 029d1dcf2ec8d662d9b1c21260bb197404bc8218
+reference:
+- https://github.com/kubernetes-sigs/aws-iam-authenticator.git
+- https://github.com/kubernetes-sigs/aws-iam-authenticator/commit/029d1dcf2ec8d662d9b1c21260bb197404bc8218
+- https://github.com/kubernetes-sigs/aws-iam-authenticator/issues/472
+originality: Self Craft

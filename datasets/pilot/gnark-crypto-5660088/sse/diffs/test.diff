@@ -1,0 +1,110 @@
+diff --git a/field/eisenstein/eisenstein_test.go b/field/eisenstein/eisenstein_test.go
+index 6aff795f9..0d4620444 100644
+--- a/field/eisenstein/eisenstein_test.go
++++ b/field/eisenstein/eisenstein_test.go
+@@ -4,6 +4,7 @@ import (
+ 	"crypto/rand"
+ 	"math/big"
+ 	"testing"
++	"time"
+
+ 	"github.com/leanovate/gopter"
+ 	"github.com/leanovate/gopter/prop"
+@@ -240,6 +241,97 @@ func TestEisensteinHalfGCD(t *testing.T) {
+ 	properties.TestingRun(t, gopter.ConsoleReporter(false))
+ }
+
++func TestEisensteinQuoRem(t *testing.T) {
++	t.Parallel()
++	parameters := gopter.DefaultTestParameters()
++	if testing.Short() {
++		parameters.MinSuccessfulTests = nbFuzzShort
++	} else {
++		parameters.MinSuccessfulTests = nbFuzz
++	}
++
++	properties := gopter.NewProperties(parameters)
++	genE := GenComplexNumber(boundSize)
++
++	properties.Property("QuoRem should be correct", prop.ForAll(
++		func(a, b *ComplexNumber) bool {
++			var z, rem ComplexNumber
++			z.QuoRem(a, b, &rem)
++			var res ComplexNumber
++			res.Mul(b, &z)
++			res.Add(&res, &rem)
++			return res.Equal(a)
++		},
++		genE,
++		genE,
++	))
++
++	properties.Property("QuoRem remainder should be smaller than divisor", prop.ForAll(
++		func(a, b *ComplexNumber) bool {
++			var z, rem ComplexNumber
++			z.QuoRem(a, b, &rem)
++			return rem.Norm().Cmp(b.Norm()) == -1
++		},
++		genE,
++		genE,
++	))
++}
++
++func TestRegressionHalfGCD1483(t *testing.T) {
++	// This test is a regression test for issue #1483 in gnark.
++	// A correct fix completes in under 1ms. Use a 500ms timeout
++	// (stricter than the PoC's 2s) so that incomplete fixes which
++	// merely slow down the infinite loop also fail this test.
++	a0, _ := new(big.Int).SetString("64502973549206556628585045361533709077", 10)
++	a1, _ := new(big.Int).SetString("-303414439467246543595250775667605759171", 10)
++	c0, _ := new(big.Int).SetString("-432420386565659656852420866390673177323", 10)
++	c1, _ := new(big.Int).SetString("238911465918039986966665730306072050094", 10)
++	a := ComplexNumber{A0: a0, A1: a1}
++	c := ComplexNumber{A0: c0, A1: c1}
++
++	ticker := time.NewTimer(500 * time.Millisecond)
++	doneCh := make(chan struct{})
++	go func() {
++		HalfGCD(&a, &c)
++		close(doneCh)
++	}()
++
++	select {
++	case <-ticker.C:
++		t.Fatal("HalfGCD took too long to compute - fix is incomplete or incorrect")
++	case <-doneCh:
++		// Test passed
++	}
++}
++
++func TestRegressionQuoRem1483(t *testing.T) {
++	// Verify QuoRem satisfies the Euclidean property on the specific inputs
++	// from issue #1483. An incorrect QuoRem here is the root cause of the
++	// HalfGCD infinite loop.
++	a0, _ := new(big.Int).SetString("64502973549206556628585045361533709077", 10)
++	a1, _ := new(big.Int).SetString("-303414439467246543595250775667605759171", 10)
++	c0, _ := new(big.Int).SetString("-432420386565659656852420866390673177323", 10)
++	c1, _ := new(big.Int).SetString("238911465918039986966665730306072050094", 10)
++	x := ComplexNumber{A0: a0, A1: a1}
++	y := ComplexNumber{A0: c0, A1: c1}
++
++	var q, r ComplexNumber
++	q.QuoRem(&x, &y, &r)
++
++	// Check a == q*y + r
++	var check ComplexNumber
++	check.Mul(&y, &q)
++	check.Add(&check, &r)
++	if !check.Equal(&x) {
++		t.Fatalf("QuoRem identity failed: q*y + r != x")
++	}
++
++	// Check ||r|| < ||y|| (Euclidean property)
++	if r.Norm().Cmp(y.Norm()) >= 0 {
++		t.Fatalf("QuoRem Euclidean property violated: ||r||=%s >= ||y||=%s", r.Norm(), y.Norm())
++	}
++}
++
+ // GenNumber generates a random integer
+ func GenNumber(boundSize int64) gopter.Gen {
+ 	return func(genParams *gopter.GenParameters) *gopter.GenResult {

@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Lockfiles: bun.lock is the only one committed
+bun.lockb
+package-lock.json
+
+# OpenCode internal
+.opencode/
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# TypeScript cache
+*.tsbuildinfo
+
+# pty-proxy binary (bun run build:pty)
+pty-proxy/pty-proxy

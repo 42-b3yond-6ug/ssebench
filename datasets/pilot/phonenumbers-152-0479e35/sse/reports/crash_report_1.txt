@@ -1,0 +1,14 @@
+panic: runtime error: slice bounds out of range [16:6]
+
+goroutine 1 [running]:
+github.com/nyaruka/phonenumbers.buildNationalNumberForParsing({0x64616e, 0x17}, 0xc000658850)
+        /src/phonenumbers/phonenumbers.go:3030 +0x4ba
+github.com/nyaruka/phonenumbers.parseHelper({0x64616e, 0x17}, {0x640d2e, 0x2}, 0x0, 0x1, 0xc0006587e0)
+        /src/phonenumbers/phonenumbers.go:2901 +0xc5
+github.com/nyaruka/phonenumbers.ParseToNumber(...)
+        /src/phonenumbers/phonenumbers.go:2815
+github.com/nyaruka/phonenumbers.Parse({0x64616e, 0x17}, {0x640d2e, 0x2})
+        /src/phonenumbers/phonenumbers.go:2808 +0x5e
+main.main()
+        /ssebench/pocs/poc.go:11 +0x35
+exit status 2

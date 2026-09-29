@@ -1,0 +1,10 @@
+SSEBench
+Copyright 2025-2026 the SSEBench authors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Third-party components and the tasks in datasets/pilot carry their own
+licenses. Task material written for SSEBench is licensed under CC BY 4.0
+(see datasets/pilot/LICENSE); upstream source code, patches and tests
+included in the tasks keep their original licenses. Per-task attribution is
+listed in datasets/pilot/THIRD_PARTY.md.

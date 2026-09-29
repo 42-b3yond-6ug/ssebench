@@ -1,0 +1,27 @@
+id: submariner-operator-b27a04c
+project: submariner-operator
+language: go
+source: /src/submariner-operator
+task_description:
+  crash_report:
+  - reports/issue.md
+  bug_description: none
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  poc:
+  - pocs/poc.go
+  future_test: diffs/test.diff
+sanitizer: none
+type: Incorrect Permission Assignment
+binary: none
+trigger_commit: 7c944489ad3e1da187fd7aaf59e8f6aca6e7f8b9
+patch_commit: b27a04c4270e53cbff6ff8ac6245db10c204bcab
+reference:
+- https://github.com/submariner-io/submariner-operator.git
+- https://github.com/submariner-io/submariner-operator/commit/b27a04c4270e53cbff6ff8ac6245db10c204bcab
+- https://github.com/submariner-io/submariner-operator/issues/3041
+originality: Self Craft

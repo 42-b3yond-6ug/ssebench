@@ -1,0 +1,29 @@
+id: gnark-crypto-5660088
+project: gnark-crypto
+language: go
+source: /src/gnark-crypto
+task_description:
+  crash_report:
+  - reports/issue.md
+  bug_description:
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  poc:
+  - pocs/poc.go
+  future_test: diffs/test.diff
+  security_test: diffs/security_test.diff
+  intent_test:
+sanitizer:
+type: CWE-835 - Loop with Unreachable Exit Condition ('Infinite Loop')
+binary:
+trigger_commit: 1873045cbd7d0e690a74c0c30c4a00335776de5f
+patch_commit: 56600883e0e9f9b159e9c7000b94e76185ec3d0d
+reference:
+- https://github.com/Consensys/gnark-crypto.git
+- https://github.com/Consensys/gnark-crypto/commit/56600883e0e9f9b159e9c7000b94e76185ec3d0d
+- https://github.com/Consensys/gnark/issues/1483
+originality: Publicly Available

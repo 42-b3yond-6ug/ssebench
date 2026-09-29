@@ -1,0 +1,16 @@
+- model_name: gemini-3-pro
+  litellm_params:
+    model: gemini/gemini-3-pro-preview
+    api_key: os.environ/GOOGLE_API_KEY
+  model_info:
+    input_cost_per_token: 2.0e-06
+    cache_read_input_token_cost: 2.0e-07
+    output_cost_per_token: 1.2e-05
+- model_name: gemini-3-flash
+  litellm_params:
+    model: gemini/gemini-3-flash-preview
+    api_key: os.environ/GOOGLE_API_KEY
+  model_info:
+    input_cost_per_token: 5.0e-07
+    cache_read_input_token_cost: 5.0e-08
+    output_cost_per_token: 3.0e-06

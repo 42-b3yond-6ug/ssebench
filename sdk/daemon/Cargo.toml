@@ -1,0 +1,30 @@
+[package]
+name = "ssebench"
+version = "0.1.0"
+edition = "2021"
+description = "SSEBench SDK - Core library and daemon for code analysis"
+repository = "https://github.com/42-b3yond-6ug/ssebench"
+license = "Apache-2.0"
+
+[lib]
+name = "ssebench"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ssebench-daemon"
+path = "src/main.rs"
+
+[dependencies]
+actix-web = "4"
+anyhow = "1"
+fs-more = "0.8.1"
+is_executable = "1.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+serde_yaml = "0.9.34"
+tempfile = "3.23.0"
+tokio = { version = "1.47.1", features = ["io-util", "process", "rt", "sync"] }
+tree-sitter = "0.26"
+tree-sitter-rust = "0.24"
+log = "0.4"
+env_logger = "0.11"

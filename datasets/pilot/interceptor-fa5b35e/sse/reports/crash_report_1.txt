@@ -1,0 +1,8 @@
+panic: runtime error: slice bounds out of range [:-195]
+
+goroutine 1 [running]:
+github.com/pion/interceptor/public/rtpbuffer.(*PacketFactoryCopy).NewPacket(0xc000130020, 0xc000120ee8, {0xc000120ee5, 0x3, 0x60?}, 0x1, 0x1)
+        /src/interceptor/public/rtpbuffer/packet_factory.go:108 +0x725
+main.main()
+        /ssebench/pocs/poc.go:16 +0x85
+exit status 2

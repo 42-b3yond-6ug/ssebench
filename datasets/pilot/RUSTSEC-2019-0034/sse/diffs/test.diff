@@ -1,0 +1,44 @@
+diff --git a/tests/header_map_drain.rs b/tests/header_map_drain.rs
+new file mode 100644
+index 0000000..499c977
+--- /dev/null
++++ b/tests/header_map_drain.rs
+@@ -0,0 +1,38 @@
++extern crate http;
++
++use http::{HeaderMap, HeaderValue};
++
++#[test]
++fn drain_drop_immediately() {
++    // test mem::forgetting does not double-free
++
++    let mut headers = HeaderMap::new();
++    headers.insert("hello", "world".parse().unwrap());
++    headers.insert("zomg", "bar".parse().unwrap());
++    headers.append("hello", "world2".parse().unwrap());
++
++    let iter = headers.drain();
++    assert_eq!(iter.size_hint(), (2, Some(2)));
++    // not consuming `iter`
++}
++
++#[test]
++fn drain_forget() {
++    // test mem::forgetting does not double-free
++
++    let mut headers = HeaderMap::<HeaderValue>::new();
++    headers.insert("hello", "world".parse().unwrap());
++    headers.insert("zomg", "bar".parse().unwrap());
++
++    assert_eq!(headers.len(), 2);
++
++    {
++        let mut iter = headers.drain();
++        assert_eq!(iter.size_hint(), (2, Some(2)));
++        let _ = iter.next().unwrap();
++        std::mem::forget(iter);
++    }
++
++    assert_eq!(headers.len(), 0);
++}
++

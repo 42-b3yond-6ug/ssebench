@@ -1,0 +1,35 @@
+panic: internal error: attempted to parse unknown event (please report): none [recovered]
+        panic: internal error: attempted to parse unknown event (please report): none
+
+goroutine 1 [running]:
+gopkg.in/yaml%2ev3.handleErr(0xc00010fe98)
+        /src/yaml/yaml.go:294 +0x6d
+panic({0x4ec740?, 0xc000116100?})
+        /usr/local/go/src/runtime/panic.go:770 +0x132
+gopkg.in/yaml%2ev3.(*parser).parse(0xc00016a008)
+        /src/yaml/decode.go:163 +0x179
+gopkg.in/yaml%2ev3.(*parser).parseChild(...)
+        /src/yaml/decode.go:194
+gopkg.in/yaml%2ev3.(*parser).sequence(0xc00016a008)
+        /src/yaml/decode.go:259 +0x138
+gopkg.in/yaml%2ev3.(*parser).parse(0xc00016a008)
+        /src/yaml/decode.go:154 +0xd5
+gopkg.in/yaml%2ev3.(*parser).parseChild(...)
+        /src/yaml/decode.go:194
+gopkg.in/yaml%2ev3.(*parser).mapping(0xc00016a008)
+        /src/yaml/decode.go:285 +0x238
+gopkg.in/yaml%2ev3.(*parser).parse(0xc00016a008)
+        /src/yaml/decode.go:152 +0xe9
+gopkg.in/yaml%2ev3.(*parser).parseChild(...)
+        /src/yaml/decode.go:194
+gopkg.in/yaml%2ev3.(*parser).document(0xc00016a008)
+        /src/yaml/decode.go:203 +0x79
+gopkg.in/yaml%2ev3.(*parser).parse(0xc00016a008)
+        /src/yaml/decode.go:156 +0xa5
+gopkg.in/yaml%2ev3.unmarshal({0xc000124570, 0xa, 0xa}, {0x4e9f80, 0xc0001160f0}, 0x8?)
+        /src/yaml/yaml.go:161 +0x2d9
+gopkg.in/yaml%2ev3.Unmarshal(...)
+        /src/yaml/yaml.go:89
+main.main()
+        /ssebench/pocs/poc.go:14 +0x5f
+exit status 2

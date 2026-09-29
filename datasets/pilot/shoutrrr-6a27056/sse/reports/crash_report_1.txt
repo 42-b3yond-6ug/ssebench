@@ -1,0 +1,8 @@
+panic: runtime error: index out of range [2000] with length 2000
+
+goroutine 1 [running]:
+github.com/containrrr/shoutrrr/pkg/util.PartitionMessage({0xc00001a800?, 0x1?}, {0xc000096058?, 0x50d2c8?, 0x50d2c8?}, 0x64)
+        /src/shoutrrr/pkg/util/partition_message.go:33 +0x3b5
+main.main()
+        /ssebench/pocs/poc.go:20 +0x3f
+exit status 2

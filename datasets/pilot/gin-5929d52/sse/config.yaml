@@ -1,0 +1,29 @@
+id: gin-5929d52
+project: gin
+language: go
+source: /src/gin
+task_description:
+  crash_report:
+  - reports/issue.md
+  bug_description: 
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  poc:
+  - pocs/poc.go
+  future_test: diffs/test.diff
+  security_test: diffs/security_test.diff
+  intent_test:
+sanitizer:
+type: CWE-290 - Authentication Bypass by Spoofing
+binary:
+trigger_commit: 21125bbb3f550dbfa4c64151f7e01f58dd64e2b8
+patch_commit: 5929d521715610c9dd14898ebbe1d188d5de8937
+reference:
+- https://github.com/gin-gonic/gin.git
+- https://github.com/gin-gonic/gin/commit/5929d521715610c9dd14898ebbe1d188d5de8937
+- https://github.com/gin-gonic/gin/issues/2862
+originality: Publicly Available

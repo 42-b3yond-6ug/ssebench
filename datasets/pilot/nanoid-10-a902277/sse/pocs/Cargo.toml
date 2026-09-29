@@ -1,0 +1,9 @@
+[package]
+name = "nanoid-poc"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nano-id = {path = "/src/nano-id", features = ["base58", "base62"]}

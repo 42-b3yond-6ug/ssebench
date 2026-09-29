@@ -1,0 +1,13 @@
+diff --git a/lib.rs b/lib.rs
+index 26d3f29..e45ca7a 100644
+--- a/lib.rs
++++ b/lib.rs
+@@ -665,6 +665,8 @@ impl<A: Array> SmallVec<A> {
+                 if unspilled {
+                     return;
+                 }
++            } else {
++                return;
+             }
+             deallocate(ptr, cap);
+         }

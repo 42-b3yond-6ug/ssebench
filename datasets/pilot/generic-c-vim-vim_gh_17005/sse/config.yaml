@@ -1,0 +1,27 @@
+id: generic-c-vim-vim_gh_17005
+project: vim
+language: c
+source: /src/vim
+task_description:
+  issue: ""
+  crash_report:
+    - reports/crash.txt
+  bug_description:
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test.diff
+  poc:
+    - pocs/poc.vim
+sanitizer: address
+type: Heap Buffer Overflow
+binary: vim
+trigger_commit: c6336acfe3e80904458d7ea735929b4c91346702
+patch_commit: f13c8561544dad4f82b7f4f71041d35f55b5feaa
+reference:
+- https://github.com/vim/vim
+- https://github.com/vim/vim/commit/c6336acfe3e80904458d7ea735929b4c91346702
+- https://github.com/vim/vim/commit/f13c8561544dad4f82b7f4f71041d35f55b5feaa

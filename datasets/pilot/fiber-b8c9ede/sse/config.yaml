@@ -1,0 +1,27 @@
+id: fiber-b8c9ede
+project: fiber
+language: go
+source: /src/fiber
+task_description:
+  crash_report:
+  - reports/issue.md
+  bug_description: none
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  poc:
+  - pocs/poc.go
+  future_test: diffs/test.diff
+sanitizer: none
+type: Authentication Bypass by Spoofing
+binary: none
+trigger_commit: b8c9ede6efa231116c4bd8bb9d5e03eac1cb76dc~1
+patch_commit: b8c9ede6efa231116c4bd8bb9d5e03eac1cb76dc
+reference:
+- https://github.com/gofiber/fiber.git
+- https://github.com/gofiber/fiber/commit/b8c9ede6efa231116c4bd8bb9d5e03eac1cb76dc
+- https://github.com/gofiber/fiber/security/advisories/GHSA-3q5p-3558-364f
+originality: Self Craft

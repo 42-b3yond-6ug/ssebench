@@ -1,0 +1,27 @@
+id: kubernetes-dad0e93
+project: kubernetes
+language: go
+source: /src/kubernetes
+task_description:
+  crash_report:
+  - reports/issue.md
+  bug_description: none
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  poc:
+  - pocs/poc.go
+  future_test: diffs/test.diff
+sanitizer: none
+type: ANSI Escape Sequence Injection
+binary: none
+trigger_commit: 90f50488c7b1ab810dd98061d196568e61c47adb
+patch_commit: dad0e937c0f76344363eb691b2668490ffef8537
+reference:
+- https://github.com/kubernetes/kubernetes.git
+- https://github.com/kubernetes/kubernetes/commit/dad0e937c0f76344363eb691b2668490ffef8537
+- https://github.com/kubernetes/kubernetes/issues/101695
+originality: Self Craft

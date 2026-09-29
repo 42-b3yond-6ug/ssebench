@@ -1,0 +1,24 @@
+id: "generic-rust-stack_dst-rs-rustsec20210033"
+project: "stack_dst-rs"
+language: "rust"
+source: "/src/stack_dst-rs"
+task_description:
+  crash_report:
+    - reports/issue.md
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test.diff
+  poc:
+    - pocs/src/main.rs
+sanitizer: address
+type: "UAF"
+binary: RUSTSEC-2021-0033
+trigger_commit: 807e9d45019c02369e11d40bd181cbf7bb7981fc
+patch_commit: 2a4d53809e3000f40085f2b229b6b1a33759881d
+reference:
+  - https://rustsec.org/advisories/RUSTSEC-2021-0033.html
+  - https://github.com/thepowersgang/stack_dst-rs/issues/5

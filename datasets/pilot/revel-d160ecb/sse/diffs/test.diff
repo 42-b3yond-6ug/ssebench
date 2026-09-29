@@ -1,0 +1,32 @@
+diff --git a/binder_test.go b/binder_test.go
+index 5ffd5cd..f6db1cb 100644
+--- a/binder_test.go
++++ b/binder_test.go
+@@ -7,8 +7,10 @@ package revel
+ import (
+ 	"encoding/json"
+ 	"fmt"
++	"github.com/revel/config"
+ 	"io"
+ 	"io/ioutil"
++	"net/url"
+ 	"os"
+ 	"reflect"
+ 	"sort"
+@@ -417,3 +419,16 @@ func init() {
+ 	DateTimeFormat = DefaultDateTimeFormat
+ 	TimeFormats = append(TimeFormats, DefaultDateFormat, DefaultDateTimeFormat, "01/02/2006")
+ }
++
++func TestRevelDoS(t *testing.T) {
++	if Config == nil {
++		Config = config.NewContext()
++	}
++	params := &Params{
++		Values: url.Values{
++			"data.Arr[9223372036854775806]": []string{"1"},
++		},
++	}
++	var d struct{ Arr []int }
++	Bind(params, "data", reflect.TypeOf(d))
++}

@@ -1,0 +1,29 @@
+id: jwkset-41-01db49a
+project: jwkset
+language: go
+source: /src/jwkset
+task_description:
+  crash_report:
+  - reports/issue.md
+  bug_description:
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  poc:
+  - pocs/poc.go
+  future_test: diffs/test.diff
+  security_test: diffs/security_test.diff
+  intent_test:
+sanitizer:
+type: Server and client key refresh inconsistency
+binary:
+trigger_commit: ce57ded280d99191ea54e3c4c5460c58207c3bbf
+patch_commit: 01db49a90f7f20c7fb39a699a2f19a7a5f379ed3
+reference:
+- https://github.com/MicahParks/jwkset
+- https://github.com/MicahParks/jwkset/commit/01db49a90f7f20c7fb39a699a2f19a7a5f379ed3
+- https://github.com/MicahParks/jwkset/issues/40
+originality: Publicly Available

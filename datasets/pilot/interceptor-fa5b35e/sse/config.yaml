@@ -1,0 +1,33 @@
+id: interceptor-fa5b35e
+project: interceptor
+
+language: go
+source: /src/interceptor
+task_description:
+  crash_report:
+    - reports/crash_report_1.txt
+    - reports/issue.md
+  bug_description: 
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test.diff
+  security_test: diffs/security_test.diff
+  intent_test:
+  poc:
+    - pocs/poc.go
+sanitizer: 
+type: Slice bounds out of range
+binary:
+trigger_commit: 791455129d4ef736c4009692e8ce108afe0fff14
+patch_commit: fa5b35ea867389cec33a9c82fffbd459ca8958e5
+
+reference:
+- https://github.com/pion/interceptor.git
+- https://github.com/pion/interceptor/commit/fa5b35ea867389cec33a9c82fffbd459ca8958e5
+- https://github.com/pion/webrtc/issues/3148
+originality: Publicly Available

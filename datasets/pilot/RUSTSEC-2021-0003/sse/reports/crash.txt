@@ -1,0 +1,98 @@
+   Compiling smallvec v1.6.0
+   Compiling RUSTSEC-2021-0003 v0.1.0 (/ssebench/harness)
+warning: variable does not need to be mutable
+  --> src/main.rs:18:9
+   |
+18 |     let mut iter = (0u8..=255).filter(|n| n % 2 == 0);
+   |         ----^^^^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` on by default
+
+warning: crate `RUSTSEC_2021_0003` should have a snake case name
+  |
+  = note: `#[warn(non_snake_case)]` on by default
+  = help: convert the identifier to snake case: `rustsec_2021_0003`
+
+warning: `RUSTSEC-2021-0003` (bin "RUSTSEC-2021-0003") generated 2 warnings
+    Finished dev [unoptimized + debuginfo] target(s) in 0.96s
+     Running `target/x86_64-unknown-linux-gnu/debug/RUSTSEC-2021-0003`
+Hello!
+=================================================================
+==2480506==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x602000000031 at pc 0x557d144226b2 bp 0x7ffd34d16460 sp 0x7ffd34d15c30
+WRITE of size 1 at 0x602000000031 thread T0
+    #0 0x557d144226b1 in __asan_memmove /rustc/llvm/src/llvm-project/compiler-rt/lib/asan/asan_interceptors_memintrinsics.cpp:30:3
+    #1 0x557d1445a508 in core::intrinsics::copy::h240a61dca2c5d0c2 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/intrinsics.rs:2533:9
+    #2 0x557d14454b60 in smallvec::SmallVec$LT$A$GT$::insert_many::h456848853bc30784 /src/rust-smallvec/src/lib.rs:1048:21
+    #3 0x557d1445d1c3 in RUSTSEC_2021_0003::main::ha3d4831beae0066f /ssebench/harness/src/main.rs:22:5
+    #4 0x557d14458b5a in core::ops::function::FnOnce::call_once::h3637cc10b0a33eea /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:248:5
+    #5 0x557d14450d9a in std::sys_common::backtrace::__rust_begin_short_backtrace::h9dc2404799a10343 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/sys_common/backtrace.rs:122:18
+    #6 0x557d1445d858 in std::rt::lang_start::_$u7b$$u7b$closure$u7d$$u7d$::h1e0ff78b36e1a31d /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:145:18
+    #7 0x557d144777a9 in core::ops::function::impls::_$LT$impl$u20$core..ops..function..FnOnce$LT$A$GT$$u20$for$u20$$RF$F$GT$::call_once::hf1398c01bc983eee /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:280:13
+    #8 0x557d144777a9 in std::panicking::try::do_call::hb219cf7ea1c22e67 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:492:40
+    #9 0x557d144777a9 in std::panicking::try::h01d2f6eaadad83e3 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:456:19
+    #10 0x557d144777a9 in std::panic::catch_unwind::h6337e35fdfecdb77 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panic.rs:137:14
+    #11 0x557d144777a9 in std::rt::lang_start_internal::_$u7b$$u7b$closure$u7d$$u7d$::h1e911c45f5855447 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:128:48
+    #12 0x557d144777a9 in std::panicking::try::do_call::hcea4129a2ab6ff9f /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:492:40
+    #13 0x557d144777a9 in std::panicking::try::h7e7d5226fe78257e /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:456:19
+    #14 0x557d144777a9 in std::panic::catch_unwind::hf20ee798430799ae /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panic.rs:137:14
+    #15 0x557d144777a9 in std::rt::lang_start_internal::h833783fd1fb80146 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:128:20
+    #16 0x557d1445d705 in std::rt::lang_start::h39f24b1806084ef1 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:144:17
+    #17 0x557d1445d5eb in main (/ssebench/harness/target/x86_64-unknown-linux-gnu/debug/RUSTSEC-2021-0003+0xbc5eb) (BuildId: 9072054319220c2bbd698c1046ffc62ac24fafe4)
+    #18 0x7fbd8ab65d79 in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x23d79) (BuildId: d13860e173e2fb2370e980b3f6995bddb363c194)
+    #19 0x557d143b0bd9 in _start (/ssebench/harness/target/x86_64-unknown-linux-gnu/debug/RUSTSEC-2021-0003+0xfbd9) (BuildId: 9072054319220c2bbd698c1046ffc62ac24fafe4)
+
+0x602000000031 is located 0 bytes to the right of 1-byte region [0x602000000030,0x602000000031)
+allocated by thread T0 here:
+    #0 0x557d14422c8e in __interceptor_malloc /rustc/llvm/src/llvm-project/compiler-rt/lib/asan/asan_malloc_linux.cpp:69:3
+    #1 0x557d1444edb7 in alloc::alloc::alloc::he93255d338a3e9ca /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/alloc/src/alloc.rs:89:14
+    #2 0x557d144571b8 in smallvec::SmallVec$LT$A$GT$::try_grow::hc561ffe03160744d /src/rust-smallvec/src/lib.rs:832:46
+    #3 0x557d144555fe in smallvec::SmallVec$LT$A$GT$::try_reserve::he23baae742f2d6cf /src/rust-smallvec/src/lib.rs:880:9
+    #4 0x557d14456472 in smallvec::SmallVec$LT$A$GT$::reserve::h8f9b45d44d97e830 /src/rust-smallvec/src/lib.rs:862:20
+    #5 0x557d1445ca42 in RUSTSEC_2021_0003::main::ha3d4831beae0066f /ssebench/harness/src/main.rs:11:5
+    #6 0x557d14458b5a in core::ops::function::FnOnce::call_once::h3637cc10b0a33eea /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:248:5
+    #7 0x557d1445d858 in std::rt::lang_start::_$u7b$$u7b$closure$u7d$$u7d$::h1e0ff78b36e1a31d /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:145:18
+    #8 0x557d144777a9 in core::ops::function::impls::_$LT$impl$u20$core..ops..function..FnOnce$LT$A$GT$$u20$for$u20$$RF$F$GT$::call_once::hf1398c01bc983eee /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:280:13
+    #9 0x557d144777a9 in std::panicking::try::do_call::hb219cf7ea1c22e67 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:492:40
+    #10 0x557d144777a9 in std::panicking::try::h01d2f6eaadad83e3 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:456:19
+    #11 0x557d144777a9 in std::panic::catch_unwind::h6337e35fdfecdb77 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panic.rs:137:14
+    #12 0x557d144777a9 in std::rt::lang_start_internal::_$u7b$$u7b$closure$u7d$$u7d$::h1e911c45f5855447 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:128:48
+    #13 0x557d144777a9 in std::panicking::try::do_call::hcea4129a2ab6ff9f /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:492:40
+    #14 0x557d144777a9 in std::panicking::try::h7e7d5226fe78257e /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:456:19
+    #15 0x557d144777a9 in std::panic::catch_unwind::hf20ee798430799ae /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panic.rs:137:14
+    #16 0x557d144777a9 in std::rt::lang_start_internal::h833783fd1fb80146 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:128:20
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow /rustc/llvm/src/llvm-project/compiler-rt/lib/asan/asan_interceptors_memintrinsics.cpp:30:3 in __asan_memmove
+Shadow bytes around the buggy address:
+  0x0c047fff7fb0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0c047fff7fc0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0c047fff7fd0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0c047fff7fe0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0c047fff7ff0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x0c047fff8000: fa fa 05 fa fa fa[01]fa fa fa 06 fa fa fa fa fa
+  0x0c047fff8010: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c047fff8020: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c047fff8030: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c047fff8040: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c047fff8050: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==2480506==ABORTING

@@ -1,0 +1,25 @@
+id: "generic-rust-rust-smallvec-rustsec20190009"
+project: "rust-smallvec"
+language: "rust"
+source: "/src/rust-smallvec"
+task_description:
+  crash_report:
+    - reports/crash.txt
+    - reports/issue.md
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test.diff
+  poc:
+    - pocs/src/main.rs
+sanitizer: address
+type: "UAF"
+binary: RUSTSEC-2019-0009
+trigger_commit: dfd78d18b790c18bd103c3e7b4930bb54cb6b8f0
+patch_commit: 4ba0d0f689440963e38b8adbe7fc2cabc6e573d5
+reference:
+  - https://rustsec.org/advisories/RUSTSEC-2019-0009.html
+  - https://github.com/servo/rust-smallvec/issues/148

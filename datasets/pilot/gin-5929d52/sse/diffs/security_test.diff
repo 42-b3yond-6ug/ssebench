@@ -1,0 +1,13 @@
+diff --git a/context_test.go b/context_test.go
+index 07a35f5..e9fe88f 100644
+--- a/context_test.go
++++ b/context_test.go
+@@ -1419,7 +1419,7 @@ func TestContextClientIP(t *testing.T) {
+ 
+ 	// Only trust RemoteAddr
+ 	_ = c.engine.SetTrustedProxies([]string{"40.40.40.40"})
+-	assert.Equal(t, "20.20.20.20", c.ClientIP())
++	assert.Equal(t, "30.30.30.30", c.ClientIP())
+ 
+ 	// All steps are trusted
+ 	_ = c.engine.SetTrustedProxies([]string{"40.40.40.40", "30.30.30.30", "20.20.20.20"})

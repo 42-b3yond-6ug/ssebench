@@ -1,0 +1,34 @@
+==8740==ERROR: AddressSanitizer: SEGV on unknown address 0x000000000008 (pc 0x555555e68226 bp 0x7fffffff5b70 sp 0x7fffffff5b60 T0)
+==8740==The signal is caused by a READ memory access.
+==8740==Hint: address points to the zero page.
+    #0 0x555555e68226 in Py_TYPE /src/cpython/./Include/object.h:133:16
+    #1 0x555555e6ab38 in Py_IS_TYPE /src/cpython/./Include/object.h:150:12
+    #2 0x555555e63ebf in compare_handler /src/cpython/./Modules/signalmodule.c:185:10
+    #3 0x555555e6477f in PyErr_SetInterruptEx /src/cpython/./Modules/signalmodule.c:1923:10
+    #4 0x555555f3c348 in thread_PyThread_interrupt_main /src/cpython/./Modules/_threadmodule.c:1205:9
+    #5 0x555555ae525f in cfunction_call /src/cpython/Objects/methodobject.c:553:18
+    #6 0x555555a15342 in _PyObject_MakeTpCall /src/cpython/Objects/call.c:214:18
+    #7 0x555555a161c9 in _PyObject_VectorcallTstate /src/cpython/./Include/internal/pycore_call.h:90:16
+    #8 0x555555a16169 in PyObject_Vectorcall /src/cpython/Objects/call.c:299:12
+    #9 0x555555caa286 in _PyEval_EvalFrameDefault /src/cpython/Python/ceval.c:4772:23
+    #10 0x555555c851d1 in _PyEval_EvalFrame /src/cpython/./Include/internal/pycore_ceval.h:73:16
+    #11 0x555555c85080 in _PyEval_Vector /src/cpython/Python/ceval.c:6437:24
+    #12 0x555555a16741 in _PyFunction_Vectorcall /src/cpython/Objects/call.c:393:16
+    #13 0x555555a161ef in _PyObject_VectorcallTstate /src/cpython/./Include/internal/pycore_call.h:92:11
+    #14 0x555555a172ce in _PyObject_CallFunctionVa /src/cpython/Objects/call.c:536:18
+    #15 0x555555a16ebe in PyObject_CallFunction /src/cpython/Objects/call.c:558:14
+    #16 0x555555e21311 in invoke_gc_callback /src/cpython/Modules/gcmodule.c:1378:13
+    #17 0x555555e1c224 in gc_collect_with_callback /src/cpython/Modules/gcmodule.c:1399:5
+    #18 0x555555e1bfdd in PyGC_Collect /src/cpython/Modules/gcmodule.c:2086:13
+    #19 0x555555d989c9 in Py_FinalizeEx /src/cpython/Python/pylifecycle.c:1830:5
+    #20 0x555555e178ed in Py_RunMain /src/cpython/Modules/main.c:682:9
+    #21 0x555555e18438 in pymain_main /src/cpython/Modules/main.c:710:12
+    #22 0x555555e18547 in Py_BytesMain /src/cpython/Modules/main.c:734:12
+    #23 0x55555587b451 in main /src/cpython/./Programs/python.c:15:12
+    #24 0x7ffff7ca41c9  (/lib/x86_64-linux-gnu/libc.so.6+0x2a1c9) (BuildId: 274eec488d230825a136fa9c4d85370fed7a0a5e)
+    #25 0x7ffff7ca428a in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2a28a) (BuildId: 274eec488d230825a136fa9c4d85370fed7a0a5e)
+    #26 0x5555557a2044 in _start (/src/cpython/python+0x24e044) (BuildId: 7e65d62900420e6ace3774995a6a5bb68bc1bd22)
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV /src/cpython/./Include/object.h:133:16 in Py_TYPE
+==8740==ABORTING

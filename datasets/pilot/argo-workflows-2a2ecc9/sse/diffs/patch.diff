@@ -1,0 +1,331 @@
+diff --git a/docs/fields.md b/docs/fields.md
+index 0eb8d36ad..398b4c2ea 100644
+--- a/docs/fields.md
++++ b/docs/fields.md
+@@ -124,6 +124,8 @@ Workflow is the definition of a workflow resource
+ 
+ - [`expression-destructure-json.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-destructure-json.yaml)
+ 
++- [`expression-reusing-verbose-snippets.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-reusing-verbose-snippets.yaml)
++
+ - [`expression-tag-template-workflow.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-tag-template-workflow.yaml)
+ 
+ - [`fibonacci-seq-conditional-param.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/fibonacci-seq-conditional-param.yaml)
+@@ -527,6 +529,8 @@ WorkflowSpec is the specification of a Workflow.
+ 
+ - [`expression-destructure-json.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-destructure-json.yaml)
+ 
++- [`expression-reusing-verbose-snippets.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-reusing-verbose-snippets.yaml)
++
+ - [`expression-tag-template-workflow.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-tag-template-workflow.yaml)
+ 
+ - [`fibonacci-seq-conditional-param.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/fibonacci-seq-conditional-param.yaml)
+@@ -947,6 +951,8 @@ CronWorkflowSpec is the specification of a CronWorkflow
+ 
+ - [`expression-destructure-json.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-destructure-json.yaml)
+ 
++- [`expression-reusing-verbose-snippets.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-reusing-verbose-snippets.yaml)
++
+ - [`expression-tag-template-workflow.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-tag-template-workflow.yaml)
+ 
+ - [`fibonacci-seq-conditional-param.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/fibonacci-seq-conditional-param.yaml)
+@@ -1324,6 +1330,8 @@ WorkflowTemplateSpec is a spec of WorkflowTemplate.
+ 
+ - [`expression-destructure-json.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-destructure-json.yaml)
+ 
++- [`expression-reusing-verbose-snippets.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-reusing-verbose-snippets.yaml)
++
+ - [`expression-tag-template-workflow.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-tag-template-workflow.yaml)
+ 
+ - [`fibonacci-seq-conditional-param.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/fibonacci-seq-conditional-param.yaml)
+@@ -1660,6 +1668,8 @@ Arguments to a template
+ 
+ - [`expression-destructure-json.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-destructure-json.yaml)
+ 
++- [`expression-reusing-verbose-snippets.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-reusing-verbose-snippets.yaml)
++
+ - [`expression-tag-template-workflow.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-tag-template-workflow.yaml)
+ 
+ - [`fibonacci-seq-conditional-param.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/fibonacci-seq-conditional-param.yaml)
+@@ -2387,6 +2397,8 @@ Parameter indicate a passed string parameter to a service template with an optio
+ 
+ - [`expression-destructure-json.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-destructure-json.yaml)
+ 
++- [`expression-reusing-verbose-snippets.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-reusing-verbose-snippets.yaml)
++
+ - [`expression-tag-template-workflow.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-tag-template-workflow.yaml)
+ 
+ - [`fibonacci-seq-conditional-param.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/fibonacci-seq-conditional-param.yaml)
+@@ -2901,6 +2913,8 @@ Inputs are the mechanism for passing parameters, artifacts, volumes from one tem
+ 
+ - [`expression-destructure-json.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-destructure-json.yaml)
+ 
++- [`expression-reusing-verbose-snippets.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-reusing-verbose-snippets.yaml)
++
+ - [`expression-tag-template-workflow.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-tag-template-workflow.yaml)
+ 
+ - [`fibonacci-seq-conditional-param.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/fibonacci-seq-conditional-param.yaml)
+@@ -3106,6 +3120,8 @@ ScriptTemplate is a template subtype to enable scripting through code steps
+ 
+ - [`expression-destructure-json.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-destructure-json.yaml)
+ 
++- [`expression-reusing-verbose-snippets.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-reusing-verbose-snippets.yaml)
++
+ - [`fibonacci-seq-conditional-param.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/fibonacci-seq-conditional-param.yaml)
+ 
+ - [`loops-param-result.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/loops-param-result.yaml)
+@@ -4077,6 +4093,8 @@ DataSource sources external data into a data template
+ 
+ - [`expression-destructure-json.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-destructure-json.yaml)
+ 
++- [`expression-reusing-verbose-snippets.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-reusing-verbose-snippets.yaml)
++
+ - [`fibonacci-seq-conditional-param.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/fibonacci-seq-conditional-param.yaml)
+ 
+ - [`loops-param-result.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/loops-param-result.yaml)
+@@ -4708,6 +4726,8 @@ ObjectMeta is metadata that all persisted resources must have, which includes al
+ 
+ - [`expression-destructure-json.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-destructure-json.yaml)
+ 
++- [`expression-reusing-verbose-snippets.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-reusing-verbose-snippets.yaml)
++
+ - [`expression-tag-template-workflow.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-tag-template-workflow.yaml)
+ 
+ - [`fibonacci-seq-conditional-param.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/fibonacci-seq-conditional-param.yaml)
+@@ -5584,6 +5604,8 @@ EnvVar represents an environment variable present in a Container.
+ 
+ - [`expression-destructure-json.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-destructure-json.yaml)
+ 
++- [`expression-reusing-verbose-snippets.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-reusing-verbose-snippets.yaml)
++
+ - [`secrets.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/secrets.yaml)
+ 
+ - [`sidecar-dind.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/sidecar-dind.yaml)
+@@ -5989,6 +6011,8 @@ PersistentVolumeClaimSpec describes the common attributes of storage devices and
+ 
+ - [`expression-destructure-json.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-destructure-json.yaml)
+ 
++- [`expression-reusing-verbose-snippets.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-reusing-verbose-snippets.yaml)
++
+ - [`expression-tag-template-workflow.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/expression-tag-template-workflow.yaml)
+ 
+ - [`fibonacci-seq-conditional-param.yaml`](https://github.com/argoproj/argo-workflows/blob/master/examples/fibonacci-seq-conditional-param.yaml)
+diff --git a/examples/expression-reusing-verbose-snippets.yaml b/examples/expression-reusing-verbose-snippets.yaml
+new file mode 100644
+index 000000000..a51815c2a
+--- /dev/null
++++ b/examples/expression-reusing-verbose-snippets.yaml
+@@ -0,0 +1,44 @@
++# Expressions do not support variables. Rather than repeating verbose expressions to reuse output, you can map over the
++# expression output and use its value which is aliased as `#`. Then you can place your "variables" in a JSON object to
++# be used elsewhere.
++apiVersion: argoproj.io/v1alpha1
++kind: Workflow
++metadata:
++  generateName: expression-reusing-verbose-snippets-
++spec:
++  arguments:
++    parameters:
++      - name: weather
++        # The base64 string is this JSON: {"temps": [34, 27, 15, 57, 46]}
++        value: '{"weekWeather": "eyJ0ZW1wcyI6IFszNCwgMjcsIDE1LCA1NywgNDZdfQo="}'
++  entrypoint: main
++  templates:
++    - name: main
++      inputs:
++        parameters:
++          - name: week-temps
++            # The line being mapped over is verbose. Rather than repeat it, we use `map` to alias its output as #.
++            value: >-
++              {{=
++                map([
++                    jsonpath(sprig.b64dec(jsonpath(workflow.parameters.weather, '$.weekWeather')), '$.temps')
++                  ], {
++                    toJson({
++                      avg: sprig.add(#[0], #[1], #[2], #[3], #[4]) / 5,
++                      min: sprig.min(#[0], #[1], #[2], #[3], #[4]),
++                      max: sprig.max(#[0], #[1], #[2], #[3], #[4])
++                    })
++                })[0]
++              }}
++      script:
++        env:
++          - name: AVG
++            value: "{{=jsonpath(inputs.parameters['week-temps'], '$.avg')}}"
++          - name: MIN
++            value: "{{=jsonpath(inputs.parameters['week-temps'], '$.min')}}"
++          - name: MAX
++            value: "{{=jsonpath(inputs.parameters['week-temps'], '$.max')}}"
++        image: debian:9.4
++        command: [bash]
++        source: |
++          echo "The week's average temperature was $AVG with a minimum of $MIN and a maximum of $MAX."
+diff --git a/util/template/expression_template.go b/util/template/expression_template.go
+index fa9d8fd07..219ef55ab 100644
+--- a/util/template/expression_template.go
++++ b/util/template/expression_template.go
+@@ -1,6 +1,7 @@
+ package template
+ 
+ import (
++	"encoding/json"
+ 	"fmt"
+ 	"io"
+ 	"os"
+@@ -17,12 +18,22 @@ func init() {
+ }
+ 
+ func expressionReplace(w io.Writer, expression string, env map[string]interface{}, allowUnresolved bool) (int, error) {
+-	if _, ok := env["retries"]; !ok && hasRetries(expression) && allowUnresolved {
++	// The template is JSON-marshaled. This JSON-unmarshals the expression to undo any character escapes.
++	var unmarshalledExpression string
++	err := json.Unmarshal([]byte(fmt.Sprintf(`"%s"`, expression)), &unmarshalledExpression)
++	if err != nil && allowUnresolved {
++		return w.Write([]byte(fmt.Sprintf("{{%s%s}}", kindExpression, expression)))
++	}
++	if err != nil {
++		return 0, fmt.Errorf("failed to unmarshall JSON expression: %w", err)
++	}
++
++	if _, ok := env["retries"]; !ok && hasRetries(unmarshalledExpression) && allowUnresolved {
+ 		// this is to make sure expressions like `sprig.int(retries)` don't get resolved to 0 when `retries` don't exist in the env
+ 		// See https://github.com/argoproj/argo-workflows/issues/5388
+ 		return w.Write([]byte(fmt.Sprintf("{{%s%s}}", kindExpression, expression)))
+ 	}
+-	result, err := expr.Eval(expression, env)
++	result, err := expr.Eval(unmarshalledExpression, env)
+ 	if (err != nil || result == nil) && allowUnresolved { //  <nil> result is also un-resolved, and any error can be unresolved
+ 		return w.Write([]byte(fmt.Sprintf("{{%s%s}}", kindExpression, expression)))
+ 	}
+@@ -32,7 +43,19 @@ func expressionReplace(w io.Writer, expression string, env map[string]interface{
+ 	if result == nil {
+ 		return 0, fmt.Errorf("failed to evaluate expression %q", expression)
+ 	}
+-	return w.Write([]byte(fmt.Sprintf("%v", result)))
++	resultMarshaled, err := json.Marshal(fmt.Sprintf("%v", result))
++	if (err != nil || resultMarshaled == nil) && allowUnresolved {
++		return w.Write([]byte(fmt.Sprintf("{{%s%s}}", kindExpression, expression)))
++	}
++	if err != nil {
++		return 0, fmt.Errorf("failed to marshal evaluated expression: %w", err)
++	}
++	if resultMarshaled == nil {
++		return 0, fmt.Errorf("failed to marshal evaluated marshaled expression %q", expression)
++	}
++	// Trim leading and trailing quotes. The value is being inserted into something that's already a string.
++	marshaledLength := len(resultMarshaled)
++	return w.Write(resultMarshaled[1 : marshaledLength-1])
+ }
+ 
+ func envMap(replaceMap map[string]string) map[string]interface{} {
+diff --git a/util/template/replace.go b/util/template/replace.go
+index 79950dcc1..7a38a29d1 100644
+--- a/util/template/replace.go
++++ b/util/template/replace.go
+@@ -1,9 +1,29 @@
+ package template
+ 
++import (
++	"encoding/json"
++	"errors"
++)
++
++// Replace takes a json-formatted string and performs variable replacement.
+ func Replace(s string, replaceMap map[string]string, allowUnresolved bool) (string, error) {
++	if !json.Valid([]byte(s)) {
++		return "", errors.New("cannot do template replacements with invalid JSON")
++	}
++
+ 	t, err := NewTemplate(s)
+ 	if err != nil {
+ 		return "", err
+ 	}
+-	return t.Replace(replaceMap, allowUnresolved)
++
++	replacedString, err := t.Replace(replaceMap, allowUnresolved)
++	if err != nil {
++		return s, err
++	}
++
++	if !json.Valid([]byte(replacedString)) {
++		return s, errors.New("cannot finish template replacement because the result was invalid JSON")
++	}
++
++	return replacedString, nil
+ }
+diff --git a/workflow/controller/operator.go b/workflow/controller/operator.go
+index 589b3b515..7c1b13c23 100644
+--- a/workflow/controller/operator.go
++++ b/workflow/controller/operator.go
+@@ -3154,12 +3154,28 @@ func (woc *wfOperationCtx) computeMetrics(metricList []*wfv1.Prometheus, localSc
+ 			metricSpec := metricTmpl.DeepCopy()
+ 
+ 			// Finally substitute value parameters
+-			replacedValue, err := template.Replace(metricSpec.GetValueString(), localScope, false)
++			metricValueString := metricSpec.GetValueString()
++
++			metricValueStringJson, err := json.Marshal(metricValueString)
++			if err != nil {
++				woc.reportMetricEmissionError(fmt.Sprintf("unable to marshal metric to JSON for templating '%s': %s", metricSpec.Name, err))
++				continue
++			}
++
++			replacedValueJson, err := template.Replace(string(metricValueStringJson), localScope, false)
+ 			if err != nil {
+ 				woc.reportMetricEmissionError(fmt.Sprintf("unable to substitute parameters for metric '%s': %s", metricSpec.Name, err))
+ 				continue
+ 			}
+-			metricSpec.SetValueString(replacedValue)
++
++			var replacedStringJson string
++			err = json.Unmarshal([]byte(replacedValueJson), &replacedStringJson)
++			if err != nil {
++				woc.reportMetricEmissionError(fmt.Sprintf("unable to unmarshal templated metric JSON '%s': %s", metricSpec.Name, err))
++				continue
++			}
++
++			metricSpec.SetValueString(replacedStringJson)
+ 
+ 			metric := woc.controller.metrics.GetCustomMetric(metricSpec.GetDesc())
+ 			// It is valid to pass a nil metric to ConstructOrUpdateMetric, in that case the metric will be created for us
+diff --git a/workflow/controller/scope.go b/workflow/controller/scope.go
+index 638f3b9df..103f8816e 100644
+--- a/workflow/controller/scope.go
++++ b/workflow/controller/scope.go
+@@ -1,6 +1,7 @@
+ package controller
+ 
+ import (
++	"encoding/json"
+ 	"fmt"
+ 
+ 	"github.com/antonmedv/expr"
+@@ -106,13 +107,25 @@ func (s *wfScope) resolveArtifact(art *wfv1.Artifact) (*wfv1.Artifact, error) {
+ 	}
+ 
+ 	if art.SubPath != "" {
+-		resolvedSubPath, err := template.Replace(art.SubPath, s.getParameters(), true)
++		// Copy resolved artifact pointer before adding subpath
++		copyArt := valArt.DeepCopy()
++
++		subPathAsJson, err := json.Marshal(art.SubPath)
++		if err != nil {
++			return copyArt, errors.New(errors.CodeBadRequest, "failed to marshal artifact subpath for templating")
++		}
++
++		resolvedSubPathAsJson, err := template.Replace(string(subPathAsJson), s.getParameters(), true)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+ 
+-		// Copy resolved artifact pointer before adding subpath
+-		copyArt := valArt.DeepCopy()
++		var resolvedSubPath string
++		err = json.Unmarshal([]byte(resolvedSubPathAsJson), &resolvedSubPath)
++		if err != nil {
++			return copyArt, errors.New(errors.CodeBadRequest, "failed to unmarshal artifact subpath for templating")
++		}
++
+ 		return copyArt, copyArt.AppendToKey(resolvedSubPath)
+ 	}
+ 

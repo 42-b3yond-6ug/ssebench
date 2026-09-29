@@ -1,0 +1,18 @@
+panic: runtime: allocation size out of range
+
+goroutine 1 [running]:
+reflect.unsafe_NewArray(0x41b8f1?, 0xc00016da08?)
+        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.12.linux-amd64/src/runtime/malloc.go:1795 +0x13
+reflect.MakeSlice({0x9ce320, 0x867ba0}, 0x7fffffffffffffff, 0x7fffffffffffffff)
+        /go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.12.linux-amd64/src/reflect/value.go:2918 +0xa5
+github.com/revel/revel.bindSlice(0xc0000aa300, {0x9177fd?, 0x1?}, {0x9ce320, 0x867ba0})
+        /src/revel/binder.go:267 +0x245
+github.com/revel/revel.Bind(0xc0000aa300, {0x9177fd, 0x8}, {0x9ce320, 0x867ba0})
+        /src/revel/binder.go:470 +0x58
+github.com/revel/revel.bindStruct(0xc0000aa300, {0x911dfa, 0x4}, {0x9ce320?, 0x8a66c0?})
+        /src/revel/binder.go:329 +0x52e
+github.com/revel/revel.Bind(0xc0000aa300, {0x911dfa, 0x4}, {0x9ce320, 0x8a66c0})
+        /src/revel/binder.go:470 +0x58
+main.main()
+        /ssebench/pocs/poc.go:27 +0x209
+exit status 2

@@ -1,0 +1,25 @@
+id: "generic-rust-string-interner-rustsec20190023"
+project: "string-interner"
+language: "rust"
+source: "/src/string-interner"
+task_description:
+  crash_report:
+    - reports/crash.txt
+    - reports/issue.md
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test.diff
+  poc:
+    - pocs/src/main.rs
+sanitizer: address
+type: "UAF"
+binary: RUSTSEC-2019-0023
+trigger_commit: 6a9246d283ddbd789c98ba74fbdd9c7f3d8cc4f2
+patch_commit: 04731e101fed08a32942d52790e1c8c6ede61889, ef7a6454baabe7cd3d32b56aefb2768b4be02079
+reference:
+  - https://rustsec.org/advisories/RUSTSEC-2019-0023.html
+  - https://github.com/Robbepop/string-interner/issues/9

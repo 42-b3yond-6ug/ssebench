@@ -1,0 +1,104 @@
+   Compiling libc v0.2.152
+   Compiling byteorder v1.5.0
+   Compiling fnv v1.0.7
+   Compiling itoa v0.4.8
+   Compiling iovec v0.1.4
+   Compiling bytes v0.4.12
+   Compiling http v0.1.19
+   Compiling RUSTSEC-2019-0034 v0.1.0 (/ssebench/harness)
+warning: field `data` is never read
+ --> src/main.rs:9:5
+  |
+8 | struct DropDetector{
+  |        ------------ field in this struct
+9 |     data: Box<u32>,
+  |     ^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: crate `RUSTSEC_2019_0034` should have a snake case name
+  |
+  = note: `#[warn(non_snake_case)]` on by default
+  = help: convert the identifier to snake case: `rustsec_2019_0034`
+
+warning: `RUSTSEC-2019-0034` (bin "RUSTSEC-2019-0034") generated 2 warnings
+    Finished dev [unoptimized + debuginfo] target(s) in 4.05s
+     Running `target/debug/RUSTSEC-2019-0034`
+Failing to drop Drain causes double-free
+=================================================================
+==2442877==ERROR: AddressSanitizer: attempting double-free on 0x602000000030 in thread T0:
+    #0 0x55cfbfbf9092 in free /rustc/llvm/src/llvm-project/compiler-rt/lib/asan/asan_malloc_linux.cpp:52:3
+    #1 0x55cfbfc4acc2 in alloc::alloc::dealloc::h4476b31f2d768443 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/alloc/src/alloc.rs:244:22
+    #2 0x55cfbfc4acc2 in _$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$::deallocate::h1fd06fade0f667be /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/alloc/src/alloc.rs:244:22
+    #3 0x55cfbfc519ea in alloc::alloc::box_free::h5c4bd323310cff8b /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/alloc/src/alloc.rs:342:9
+    #4 0x55cfbfc215c2 in core::ptr::drop_in_place$LT$alloc..boxed..Box$LT$u32$GT$$GT$::h29cfe2bb0d57365b /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ptr/mod.rs:487:1
+    #5 0x55cfbfc21619 in core::ptr::drop_in_place$LT$RUSTSEC_2019_0034..DropDetector$GT$::h6d03058b4e809281 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ptr/mod.rs:487:1
+    #6 0x55cfbfc21816 in core::ptr::drop_in_place$LT$http..header..map..Bucket$LT$RUSTSEC_2019_0034..DropDetector$GT$$GT$::hd61d44dc33a41d8e /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ptr/mod.rs:487:1
+    #7 0x55cfbfc220fd in core::ptr::drop_in_place$LT$$u5b$http..header..map..Bucket$LT$RUSTSEC_2019_0034..DropDetector$GT$$u5d$$GT$::h6bd9a567f15f5309 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ptr/mod.rs:487:1
+    #8 0x55cfbfc22c17 in _$LT$alloc..vec..Vec$LT$T$C$A$GT$$u20$as$u20$core..ops..drop..Drop$GT$::drop::h2882872e16f2cadc /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/alloc/src/vec/mod.rs:2920:13
+    #9 0x55cfbfc20d87 in core::ptr::drop_in_place$LT$alloc..vec..Vec$LT$http..header..map..Bucket$LT$RUSTSEC_2019_0034..DropDetector$GT$$GT$$GT$::hf50b2b81c9d9a13c /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ptr/mod.rs:487:1
+    #10 0x55cfbfc21ad7 in core::ptr::drop_in_place$LT$http..header..map..HeaderMap$LT$RUSTSEC_2019_0034..DropDetector$GT$$GT$::hd06832eec3023e2e /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ptr/mod.rs:487:1
+    #11 0x55cfbfc2414f in RUSTSEC_2019_0034::main::h695a41e3301e7e15 /ssebench/harness/src/main.rs:30:5
+    #12 0x55cfbfc209fa in core::ops::function::FnOnce::call_once::h85a1a5ec5fd27ac2 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:248:5
+    #13 0x55cfbfc4ba7a in std::sys_common::backtrace::__rust_begin_short_backtrace::h4d4927f13430ad7f /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/sys_common/backtrace.rs:122:18
+    #14 0x55cfbfc4b8e8 in std::rt::lang_start::_$u7b$$u7b$closure$u7d$$u7d$::h39102c5fcd2e5d0f /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:145:18
+    #15 0x55cfbfd0f309 in core::ops::function::impls::_$LT$impl$u20$core..ops..function..FnOnce$LT$A$GT$$u20$for$u20$$RF$F$GT$::call_once::hf1398c01bc983eee /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:280:13
+    #16 0x55cfbfd0f309 in std::panicking::try::do_call::hb219cf7ea1c22e67 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:492:40
+    #17 0x55cfbfd0f309 in std::panicking::try::h01d2f6eaadad83e3 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:456:19
+    #18 0x55cfbfd0f309 in std::panic::catch_unwind::h6337e35fdfecdb77 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panic.rs:137:14
+    #19 0x55cfbfd0f309 in std::rt::lang_start_internal::_$u7b$$u7b$closure$u7d$$u7d$::h1e911c45f5855447 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:128:48
+    #20 0x55cfbfd0f309 in std::panicking::try::do_call::hcea4129a2ab6ff9f /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:492:40
+    #21 0x55cfbfd0f309 in std::panicking::try::h7e7d5226fe78257e /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:456:19
+    #22 0x55cfbfd0f309 in std::panic::catch_unwind::hf20ee798430799ae /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panic.rs:137:14
+    #23 0x55cfbfd0f309 in std::rt::lang_start_internal::h833783fd1fb80146 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:128:20
+    #24 0x55cfbfc4b795 in std::rt::lang_start::h87835b64a5b2ba9f /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:144:17
+    #25 0x55cfbfc2469b in main (/ssebench/harness/target/debug/RUSTSEC-2019-0034+0xc169b) (BuildId: 6eec1b04a38abef0ffa33c7731049a510819f76d)
+    #26 0x7f52eff32d79 in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x23d79) (BuildId: d13860e173e2fb2370e980b3f6995bddb363c194)
+    #27 0x55cfbfb86c59 in _start (/ssebench/harness/target/debug/RUSTSEC-2019-0034+0x23c59) (BuildId: 6eec1b04a38abef0ffa33c7731049a510819f76d)
+
+0x602000000030 is located 0 bytes inside of 4-byte region [0x602000000030,0x602000000034)
+freed by thread T0 here:
+    #0 0x55cfbfbf9092 in free /rustc/llvm/src/llvm-project/compiler-rt/lib/asan/asan_malloc_linux.cpp:52:3
+    #1 0x55cfbfc4acc2 in alloc::alloc::dealloc::h4476b31f2d768443 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/alloc/src/alloc.rs:244:22
+    #2 0x55cfbfc4acc2 in _$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$::deallocate::h1fd06fade0f667be /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/alloc/src/alloc.rs:244:22
+    #3 0x55cfbfc519ea in alloc::alloc::box_free::h5c4bd323310cff8b /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/alloc/src/alloc.rs:342:9
+    #4 0x55cfbfc215c2 in core::ptr::drop_in_place$LT$alloc..boxed..Box$LT$u32$GT$$GT$::h29cfe2bb0d57365b /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ptr/mod.rs:487:1
+    #5 0x55cfbfc21619 in core::ptr::drop_in_place$LT$RUSTSEC_2019_0034..DropDetector$GT$::h6d03058b4e809281 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ptr/mod.rs:487:1
+    #6 0x55cfbfc21d87 in core::ptr::drop_in_place$LT$http..header..map..ValueDrain$LT$RUSTSEC_2019_0034..DropDetector$GT$$GT$::h79b348ee85956b10 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ptr/mod.rs:487:1
+    #7 0x55cfbfc21352 in core::ptr::drop_in_place$LT$$LP$http..header..name..HeaderName$C$http..header..map..ValueDrain$LT$RUSTSEC_2019_0034..DropDetector$GT$$RP$$GT$::h00b4047f190708a1 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ptr/mod.rs:487:1
+    #8 0x55cfbfc214d0 in core::ptr::drop_in_place$LT$core..option..Option$LT$$LP$http..header..name..HeaderName$C$http..header..map..ValueDrain$LT$RUSTSEC_2019_0034..DropDetector$GT$$RP$$GT$$GT$::h7430060748582718 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ptr/mod.rs:487:1
+    #9 0x55cfbfc209fa in core::ops::function::FnOnce::call_once::h85a1a5ec5fd27ac2 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:248:5
+    #10 0x55cfbfc4b8e8 in std::rt::lang_start::_$u7b$$u7b$closure$u7d$$u7d$::h39102c5fcd2e5d0f /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:145:18
+    #11 0x55cfbfd0f309 in core::ops::function::impls::_$LT$impl$u20$core..ops..function..FnOnce$LT$A$GT$$u20$for$u20$$RF$F$GT$::call_once::hf1398c01bc983eee /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:280:13
+    #12 0x55cfbfd0f309 in std::panicking::try::do_call::hb219cf7ea1c22e67 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:492:40
+    #13 0x55cfbfd0f309 in std::panicking::try::h01d2f6eaadad83e3 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:456:19
+    #14 0x55cfbfd0f309 in std::panic::catch_unwind::h6337e35fdfecdb77 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panic.rs:137:14
+    #15 0x55cfbfd0f309 in std::rt::lang_start_internal::_$u7b$$u7b$closure$u7d$$u7d$::h1e911c45f5855447 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:128:48
+    #16 0x55cfbfd0f309 in std::panicking::try::do_call::hcea4129a2ab6ff9f /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:492:40
+    #17 0x55cfbfd0f309 in std::panicking::try::h7e7d5226fe78257e /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:456:19
+    #18 0x55cfbfd0f309 in std::panic::catch_unwind::hf20ee798430799ae /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panic.rs:137:14
+    #19 0x55cfbfd0f309 in std::rt::lang_start_internal::h833783fd1fb80146 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:128:20
+
+previously allocated by thread T0 here:
+    #0 0x55cfbfbf91be in __interceptor_malloc /rustc/llvm/src/llvm-project/compiler-rt/lib/asan/asan_malloc_linux.cpp:69:3
+    #1 0x55cfbfc49c59 in alloc::alloc::alloc::hd625464a5a4fdf02 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/alloc/src/alloc.rs:171:73
+    #2 0x55cfbfc49c59 in alloc::alloc::Global::alloc_impl::hcc65430398ba9903 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/alloc/src/alloc.rs:171:73
+    #3 0x55cfbfc4929d in _$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$::allocate::h838c1bc722f29991 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/alloc/src/alloc.rs:320:11
+    #4 0x55cfbfc4929d in alloc::alloc::exchange_malloc::h06a8fc9f1b9c121b /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/alloc/src/alloc.rs:320:11
+    #5 0x55cfbfc23887 in alloc::boxed::Box$LT$T$GT$::new::h07afb02b98b1b0ba /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/alloc/src/boxed.rs:215:9
+    #6 0x55cfbfc23887 in RUSTSEC_2019_0034::DropDetector::new::ha46c0618a84ce55e /ssebench/harness/src/main.rs:14:19
+    #7 0x55cfbfc23d8a in RUSTSEC_2019_0034::main::h695a41e3301e7e15 /ssebench/harness/src/main.rs:24:25
+    #8 0x55cfbfc209fa in core::ops::function::FnOnce::call_once::h85a1a5ec5fd27ac2 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:248:5
+    #9 0x55cfbfc4b8e8 in std::rt::lang_start::_$u7b$$u7b$closure$u7d$$u7d$::h39102c5fcd2e5d0f /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:145:18
+    #10 0x55cfbfd0f309 in core::ops::function::impls::_$LT$impl$u20$core..ops..function..FnOnce$LT$A$GT$$u20$for$u20$$RF$F$GT$::call_once::hf1398c01bc983eee /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:280:13
+    #11 0x55cfbfd0f309 in std::panicking::try::do_call::hb219cf7ea1c22e67 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:492:40
+    #12 0x55cfbfd0f309 in std::panicking::try::h01d2f6eaadad83e3 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:456:19
+    #13 0x55cfbfd0f309 in std::panic::catch_unwind::h6337e35fdfecdb77 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panic.rs:137:14
+    #14 0x55cfbfd0f309 in std::rt::lang_start_internal::_$u7b$$u7b$closure$u7d$$u7d$::h1e911c45f5855447 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:128:48
+    #15 0x55cfbfd0f309 in std::panicking::try::do_call::hcea4129a2ab6ff9f /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:492:40
+    #16 0x55cfbfd0f309 in std::panicking::try::h7e7d5226fe78257e /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:456:19
+    #17 0x55cfbfd0f309 in std::panic::catch_unwind::hf20ee798430799ae /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panic.rs:137:14
+    #18 0x55cfbfd0f309 in std::rt::lang_start_internal::h833783fd1fb80146 /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/rt.rs:128:20
+
+SUMMARY: AddressSanitizer: double-free /rustc/llvm/src/llvm-project/compiler-rt/lib/asan/asan_malloc_linux.cpp:52:3 in free
+==2442877==ABORTING

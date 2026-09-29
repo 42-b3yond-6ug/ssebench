@@ -1,0 +1,28 @@
+id: generic-c-libxml2-xml_gh_932
+project: libxml2
+language: c
+source: /src/libxml2
+task_description:
+  issue: ""
+  crash_report:
+    - reports/crash.txt
+  bug_description:
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test.diff
+  poc:
+    - pocs/poc
+sanitizer: address
+type: NULL Pointer Dereference
+binary: poc
+trigger_commit: 069bcda17d8194e9582c64dd4bc9dac99b015810
+patch_commit: 499bcb78ab389f60c2fd634ce410d4bb85c18765
+reference:
+- https://gitlab.gnome.org/GNOME/libxml2
+- https://gitlab.gnome.org/GNOME/libxml2/-/merge_requests/932
+- https://gitlab.gnome.org/GNOME/libxml2/-/commit/069bcda17d8194e9582c64dd4bc9dac99b015810
+- https://gitlab.gnome.org/GNOME/libxml2/-/commit/499bcb78ab389f60c2fd634ce410d4bb85c18765

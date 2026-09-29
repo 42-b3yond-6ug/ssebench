@@ -1,0 +1,28 @@
+id: generic-c-jq-jq_gh_3196
+project: jq
+language: c
+source: /src/jq
+task_description:
+  issue: ""
+  crash_report:
+    - reports/issue.md
+  bug_description:
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test.diff
+  poc:
+    - pocs/poc.jq
+sanitizer: address
+type: Stack Buffer Overflow
+binary: jq_fuzz_fixed
+trigger_commit: 64bd8ba3749fe473b0708f999e088dfa94d37a2c
+patch_commit: a09a4dfd55e6c24d04b35062ccfe4509748b1dd3
+reference:
+- https://github.com/jqlang/jq
+- https://github.com/jqlang/jq/issues/3196
+- https://github.com/jqlang/jq/commit/64bd8ba3749fe473b0708f999e088dfa94d37a2c
+- https://github.com/jqlang/jq/commit/a09a4dfd55e6c24d04b35062ccfe4509748b1dd3

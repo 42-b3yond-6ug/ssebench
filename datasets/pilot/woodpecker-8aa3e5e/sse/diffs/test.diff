@@ -1,0 +1,57 @@
+diff --git a/pipeline/frontend/yaml/linter/linter_test.go b/pipeline/frontend/yaml/linter/linter_test.go
+index 84afb44d8..1179f67bc 100644
+--- a/pipeline/frontend/yaml/linter/linter_test.go
++++ b/pipeline/frontend/yaml/linter/linter_test.go
+@@ -157,6 +157,18 @@ func TestLintErrors(t *testing.T) {
+ 			from: "steps: { build: { image: golang, network_mode: 'container:name' }  }",
+ 			want: "Insufficient privileges to use network_mode",
+ 		},
++		{
++			from: "steps: { build: { image: golang, settings: { test: 'true' }, commands: [ 'echo ja', 'echo nein' ] } }",
++			want: "Cannot configure both commands and settings",
++		},
++		{
++			from: "steps: { build: { image: golang, settings: { test: 'true' }, entrypoint: [ '/bin/fish' ] } }",
++			want: "Cannot configure both entrypoint and settings",
++		},
++		{
++			from: "steps: { build: { image: golang, settings: { test: 'true' }, environment: [ 'TEST=true' ] } }",
++			want: "Cannot configure both environment and settings",
++		},
+ 	}
+ 
+ 	for _, test := range testdata {
+diff --git a/pipeline/frontend/yaml/linter/schema/schema_test.go b/pipeline/frontend/yaml/linter/schema/schema_test.go
+index d423a9e3d..be5dfe2ae 100644
+--- a/pipeline/frontend/yaml/linter/schema/schema_test.go
++++ b/pipeline/frontend/yaml/linter/schema/schema_test.go
+@@ -116,6 +116,16 @@ func TestSchema(t *testing.T) {
+ 			testFile: ".woodpecker/test-custom-backend.yaml",
+ 			fail:     false,
+ 		},
++		{
++			name:     "Broken Plugin by environment",
++			testFile: ".woodpecker/test-broken-plugin.yaml",
++			fail:     true,
++		},
++		{
++			name:     "Broken Plugin by commands",
++			testFile: ".woodpecker/test-broken-plugin2.yaml",
++			fail:     true,
++		},
+ 	}
+ 
+ 	for _, tt := range testTable {
+diff --git a/pipeline/log/utils_test.go b/pipeline/log/utils_test.go
+index 9861b4aef..b094d1409 100644
+--- a/pipeline/log/utils_test.go
++++ b/pipeline/log/utils_test.go
+@@ -131,6 +131,8 @@ func TestCopyLineByLineSizeLimit(t *testing.T) {
+ 	if _, err := w.Write([]byte("67\n89")); err != nil {
+ 		t.Fatalf("unexpected error: %v", err)
+ 	}
++	// wait for writer to write
++	time.Sleep(time.Millisecond)
+ 
+ 	writes = testWriter.GetWrites()
+ 	assert.Lenf(t, testWriter.GetWrites(), 2, "expected 2 writes, got: %v", writes)

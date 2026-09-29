@@ -1,0 +1,26 @@
+id: goyave-5836bff
+project: goyave
+language: go
+source: /src/goyave
+task_description:
+  crash_report:
+  - reports/issue.md
+  bug_description:
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  poc:
+  - pocs/poc.go
+  future_test: diffs/test.diff
+sanitizer: none
+type: Path Traversal
+binary: none
+trigger_commit: fc57b4c103252191ba7643280a1225fb7332e312
+patch_commit: 5836bff3efaa8a37fbd58d077b93f03e93e05edd
+reference:
+- https://github.com/go-goyave/goyave/commit/5836bff3efaa8a37fbd58d077b93f03e93e05edd
+- https://github.com/golang/vulndb/issues/3293
+originality: Publicly Available

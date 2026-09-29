@@ -1,0 +1,260 @@
+diff --git a/storage_refresh_test.go b/storage_refresh_test.go
+new file mode 100644
+index 0000000..6a12101
+--- /dev/null
++++ b/storage_refresh_test.go
+@@ -0,0 +1,122 @@
++package jwkset
++
++import (
++	"context"
++	"net/http"
++	"net/http/httptest"
++	"net/url"
++	"strings"
++	"sync"
++	"testing"
++	"time"
++)
++
++func makeJWKS(kids []string) string {
++	var b strings.Builder
++	b.WriteString(`{"keys":[`)
++	for i, kid := range kids {
++		if i > 0 {
++			b.WriteString(",")
++		}
++		// kty=oct, k is base64url-encoded (here "QUFBQQ" = "AAAA")
++		b.WriteString(`{"kty":"oct","k":"QUFBQQ","kid":"`)
++		b.WriteString(kid)
++		b.WriteString(`"}`)
++	}
++	b.WriteString(`]}`)
++	return b.String()
++}
++
++func TestRefreshRevokedKeyNotReadableOnceNewKeysAppear(t *testing.T) {
++	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
++	defer cancel()
++
++	// 1) Initially only "old" exists
++	oldJWKS := makeJWKS([]string{"old"})
++
++	// 2) After the switch, there are many new keys (excluding "old")
++	const n = 2000
++	newKids := make([]string, 0, n)
++	for i := 0; i < n; i++ {
++		newKids = append(newKids, "new-"+itoa(i))
++	}
++	newJWKS := makeJWKS(newKids)
++
++	var mu sync.Mutex
++	current := oldJWKS
++
++	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		mu.Lock()
++		body := current
++		mu.Unlock()
++		w.Header().Set("Content-Type", "application/json")
++		w.WriteHeader(http.StatusOK)
++		_, _ = w.Write([]byte(body))
++	}))
++	defer srv.Close()
++
++	u, err := url.Parse(srv.URL)
++	if err != nil {
++		t.Fatalf("url.Parse: %v", err)
++	}
++
++	// Create storage and start background refresh
++	st, err := NewStorageFromHTTP(u, HTTPClientStorageOptions{
++		Client:             srv.Client(),
++		HTTPMethod:         http.MethodGet,
++		HTTPExpectedStatus: http.StatusOK,
++		Ctx:                ctx,
++		RefreshInterval:    10 * time.Millisecond,
++	})
++	if err != nil {
++		t.Fatalf("NewStorageFromHTTP: %v", err)
++	}
++
++	// Verify that "old" exists initially
++	if _, err := st.KeyRead(ctx, "old"); err != nil {
++		t.Fatalf("expected old to exist initially, got err: %v", err)
++	}
++
++	// Switch the remote JWKS: "old" is revoked
++	mu.Lock()
++	current = newJWKS
++	mu.Unlock()
++
++	// Wait until refresh starts writing new keys:
++	// we use "new-0 is readable" as the signal
++	deadline := time.Now().Add(6 * time.Second)
++	for {
++		if time.Now().After(deadline) {
++			t.Fatalf("timeout waiting for new-0 to appear (refresh may not be running)")
++		}
++		if _, err := st.KeyRead(ctx, "new-0"); err == nil {
++			break
++		}
++		time.Sleep(2 * time.Millisecond)
++	}
++
++	// 🔥 Critical assertion:
++	// once new keys start appearing, "old" must no longer be readable
++	//
++	// - Upstream fix: PASS (clear/delete first, then write new keys)
++	// - Your patch:   FAIL (write new keys first, then delete old at the end)
++	if _, err := st.KeyRead(ctx, "old"); err == nil {
++		t.Fatalf("FAIL: revoked key 'old' is still readable after new keys started appearing")
++	}
++}
++
++// A small helper: avoids importing fmt/Sprintf (keeps the test lightweight)
++func itoa(i int) string {
++	if i == 0 {
++		return "0"
++	}
++	var buf [32]byte
++	pos := len(buf)
++	for i > 0 {
++		pos--
++		buf[pos] = byte('0' + i%10)
++		i /= 10
++	}
++	return string(buf[pos:])
++}
++
+diff --git a/http_test.go b/http_test.go
+index 1421b49..e248611 100644
+--- a/http_test.go
++++ b/http_test.go
+@@ -5,6 +5,7 @@ import (
+ 	"context"
+ 	"net/http"
+ 	"net/http/httptest"
++	"net/url"
+ 	"strings"
+ 	"sync"
+ 	"testing"
+@@ -144,6 +145,119 @@ func TestClient(t *testing.T) {
+ 	}
+ }
+ 
++func TestClientCacheReplacement(t *testing.T) {
++	ctx, cancel := context.WithCancel(context.Background())
++	defer cancel()
++
++	kid := "my-key-id"
++	secret := []byte("my-hmac-secret")
++	serverStore := NewMemoryStorage()
++	marshalOptions := JWKMarshalOptions{
++		Private: true,
++	}
++	metadata := JWKMetadataOptions{
++		KID: kid,
++	}
++	options := JWKOptions{
++		Marshal:  marshalOptions,
++		Metadata: metadata,
++	}
++	jwk, err := NewJWKFromKey(secret, options)
++	if err != nil {
++		t.Fatalf("Failed to create a JWK from the given HMAC secret.\nError: %s", err)
++	}
++	err = serverStore.KeyWrite(ctx, jwk)
++	if err != nil {
++		t.Fatalf("Failed to write the given JWK to the store.\nError: %s", err)
++	}
++	rawJWKS, err := serverStore.JSON(ctx)
++	if err != nil {
++		t.Fatalf("Failed to get the JSON.\nError: %s", err)
++	}
++
++	rawJWKSMux := sync.RWMutex{}
++	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		rawJWKSMux.RLock()
++		defer rawJWKSMux.RUnlock()
++		_, _ = w.Write(rawJWKS)
++	}))
++
++	u, err := url.ParseRequestURI(server.URL)
++	if err != nil {
++		t.Fatalf("Failed to parse the URL.\nError: %s", err)
++	}
++
++	refreshInterval := 50 * time.Millisecond
++	httpOptions := HTTPClientStorageOptions{
++		Ctx:             ctx,
++		RefreshInterval: refreshInterval,
++	}
++	clientStore, err := NewStorageFromHTTP(u, httpOptions)
++	if err != nil {
++		t.Fatalf("Failed to create a new HTTP client.\nError: %s", err)
++	}
++
++	jwk, err = clientStore.KeyRead(ctx, kid)
++	if err != nil {
++		t.Fatalf("Failed to read the JWK.\nError: %s", err)
++	}
++
++	if !bytes.Equal(jwk.Key().([]byte), secret) {
++		t.Fatalf("The key read from the HTTP client did not match the original key.")
++	}
++
++	jwks, err := clientStore.KeyReadAll(ctx)
++	if err != nil {
++		t.Fatalf("Failed to read all the JWKs.\nError: %s", err)
++	}
++	if len(jwks) != 1 {
++		t.Fatalf("Expected to read 1 JWK, but got %d.", len(jwks))
++	}
++	if !bytes.Equal(jwks[0].Key().([]byte), secret) {
++		t.Fatalf("The key read from the HTTP client did not match the original key.")
++	}
++
++	otherKeyID := myKeyID + "2"
++	options.Metadata.KID = otherKeyID
++	otherSecret := []byte("my-other-hmac-secret")
++	jwk, err = NewJWKFromKey(otherSecret, options)
++	if err != nil {
++		t.Fatalf("Failed to create a JWK from the given HMAC secret.\nError: %s", err)
++	}
++	err = serverStore.KeyWrite(ctx, jwk)
++	if err != nil {
++		t.Fatalf("Failed to write the given JWK to the store.\nError: %s", err)
++	}
++	ok, err := serverStore.KeyDelete(ctx, kid)
++	if err != nil {
++		t.Fatalf("Failed to delete the given JWK from the store.\nError: %s", err)
++	}
++	if !ok {
++		t.Fatalf("Expected the key to be deleted.")
++	}
++	rawJWKSMux.Lock()
++	rawJWKS, err = serverStore.JSON(ctx)
++	rawJWKSMux.Unlock()
++	if err != nil {
++		t.Fatalf("Failed to get the JSON.\nError: %s", err)
++	}
++	time.Sleep(2 * refreshInterval)
++
++	jwks, err = clientStore.KeyReadAll(ctx)
++	if err != nil {
++		t.Fatalf("Failed to read the JWK.\nError: %s", err)
++	}
++	if len(jwks) != 1 {
++		t.Fatalf("Expected to read 1 JWK, but got %d.", len(jwks))
++	}
++	if jwks[0].marshal.KID != otherKeyID {
++		t.Fatalf("The key read from the HTTP client did not match the original key.")
++	}
++	if !bytes.Equal(jwks[0].Key().([]byte), otherSecret) {
++		t.Fatalf("The key read from the HTTP client did not match the original key.")
++	}
++}
++
+ func TestClientError(t *testing.T) {
+ 	_, err := NewHTTPClient(HTTPClientOptions{})
+ 	if err == nil {

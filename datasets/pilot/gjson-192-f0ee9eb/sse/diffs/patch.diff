@@ -1,0 +1,14 @@
+diff --git a/gjson.go b/gjson.go
+index 32935de..852647c 100644
+--- a/gjson.go
++++ b/gjson.go
+@@ -498,6 +498,9 @@ func squash(json string) string {
+ 					}
+ 				}
+ 				if depth == 0 {
++					if i >= len(json) {
++						return json
++					}
+ 					return json[:i+1]
+ 				}
+ 			case '{', '[', '(':

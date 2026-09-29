@@ -1,0 +1,28 @@
+id: generic-c-exiv2-exiv2_gh_789
+project: exiv2
+language: c
+source: /src/exiv2
+task_description:
+  issue: ""
+  crash_report:
+    - reports/issue.md
+  bug_description:
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test_rich.diff
+  poc:
+    - pocs/issue_789_poc1.png
+sanitizer: address
+type: Heap Buffer Overflow
+binary: exiv2
+trigger_commit: f05d100579effd7459fd0715b26239d4cd2c9bcc
+patch_commit: 8cd95e221889e41e9cc153e2cfb5a7b41c7bc7a4
+reference:
+- https://github.com/Exiv2/exiv2
+- https://github.com/Exiv2/exiv2/issues/789
+- https://github.com/Exiv2/exiv2/commit/f05d100579effd7459fd0715b26239d4cd2c9bcc
+- https://github.com/Exiv2/exiv2/commit/8cd95e221889e41e9cc153e2cfb5a7b41c7bc7a4

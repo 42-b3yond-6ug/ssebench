@@ -1,0 +1,22 @@
+panic: runtime error: slice bounds out of range [:5] with length 4
+
+goroutine 1 [running]:
+github.com/tidwall/gjson.squash({0x4c717f?, 0x0?})
+        /src/gjson/gjson.go:501 +0x125
+github.com/tidwall/gjson.execModifier({0x4c7173, 0x2}, {0x4c7178?, 0x0?})
+        /src/gjson/gjson.go:2568 +0x251
+github.com/tidwall/gjson.Get({0x4c7173, 0x2}, {0x4c7178, 0xb})
+        /src/gjson/gjson.go:1878 +0x92
+github.com/tidwall/gjson.Result.Get(...)
+        /src/gjson/gjson.go:297
+github.com/tidwall/gjson.parseArray.func1({0x5, {0x4c7173, 0x2}, {0x0, 0x0}, 0x0, 0x0})
+        /src/gjson/gjson.go:1382 +0x3f3
+github.com/tidwall/gjson.parseArray(0xc000135ee0, 0x5, {0x4c7170?, 0x13?})
+        /src/gjson/gjson.go:1469 +0x83a
+github.com/tidwall/gjson.parseArray(0xc000135ee0, 0x4, {0x4c716e?, 0xc00010eb60?})
+        /src/gjson/gjson.go:1483 +0x510
+github.com/tidwall/gjson.Get({0x4c716e, 0x15}, {0x4c716e?, 0xc0000021a0?})
+        /src/gjson/gjson.go:1965 +0x44a
+main.main()
+        /ssebench/pocs/poc.go:9 +0x2b
+exit status 2

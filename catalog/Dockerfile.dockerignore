@@ -1,0 +1,8 @@
+*
+!catalog/go.mod
+!catalog/go.sum
+!catalog/cmd/
+!catalog/internal/
+!datasets/*/*/Dockerfile
+!datasets/*/*/config.yaml
+!datasets/*/*/sse/config.yaml

@@ -1,0 +1,32 @@
+ARG SSEBENCH_REGISTRY=ghcr.io/42-b3yond-6ug/ssebench
+FROM ${SSEBENCH_REGISTRY}/base-generic-rust:latest
+
+RUN rustup default nightly-2022-07-11
+
+RUN mkdir -p /src
+
+COPY ./stack_dst-rs /src/stack_dst-rs
+
+# Make the project a git repo
+RUN cd /src/stack_dst-rs && \
+    git config --global user.name "tmp" && \
+    git config --global user.email "tmp@example.com" && \
+    rm -rf .git && git init && git add --all && git commit -m "buggy commit"
+
+# Copy harness
+COPY ./harness /ssebench/harness
+RUN cd /src/stack_dst-rs && cargo fetch && cp Cargo.lock /ssebench/harness/Cargo.lock
+
+# Copy config file
+COPY sse/config.yaml /ssebench/config.yaml
+# Copy interaction scripts
+COPY sse/build.sh /ssebench/scripts/build.sh
+COPY sse/run.sh /ssebench/scripts/run.sh
+COPY sse/test.sh /ssebench/scripts/test.sh
+RUN chmod +x /ssebench/scripts/build.sh \
+    && chmod +x /ssebench/scripts/run.sh \
+    && chmod +x /ssebench/scripts/test.sh
+# Copy related files
+COPY sse/diffs /ssebench/diffs
+COPY sse/pocs /ssebench/pocs
+COPY sse/reports /ssebench/reports

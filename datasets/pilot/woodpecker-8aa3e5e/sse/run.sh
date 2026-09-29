@@ -1,0 +1,17 @@
+#!/bin/bash
+
+POC_FILE="$1"
+
+POC_DIR=$(dirname $(realpath "$POC_FILE"))
+POC_BASENAME=$(basename "$POC_FILE")
+
+cd "$POC_DIR"
+
+export APP_API_TOKEN="sensitive-local-token-12345"
+
+OUTPUT=$(go run -mod=readonly "$POC_BASENAME" 2>&1)
+EXIT_CODE=$?
+
+echo "$OUTPUT"
+
+exit $EXIT_CODE

@@ -1,0 +1,12 @@
+[project]
+name = "ssebench-cli"
+version = "0.1.0"
+description = "SSEBench CLI - Software Security Benchmark for AI Agents"
+requires-python = ">=3.10"
+dependencies = ["ssebench"]
+
+[tool.uv.sources]
+ssebench = { path = "bench", editable = true }
+
+[project.scripts]
+ssebench = "cli:main"

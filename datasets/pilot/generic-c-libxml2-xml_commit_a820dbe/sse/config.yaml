@@ -1,0 +1,27 @@
+id: generic-c-libxml2-xml_commit_a820dbe
+project: libxml2
+language: c
+source: /src/libxml2
+task_description:
+  issue: ""
+  crash_report:
+    - reports/crash.txt
+  bug_description:
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test.diff
+  poc:
+    - pocs/attachment_316182
+sanitizer: address
+type: Heap Buffer Overflow
+binary: xmllint
+trigger_commit: db07dd613e461df93dde7902c6505629bf0734e9
+patch_commit: a820dbeac29d330bae4be05d9ecd939ad6b4aa33
+reference:
+- https://gitlab.gnome.org/GNOME/libxml2
+- https://gitlab.gnome.org/GNOME/libxml2/-/commit/db07dd613e461df93dde7902c6505629bf0734e9
+- https://gitlab.gnome.org/GNOME/libxml2/-/commit/a820dbeac29d330bae4be05d9ecd939ad6b4aa33

@@ -1,0 +1,25 @@
+diff --git a/tests/grow_spilled_same_size.rs b/tests/grow_spilled_same_size.rs
+new file mode 100644
+index 0000000..d676bf2
+--- /dev/null
++++ b/tests/grow_spilled_same_size.rs
+@@ -0,0 +1,18 @@
++//use smallvec::SmallVec;
++extern crate smallvec;
++use smallvec::SmallVec;
++
++#[test]
++fn grow_spilled_same_size() {
++    let mut v: SmallVec<[u8; 2]> = SmallVec::new();
++    v.push(0);
++    v.push(1);
++    v.push(2);
++    assert!(v.spilled());
++    assert_eq!(v.capacity(), 4);
++    // grow with the same capacity
++    v.grow(4);
++    assert_eq!(v.capacity(), 4);
++    assert_eq!(v[..], [0, 1, 2]);
++}
++
+

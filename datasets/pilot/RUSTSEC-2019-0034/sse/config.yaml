@@ -1,0 +1,25 @@
+id: "generic-rust-http-rustsec20190034"
+project: "http"
+language: "rust"
+source: "/src/http"
+task_description:
+  crash_report:
+    - reports/crash.txt
+    - reports/issue.md
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test.diff
+  poc:
+    - pocs/src/main.rs
+sanitizer: address
+type: "UAF"
+binary: RUSTSEC-2019-0034
+trigger_commit: 9c05e391e00474abaa8c14a86bcb0fc5eff1120e
+patch_commit: 82d53dbdfdb1ffbeb0323200a0bbd30b5f895fa7
+reference:
+  - https://rustsec.org/advisories/RUSTSEC-2019-0034.html
+  - https://github.com/hyperium/http/issues/354

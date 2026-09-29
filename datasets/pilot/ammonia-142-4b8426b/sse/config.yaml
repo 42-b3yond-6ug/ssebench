@@ -1,0 +1,24 @@
+id: "ammonia-142-4b8426b"
+project: "ammonia"
+language: "rust"
+source: "/src/ammonia"
+task_description:
+  crash_report:
+    - reports/issue.md
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test.diff
+  poc:
+    - pocs/src/main.rs
+sanitizer:
+type: "Cross-site Scripting"
+binary:
+trigger_commit: ae3fb569e1f0019a8a9793616d1944614d79e7a0
+patch_commit: 4b8426b89b861d9bea20e126576b0febb9d13515
+reference:
+  - https://github.com/advisories/GHSA-5325-xw5m-phm3
+  - https://github.com/rust-ammonia/ammonia/pull/142/commits/4b8426b89b861d9bea20e126576b0febb9d13515

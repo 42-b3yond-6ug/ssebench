@@ -1,0 +1,48 @@
+diff --git a/controllers/submariner/migration_test.go b/controllers/submariner/migration_test.go
+index a067471b..706e80d0 100644
+--- a/controllers/submariner/migration_test.go
++++ b/controllers/submariner/migration_test.go
+@@ -55,12 +55,24 @@ var _ = Describe("Migration tests", func() {
+ 							Name:      submariner.NetworkPluginSyncerComponent,
+ 						},
+ 					},
++					&rbacv1.ClusterRole{
++						ObjectMeta: metav1.ObjectMeta{
++							Namespace: t.Namespace,
++							Name:      "ocp-submariner-networkplugin-syncer",
++						},
++					},
+ 					&rbacv1.ClusterRoleBinding{
+ 						ObjectMeta: metav1.ObjectMeta{
+ 							Namespace: t.Namespace,
+ 							Name:      submariner.NetworkPluginSyncerComponent,
+ 						},
+ 					},
++					&rbacv1.ClusterRoleBinding{
++						ObjectMeta: metav1.ObjectMeta{
++							Namespace: t.Namespace,
++							Name:      "ocp-submariner-networkplugin-syncer",
++						},
++					},
+ 					&corev1.ServiceAccount{
+ 						ObjectMeta: metav1.ObjectMeta{
+ 							Namespace: t.Namespace,
+@@ -83,6 +95,18 @@ var _ = Describe("Migration tests", func() {
+ 					},
+ 				})
+ 
++				t.AssertNoResource(&rbacv1.ClusterRole{
++					ObjectMeta: metav1.ObjectMeta{
++						Name: "ocp-submariner-networkplugin-syncer",
++					},
++				})
++
++				t.AssertNoResource(&rbacv1.ClusterRoleBinding{
++					ObjectMeta: metav1.ObjectMeta{
++						Name: "ocp-submariner-networkplugin-syncer",
++					},
++				})
++
+ 				t.AssertNoResource(&corev1.ServiceAccount{
+ 					ObjectMeta: metav1.ObjectMeta{
+ 						Name: submariner.NetworkPluginSyncerComponent,

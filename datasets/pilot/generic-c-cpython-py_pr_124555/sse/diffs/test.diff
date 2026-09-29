@@ -1,0 +1,48 @@
+diff --git a/Lib/test/test_curses_overflow.py b/Lib/test/test_curses_overflow.py
+new file mode 100644
+--- /dev/null
++++ b/Lib/test/test_curses_overflow.py
+@@ -0,0 +1,43 @@
++"""GH-120378: resizeterm/resize_term must reject values outside short range."""
++import unittest
++
++try:
++    import curses
++    has_curses = True
++except ImportError:
++    has_curses = False
++
++
++@unittest.skipUnless(has_curses, 'requires _curses')
++class TestResizeOverflow(unittest.TestCase):
++    """Values exceeding short range must raise OverflowError at arg parsing.
++
++    The real fix changes the parameter type from int to short, so values
++    above SHRT_MAX (32767) or below SHRT_MIN (-32768) are rejected before
++    the C function is ever called.  No curses initialization is needed
++    because the overflow check happens in the argument-parsing layer.
++    """
++
++    @unittest.skipUnless(has_curses and hasattr(curses, 'resizeterm'),
++                         'requires curses.resizeterm')
++    def test_resizeterm_overflow(self):
++        with self.assertRaises(OverflowError):
++            curses.resizeterm(32768, 1)
++        with self.assertRaises(OverflowError):
++            curses.resizeterm(1, 35000)
++        with self.assertRaises(OverflowError):
++            curses.resizeterm(-32769, 1)
++
++    @unittest.skipUnless(has_curses and hasattr(curses, 'resize_term'),
++                         'requires curses.resize_term')
++    def test_resize_term_overflow(self):
++        with self.assertRaises(OverflowError):
++            curses.resize_term(32768, 1)
++        with self.assertRaises(OverflowError):
++            curses.resize_term(1, 35000)
++        with self.assertRaises(OverflowError):
++            curses.resize_term(-32769, 1)
++
++
++if __name__ == '__main__':
++    unittest.main()

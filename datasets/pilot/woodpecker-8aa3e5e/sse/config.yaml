@@ -1,0 +1,27 @@
+id: woodpecker-8aa3e5e
+project: woodpecker
+language: go
+source: /src/woodpecker
+task_description:
+  crash_report:
+  - reports/issue.md
+  bug_description: none
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  poc:
+  - pocs/poc.go
+  future_test: diffs/test.diff
+sanitizer: none
+type: Improper Neutralization of Special Elements
+binary: none
+trigger_commit: 904d8da51ae1bdb9dde818a7574fcf4c03f03150
+patch_commit: 8aa3e5ec82c92eca3279e4be68625111eeedf1c4
+reference:
+- https://github.com/woodpecker-ci/woodpecker.git
+- https://github.com/woodpecker-ci/woodpecker/commit/8aa3e5ec82c92eca3279e4be68625111eeedf1c4
+- https://github.com/woodpecker-ci/woodpecker/issues/3929
+originality: Publicly Available

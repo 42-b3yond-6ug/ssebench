@@ -1,0 +1,29 @@
+id: jwt-go-ec0a89a
+project: jwt-go
+language: go
+source: /src/jwt-go
+task_description:
+  crash_report:
+  - reports/issue.md
+  bug_description:
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  poc:
+  - pocs/poc.go
+  future_test: diffs/test.diff
+  security_test:
+  intent_test: diffs/intent_test.diff
+sanitizer:
+type: Improper Verification of Cryptographic Signature
+binary:
+trigger_commit: 32acca36b99f04b2b52d117d57bb17e17cbd35a8
+patch_commit: ec0a89a131e3e8567adcb21254a5cd20a70ea4ab
+reference:
+- https://github.com/dgrijalva/jwt-go.git
+- https://github.com/dgrijalva/jwt-go/commit/ec0a89a131e3e8567adcb21254a5cd20a70ea4ab
+- https://github.com/dgrijalva/jwt-go/issues/422
+originality: Self Craft

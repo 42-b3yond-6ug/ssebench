@@ -1,0 +1,13 @@
+diff --git a/gjson.go b/gjson.go
+index 852647c..360594d 100644
+--- a/gjson.go
++++ b/gjson.go
+@@ -2592,7 +2592,7 @@ func execModifier(json, path string) (pathOut, res string, ok bool) {
+ // unwrap removes the '[]' or '{}' characters around json
+ func unwrap(json string) string {
+ 	json = trim(json)
+-	if len(json) >= 2 && json[0] == '[' || json[0] == '{' {
++	if len(json) >= 2 && (json[0] == '[' || json[0] == '{') {
+ 		json = json[1 : len(json)-1]
+ 	}
+ 	return json

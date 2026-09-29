@@ -1,0 +1,64 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+.envrc.local
+.direnv/
+
+# Run outputs
+/results/
+/tools/report/*.pdf
+/tools/report/result.json
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.pdm-python
+.coverage
+.coverage.*
+htmlcov/
+
+# Rust
+target/
+
+# JavaScript and TypeScript (webui, docs)
+node_modules/
+node_modules.bun
+dist-ssr/
+*.tsbuildinfo
+.eslintcache
+.npm/
+npm-debug.log*
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+.opencode/
+
+# Build outputs
+dist/
+/webui/pty-proxy/pty-proxy
+*.sqlite
+/catalog.json
+
+# Nix
+result
+result-*
+
+# Editors and OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

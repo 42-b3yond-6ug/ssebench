@@ -1,0 +1,28 @@
+id: generic-c-quickjs-qjs_gh_567
+project: quickjs
+language: c
+source: /src/quickjs
+task_description:
+  issue: ""
+  crash_report:
+    - reports/issue.md
+  bug_description:
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test.diff
+  poc:
+    - pocs/poc.bin
+sanitizer: address
+type: NULL Pointer Dereference
+binary: qjs
+trigger_commit: d9d6939b20ae6e74399ed88433b3a121afdd642d
+patch_commit: 36227a5310f3a58c6be1fb1bfd1f833983c29d71
+reference:
+- https://github.com/quickjs-ng/quickjs.git
+- https://github.com/quickjs-ng/quickjs/issues/567
+- https://github.com/quickjs-ng/quickjs/commit/d9d6939b20ae6e74399ed88433b3a121afdd642d
+- https://github.com/quickjs-ng/quickjs/commit/36227a5310f3a58c6be1fb1bfd1f833983c29d71

@@ -1,0 +1,27 @@
+id: saml-8e92368
+project: saml
+language: go
+source: /src/saml
+task_description:
+  crash_report:
+  - reports/issue.md
+  bug_description: none
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  poc:
+  - pocs/poc.go
+  future_test: diffs/test.diff
+sanitizer: none
+type: Decompression Bomb
+binary: none
+trigger_commit: 2aeb2efd8c405fb7b40aa75b591b0828ef552670
+patch_commit: 8e9236867d176ad6338c870a84e2039aef8a5021
+reference:
+- https://github.com/crewjam/saml.git
+- https://github.com/crewjam/saml/commit/8e9236867d176ad6338c870a84e2039aef8a5021
+- https://github.com/crewjam/saml/security/advisories/GHSA-5mqj-xc49-246p
+originality: Self Craft

@@ -1,0 +1,28 @@
+id: generic-c-wabt-wabt_gh_2398
+project: wabt
+language: c
+source: /src/wabt
+task_description:
+  issue: ""
+  crash_report:
+    - reports/issue.md
+  bug_description:
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test.diff
+  poc:
+    - pocs/wasm-poc-03
+sanitizer: address
+type: Heap Buffer Overflow
+binary: wasm-interp
+trigger_commit: c6853eb4857908072fd1d7c28dffb1d2613a0ee6
+patch_commit: 874caa4433e51013132c0f3d6ca479b759a6f23f
+reference:
+- https://github.com/WebAssembly/wabt
+- https://github.com/WebAssembly/wabt/issues/2398
+- https://github.com/WebAssembly/wabt/commit/c6853eb4857908072fd1d7c28dffb1d2613a0ee6
+- https://github.com/WebAssembly/wabt/commit/874caa4433e51013132c0f3d6ca479b759a6f23f

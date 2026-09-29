@@ -1,0 +1,19 @@
+{
+  "app": {
+    "name": "poc-goyave",
+        "environment": "local",
+        "debug": true,
+        "defaultLanguage": "en-US"
+    },
+    "server": {
+        "host": "0.0.0.0",
+        "port": 8080,
+        "readTimeout": 10,
+        "writeTimeout": 10,
+        "readHeaderTimeout": 5,
+        "idleTimeout": 60
+    },
+    "database": {
+        "connection": "none"
+  }
+}

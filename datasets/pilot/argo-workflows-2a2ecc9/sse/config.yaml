@@ -1,0 +1,30 @@
+id: argo-workflows-2a2ecc9
+project: argo-workflows
+language: go
+source: /src/argo-workflows
+task_description:
+  crash_report:
+  - reports/issue.md
+  bug_description:
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  poc:
+  - pocs/poc.go
+  future_test: diffs/test.diff
+  security_test: diffs/security_test.diff
+  intent_test:
+sanitizer:
+type: Injection
+binary:
+trigger_commit: 7bf825bfcdcd894ba12ef160cd9913a26844d6b6
+patch_commit: 2a2ecc916925642fd8cb1efd026588e6828f82e1
+reference:
+- https://github.com/argoproj/argo-workflows.git 
+- https://github.com/argoproj/argo-workflows/commit/2a2ecc916925642fd8cb1efd026588e6828f82e1
+- https://github.com/argoproj/argo-workflows/issues/6441
+- https://github.com/argoproj/argo-workflows/pull/6285
+originality: Self Craft

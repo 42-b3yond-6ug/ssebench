@@ -1,0 +1,14 @@
+# Python virtual environments
+**/.venv
+**/__pycache__
+**/*.pyc
+
+# IDE
+**/.idea
+**/.vscode
+
+# Cache
+**/.cache
+
+# uv lock file (regenerated at runtime)
+**/uv.lock

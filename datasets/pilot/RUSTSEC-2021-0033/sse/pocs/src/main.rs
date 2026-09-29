@@ -1,0 +1,28 @@
+#![forbid(unsafe_code)]
+
+use stack_dst::StackA;
+
+#[derive(Debug)]
+struct DropDetector(u32);
+
+impl Drop for DropDetector {
+    fn drop(&mut self) {
+        println!("Dropping {}", self.0);
+    }
+}
+
+impl Clone for DropDetector {
+    fn clone(&self) -> Self { panic!("Panic in clone()") }
+}
+
+fn main() {
+    let mut stack = StackA::<[DropDetector], [usize; 9]>::new();
+    stack.push_stable([DropDetector(1)], |p| p).unwrap();
+    stack.push_stable([DropDetector(2)], |p| p).unwrap();
+
+    println!("Popping off second drop detector");
+    let second_drop = stack.pop();
+
+    println!("Pushing panicky-clone");
+    stack.push_cloned(&[DropDetector(3)]).unwrap();
+}

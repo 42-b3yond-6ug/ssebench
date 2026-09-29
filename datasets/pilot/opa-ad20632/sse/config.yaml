@@ -1,0 +1,27 @@
+id: opa-ad20632
+project: opa
+language: go
+source: /src/opa
+task_description:
+  crash_report:
+  - reports/issue.md
+  bug_description: none
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  poc:
+  - pocs/poc.go
+  future_test: diffs/test.diff
+sanitizer: none
+type: Code Injection
+binary: none
+trigger_commit: 24ff9cfb3ad0a6a5629f0b21458982d325ee03c5
+patch_commit: ad2063247a14711882f18c387a511fc8094aa79c
+reference:
+- https://github.com/open-policy-agent/opa.git
+- https://github.com/open-policy-agent/opa/commit/ad2063247a14711882f18c387a511fc8094aa79c
+- https://github.com/open-policy-agent/opa/security/advisories/GHSA-6m8w-jc87-6cr7
+originality: Self Craft

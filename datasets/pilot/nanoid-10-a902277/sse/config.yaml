@@ -1,0 +1,24 @@
+id: "nanoid-10-a902277"
+project: "nano-id"
+language: "rust"
+source: "/src/nano-id"
+task_description:
+  crash_report:
+    - reports/issue.md
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test.diff
+  poc:
+    - pocs/src/main.rs
+sanitizer:
+type: "Insufficient Entropy"
+binary:
+trigger_commit: d8d2113aa68095ca129c32276ea883ca6324cdc5
+patch_commit: a9022772b2f1ce38929b5b81eccc670ac9d3ab23
+reference:
+  - https://github.com/viz-rs/nano-id/security/advisories/GHSA-9hc7-6w9r-wj94
+  - https://github.com/viz-rs/nano-id/commit/a9022772b2f1ce38929b5b81eccc670ac9d3ab23

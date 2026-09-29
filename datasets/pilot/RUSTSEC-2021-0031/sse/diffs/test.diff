@@ -1,0 +1,58 @@
+diff --git a/tests/intent_test.rs b/tests/intent_test.rs
+new file mode 100644
+index 0000000..6963530
+--- /dev/null
++++ b/tests/intent_test.rs
+@@ -0,0 +1,52 @@
++use nano_arena::{Arena, Idx, ArenaAccess};
++use std::borrow::Borrow;
++use std::cell::Cell;
++
++#[test]
++fn compare_should_work_for_idx() {
++    let mut arena = Arena::new();
++    let left = arena.alloc(1);
++    let right = left.clone();
++
++    assert!(left.borrow() == right.borrow());
++}
++
++#[test]
++fn splitting_should_be_safe() {
++    // A bug described here (https://github.com/bennetthardwick/nano-arena/issues/1) meant that
++    // multiple mutable references could be handed out.
++
++    struct ToggleIdx {
++        first: Idx,
++        second: Idx,
++        state: Cell<bool>,
++    }
++
++    impl Borrow<Idx> for ToggleIdx {
++        fn borrow(&self) -> &Idx {
++            self.state.set(!self.state.get());
++            if self.state.get() {
++                &self.first
++            } else {
++                &self.second
++            }
++        }
++    }
++
++    let mut arena = Arena::new();
++    let first = arena.alloc(1);
++    let second = arena.alloc(2);
++
++    let toggle_idx = ToggleIdx {
++        first: first.clone(),
++        second: second.clone(),
++        state: Cell::new(false),
++    };
++
++    let (first_mut_ref, mut split_arena) = arena.split_at(toggle_idx).unwrap();
++    let second_mut_ref = split_arena.get_mut(&first);
++
++    drop(first_mut_ref);
++    assert!(second_mut_ref.is_none());
++}
++

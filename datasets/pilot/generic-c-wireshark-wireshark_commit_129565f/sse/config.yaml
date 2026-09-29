@@ -1,0 +1,28 @@
+id: generic-c-wireshark-wireshark_commit_129565f
+project: wireshark
+language: c
+source: /src/wireshark
+task_description:
+  issue: ""
+  crash_report:
+    - reports/crash.txt
+  bug_description:
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test.diff
+  poc:
+    - pocs/poc.wireshark
+sanitizer: address
+type: NULL Pointer Dereference
+binary: dftest
+trigger_commit: 10e9024c12ba35fcd213f8b8aa6d68ef9dd802c2
+patch_commit: 129565f0efb8587d44c0c7f6c262ac72a88d7aab
+reference:
+- https://github.com/wireshark/wireshark
+- https://gitlab.com/wireshark/wireshark/-/merge_requests/18298
+- https://github.com/wireshark/wireshark/commit/10e9024c12ba35fcd213f8b8aa6d68ef9dd802c2
+- https://github.com/wireshark/wireshark/commit/129565f0efb8587d44c0c7f6c262ac72a88d7aab

@@ -1,0 +1,43 @@
+panic: interface conversion: ast.Value is ast.Var, not ast.Ref [recovered]
+        panic: interface conversion: ast.Value is ast.Var, not ast.Ref
+
+goroutine 1 [running]:
+github.com/open-policy-agent/opa/ast.(*Compiler).compile.func1()
+        /src/opa/ast/compile.go:1225 +0x65
+panic({0x869a40?, 0xc000197b30?})
+        /usr/local/go/src/runtime/panic.go:770 +0x132
+github.com/open-policy-agent/opa/ast.(*Expr).Operator(...)
+        /src/opa/ast/policy.go:1164
+github.com/open-policy-agent/opa/ast.isRegoMetadataChainCall(0x0?)
+        /src/opa/ast/compile.go:1920 +0xea
+github.com/open-policy-agent/opa/ast.(*Compiler).parseMetadataBlocks.func1(0xc00019a100)
+        /src/opa/ast/compile.go:1739 +0x25
+github.com/open-policy-agent/opa/ast.WalkExprs.func1({0x8c03c0?, 0xc00019a100?})
+        /src/opa/ast/visit.go:213 +0x31
+github.com/open-policy-agent/opa/ast.(*GenericVisitor).Walk(0xc00021fb08, {0x8c03c0, 0xc00019a100})
+        /src/opa/ast/visit.go:278 +0x42
+github.com/open-policy-agent/opa/ast.(*GenericVisitor).Walk(0xc00021fb08, {0x8acfa0, 0xc000198a80})
+        /src/opa/ast/visit.go:319 +0x9e9
+github.com/open-policy-agent/opa/ast.(*GenericVisitor).Walk(0xc00021fb08, {0x8997c0, 0xc000194920})
+        /src/opa/ast/visit.go:361 +0x385
+github.com/open-policy-agent/opa/ast.(*GenericVisitor).Walk(0xc00021fb08, {0x8ace80, 0xc000198828})
+        /src/opa/ast/visit.go:341 +0x2a5
+github.com/open-policy-agent/opa/ast.(*GenericVisitor).Walk(0xc00021fb08, {0x8a0880, 0xc0000ae5a0})
+        /src/opa/ast/visit.go:315 +0x13d
+github.com/open-policy-agent/opa/ast.(*GenericVisitor).Walk(0xc00021fb08, {0x8a0960, 0xc0001dbe80})
+        /src/opa/ast/visit.go:303 +0x795
+github.com/open-policy-agent/opa/ast.(*GenericVisitor).Walk(0xc00021fb08, {0x8898c0, 0xc0000e2a00})
+        /src/opa/ast/visit.go:289 +0xaff
+github.com/open-policy-agent/opa/ast.WalkExprs({0x8898c0?, 0xc0000e2a00?}, 0x8d1930?)
+        /src/opa/ast/visit.go:217 +0x52
+github.com/open-policy-agent/opa/ast.(*Compiler).parseMetadataBlocks(0xc0000eec80)
+        /src/opa/ast/compile.go:1738 +0xb8
+github.com/open-policy-agent/opa/ast.(*Compiler).runStage(0x1?, {0x8e0fee?, 0x8d4b92?}, 0x10?)
+        /src/opa/ast/compile.go:1210 +0xe2
+github.com/open-policy-agent/opa/ast.(*Compiler).compile(0xc0000eec80)
+        /src/opa/ast/compile.go:1230 +0xc5
+github.com/open-policy-agent/opa/ast.(*Compiler).Compile(0xc0000eec80, 0xc00021ff10)
+        /src/opa/ast/compile.go:411 +0x234
+main.main()
+        /ssebench/pocs/poc.go:12 +0x109
+exit status 2

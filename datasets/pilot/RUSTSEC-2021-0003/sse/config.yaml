@@ -1,0 +1,25 @@
+id: "generic-rust-rust-smallvec-rustsec20210003"
+project: "rust-smallvec"
+language: "rust"
+source: "/src/rust-smallvec"
+task_description:
+  crash_report:
+    - reports/crash.txt
+    - reports/issue.md
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test.diff
+  poc:
+    - pocs/src/main.rs
+sanitizer: address
+type: "UAF"
+binary: RUSTSEC-2021-0003
+trigger_commit: 78522049b3ce129d02eea4e802747ba1090a5586
+patch_commit: 9998ba0694a6b51aa6604748b00b6a98f0a0039e
+reference:
+  - https://rustsec.org/advisories/RUSTSEC-2021-0003.html
+  - https://github.com/servo/rust-smallvec/issues/252

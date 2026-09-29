@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=./schema.json
+#
+# Plugins for SSEBench
+# Plugins are extensions of the SSEBench framework.
+# Custom plugins can extend SSEBench features.
+#
+# A plugin should have a `<plugin-name>` folder under `runtime/plugins`.
+# It should also be registered in `runtime/plugins/plugins.yaml`.
+#
+# A plugin must have a `run.sh` script, which will execute at the moment set by
+# the `hook` field.
+#
+# In `plugins.yaml`, a plugin should provide:
+#   name: string. The plugin name; it must match the folder name.
+#   enabled: boolean. Set to true to enable this plugin.
+#   hook: enum. Determines when to run the plugin.
+#   llm: boolean. Set to true if the plugin requires LLM usage.
+#   timeout: int. Maximum number of minutes the plugin is allowed to run.
+#
+# Possible values for `hook` are:
+#     [before|on|after]-[agent|grading]
+#     
+#     when set to "before", the plugin runs before the event and blocks until it
+#     finishes or timeout.
+#     when set to "after", the plugin runs after the event and blocks until it
+#     finishes or timeout.
+#     when set to "on", the plugin runs in parallel with the hooked event.
+#     
+#     SSEBench containers always wait until all enabled plugins finishes or
+#     timeout.
+- name: artifact
+  # saves the artifacts generated (including agent dialog, patches, MCP logs) to
+  # a mounted folder, which can be retrieved from `results` locally.
+  enabled: true
+  hook: after-agent
+  llm: true
+  timeout: 300
+- name: reason
+  # use an AI agent to compare the generated patch and the ground truth patch
+  enabled: false
+  hook: after-grading
+  llm: true
+  timeout: 3600
+- name: oracle
+  # set up a "determinsitic oracle" geneartion task after grading.
+  enabled: true
+  hook: after-grading
+  llm: true
+  timeout: 3600

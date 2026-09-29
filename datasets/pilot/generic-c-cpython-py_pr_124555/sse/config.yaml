@@ -1,0 +1,29 @@
+id: generic-c-cpython-py_pr_124555
+project: cpython
+language: c
+source: /src/cpython
+task_description:
+  issue: ""
+  crash_report:
+    - reports/issue.md
+  bug_description:
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test.diff
+  poc:
+    - pocs/poc.bin
+sanitizer: address
+type: NULL Pointer Dereference
+binary: python
+trigger_commit: 7bd9dbf8e148f14f9c9c6715a820bfda6adff957
+patch_commit: c2ba931318280796a6dcc33d1a5c5c02ad4d035b
+reference:
+- https://github.com/python/cpython.git
+- https://github.com/python/cpython/pull/124555
+- https://github.com/python/cpython/issues/120378
+- https://github.com/python/cpython/commit/7bd9dbf8e148f14f9c9c6715a820bfda6adff957
+- https://github.com/python/cpython/commit/c2ba931318280796a6dcc33d1a5c5c02ad4d035b

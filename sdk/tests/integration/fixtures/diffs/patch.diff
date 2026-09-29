@@ -1,0 +1,13 @@
+diff --git a/buggy.go b/buggy.go
+index 1234567..abcdefg 100644
+--- a/buggy.go
++++ b/buggy.go
+@@ -10,7 +10,7 @@ package buggy
+ // - But s[0] == '{' is true, so the whole condition is true
+ // - Then s[1:len(s)-1] becomes s[1:0] which panics
+ func Unwrap(s string) string {
+-	if len(s) >= 2 && s[0] == '[' || s[0] == '{' {
++	if len(s) >= 2 && (s[0] == '[' || s[0] == '{') {
+ 		return s[1 : len(s)-1] // Panic: slice bounds out of range
+ 	}
+ 	return s

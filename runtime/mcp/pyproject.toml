@@ -1,0 +1,16 @@
+[project]
+name = "ssebench-mcp"
+version = "0.1.0"
+description = "SSEBENCH MCP Server"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "fastmcp>=2.0.0",
+  "ssebench-sdk",
+]
+
+[dependency-groups]
+dev = ["ruff>=0.11.0", "basedpyright>=1.29.0"]
+
+[tool.uv.sources]
+ssebench-sdk = { path = "../../sdk/python", editable = false }

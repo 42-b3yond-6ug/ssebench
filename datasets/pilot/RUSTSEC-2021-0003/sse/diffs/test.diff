@@ -1,0 +1,22 @@
+diff --git a/tests/insert_many_overflow.rs b/tests/insert_many_overflow.rs
+new file mode 100644
+index 0000000..8dfd387
+--- /dev/null
++++ b/tests/insert_many_overflow.rs
+@@ -0,0 +1,16 @@
++extern crate smallvec;
++use smallvec::SmallVec;
++
++#[test]
++fn insert_many_overflow_size_hint_lower_bound_zero() {
++    let mut v: SmallVec<[u8; 1]> = SmallVec::new();
++    v.push(123);
++
++    // Prepare an iterator with small lower bound
++    let iter = (0u8..5).filter(|n| n % 2 == 0);
++    assert_eq!(iter.size_hint().0, 0);
++
++    v.insert_many(0, iter);
++    assert_eq!(&*v, &[0, 2, 4, 123]);
++}
++

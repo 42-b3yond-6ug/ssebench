@@ -1,0 +1,306 @@
+diff --git a/cmd/server/woodpecker_docs_gen.go b/cmd/server/woodpecker_docs_gen.go
+index 9807c92d0..0ca776671 100644
+--- a/cmd/server/woodpecker_docs_gen.go
++++ b/cmd/server/woodpecker_docs_gen.go
+@@ -100,5 +100,5 @@ func toOpenApi3(input, output string) error {
+ 		return err
+ 	}
+ 
+-	return os.WriteFile(output, data, 0644)
++	return os.WriteFile(output, data, 0o644)
+ }
+diff --git a/pipeline/frontend/yaml/linter/linter.go b/pipeline/frontend/yaml/linter/linter.go
+index 7120d2ad8..73cefc799 100644
+--- a/pipeline/frontend/yaml/linter/linter.go
++++ b/pipeline/frontend/yaml/linter/linter.go
+@@ -117,7 +117,7 @@ func (l *Linter) lintContainers(config *WorkflowConfig, area string) error {
+ 				linterErr = multierr.Append(linterErr, err)
+ 			}
+ 		}
+-		if err := l.lintCommands(config, container, area); err != nil {
++		if err := l.lintSettings(config, container, area); err != nil {
+ 			linterErr = multierr.Append(linterErr, err)
+ 		}
+ 	}
+@@ -132,16 +132,18 @@ func (l *Linter) lintImage(config *WorkflowConfig, c *types.Container, area stri
+ 	return nil
+ }
+ 
+-func (l *Linter) lintCommands(config *WorkflowConfig, c *types.Container, field string) error {
+-	if len(c.Commands) == 0 {
++func (l *Linter) lintSettings(config *WorkflowConfig, c *types.Container, field string) error {
++	if len(c.Settings) == 0 {
+ 		return nil
+ 	}
+-	if len(c.Settings) != 0 {
+-		var keys []string
+-		for key := range c.Settings {
+-			keys = append(keys, key)
+-		}
+-		return newLinterError(fmt.Sprintf("Cannot configure both commands and custom attributes %v", keys), config.File, fmt.Sprintf("%s.%s", field, c.Name), false)
++	if len(c.Commands) != 0 {
++		return newLinterError("Cannot configure both commands and settings", config.File, fmt.Sprintf("%s.%s", field, c.Name), false)
++	}
++	if len(c.Entrypoint) != 0 {
++		return newLinterError("Cannot configure both entrypoint and settings", config.File, fmt.Sprintf("%s.%s", field, c.Name), false)
++	}
++	if len(c.Environment) != 0 {
++		return newLinterError("Cannot configure both environment and settings", config.File, fmt.Sprintf("%s.%s", field, c.Name), false)
+ 	}
+ 	return nil
+ }
+diff --git a/pipeline/frontend/yaml/linter/schema/.woodpecker/test-broken-plugin.yaml b/pipeline/frontend/yaml/linter/schema/.woodpecker/test-broken-plugin.yaml
+new file mode 100644
+index 000000000..886dee977
+--- /dev/null
++++ b/pipeline/frontend/yaml/linter/schema/.woodpecker/test-broken-plugin.yaml
+@@ -0,0 +1,8 @@
++steps:
++  publish:
++    image: plugins/docker
++    settings:
++      repo: foo/bar
++      tags: latest
++    environment:
++      CGO: 0
+diff --git a/pipeline/frontend/yaml/linter/schema/.woodpecker/test-broken-plugin2.yaml b/pipeline/frontend/yaml/linter/schema/.woodpecker/test-broken-plugin2.yaml
+new file mode 100644
+index 000000000..2dbba2e90
+--- /dev/null
++++ b/pipeline/frontend/yaml/linter/schema/.woodpecker/test-broken-plugin2.yaml
+@@ -0,0 +1,8 @@
++steps:
++  publish:
++    image: plugins/docker
++    settings:
++      repo: foo/bar
++      tags: latest
++    commands:
++      - env
+diff --git a/pipeline/frontend/yaml/linter/schema/.woodpecker/test-step.yaml b/pipeline/frontend/yaml/linter/schema/.woodpecker/test-step.yaml
+index fc63e8d6e..9f60fcf44 100644
+--- a/pipeline/frontend/yaml/linter/schema/.woodpecker/test-step.yaml
++++ b/pipeline/frontend/yaml/linter/schema/.woodpecker/test-step.yaml
+@@ -18,7 +18,7 @@ steps:
+     image: alpine
+     entrypoint: ['some_entry', '--some-flag']
+ 
+-  singla-entrypoint:
++  single-entrypoint:
+     image: alpine
+     entrypoint: some_entry
+ 
+diff --git a/pipeline/frontend/yaml/linter/schema/schema.json b/pipeline/frontend/yaml/linter/schema/schema.json
+index 79f5cb21c..5a85cf320 100644
+--- a/pipeline/frontend/yaml/linter/schema/schema.json
++++ b/pipeline/frontend/yaml/linter/schema/schema.json
+@@ -304,10 +304,24 @@
+       }
+     },
+     "step": {
++      "description": "A step of your workflow executes either arbitrary commands or uses a plugin. Read more: https://woodpecker-ci.org/docs/usage/workflow-syntax#steps",
++      "oneOf": [
++        {
++          "$ref": "#/definitions/commands_step"
++        },
++        {
++          "$ref": "#/definitions/entrypoint_step"
++        },
++        {
++          "$ref": "#/definitions/plugin_step"
++        }
++      ]
++    },
++    "commands_step": {
+       "description": "Every step of your pipeline executes arbitrary commands inside a specified docker container. Read more: https://woodpecker-ci.org/docs/usage/workflow-syntax#steps",
+       "type": "object",
+       "additionalProperties": false,
+-      "required": ["image"],
++      "required": ["image", "commands"],
+       "properties": {
+         "name": {
+           "description": "The name of the step. Can be used if using the array style steps list.",
+@@ -334,8 +348,91 @@
+         "secrets": {
+           "$ref": "#/definitions/step_secrets"
+         },
+-        "settings": {
+-          "$ref": "#/definitions/step_settings"
++        "when": {
++          "$ref": "#/definitions/step_when"
++        },
++        "volumes": {
++          "$ref": "#/definitions/step_volumes"
++        },
++        "group": {
++          "description": "deprecated, use depends_on",
++          "type": "string"
++        },
++        "depends_on": {
++          "description": "Execute a step after another step has finished.",
++          "oneOf": [
++            {
++              "type": "array",
++              "minLength": 1,
++              "items": {
++                "type": "string"
++              }
++            },
++            {
++              "type": "string"
++            }
++          ]
++        },
++        "detach": {
++          "description": "Detach a step to run in background until pipeline finishes. Read more: https://woodpecker-ci.org/docs/usage/services#detachment",
++          "type": "boolean"
++        },
++        "failure": {
++          "description": "How to handle the failure of this step. Read more: https://woodpecker-ci.org/docs/usage/workflow-syntax#failure",
++          "type": "string",
++          "enum": ["fail", "ignore"],
++          "default": "fail"
++        },
++        "backend_options": {
++          "$ref": "#/definitions/step_backend_options"
++        },
++        "entrypoint": {
++          "description": "Defines container entrypoint.",
++          "oneOf": [
++            {
++              "type": "array",
++              "minLength": 1,
++              "items": {
++                "type": "string"
++              }
++            },
++            {
++              "type": "string"
++            }
++          ]
++        }
++      }
++    },
++    "entrypoint_step": {
++      "description": "Every step of your pipeline executes arbitrary commands inside a specified docker container. Read more: https://woodpecker-ci.org/docs/usage/workflow-syntax#steps",
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["image", "entrypoint"],
++      "properties": {
++        "name": {
++          "description": "The name of the step. Can be used if using the array style steps list.",
++          "type": "string"
++        },
++        "image": {
++          "$ref": "#/definitions/step_image"
++        },
++        "privileged": {
++          "$ref": "#/definitions/step_privileged"
++        },
++        "pull": {
++          "$ref": "#/definitions/step_pull"
++        },
++        "commands": {
++          "$ref": "#/definitions/step_commands"
++        },
++        "environment": {
++          "$ref": "#/definitions/step_environment"
++        },
++        "directory": {
++          "$ref": "#/definitions/step_directory"
++        },
++        "secrets": {
++          "$ref": "#/definitions/step_secrets"
+         },
+         "when": {
+           "$ref": "#/definitions/step_when"
+@@ -392,6 +489,74 @@
+         }
+       }
+     },
++    "plugin_step": {
++      "description": "Plugins let you execute predefined functions in a more secure context. Read more: https://woodpecker-ci.org/docs/usage/plugins/overview",
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["image"],
++      "properties": {
++        "name": {
++          "description": "The name of the step. Can be used if using the array style steps list.",
++          "type": "string"
++        },
++        "image": {
++          "$ref": "#/definitions/step_image"
++        },
++        "privileged": {
++          "$ref": "#/definitions/step_privileged"
++        },
++        "pull": {
++          "$ref": "#/definitions/step_pull"
++        },
++        "directory": {
++          "$ref": "#/definitions/step_directory"
++        },
++        "secrets": {
++          "$ref": "#/definitions/step_secrets"
++        },
++        "settings": {
++          "$ref": "#/definitions/step_settings"
++        },
++        "when": {
++          "$ref": "#/definitions/step_when"
++        },
++        "volumes": {
++          "$ref": "#/definitions/step_volumes"
++        },
++        "group": {
++          "description": "deprecated, use depends_on",
++          "type": "string"
++        },
++        "depends_on": {
++          "description": "Execute a step after another step has finished.",
++          "oneOf": [
++            {
++              "type": "array",
++              "minLength": 1,
++              "items": {
++                "type": "string"
++              }
++            },
++            {
++              "type": "string"
++            }
++          ]
++        },
++        "detach": {
++          "description": "Detach a step to run in background until pipeline finishes. Read more: https://woodpecker-ci.org/docs/usage/services#detachment",
++          "type": "boolean"
++        },
++        "failure": {
++          "description": "How to handle the failure of this step. Read more: https://woodpecker-ci.org/docs/usage/workflow-syntax#failure",
++          "type": "string",
++          "enum": ["fail", "ignore"],
++          "default": "fail"
++        },
++        "backend_options": {
++          "$ref": "#/definitions/step_backend_options"
++        }
++      }
++    },
+     "step_when": {
+       "description": "Steps can be skipped based on conditions. Read more: https://woodpecker-ci.org/docs/usage/workflow-syntax#when---conditional-execution",
+       "oneOf": [
+diff --git a/pipeline/frontend/yaml/types/container.go b/pipeline/frontend/yaml/types/container.go
+index 6de8ab9e7..78da8141f 100644
+--- a/pipeline/frontend/yaml/types/container.go
++++ b/pipeline/frontend/yaml/types/container.go
+@@ -123,7 +123,9 @@ func (c *ContainerList) UnmarshalYAML(value *yaml.Node) error {
+ }
+ 
+ func (c *Container) IsPlugin() bool {
+-	return len(c.Commands) == 0 && len(c.Entrypoint) == 0
++	return len(c.Commands) == 0 &&
++		len(c.Entrypoint) == 0 &&
++		len(c.Environment) == 0
+ }
+ 
+ func (c *Container) IsTrustedCloneImage() bool {

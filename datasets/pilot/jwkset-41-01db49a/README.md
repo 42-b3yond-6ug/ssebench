@@ -1,0 +1,1 @@
+Note: The ground-truth patch cannot be applied in this vendor mode because network access is disabled inside the Docker container. The patch requires updating a few dependencies, which can only be fetched over the network. Unless we vendor those dependencies in advance, we won’t be able to apply the patch in this no-network Docker environment.

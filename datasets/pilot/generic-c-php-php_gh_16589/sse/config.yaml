@@ -1,0 +1,28 @@
+id: generic-c-php-php_gh_16589
+project: php
+language: c
+source: /src/php
+task_description:
+  issue: ""
+  crash_report:
+    - reports/issue.md
+  bug_description:
+scripts:
+  build: scripts/build.sh
+  run: scripts/run.sh
+  test: scripts/test.sh
+files:
+  patch: diffs/patch.diff
+  future_test: diffs/test_rich.diff
+  poc:
+    - pocs/poc.bin
+sanitizer: address
+type: Use After Free
+binary: php
+trigger_commit: 992ac1c25a790d413a8029ed052a1436cc8f50a1
+patch_commit: 8f60309a78e5c30b7713b820258676ef5ce19786
+reference:
+- https://github.com/php/php-src.git
+- https://github.com/php/php-src/issues/16589
+- https://github.com/php/php-src/commit/992ac1c25a790d413a8029ed052a1436cc8f50a1
+- https://github.com/php/php-src/commit/8f60309a78e5c30b7713b820258676ef5ce19786

@@ -1,0 +1,20 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 47d88e1..1324604 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -202,11 +202,13 @@ impl<T> Arena<T> {
+         &'a mut self,
+         selected: I,
+     ) -> Option<(&mut T, ArenaSplit<'a, T, Self>)> {
+-        if let Some(value) = self.get_mut(selected.borrow()) {
++        let selected = selected.borrow();
++
++        if let Some(value) = self.get_mut(selected) {
+             Some((
+                 unsafe { (value as *mut T).as_mut().unwrap() },
+                 ArenaSplit {
+-                    selected: selected.borrow().clone(),
++                    selected: selected.clone(),
+                     arena: self,
+                     __type: Default::default(),
+                 },
