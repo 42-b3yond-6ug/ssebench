@@ -6,7 +6,7 @@ import { createFakes } from "./testing"
 const fakes = createFakes()
 const savedEnv = { ...process.env }
 Object.assign(process.env, fakes.env, {
-  SSEBENCH_CATALOG_URL: "http://catalog.invalid",
+  SSEBENCH_CATALOG: "http://catalog.invalid",
 })
 const { buildLaunchArgs, validateLaunchConfig } = await import("./launch")
 process.env = savedEnv
@@ -106,5 +106,17 @@ describe("buildLaunchArgs", () => {
       "--timeout=600",
       "--difficulty=2",
     ])
+  })
+
+  test("hands catalog tasks the catalog the server lists", () => {
+    expect(
+      buildLaunchArgs({
+        task: "gjson-196-bf4efcb",
+        model: "test-model",
+        agent: "dummy",
+        mode: "sandbox",
+        source: "remote",
+      })
+    ).toContain("--catalog=http://catalog.invalid")
   })
 })

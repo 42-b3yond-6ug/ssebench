@@ -38,7 +38,7 @@ Tests: `bun test` for the server, `go test ./...` in `pty-proxy/`.
 | `SSEBENCH_WEBUI_TERMINAL` | `1` | `0` turns off the container terminal. |
 | `SSEBENCH_PATH` | repository root | SSEBench checkout: `uv run ssebench` runs here, and `models/` and `agents/` are read from here. |
 | `SSEBENCH_LOCAL_TASKS` | `$SSEBENCH_PATH/datasets/pilot` | Local dataset offered in the launcher. |
-| `SSEBENCH_CATALOG_URL` | unset | Task catalog service for remote tasks. |
+| `SSEBENCH_CATALOG` | `$SSEBENCH_PATH/datasets/pilot/manifest.json` | Task catalog offered in the launcher's Catalog tab and passed to `ssebench run --catalog`: the path or URL of a `manifest.json`, a dataset directory, or the base URL of a catalog service. `SSEBENCH_CATALOG_URL`, its former name, still works for this release but is deprecated. |
 | `PTY_ENABLE_CLEANUP`, `PTY_CLEANUP_INTERVAL`, `PTY_ORPHAN_THRESHOLD` | `true`, `30000`, `300000` | Cleanup of terminal processes whose browser went away (milliseconds). |
 
 The bind address is read from `SSEBENCH_WEBUI_HOST` rather than `HOST`
