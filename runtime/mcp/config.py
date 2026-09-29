@@ -67,11 +67,9 @@ def load_mcp_config() -> McpConfig:
         return McpConfig(TestConfig.from_difficulty(DifficultyLevel.NO_FUTURE_TEST))
 
     try:
-        val_int = int(raw_val)
-        level = DifficultyLevel(val_int)
+        level = DifficultyLevel(int(raw_val))
     except ValueError:
-        valid_options = [f"{d.value}" for d in DifficultyLevel]
-        raise ValueError(f"Difficulty must be an integer in: {valid_options}") from None
+        raise ValueError(f"{env_key} must be an integer from 0 to 4, got {raw_val!r}") from None
 
     print(f"[{env_key}] Found: {raw_val} -> {level.name}")
     return McpConfig(TestConfig.from_difficulty(level))

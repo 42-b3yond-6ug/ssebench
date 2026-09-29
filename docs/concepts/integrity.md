@@ -129,9 +129,10 @@ It leaves out the reference patch and the hidden tests.
 The MCP server decides which checks `test_patch` runs, but the daemon enforces
 the same limit itself: it reads `SSE_DIFFICULTY` at startup and answers 403 to
 a withheld `bencher` action on its agent-facing listeners, so talking to the
-daemon directly gains the agent nothing. A missing or invalid level counts as
-the default, level 2. The evaluator grades through the admin socket, where
-the gate does not apply, so grading always runs every check. See
+daemon directly gains the agent nothing. A missing level counts as the
+default, level 2, and an invalid one stops the daemon from starting. The
+evaluator grades through the admin socket, where the gate does not apply, so
+grading always runs every check. See
 [Difficulty levels](/concepts/difficulty-levels#where-the-level-is-enforced).
 
 ### The reference patch unlocks after the agent phase

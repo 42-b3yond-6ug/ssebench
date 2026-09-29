@@ -103,10 +103,13 @@ See the [integrity model](/concepts/integrity) for the two kinds of socket.
 
 ## Valid values
 
-Use an integer from 0 to 4. The CLI does not check the value. With any other
-value the MCP server refuses to start and the run fails, while the daemon on
-its own treats a missing or unreadable value as level 2, so it never opens up
-more than the default.
+Use an integer from 0 to 4. `ssebench run` rejects any other `--difficulty`
+before it builds or starts anything, and so does the web UI's launch form.
+Inside the container, the daemon and the MCP server read `SSE_DIFFICULTY` on
+their own: unset, it means level 2; set to anything but an integer from 0 to
+4, including an empty string, each refuses to start. The run then fails
+without grading, and its result has `status` `error`; a run never goes ahead
+at a level other than the one asked for.
 
 ## Comparing results
 

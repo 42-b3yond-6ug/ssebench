@@ -284,6 +284,7 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
     run_parser.add_argument(
         "--difficulty",
         type=int,
+        choices=range(5),
         default=2,
         metavar="LEVEL",
         help="Which checks the agent's test_patch tool may run, from 0 (all) to 4 (none) (default: 2 = NO_FUTURE_TEST)",

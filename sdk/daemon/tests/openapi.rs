@@ -124,9 +124,7 @@ fn bench() -> (TempDir, BenchCore) {
 }
 
 fn app_state(core: &BenchCore, difficulty: Difficulty) -> AppState {
-    let mut state = AppState::new(core.clone());
-    state.difficulty = difficulty;
-    state
+    AppState::new(core.clone(), difficulty)
 }
 
 /// One listener: the agent-facing ones are unprivileged, the admin socket is
