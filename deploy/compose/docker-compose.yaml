@@ -1,7 +1,8 @@
-# The LiteLLM proxy and its database; `ssebench run` and `ssebench proxy up`
-# start it. Container, network and volume names are scoped to the Compose
-# project (COMPOSE_PROJECT_NAME, default ssebench), so stacks with different
-# project names and LITELLM_PORT values run side by side.
+# The LiteLLM proxy and its database. Start it with `just launch` or let
+# `ssebench run` start it; both rebuild the proxy image when models/ changed.
+# Container, network and volume names are scoped to the Compose project
+# (COMPOSE_PROJECT_NAME, default ssebench), so stacks with different project
+# names and LITELLM_PORT values run side by side.
 name: ssebench
 
 services:
