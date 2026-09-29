@@ -1,5 +1,5 @@
 ARG SSEBENCH_REGISTRY=ghcr.io/42-b3yond-6ug/ssebench
-FROM ${SSEBENCH_REGISTRY}/base-generic-rust:latest
+FROM ${SSEBENCH_REGISTRY}/base-generic-rust:1.0.0
 
 # Install and switch to stable (support Rust 2024)
 RUN rustup toolchain install stable \

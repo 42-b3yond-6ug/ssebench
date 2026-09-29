@@ -1,5 +1,5 @@
 ARG SSEBENCH_REGISTRY=ghcr.io/42-b3yond-6ug/ssebench
-FROM ${SSEBENCH_REGISTRY}/base-generic-c:latest
+FROM ${SSEBENCH_REGISTRY}/base-generic-c:1.0.0
 
 RUN mkdir /src
 

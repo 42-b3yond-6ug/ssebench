@@ -1,5 +1,5 @@
 ARG SSEBENCH_REGISTRY=ghcr.io/42-b3yond-6ug/ssebench
-FROM ${SSEBENCH_REGISTRY}/base-generic-rust:latest
+FROM ${SSEBENCH_REGISTRY}/base-generic-rust:1.0.0
 
 RUN rustup default nightly-2022-07-11
 RUN rustup install nightly-2023-11-24

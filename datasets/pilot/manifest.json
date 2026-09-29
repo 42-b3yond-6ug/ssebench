@@ -7,7 +7,7 @@
       "language": "rust",
       "project": "rust-smallvec",
       "repository": "https://github.com/servo/rust-smallvec",
-      "base": "base-generic-rust:latest",
+      "base": "base-generic-rust:1.0.0",
       "image": "case/pilot/rustsec-2019-0009",
       "arch": [
         "amd64"
@@ -19,7 +19,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "0921ccae389fb038e0c07923aaf7e901ea80bca0976d136285688a7828196db5",
+        "Dockerfile": "7cbb48a403bbe3a7707ea0de2cae241834073c02206cf2ef22cdbf5cfdb6834c",
         "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
         "harness/Cargo.toml": "2705b30415f541373d05d44c5091716a77c7293932750c4ba115dffc231e9bd0",
         "harness/src/main.rs": "35044381ef5b61198e297674825375cfe0b3ba7ab9757823daf346c66a91c1d4",
@@ -87,7 +87,7 @@
       "language": "rust",
       "project": "string-interner",
       "repository": "https://github.com/Robbepop/string-interner",
-      "base": "base-generic-rust:latest",
+      "base": "base-generic-rust:1.0.0",
       "image": "case/pilot/rustsec-2019-0023",
       "arch": [
         "amd64"
@@ -99,7 +99,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "3d13b1b0a791496d6847b06b499ba638f5ae80b47b5ef5690ca6d622b5e4d7a1",
+        "Dockerfile": "c75118e2f42321582c67691b6571165150c1ff5780a66901f74d2e25904f3ada",
         "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
         "harness/Cargo.toml": "8026c2b40ed79bb3e4110a2ad116b34a2c6cdf269a704041a4ca7ee75f5b0aa8",
         "harness/src/main.rs": "02c144ee5fa60f97e917658c36ba374e97d0320ef20ebe54325a95b56dda5518",
@@ -172,7 +172,7 @@
       "language": "rust",
       "project": "http",
       "repository": "https://github.com/hyperium/http",
-      "base": "base-generic-rust:latest",
+      "base": "base-generic-rust:1.0.0",
       "image": "case/pilot/rustsec-2019-0034",
       "arch": [
         "amd64"
@@ -184,7 +184,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "e9c76c28f9598a2c02275552a79b5f0a8da1c3a740ceea7382ea5ee10cf353e4",
+        "Dockerfile": "f0f6604e1a13b3a54f5647a394e272bccbabddc0975ed4d94d11238cfd23cd7c",
         "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
         "harness/Cargo.toml": "da182f9368aab7e98cc30e61643d9d8a4214cc1ca4b7141540e1878a86698914",
         "harness/src/main.rs": "a91af60566c23007695d7f363d5c1099ea44aa54ef48a64b98bcc0d0976dee36",
@@ -284,7 +284,7 @@
       "language": "rust",
       "project": "rust-smallvec",
       "repository": "https://github.com/servo/rust-smallvec",
-      "base": "base-generic-rust:latest",
+      "base": "base-generic-rust:1.0.0",
       "image": "case/pilot/rustsec-2021-0003",
       "arch": [
         "amd64"
@@ -296,7 +296,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "01898006dbab010c1e7b5ed97d787d3005127a7d4f6d615817f9046de6b5148b",
+        "Dockerfile": "4d26e097526a7ccce6818d98d12201de1b1e4380f6743be97f1b112be9cb7236",
         "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
         "harness/Cargo.toml": "e631012427f5b4a2dd792777b1134a5c5b8386d8228006c1b1dbcc698366d42f",
         "harness/src/main.rs": "648b774776f0a8b2022f2b6a7ab42ad1aba034090a0775ff954a624b80221a49",
@@ -374,7 +374,7 @@
       "language": "rust",
       "project": "nano-arena",
       "repository": "https://github.com/bennetthardwick/nano-arena",
-      "base": "base-generic-rust:latest",
+      "base": "base-generic-rust:1.0.0",
       "image": "case/pilot/rustsec-2021-0031",
       "arch": [
         "amd64"
@@ -386,7 +386,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "b279646c0a6d937de30c14d267945f012a6f7193e2e10b106ef17daa150c6691",
+        "Dockerfile": "f304528bbf4c5e11467c1fa1f729d216bb3d9023c3b4f24d9b7e98aa9f30f8e3",
         "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
         "harness/Cargo.toml": "7d741bb6b2d91ce1f37ba104d8040fce9cbcfa97884243390a1e23c2cbc867ab",
         "harness/src/main.rs": "b8ab6526de23fed4f51720deaeb3ae6bd931b48b9d52def78dd64009cd76aed3",
@@ -449,7 +449,7 @@
       "language": "rust",
       "project": "stack_dst-rs",
       "repository": "https://github.com/thepowersgang/stack_dst-rs",
-      "base": "base-generic-rust:latest",
+      "base": "base-generic-rust:1.0.0",
       "image": "case/pilot/rustsec-2021-0033",
       "arch": [
         "amd64"
@@ -461,7 +461,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "ba2774c06fa269afb1420591333bc7bc4994e9c83c584033eaecb86c87c71c0e",
+        "Dockerfile": "802e574b216a18ea2450767142bf8077b235262a4127fd7f695679c4c6833fff",
         "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
         "harness/Cargo.toml": "aa48b22927e458c78841fc732156372b0aa8a4d79875ae2eec3c3466a7207c94",
         "harness/src/main.rs": "61862af203ce503fadb80825e5583fd246a6e8cba49a8ec6f8145b9be1a605df",
@@ -532,7 +532,7 @@
       "language": "rust",
       "project": "ammonia",
       "repository": "https://github.com/rust-ammonia/ammonia",
-      "base": "base-generic-rust:latest",
+      "base": "base-generic-rust:1.0.0",
       "image": "case/pilot/ammonia-142-4b8426b",
       "arch": [
         "amd64"
@@ -544,7 +544,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "dd3a8e3a28c6c69a3e74067a0f9e38c3896f9a7195fad560de58d481332e0a23",
+        "Dockerfile": "e6724d93403e57d16c48f7acc47c692608a894e7e5360a0f581ed985b1cad108",
         "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
         "harness/Cargo.lock": "0ca062667745dd6147254cd1fb3e3601fe33b225c71e0e587197636bae4fcee4",
         "harness/Cargo.toml": "ca72f160c055bd59af53453cfc2473f74326d5984e549edc57f723017ed2b79d",
@@ -604,7 +604,7 @@
       "language": "go",
       "project": "argo-workflows",
       "repository": "https://github.com/argoproj/argo-workflows",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/argo-workflows-2a2ecc9",
       "arch": [
         "amd64"
@@ -616,7 +616,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "02bcbb89b0f10c922cdfe214bfd01f564604422d06f4f66e92500a68c52d66e0",
+        "Dockerfile": "c8812b89b0e6cc664f9815a5637b9cb8d5f34517c006d9734faa07604ced984b",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "ec145b00e197ebae7dd0f0621fc96da03af746aa524835942d2aff23e231692e",
         "sse/config.yaml": "53e58d9e0b79ecb8ea8bf1638496e230d5549b7ae3d7569ab797a0cb895c2a09",
@@ -674,7 +674,7 @@
       "language": "go",
       "project": "aws-iam-authenticator",
       "repository": "https://github.com/kubernetes-sigs/aws-iam-authenticator",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/aws-iam-authenticator-029d1dc",
       "arch": [
         "amd64"
@@ -686,7 +686,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "62faac76f0350636130233baf8ea3a0519062394f51bb65dd463cfe935510bbd",
+        "Dockerfile": "fe2c3a0274e5117b549985d91a1f321a6b8c508d3789fc3400d0d4558362971a",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "f23141f5c285f3168da20ab4c3e6ce6c1a053bbd3d21fb932b83923968510b70",
         "sse/config.yaml": "0874418d5e00f493495b3083d0b2344c5e7464e352c70ff6d9fed6f5dacf22b7",
@@ -742,7 +742,7 @@
       "language": "go",
       "project": "bluemonday",
       "repository": "https://github.com/microcosm-cc/bluemonday",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/bluemonday-524f142",
       "arch": [
         "amd64"
@@ -754,7 +754,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "0e243c0d1b786acf2ca76c069ccb244c378b360c45d8d72726b627017df06ca2",
+        "Dockerfile": "7bfdc135835fa01e521cede64f731a651d155ff2d1b29ff97afbaef25bd4816a",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "6a98860426b23a02bc5d4122320ae20c4fe544730698a59afa1acd854d7c1dd5",
         "sse/config.yaml": "ff39da1086ec878076b2c72417525cc1f0c7089e3e62fab7b8dea83f91415401",
@@ -811,7 +811,7 @@
       "language": "go",
       "project": "dns",
       "repository": "https://github.com/miekg/dns",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/dns-745-501e858",
       "arch": [
         "amd64"
@@ -823,7 +823,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "d8c9bbe7b1537e04271bce4cdd5e27c133d5dc0742079bae4f44efdb5fbf55d7",
+        "Dockerfile": "9c4f3479ea51b5535a56d46d9ebb7bd9157906df50de17b3cb4978d311c13a86",
         "sse/build.sh": "b5788b2802f0870b807f5f3ed8459925dce67a2a8367d07365c615c8db3c2983",
         "sse/config.yaml": "4352614d6c69d5748efe255f9490c4386febd71ff5b66c6760d1c226e3ce07da",
         "sse/diffs/intent_test.diff": "e8b09e255f59ed964e06297d62086aed418947dec831ebce201add7a4cbdfc9a",
@@ -881,7 +881,7 @@
       "language": "go",
       "project": "docconv",
       "repository": "https://github.com/sajari/docconv",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/docconv-b19021a",
       "arch": [
         "amd64"
@@ -893,7 +893,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "93597b0c932d65b23a7d06f21240cc2d76e1ef2d4a8e07f51be3f0f6d662ff11",
+        "Dockerfile": "b04182f33e16fb5c07268e2f03e33fc32f91719ec879fe9845cb32b6f2a2ecc6",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "db2bcf14ba5b198b187edf0da7be510d81fb43d273b5e357304d8826baf6d2dd",
         "sse/config.yaml": "928d50205085c6ad05687717513a6df083b254e12389c63f034344d059146381",
@@ -949,7 +949,7 @@
       "language": "go",
       "project": "fiber",
       "repository": "https://github.com/gofiber/fiber",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/fiber-b8c9ede",
       "arch": [
         "amd64"
@@ -961,7 +961,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "f87fa90c0433115795869cf09867a92d2154353deb594c9993211c7050414a8b",
+        "Dockerfile": "4454cd53078722f2261e6b28f36372d68adcde85a8a0bc8e73d4625ecdf888be",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "0365d7a8b5556102c370a4f380ee5bf9c4b43733b748c04f3151a123336fa3dc",
@@ -1017,7 +1017,7 @@
       "language": "c",
       "project": "cpython",
       "repository": "https://github.com/python/cpython",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-cpython-py_pr_102397",
       "arch": [
         "amd64"
@@ -1029,7 +1029,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "ad1e663f0101247579691112e2b253ced3d46ee31ca9aafdf7ed85378862b645",
+        "Dockerfile": "bd4535484e51132d3fed9ff7b6631ac709bdd2ff9d1d075ea3c8d4038b97495c",
         "sse/build.sh": "e360e530778af528d32a5ad0d5faed8e297d82cc7d8271ed47c6d28b818c92aa",
         "sse/config.yaml": "380bbe8bedc8e2402c30fc597735683860765e6946b427966c0a14428c5eb206",
         "sse/diffs/patch.diff": "ee9f4dad5d0a5d2e1a96a8e23ffb0ab8065e431d21db004dac01949dc7dc26b8",
@@ -1087,7 +1087,7 @@
       "language": "c",
       "project": "cpython",
       "repository": "https://github.com/python/cpython",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-cpython-py_pr_124513",
       "arch": [
         "amd64"
@@ -1099,7 +1099,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "e4a85131f312bca2bd5d0d27c883e1ec1fb93e86891b40300eb8cd6f2154a144",
+        "Dockerfile": "0e5d64722a20abadc43778a3fe7b1b60b41df626e70b75c81bb5baac2833d8da",
         "sse/build.sh": "e360e530778af528d32a5ad0d5faed8e297d82cc7d8271ed47c6d28b818c92aa",
         "sse/config.yaml": "422cbf533758f1258a06769a80c20f605e68d3c1318a14e8b8fa90adea1c35dd",
         "sse/diffs/patch.diff": "f9b33d43c5210a427e365655af83c310d6bff63f9c32105b1cca8639e3c6b15d",
@@ -1157,7 +1157,7 @@
       "language": "c",
       "project": "cpython",
       "repository": "https://github.com/python/cpython",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-cpython-py_pr_124555",
       "arch": [
         "amd64"
@@ -1169,7 +1169,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "3b208bc81af74cc74f3e52a90f6abaf07ae559ac1423e15a77da96ae86ef6de6",
+        "Dockerfile": "ea557078136e0c186ceb1f632b07b9bc69d80653957296e2f0ca47103d6ce05b",
         "sse/build.sh": "e360e530778af528d32a5ad0d5faed8e297d82cc7d8271ed47c6d28b818c92aa",
         "sse/config.yaml": "f27de7ffba8719402ace065c1a0f8387a03b4ea0d1274befb287649f4d980e0e",
         "sse/diffs/patch.diff": "ef9b65099566226397bb06a320c735124cd50e0c66ea852a4d69c59ca666a83d",
@@ -1227,7 +1227,7 @@
       "language": "c",
       "project": "cpython",
       "repository": "https://github.com/python/cpython",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-cpython-py_pr_125723",
       "arch": [
         "amd64"
@@ -1239,7 +1239,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "877817127590f1cf135df27be1304d0ab638cba3f393aa6d57b477b2655efcab",
+        "Dockerfile": "1705f5b10455c38f996988b05050163ec9c754176bf0105ccfa161597065b83a",
         "sse/build.sh": "e360e530778af528d32a5ad0d5faed8e297d82cc7d8271ed47c6d28b818c92aa",
         "sse/config.yaml": "832add7ed1104070c4a6fc9458d224bf93b199d4d19f78d85ee92d7848b10a15",
         "sse/diffs/patch.diff": "f0364d6793330b2d02a339a613e0b4d02743c560dd7cbad2584940bf5c42ba6d",
@@ -1297,7 +1297,7 @@
       "language": "c",
       "project": "cpython",
       "repository": "https://github.com/python/cpython",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-cpython-py_pr_126033",
       "arch": [
         "amd64"
@@ -1309,7 +1309,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "c57aeed45c15b9dd1e035e22e34a6355ed7786fc1b7bbe04b4a87827cfef5696",
+        "Dockerfile": "5f97b103c6941aa393c84887c079900f45a5849cf2568391209618a3a71cb4ae",
         "sse/build.sh": "e360e530778af528d32a5ad0d5faed8e297d82cc7d8271ed47c6d28b818c92aa",
         "sse/config.yaml": "039d6bb04a7790d188e6b9dd965eec8ec5026ddc9a704974668bc70906008c7b",
         "sse/diffs/patch.diff": "1b85cddaa3004af16f1991d5f31253de4720567cb87e0068170b524759a37e98",
@@ -1367,7 +1367,7 @@
       "language": "c",
       "project": "cpython",
       "repository": "https://github.com/python/cpython",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-cpython-py_pr_132747",
       "arch": [
         "amd64"
@@ -1379,7 +1379,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "66f02ea38d53d355949a4dd9365def446276a0749ce293ca68e7dbb36e641122",
+        "Dockerfile": "4591b1ba78368c464555fa0008656ee45004f81100644d51583b34b3f75e92e4",
         "sse/build.sh": "e360e530778af528d32a5ad0d5faed8e297d82cc7d8271ed47c6d28b818c92aa",
         "sse/config.yaml": "0623d0d1001495b191a39b2c619332b4880c814c49d923a4a1552b9f5d210663",
         "sse/diffs/patch.diff": "5585f13ec71dca5e986b407334af0eab6fc7f609b30eed9e144912446d01550c",
@@ -1437,7 +1437,7 @@
       "language": "c",
       "project": "exiv2",
       "repository": "https://github.com/Exiv2/exiv2",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-exiv2-exiv2_gh_789",
       "arch": [
         "amd64"
@@ -1449,7 +1449,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "4c101a2a6c4ada8039c5602df2f86e4f69ff2f673fffd0d8f6568a58b1fc1437",
+        "Dockerfile": "65acb75da5729c8f55224681d9cc8f66ea78370a38d5a5fef07e1c5f583060c8",
         "sse/build.sh": "cf1e7a8f2f6450cfc5eeb0890ddde6deb5cdff10582895ad245a8896d5926f17",
         "sse/config.yaml": "1eba21503f9f310eaf0b7bbe275b21c76eb6985580930415f1ba17237a62e524",
         "sse/diffs/patch.diff": "d50d012fa352a556fb3b29509596bd1e5ff3312fd06ab1f90f88aad4493a62d2",
@@ -1507,7 +1507,7 @@
       "language": "c",
       "project": "jq",
       "repository": "https://github.com/jqlang/jq",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-jq-jq_gh_3196",
       "arch": [
         "amd64"
@@ -1519,7 +1519,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "51ec483d242011f09115ba2e9d80276135152206493ca7bacb9d9376fdc6ff20",
+        "Dockerfile": "18486539bacb55f3e9ac3fdcc24c7528de95ab305e3fb305fffc4ead8c211b20",
         "sse/build.sh": "0bf5aa64b40eec5260131365e37e223e65545b202e6f4045eb34cc03936e7b5b",
         "sse/config.yaml": "4701773274d974d99537b55091dba4fe868e2cef0ef06929b115b1a3ce2a6b1a",
         "sse/diffs/patch.diff": "e9a05ce9ae1d3a79ea9779e8edc9651a51e68be4842028aebca0330e382ed43d",
@@ -1576,7 +1576,7 @@
       "language": "c",
       "project": "libtiff",
       "repository": "https://gitlab.com/libtiff/libtiff",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-libtiff-tif_gh_647",
       "arch": [
         "amd64"
@@ -1588,7 +1588,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "9d4368214f03d1aa5b933d507c4e8581979d2644c75d5953252a70b3adb5dfa1",
+        "Dockerfile": "7b7469ba665d816f8db012319e37849eb1967aec81374a89c01dc77ddeb70985",
         "sse/build.sh": "78e496a398adbf3136c6aef968b1b0da0754800bc2105fda44f7e02b0cf9aba9",
         "sse/config.yaml": "a8bd995ff0db4405ef6c673386f232ee1063068b1f5265984645ec69e9e71102",
         "sse/diffs/patch.diff": "d1c08644c3b0cda0eaa09defb3829244bfc7cc619fb83d176b81d20fe7dca5d7",
@@ -1644,7 +1644,7 @@
       "language": "c",
       "project": "libxml2",
       "repository": "https://gitlab.gnome.org/GNOME/libxml2",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-libxml2-xml_commit_0bcd05c",
       "arch": [
         "amd64"
@@ -1656,7 +1656,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "7f76673948096fddc1c4496b67659b67ce175970a2a1fd5480336d6cefa06f76",
+        "Dockerfile": "be235c0e2f3852d86114fe63d1e70e8149ad0f215b9a465827d12169fe10ccac",
         "sse/build.sh": "db32f14b4dbfed9c75ce771f44f93e3f9f2c0fbc3f5a67f89b33b8816bb65bc4",
         "sse/config.yaml": "abf4d5f75d516461184e69052c2b48579de64cb568e136db492b93edf51b9cb6",
         "sse/diffs/patch.diff": "7283c2d2c7e33efb8fc475a57662ea9838345effed15cae953c71cba8409f324",
@@ -1711,7 +1711,7 @@
       "language": "c",
       "project": "libxml2",
       "repository": "https://gitlab.gnome.org/GNOME/libxml2",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-libxml2-xml_commit_a820dbe",
       "arch": [
         "amd64"
@@ -1723,7 +1723,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "e27918d7d297e0b848699631a9dc33fde3ca5358c91f3e23ba5b8f2fe384d08a",
+        "Dockerfile": "4242cb406fb3ffa485fe1a4d080846a0ce079fcb7ac7bdf5a013756cea6aca72",
         "sse/build.sh": "3c334685e8b566ce7f505c1ce5558afa4578c2fe9ffde647d1bcf102e6ff0242",
         "sse/config.yaml": "b04cc7a920a96b66aca35ebe32188ad52a66ae1df579150d377c0baa9ee4d85a",
         "sse/diffs/patch.diff": "776c1b6eba152f0cd270513cee6b1fc05399e27e159c814c1e1261f7f08711a6",
@@ -1778,7 +1778,7 @@
       "language": "c",
       "project": "libxml2",
       "repository": "https://gitlab.gnome.org/GNOME/libxml2",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-libxml2-xml_gh_931",
       "arch": [
         "amd64"
@@ -1790,7 +1790,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "c6bad004d1f281ca1110904ed6c641c144c8886294ddd95991539810e3b4e7e2",
+        "Dockerfile": "70fe3b4d7b34d46d8d519ed5d5a8c5efb91ec65a996ded3a6d0cddf9fb624358",
         "sse/build.sh": "dc1c7861d33a7cc395283a1583c53f05f9fae124174291c6e85d773d367d4e89",
         "sse/config.yaml": "2845dfd6f84d94b477bae76bfe6b2170d03415a3e43927599b68e12aa1c2e94f",
         "sse/diffs/patch.diff": "93c3fd725e7e65503ea28875bba41095e187a7e83d5a0fd8c65935a1c3c9d4a7",
@@ -1846,7 +1846,7 @@
       "language": "c",
       "project": "libxml2",
       "repository": "https://gitlab.gnome.org/GNOME/libxml2",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-libxml2-xml_gh_932",
       "arch": [
         "amd64"
@@ -1858,7 +1858,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "b2f9dd95b36e2402bd018f974c19814f55334880866fe3b79c21f5a1e5f3e944",
+        "Dockerfile": "77d573faced3d10a23f174ed09e6a802daabc1193bb5904e4fca0106ff8bd9a7",
         "sse/build.sh": "dc1c7861d33a7cc395283a1583c53f05f9fae124174291c6e85d773d367d4e89",
         "sse/config.yaml": "e46823f72428c7aa0593e3fd8e06ce17addfcf66ca020e81648c2ae2e8958de6",
         "sse/diffs/patch.diff": "935214e7cf96448e75f6c1230c4295bcfbc994b8d0230efd77150b4116008e5b",
@@ -1914,7 +1914,7 @@
       "language": "c",
       "project": "libxml2",
       "repository": "https://gitlab.gnome.org/GNOME/libxml2",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-libxml2-xml_gh_933",
       "arch": [
         "amd64"
@@ -1926,7 +1926,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "c6bad004d1f281ca1110904ed6c641c144c8886294ddd95991539810e3b4e7e2",
+        "Dockerfile": "70fe3b4d7b34d46d8d519ed5d5a8c5efb91ec65a996ded3a6d0cddf9fb624358",
         "sse/build.sh": "d2e9e8e3186491eda86204003621f1001cadfbc662bc8212f880b7aa9f800a78",
         "sse/config.yaml": "ff8793bfdd22f11fe863425270571a88ed9fb46490dd588a0c5305f99bdb45fb",
         "sse/diffs/patch.diff": "93c3fd725e7e65503ea28875bba41095e187a7e83d5a0fd8c65935a1c3c9d4a7",
@@ -1982,7 +1982,7 @@
       "language": "c",
       "project": "php",
       "repository": "https://github.com/php/php-src",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-php-php_gh_16589",
       "arch": [
         "amd64"
@@ -1994,7 +1994,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "35d8aee5b7a31c2797e8dee366be0116b0b0a4cf04661c0e0ac3ff640214ba26",
+        "Dockerfile": "87ddd836d9854488ffa27463faa43c47f5d68aa08f73f13f1685efd34597a8b2",
         "sse/build.sh": "c94b18f393e7bbb4dde9e6eac8fe721ebded8cdc0a41eb3d6093e5847763e10f",
         "sse/config.yaml": "b7ea2d39776a8da041ca9778906dea989bd94c5283cdd78d2a0cfc110ebfedbb",
         "sse/diffs/patch.diff": "a531cecf73ce1370a6fbff7055f5898ac776234e3c601261c0d3a00827694531",
@@ -2051,7 +2051,7 @@
       "language": "c",
       "project": "quickjs",
       "repository": "https://github.com/quickjs-ng/quickjs",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-quickjs-qjs_gh_567",
       "arch": [
         "amd64"
@@ -2063,7 +2063,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "987bf7bb0c39c83136c65151d165d08db0ed33c110bce5a17fb229075f7ef069",
+        "Dockerfile": "7f42a91e67dabf562e54baf4d651334f6cc4ec5e0c95d95cc46f9aecb6ef3d42",
         "sse/build.sh": "b2ae95c655efed512cf840817f7686da80b76fd1ee9dc71b22b1fd360ad43e7d",
         "sse/config.yaml": "e83c2310c1ea171adbac988b3164b48f5467d0fb86541509e1f52af84d04797b",
         "sse/diffs/patch.diff": "a66c73c90f145487f78bb5ed30cf4dc94f772a321a4d0099365d7434306f1d20",
@@ -2120,7 +2120,7 @@
       "language": "c",
       "project": "vim",
       "repository": "https://github.com/vim/vim",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-vim-vim_gh_14738",
       "arch": [
         "amd64"
@@ -2132,7 +2132,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "536a9ad10fe94f2bc22000a5ac6140fcbbb4d1958b522a4dbbf52ef1fc44d708",
+        "Dockerfile": "ef2346ed76210c52431f86392c36e1420684176e9271bb4b16243d776fbe4cbd",
         "sse/build.sh": "6894f518e01ef5c8bf67b3d8ac36aaa5d0b91a19aae8251990c7729a2008c8ff",
         "sse/config.yaml": "4c4655d8a63f35a021d72dbf9fa9ed4a72389b4d3d57ffc1b89944e645249f40",
         "sse/diffs/patch.diff": "388f2224785f28fbfb29ea69627040de217f9e413f50003e183d1de100ada08d",
@@ -2190,7 +2190,7 @@
       "language": "c",
       "project": "vim",
       "repository": "https://github.com/vim/vim",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-vim-vim_gh_17005",
       "arch": [
         "amd64"
@@ -2202,7 +2202,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "bcd8638aa8c9a994e4f0263cc6a99e52b8df8bf1ee9a50581ecdbc2b5b83111c",
+        "Dockerfile": "e9b6fb9e83dc4de8aac6a64340b8c2c022d8b7ba201c46bb941ad7cab6cd1470",
         "sse/build.sh": "6894f518e01ef5c8bf67b3d8ac36aaa5d0b91a19aae8251990c7729a2008c8ff",
         "sse/config.yaml": "0bde50e119c7f660e03c0c7f8f6c5ac1621d6f9dac4f3672b33c78fbd5781318",
         "sse/diffs/patch.diff": "740f8719c1bad5bbf62a3d6a44ebafc6b0a63b4d59c6c6c0ac41477b3cef1330",
@@ -2258,7 +2258,7 @@
       "language": "c",
       "project": "wabt",
       "repository": "https://github.com/WebAssembly/wabt",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-wabt-wabt_gh_2398",
       "arch": [
         "amd64"
@@ -2270,7 +2270,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "87899bfa041fe94c437113ab2f6c683c551a0a587c5aa6632b2371a91c578df6",
+        "Dockerfile": "2c8b828502a584f42c19c9c088a0153a0c4453abb251792a50473d36bba33ce9",
         "sse/build.sh": "3722d0e5c552bd23910be55aba9e873ceab109e0c5ce7e97ded72997c4ce8d83",
         "sse/config.yaml": "f58bc6206f0b1b0f3cb89e08c26f6d7ccd3fdbdb2fccebce6ee0ba77f0410818",
         "sse/diffs/patch.diff": "8d63042a68b54adf882e66ac26df8becdabde96be29d67574a91ec337b32a1cd",
@@ -2328,7 +2328,7 @@
       "language": "c",
       "project": "wireshark",
       "repository": "https://github.com/wireshark/wireshark",
-      "base": "base-generic-c:latest",
+      "base": "base-generic-c:1.0.0",
       "image": "case/pilot/generic-c-wireshark-wireshark_commit_129565f",
       "arch": [
         "amd64"
@@ -2340,7 +2340,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "806a5d641b12020e52ad03f45ef1b55d8e9457affca8bc5620a17cac5c5d65f3",
+        "Dockerfile": "de41b2ef13c1dad98515e240ecc6a6701d77484375c77d6b680428ac9518cc60",
         "sse/build.sh": "22ef16221a7766b2d6f54bffef587102e870fd369247935686de454f394bd4c0",
         "sse/config.yaml": "4a10a544a2683290913a49e43ead5c117ec6789a507bc762cb658c6793be699a",
         "sse/diffs/patch.diff": "e907d7ebfb4aa7750dd6c42f66e08f98866b981d796fb4da5c229c691932e47e",
@@ -2396,7 +2396,7 @@
       "language": "go",
       "project": "gin",
       "repository": "https://github.com/gin-gonic/gin",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/gin-5929d52",
       "arch": [
         "amd64"
@@ -2408,7 +2408,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "93f3af3a48d165b6e0f237d4be27cc360d6281cd49873e2d43c1abcb6735bbeb",
+        "Dockerfile": "b6bf107673cc9faea31d0f1d63b77aded3977e729634e34ce1f6ed558e15a4c0",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "f01339f26af3727fa02de126ca0db2fb14ad44c46adb6d2484c6901c796f633c",
@@ -2465,7 +2465,7 @@
       "language": "go",
       "project": "gin",
       "repository": "https://github.com/gin-gonic/gin",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/gin-bfc8ca2",
       "arch": [
         "amd64"
@@ -2477,7 +2477,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "6d09a70194132511027e8d4a0abcc642dcefe5ea6f0ea5d7bfff12445bc1a333",
+        "Dockerfile": "845d7a23080ddd0e846a272e937d5f5ac9aba7c175386f928e675cf1dcdf913a",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "87414fc59fea06f5e7c69875df85ae3e6dd5bd7003177973678f72645338b247",
@@ -2534,7 +2534,7 @@
       "language": "go",
       "project": "gjson",
       "repository": "https://github.com/tidwall/gjson",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/gjson-192-f0ee9eb",
       "arch": [
         "amd64"
@@ -2546,7 +2546,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "78d94e6dd064e36824c90201f5e6136b309ab2d297d6467821ab927937ea3c00",
+        "Dockerfile": "da80ca8abd9a738b4163028387580baf44c55103446d148b284b2c16dba4fb69",
         "README.md": "c258aaf33fa6070e7582a1d2a4131c47f27a7a26d45fddb2d15957d3228a3453",
         "sse/build.sh": "b5788b2802f0870b807f5f3ed8459925dce67a2a8367d07365c615c8db3c2983",
         "sse/config.yaml": "caefa88b6afc36c2e8348cb012cee08a049e677f5a87906bd474c028e1e5ff41",
@@ -2605,7 +2605,7 @@
       "language": "go",
       "project": "gjson",
       "repository": "https://github.com/tidwall/gjson",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/gjson-196-bf4efcb",
       "arch": [
         "amd64"
@@ -2617,7 +2617,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "94e4db62baa4aad21a7f4b5d09898594b089a8d36ab3617fbf35e64b2c45d4ff",
+        "Dockerfile": "8bf55d6f15e2582e7ef4718da61e1cdf18c4ac2a5f47e6935d6e03f6585110f2",
         "README.md": "c258aaf33fa6070e7582a1d2a4131c47f27a7a26d45fddb2d15957d3228a3453",
         "sse/build.sh": "b5788b2802f0870b807f5f3ed8459925dce67a2a8367d07365c615c8db3c2983",
         "sse/config.yaml": "3c51886a80a2131ec00a81a4cf802c7bd84dbc0c6a17aae6e09e4e14e9ba1335",
@@ -2676,7 +2676,7 @@
       "language": "go",
       "project": "gnark-crypto",
       "repository": "https://github.com/Consensys/gnark-crypto",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/gnark-crypto-5660088",
       "arch": [
         "amd64"
@@ -2688,7 +2688,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "9ff92f3993aa83fc8da7335ed43870fb6a4e80e4d45ca255a80dcd94a946f456",
+        "Dockerfile": "d08a54476c2c29102cb47749da3dd89cb1e606ff6179b88dda8f0b28e55ad134",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "6a98860426b23a02bc5d4122320ae20c4fe544730698a59afa1acd854d7c1dd5",
         "sse/config.yaml": "616be3433696fb8765084f899a299e123b21038003192f6f0af1b8584f5a1d54",
@@ -2745,7 +2745,7 @@
       "language": "go",
       "project": "goyave",
       "repository": "https://github.com/go-goyave/goyave",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/goyave-20243293-5836bff3efaa",
       "arch": [
         "amd64"
@@ -2757,7 +2757,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "f4904164a0ccc81ec67d4f0a684fe3b9a9170cf5cfe823cb9ad19f2665284b4c",
+        "Dockerfile": "475699122318d2188c01a84feb5ab202b1a5e7ff701e79074c200b97aacec1d0",
         "sse/build.sh": "aa7f42288d6ccc3a9088b54718fdd66034f058eaefc219ebd0250f171880b385",
         "sse/config.yaml": "7b0c22ac0af9a51782ce82fe8e5599e273bcfa6bb1d0b4f6137bc9a5a79c27e7",
         "sse/diffs/patch.diff": "6077b6cd4cecb276c5e94e8b9e6a2a01407b692a1b6996d32c82c1d8fa9fc802",
@@ -2813,7 +2813,7 @@
       "language": "go",
       "project": "interceptor",
       "repository": "https://github.com/pion/interceptor",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/interceptor-fa5b35e",
       "arch": [
         "amd64"
@@ -2825,7 +2825,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "49dba70adfc1872cc0b6057efb9678acc47bacb894dfa8d1b58faee7173c7514",
+        "Dockerfile": "8ceba8e8c49a95bfe70a232681e0732529d99eb0e75f9e1173b9fb048c232abb",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "cf4e98b435e6d8e601e9fa4c6330146ef1194b80ed67d6a78c874088a76ab4c7",
         "sse/config.yaml": "c815f213a5eaa66bd21bc3cd28da8d5075d1f29d04810229f8d47b3ce3698c61",
@@ -2884,7 +2884,7 @@
       "language": "go",
       "project": "jwkset",
       "repository": "https://github.com/MicahParks/jwkset",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/jwkset-41-01db49a",
       "arch": [
         "amd64"
@@ -2896,7 +2896,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "95ed2f3f1db3a6f01a51ed9cdd557c6f21a34cd7abdb3cf4948cf8bc6cbfb569",
+        "Dockerfile": "0814b48cdfb9a2e0e32b0cfff4f749670c4d13d2991a7547a781219fec9d23f2",
         "README.md": "3fdf10dc16013809fd58338336c7c5f52c92e51b75453dade90b81717a0550e9",
         "sse/build.sh": "3bd1fdd8cb8606a630100c60a806826463feffd99050a71a6c1a088a2cf477db",
         "sse/config.yaml": "5bfddacae821802a75799c788e7d4c8dad07545430f956edc87f2b5c2d61649b",
@@ -2953,7 +2953,7 @@
       "language": "go",
       "project": "jwt-go",
       "repository": "https://github.com/dgrijalva/jwt-go",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/jwt-go-ec0a89a",
       "arch": [
         "amd64"
@@ -2965,7 +2965,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "aac46eae8d17e90224433130f5d77bae20db192c783eb1c9111adb6fbbf4f2e9",
+        "Dockerfile": "76ea8f767e7c69fa27e43ae3e5edfa00319035273012a2d725206ef20aee9f6e",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "a64f06ef8fd30819a9097ddec50b8cb25a61431dff265680c7f5cf5ec4031d2c",
@@ -3022,7 +3022,7 @@
       "language": "go",
       "project": "kubernetes",
       "repository": "https://github.com/kubernetes/kubernetes",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/kubernetes-dad0e93",
       "arch": [
         "amd64"
@@ -3034,7 +3034,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "22804401b4473959f5c29bb488b3c24fc5a251ab6072c6acc1072ba8daccf037",
+        "Dockerfile": "d207f105777ecf5537596e15f38cda10b5887cd36a7353bebb889df556758b91",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "10c00821115531817dd65e2f39452d8c66789a46ef8f40466dbb079690e66226",
         "sse/config.yaml": "2949d6b178442ad553af44e29885906340f7a4b084317cc045a83d5428eabaff",
@@ -3090,7 +3090,7 @@
       "language": "rust",
       "project": "nano-id",
       "repository": "https://github.com/viz-rs/nano-id",
-      "base": "base-generic-rust:latest",
+      "base": "base-generic-rust:1.0.0",
       "image": "case/pilot/nanoid-10-a902277",
       "arch": [
         "amd64"
@@ -3102,7 +3102,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "be5d080f732382727dd6d086c3a720e81c59b7f3e4b451ae73450b6ce2a1f3b3",
+        "Dockerfile": "312831744d3a2d5242bc182f9c00297cb034aaf4cf52de1a3ff594eb81beafbb",
         "base/Dockerfile": "9c72615b71f44cebfbc42c0bbf37d5c0685ebb086a41c0650dcbd5d14ee82b53",
         "harness/Cargo.lock": "3181f6fb9c0b694671a75a3dbdc07c4e7e96a820375298fd55344958d7911280",
         "harness/Cargo.toml": "2a5066e41e53adadcc30e1d2c726753ee016eb767f275d9cfb89eb335be313d9",
@@ -3161,7 +3161,7 @@
       "language": "go",
       "project": "opa",
       "repository": "https://github.com/open-policy-agent/opa",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/opa-064f616",
       "arch": [
         "amd64"
@@ -3173,7 +3173,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "2a73d10cc60793a845e09d61d4928753210327c1e9cc7a6175e45b3e92e64bb8",
+        "Dockerfile": "d8f4ec2a1ce3c7d3db215cdabaa24d80030d5c5c6657d63d055b4e053a4522fe",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "719792aa685fab6b73a35abf6788333a46b0bbdad18e8ce47806fd8a6fe30165",
@@ -3232,7 +3232,7 @@
       "language": "go",
       "project": "opa",
       "repository": "https://github.com/open-policy-agent/opa",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/opa-ad20632",
       "arch": [
         "amd64"
@@ -3244,7 +3244,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "f462dc57c3afa008beeb4c54e96dffd32a9cf61fae827b9cb3aa409a6c05425d",
+        "Dockerfile": "954fb13b5acd00dba9a120337ceee7729cfebb8f31c3a26b5e452675a59cd3a3",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "65b57e48f26581ca4562a1e8d3553af80237e5239a7b6df5a61023befa458683",
         "sse/config.yaml": "1fd29d7e8e3ea2624477644e0347cb74b5875a1aab8b9c1c3920ae8813adc7f8",
@@ -3300,7 +3300,7 @@
       "language": "go",
       "project": "phonenumbers",
       "repository": "https://github.com/nyaruka/phonenumbers",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/phonenumbers-152-0479e35",
       "arch": [
         "amd64"
@@ -3312,7 +3312,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "d16c0520a1c99663861b9b12863fe0de9142c09f57d2019c623dfbcb73d90fce",
+        "Dockerfile": "c7be9079adffecd9b0e9d6506976b42cd32834d925ea96a9697ea8bbc9a45a35",
         "README.md": "734b5b095c6403ba5826ed843dd16eff70c669f230bc0c727bd8fcc419100dc4",
         "sse/build.sh": "b5788b2802f0870b807f5f3ed8459925dce67a2a8367d07365c615c8db3c2983",
         "sse/config.yaml": "ccc036b7be52ab63fc98de9fa6e994ad4804d71ea162c97c0cd55c9585d7bdc1",
@@ -3371,7 +3371,7 @@
       "language": "go",
       "project": "revel",
       "repository": "https://github.com/revel/revel",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/revel-d160ecb",
       "arch": [
         "amd64"
@@ -3383,7 +3383,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "0fb550c6ee2879b0db4d833a3d2fe9950108ef5da8810b964eacf2dff4326982",
+        "Dockerfile": "7c2ed55c43a20234587fb9f38299ee710e9cdf2b6381300daca3ef9b4951fa33",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "e2287a0b459338eb18ba83cca61d591309af75e3857e0362563c66211257345c",
@@ -3442,7 +3442,7 @@
       "language": "go",
       "project": "saml",
       "repository": "https://github.com/crewjam/saml",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/saml-8e92368",
       "arch": [
         "amd64"
@@ -3454,7 +3454,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "039da3e880bd80c59d3bba164d68fd8c2cf36146d25e0ad372738333e5c2a55c",
+        "Dockerfile": "67ca0fe2cd0700e3b2911bd418473a5f8179954f884c62675685ba1ffebfeca3",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "31a736f9f10b29e2eae0a2db8cac4caee4c3aab2f9a285d9eb38a2e4b824799f",
@@ -3510,7 +3510,7 @@
       "language": "go",
       "project": "shoutrrr",
       "repository": "https://github.com/containrrr/shoutrrr",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/shoutrrr-6a27056",
       "arch": [
         "amd64"
@@ -3522,7 +3522,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "5692f16f2219c16283c6730c122726adf63bf920b8e66f26db6faeb9751f2e80",
+        "Dockerfile": "31cb132fa3458e82f0eefe0850ee491cb465cfc47f20cac8f932f3ccc77921ec",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "50edc7a8de0c860fd91ed7a7f3b85223e7bf611b0b82f70dec81c14178496695",
@@ -3581,7 +3581,7 @@
       "language": "go",
       "project": "submariner-operator",
       "repository": "https://github.com/submariner-io/submariner-operator",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/submariner-operator-b27a04c",
       "arch": [
         "amd64"
@@ -3593,7 +3593,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "668bb188e992963e47f2963832d4a39806763d5eaea3951403c69972861ba855",
+        "Dockerfile": "da89d4cd56d61e6609a3d3ff80bcbd2ba01fe8a7bf0b4c34e97aab62579f0d37",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "bb8967c10704961edd8696ca3bcfdd9f14ce8e1e2f4067e9e422e7b7710ec6f6",
         "sse/config.yaml": "2d9d0045654b963ec80c4ee2cb6e4cd74a9e8a2e4eac27680968dbe4b9ec9acc",
@@ -3649,7 +3649,7 @@
       "language": "go",
       "project": "woodpecker",
       "repository": "https://github.com/woodpecker-ci/woodpecker",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/woodpecker-8aa3e5e",
       "arch": [
         "amd64"
@@ -3661,7 +3661,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "a8c7255c5afd0cfc6af26088b96b506bdf18d3f333cb1ed6d62a1eeeb777e576",
+        "Dockerfile": "b17b9d3fb2d76411fe99f98299345a08fe6d8355ce2358463357a9c41536cbc8",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "d2c71c79d81a4b2e6f832537446f651208b27cd794194490a4eaa6942b059872",
         "sse/config.yaml": "05aa4561e7f78cf7ddd9e25eac771d036371ed434297c4d515dff391ea365c53",
@@ -3717,7 +3717,7 @@
       "language": "go",
       "project": "xz",
       "repository": "https://github.com/ulikunitz/xz",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/xz-69c6093",
       "arch": [
         "amd64"
@@ -3729,7 +3729,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "c0fce7e3081fcfc055ee114918adbb610faa8c000f8492161fb702d5cd53eba1",
+        "Dockerfile": "7b2649903e26b09e201a68db6d0bda6e053da49f720840e854d581042da655dd",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "6a98860426b23a02bc5d4122320ae20c4fe544730698a59afa1acd854d7c1dd5",
         "sse/config.yaml": "6833b5a27d8c2a1d5c786a0b2c313f348845f779f9b347c8e4bef250fd4baca6",
@@ -3786,7 +3786,7 @@
       "language": "go",
       "project": "yaml",
       "repository": "https://github.com/go-yaml/yaml",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/yaml-8f96da9",
       "arch": [
         "amd64"
@@ -3798,7 +3798,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "06295314dff6ab6f2dae7e3bb69defbf1cedeba29fe71a356e27c9d23a327b34",
+        "Dockerfile": "d775d8dac6adc9a7f5572c0ff45564f0db74f998b7e28c4ed150d32849aaa259",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "3d5cb21870b6ca927b5b994b2c89d48821ce959eba1c66e6f54d10b2f86ecea0",
@@ -3857,7 +3857,7 @@
       "language": "go",
       "project": "yaml",
       "repository": "https://github.com/go-yaml/yaml",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/yaml-bb4e33b",
       "arch": [
         "amd64"
@@ -3869,7 +3869,7 @@
         "intent_test"
       ],
       "files": {
-        "Dockerfile": "f3fb79777cd169862b75f491e8b099f90efdb975ba00c25ddd3d3b2e963fce05",
+        "Dockerfile": "a9efbdbfe614ba8940d4e55688a9eca3ce5719c08d230f18bd0a1f208bcc9a22",
         "base/Dockerfile": "b5a045452f1227ea3d4a1f87f6aa36cd9abe9a3a4ea1bcac515ff8f448873643",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
         "sse/config.yaml": "75b5a0d2371321a2ebb8af56fc1a395b942b3549348099801f654828f32435e1",

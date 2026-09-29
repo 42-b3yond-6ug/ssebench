@@ -36,10 +36,12 @@ forms below are accepted, because each has exactly one PEP 440 spelling:
 | Entrypoint, catalog, pty-proxy (Go) | `-ldflags "-X main.version=..."` | the build: the Dockerfiles take a `VERSION` build argument, which the CLI passes when it builds the tool layers, and `bun run build:pty` reads `VERSION`; a plain `go build` reports `dev` |
 | Docs site | version in the navigation bar | read from `VERSION` when the site is built |
 | Tool layer, sidecar runtime and agent images | image tag | the CLI, from its own version |
-| Base images | image tags | `images/base-images/Makefile` tags them with the version and with `latest` |
+| Base images | image tags | `images/base-images/Makefile` tags them with the version and with `latest`; local builds also carry the versions that the datasets pin |
 
 Case images are named after the dataset and task and are not tagged with the
-SSEBench version. Task Dockerfiles build on the `latest` base images.
+SSEBench version. Task Dockerfiles build on the base images of one release,
+named by its version tag (the `pilot` tasks use `1.0.0`), so a release does
+not change the tasks; see [Base images](/dataset/manifest#base-images).
 
 An agent's `agent.yaml` may set `version` to tag its images differently; by
 default agent images carry the SSEBench version.
