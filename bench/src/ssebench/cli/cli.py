@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
-from ssebench import paths, settings, stack
+from ssebench import doctor, paths, settings, stack
 from ssebench.agents import Agent
 from ssebench.extensions import (
     DEFAULT_TOOL_LAYER,
@@ -29,7 +29,7 @@ from .build import build_case_image, get_tasks
 
 logger = logging.getLogger(__name__)
 
-BUILTIN_COMMANDS = ("run", "build-case", "dataset", "proxy")
+BUILTIN_COMMANDS = ("run", "build-case", "dataset", "proxy", "doctor")
 
 
 class RunArgs(argparse.Namespace):
@@ -246,6 +246,14 @@ def main(argv: Sequence[str] | None = None):
     proxy_parser.add_argument("action", choices=["up", "build", "down"])
     proxy_parser.add_argument("--rebuild", action="store_true", help="Rebuild the proxy image even if it is current")
 
+    # ==================== doctor subcommand ====================
+    _ = subparsers.add_parser(
+        "doctor",
+        help="Check that this host can build and run benchmarks",
+        description="Checks Docker, buildx, Compose, free disk, the CPU architecture, .env, "
+        "the LiteLLM proxy and the provider keys. Exits non-zero when a required check fails.",
+    )
+
     extensions: dict[str, Command] = {}
     for command in requested_extensions(argv):
         try:
@@ -273,6 +281,8 @@ def main(argv: Sequence[str] | None = None):
             sys.exit(args.handler(args))
         elif args.command == "proxy":
             sys.exit(cmd_proxy(args))
+        elif args.command == "doctor":
+            sys.exit(doctor.main())
         elif args.command in extensions:
             sys.exit(extensions[args.command].run(args))
         else:
