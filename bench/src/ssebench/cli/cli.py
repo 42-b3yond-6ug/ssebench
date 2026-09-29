@@ -172,7 +172,11 @@ def cmd_proxy(args: argparse.Namespace) -> int:
 
 def cmd_build_case(args: argparse.Namespace) -> int:
     """Build case images."""
-    benchmarks_dir = Path(args.benchmarks).resolve() if args.benchmarks else paths.default_dataset_dir()
+    if args.benchmarks:
+        benchmarks_dir = Path(args.benchmarks).resolve()
+    else:
+        _ = paths.require_checkout("The pilot task folders")
+        benchmarks_dir = paths.default_dataset_dir()
     tasks = get_tasks(benchmarks_dir, args.tasks)
 
     if not tasks:

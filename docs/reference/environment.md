@@ -84,7 +84,8 @@ too.
 | `COMPOSE_PROJECT_NAME` | `ssebench` | CLI, Compose | Compose project of the proxy stack. Its containers, networks (`<project>_default`, and the internal `<project>_agents` that run containers join by default) and database volume (`<project>_postgres_data`) carry this name, so stacks with different names and ports run side by side. |
 | `SSEBENCH_REGISTRY` | `ghcr.io/42-b3yond-6ug/ssebench` | CLI, just, Compose, catalog service | Registry prefix of every image SSEBench builds or pulls, and of the image names that the catalog service returns. |
 | `SSEBENCH_CATALOG` | the bundled pilot manifest | CLI, just, web UI | [Task catalog](/reference/cli#task-catalog) that `ssebench run`, `ssebench tasks list` and the web UI get tasks from: the path or URL of a `manifest.json`, a dataset directory, or the URL of a catalog service. `--catalog` overrides it. |
-| `SSEBENCH_HOME` | see [CLI](/reference/cli#working-directory) | CLI | Directory that holds `agents/`, `images/`, `runtime/`, `models/`, `deploy/` and `datasets/`, normally the repository root. |
+| `SSEBENCH_HOME` | see [CLI](/reference/cli#working-directory) | CLI | Directory that holds `agents/`, `images/`, `runtime/`, `models/`, `deploy/` and `datasets/`, normally the repository root. Unset, a package install without a clone uses the copy of these directories in the package. |
+| `SSEBENCH_ENV_FILE` | `.env` in the repository root | CLI, Compose | The `.env` file that the LiteLLM container reads provider keys from. The CLI sets it to the `.env` in the workspace; set it yourself only when you run `docker compose` on `deploy/compose/docker-compose.yaml` directly. |
 
 <!-- end generated -->
 

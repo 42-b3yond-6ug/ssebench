@@ -48,7 +48,10 @@ def add_parser(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]"
 
 
 def dataset_dir(arg: str | None) -> Path:
-    return Path(arg) if arg else paths.default_dataset_dir()
+    if arg:
+        return Path(arg)
+    _ = paths.require_checkout("The pilot task folders")
+    return paths.default_dataset_dir()
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
@@ -99,7 +102,10 @@ def cmd_manifest(args: argparse.Namespace) -> int:
 
 
 def cmd_schema(args: argparse.Namespace) -> int:
-    directory = Path(args.output) if args.output else paths.datasets_dir() / "schema"
+    if args.output:
+        directory = Path(args.output)
+    else:
+        directory = paths.require_checkout("The dataset schemas directory") / "datasets" / "schema"
     if args.check:
         stale = schema.stale_schemas(directory)
         if stale:

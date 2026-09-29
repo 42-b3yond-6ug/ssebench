@@ -341,8 +341,10 @@ version and license. Pull requests build the images whose inputs changed, for
 
 The tool layers and the agent images are not published: the CLI builds them
 itself for each task, on top of the task's case image, and never pulls them.
-The tool layers build the daemon and the entrypoint from source, so building
-them needs no registry. To use the published binaries instead, pass
+From a checkout, the tool layers build the daemon and the entrypoint from
+source, so building them needs no registry. The `ssebench` package has no
+sources of them, so its CLI takes them from the `runtime` image of its own
+version. To use the published binaries from a checkout, pass
 `--build-context runtime=docker-image://ghcr.io/42-b3yond-6ug/ssebench/runtime:<version>`
 to the build. Other images copy them from the runtime image:
 

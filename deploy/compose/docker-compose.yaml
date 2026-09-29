@@ -17,9 +17,11 @@ services:
       LITELLM_MASTER_KEY: "${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY is not set; run just setup to write .env}"
       DATABASE_URL: "postgresql://${POSTGRES_USER:-litellm}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set; run just setup to write .env}@litellm_db:5432/litellm"
       STORE_MODEL_IN_DB: "True" # allows adding models to proxy via UI
-    # Provider keys that models/*.yaml reference as os.environ/<NAME>.
+    # Provider keys that models/*.yaml reference as os.environ/<NAME>. The CLI
+    # sets SSEBENCH_ENV_FILE to the workspace's .env; from a checkout, this is
+    # its .env.
     env_file:
-      - path: ../../.env
+      - path: ${SSEBENCH_ENV_FILE:-../../.env}
         required: false
     networks:
       # `default` is a normal bridge, so the proxy can reach model providers.

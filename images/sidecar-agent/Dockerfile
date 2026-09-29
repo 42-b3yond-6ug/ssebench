@@ -31,6 +31,13 @@ ARG VERSION=dev
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${VERSION}" -o /entrypoint ./cmd/ssebench-entrypoint
 
 
+# The entrypoint, laid out like the runtime image (images/runtime). Passing
+#   --build-context runtime=docker-image://<registry>/runtime:<version>
+# replaces this stage, and skips the build above.
+FROM scratch AS runtime
+COPY --from=entrypoint-builder /entrypoint /usr/local/bin/entrypoint
+
+
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
@@ -54,5 +61,5 @@ COPY --from=python-builder /root/.local/share/uv/python /root/.local/share/uv/py
 COPY --from=python-builder /evaluator /evaluator
 COPY --from=python-builder /mcp /mcp
 
-COPY --from=entrypoint-builder /entrypoint /usr/local/bin/entrypoint
+COPY --from=runtime /usr/local/bin/entrypoint /usr/local/bin/entrypoint
 ENTRYPOINT [ "/usr/local/bin/entrypoint", "--mode", "sidecar", "--" ]

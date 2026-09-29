@@ -1,4 +1,4 @@
-"""Local settings: the process environment first, then `.env` in the SSEBench home.
+"""Local settings: the process environment first, then `.env` in the workspace.
 
 `just setup` writes `.env` from `.env.example`, including generated secrets for the LiteLLM proxy.
 Reading `.env` here, instead of relying on the caller to export it, makes `uv run ssebench` behave
@@ -22,7 +22,7 @@ class SettingError(RuntimeError):
 
 
 def env_file() -> Path:
-    return paths.home() / ".env"
+    return paths.env_file()
 
 
 def dotenv() -> dict[str, str]:

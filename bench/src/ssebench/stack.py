@@ -4,15 +4,19 @@ Every Compose call goes through `compose()`, so `ssebench run`, `ssebench proxy`
 recipes agree on the project name, the host port and the image registry. The network and URLs are
 derived from the project name, which lets stacks with different names run side by side.
 
-The proxy image bakes in its configuration from `models/`. The image carries a hash of those files
-as a label, and `up()` rebuilds the image when the hash no longer matches.
+The proxy image bakes in its configuration from `models/` in the workspace. The image carries a hash
+of those files as a label, and `up()` rebuilds the image when the hash no longer matches.
 """
 
 import hashlib
 import logging
 import os
+import shutil
 import subprocess
+import tempfile
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 import httpx
@@ -70,22 +74,40 @@ def health_url() -> str:
     return f"{host_url()}/health/liveliness"
 
 
-def config_files(home: Path) -> list[Path]:
-    """The files baked into the LiteLLM image: the model definitions and the image's own sources."""
-    models = [p for p in (home / "models").glob("*") if p.suffix in (".yaml", ".yml")]
-    image_sources = list((home / "images" / "litellm").glob("*"))
-    return sorted(p for p in [*models, *image_sources] if p.is_file())
+def config_files() -> dict[str, Path]:
+    """The files baked into the LiteLLM image, by their path in its build context: the model
+    definitions and the image's own sources."""
+    models = [p for p in paths.models_dir().glob("*") if p.suffix in (".yaml", ".yml")]
+    image_sources = list((paths.home() / "images" / "litellm").glob("*"))
+    return {
+        **{f"models/{p.name}": p for p in sorted(models) if p.is_file()},
+        **{f"images/litellm/{p.name}": p for p in sorted(image_sources) if p.is_file()},
+    }
 
 
-def config_hash(home: Path | None = None) -> str:
-    home = home or paths.home()
+def config_hash() -> str:
     digest = hashlib.sha256()
-    for path in config_files(home):
-        digest.update(path.relative_to(home).as_posix().encode())
+    for name, path in sorted(config_files().items()):
+        digest.update(name.encode())
         digest.update(b"\0")
         digest.update(path.read_bytes())
         digest.update(b"\0")
     return digest.hexdigest()[:16]
+
+
+@contextmanager
+def build_context() -> Iterator[Path]:
+    """A directory with the LiteLLM image's build context: `config_files()`, laid out for its Dockerfile.
+
+    The models come from the workspace, which is not the directory of the Dockerfile in an installation
+    without a checkout.
+    """
+    with tempfile.TemporaryDirectory(prefix="ssebench-litellm-") as tmp:
+        context = Path(tmp)
+        for name, path in config_files().items():
+            (context / name).parent.mkdir(parents=True, exist_ok=True)
+            _ = shutil.copy2(path, context / name)
+        yield context
 
 
 def compose_env() -> dict[str, str]:
@@ -94,6 +116,7 @@ def compose_env() -> dict[str, str]:
         **settings.dotenv(),
         **os.environ,
         "SSEBENCH_REGISTRY": REGISTRY,
+        "SSEBENCH_ENV_FILE": str(settings.env_file()),
         "LITELLM_PORT": str(settings.litellm_port()),
     }
 
@@ -140,23 +163,23 @@ def build(current: str, force: bool = False) -> bool:
         logger.info(f"Rebuilding the LiteLLM image {image()}")
     else:
         logger.info(f"models/ changed since the LiteLLM image {image()} was built; rebuilding it")
-    home = paths.home()
-    _ = subprocess.run(
-        [
-            "docker",
-            "buildx",
-            "build",
-            "--load",
-            "--file",
-            str(home / "images" / "litellm" / "Dockerfile"),
-            "--label",
-            f"{CONFIG_LABEL}={current}",
-            "--tag",
-            image(),
-            str(home),
-        ],
-        check=True,
-    )
+    with build_context() as context:
+        _ = subprocess.run(
+            [
+                "docker",
+                "buildx",
+                "build",
+                "--load",
+                "--file",
+                str(context / "images" / "litellm" / "Dockerfile"),
+                "--label",
+                f"{CONFIG_LABEL}={current}",
+                "--tag",
+                image(),
+                str(context),
+            ],
+            check=True,
+        )
     return True
 
 

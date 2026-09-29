@@ -117,8 +117,8 @@ def check_cpu() -> Check:
     )
 
 
-def check_env_file(home: Path) -> Check:
-    path = home / ".env"
+def check_env_file() -> Check:
+    path = paths.env_file()
     missing = [name for name in stack.REQUIRED_SECRETS if not settings.get(name)]
     if path.is_file():
         if missing:
@@ -156,10 +156,10 @@ def check_proxy() -> Check:
     )
 
 
-def provider_keys(home: Path) -> dict[str, list[str]]:
+def provider_keys() -> dict[str, list[str]]:
     """The variables that `models/*.yaml` read with `os.environ/`, each with the models that use it."""
     refs: dict[str, list[str]] = {}
-    for path in sorted((home / "models").glob("*.y*ml")):
+    for path in sorted(paths.models_dir().glob("*.y*ml")):
         try:
             entries = yaml.safe_load(path.read_text())
         except yaml.YAMLError:
@@ -177,8 +177,8 @@ def provider_keys(home: Path) -> dict[str, list[str]]:
     return refs
 
 
-def check_provider_keys(home: Path) -> Check:
-    refs = provider_keys(home)
+def check_provider_keys() -> Check:
+    refs = provider_keys()
     if not refs:
         return Check("Provider keys", Status.OK, "no model in models/ needs a key")
     in_file = settings.dotenv()
@@ -214,8 +214,13 @@ def run_checks() -> list[Check]:
     except paths.HomeNotFoundError as e:
         checks.append(Check("SSEBench home", Status.FAIL, str(e), "Run from inside an SSEBench checkout."))
         return checks
-    home_check = Check("SSEBench home", Status.OK, str(home))
-    return [home_check, *checks, check_disk(home), check_env_file(home), check_proxy(), check_provider_keys(home)]
+    if paths.is_packaged():
+        home_check = Check(
+            "SSEBench home", Status.OK, f"{home} (packaged with ssebench, no checkout); workspace {paths.workspace()}"
+        )
+    else:
+        home_check = Check("SSEBench home", Status.OK, str(home))
+    return [home_check, *checks, check_disk(paths.workspace()), check_env_file(), check_proxy(), check_provider_keys()]
 
 
 def render(checks: list[Check]) -> str:
