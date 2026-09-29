@@ -150,8 +150,8 @@ images replace the tool and agent layers above:
 
 - `tool-sidecar/<task-id>:<version>`, from `images/sidecar-case/Dockerfile` on
   the case image: the project and the daemon;
-- `runtime:<version>`, from `images/sidecar-agent/Dockerfile`, with no case
-  image below it, and the agent image built on top of it,
+- `tool-sidecar-agent:<version>`, from `images/sidecar-agent/Dockerfile`, with
+  no case image below it, and the agent image built on top of it,
   `agent-<name>/sidecar:<agent version>`: the agent, the MCP server and the
   evaluator. It does not depend on the task, so every task shares it.
 
