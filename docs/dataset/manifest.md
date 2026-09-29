@@ -51,7 +51,8 @@ The rules for a task folder:
 - **The Dockerfile builds on a pinned SSEBench base image.** It declares
   `ARG SSEBENCH_REGISTRY` before the first `FROM`, and its last `FROM` is
   `${SSEBENCH_REGISTRY}/<base image>:<version>`, for example
-  `${SSEBENCH_REGISTRY}/base-generic-go:1.0.0`. See [Base images](#base-images).
+  `${SSEBENCH_REGISTRY}/base-generic-go:1.0.0`. The base image needs a version
+  tag or a digest; `latest` is rejected. See [Base images](#base-images).
 - **The Dockerfile copies `sse/` to `/ssebench`** as shown above. Paths in the
   config are relative to `/ssebench` in the case image, and each one must be a
   file that the Dockerfile copies from the task folder.

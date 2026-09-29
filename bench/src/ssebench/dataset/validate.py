@@ -122,6 +122,8 @@ def validate_task(path: Path) -> TaskReport:
         errors.append(f"Dockerfile: the last FROM must be {REGISTRY_PREFIX}<base image>, not {dockerfile.base}")
     elif not dockerfile.registry_declared:
         errors.append(f"Dockerfile: FROM uses {REGISTRY_ARG}, but no ARG {REGISTRY_ARG} precedes it")
+    elif not pinned(report.base):
+        errors.append(f"Dockerfile: the base image must have a version tag or a digest, not {report.base}")
     for copy in dockerfile.copies:
         if not (path / copy.source).exists():
             errors.append(f"Dockerfile: copies {copy.source}, which does not exist")
@@ -136,6 +138,17 @@ def validate_task(path: Path) -> TaskReport:
             elif dockerfile.resolve(path, image_path) is None:
                 errors.append(f"{CONFIG}: {name}: the Dockerfile puts no file of the task folder at {image_path}")
     return report
+
+
+def pinned(image: str) -> bool:
+    """Whether an image reference names one version: a digest, or a tag other than latest.
+
+    A tag from a build argument without a default is not known until build time, so it does not count.
+    """
+    if "@" in image:
+        return True
+    _, colon, tag = image.rpartition("/")[2].partition(":")
+    return bool(colon) and tag not in ("", "latest") and "$" not in tag
 
 
 def _image_paths(m: TaskMetadata) -> list[tuple[str, str]]:

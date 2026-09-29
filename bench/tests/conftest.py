@@ -7,7 +7,7 @@ import yaml
 
 DOCKERFILE = """\
 ARG SSEBENCH_REGISTRY=registry.test/ssebench
-FROM ${SSEBENCH_REGISTRY}/base-generic-c:latest
+FROM ${SSEBENCH_REGISTRY}/base-generic-c:1.0.0
 
 RUN git clone https://example.org/demo.git /src/demo
 

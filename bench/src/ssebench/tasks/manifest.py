@@ -40,8 +40,8 @@ class ManifestTask(_Model):
     repository: str = Field(description="URL of the upstream repository, from the task config.")
     base: str = Field(
         min_length=1,
-        description="Base image of the case image, relative to the registry: the last FROM of the "
-        "task's Dockerfile without ${SSEBENCH_REGISTRY}/.",
+        description="Base image of the case image, relative to the registry, with its pinned version: the last "
+        "FROM of the task's Dockerfile without ${SSEBENCH_REGISTRY}/, such as base-generic-go:1.0.0.",
     )
     image: str = Field(
         min_length=1, description="Case image, relative to the registry: case/<dataset>/<id>, lowercase."

@@ -1,4 +1,5 @@
 import json
+import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -29,6 +30,12 @@ def run_cli(*argv: str) -> int:
     code = exit_info.value.code
     assert isinstance(code, int)
     return code
+
+
+def replace_from(task: Path, line: str) -> None:
+    """Replace the FROM line of a task's Dockerfile."""
+    dockerfile = task / "Dockerfile"
+    _ = dockerfile.write_text(re.sub(r"(?m)^FROM .*$", lambda _: line, dockerfile.read_text()))
 
 
 def errors_of(dataset: Path) -> str:
@@ -95,7 +102,7 @@ def test_valid_task(tmp_path: Path, make_task: MakeTask) -> None:
     report = validate_dataset(tmp_path)
 
     assert report.ok, report.format_errors()
-    assert report.tasks[0].base == "base-generic-c:latest"
+    assert report.tasks[0].base == "base-generic-c:1.0.0"
 
 
 def test_id_must_equal_folder_name(tmp_path: Path, make_task: MakeTask) -> None:
@@ -139,6 +146,36 @@ def test_base_image_must_come_from_the_registry(tmp_path: Path, make_task: MakeT
 
     assert "the last FROM must be ${SSEBENCH_REGISTRY}/<base image>, not ubuntu:24.04" in errors
     assert "FROM uses SSEBENCH_REGISTRY, but no ARG SSEBENCH_REGISTRY precedes it" in errors
+
+
+@pytest.mark.parametrize(
+    ("line", "base"),
+    [
+        ("FROM ${SSEBENCH_REGISTRY}/base-generic-c:latest", "base-generic-c:latest"),
+        ("FROM ${SSEBENCH_REGISTRY}/base-generic-c", "base-generic-c"),
+        ("FROM ${SSEBENCH_REGISTRY}/base-generic-c:${TAG}", "base-generic-c:${TAG}"),
+    ],
+)
+def test_base_image_must_be_pinned(tmp_path: Path, make_task: MakeTask, line: str, base: str) -> None:
+    replace_from(make_task(tmp_path, "demo-1"), line)
+
+    assert f"the base image must have a version tag or a digest, not {base}" in errors_of(tmp_path)
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "ARG TAG=1.0.0\nFROM ${SSEBENCH_REGISTRY}/base-generic-c:${TAG}",
+        "FROM ${SSEBENCH_REGISTRY}/base-generic-c@sha256:" + "0" * 64,
+        "FROM ${SSEBENCH_REGISTRY}/base-generic-c:1.0.0@sha256:" + "0" * 64,
+    ],
+)
+def test_pinned_base_images(tmp_path: Path, make_task: MakeTask, line: str) -> None:
+    replace_from(make_task(tmp_path, "demo-1"), line)
+
+    report = validate_dataset(tmp_path)
+
+    assert report.ok, report.format_errors()
 
 
 def test_dockerfile_must_copy_the_config(tmp_path: Path, make_task: MakeTask) -> None:
