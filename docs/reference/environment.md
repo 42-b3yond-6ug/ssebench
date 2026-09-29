@@ -197,6 +197,8 @@ The catalog service reads these; each has a command-line option too. See
 | `SSEBENCH_INTEGRITY_SIDECAR_AGENT_IMAGE` | the sidecar runtime image of this version | integrity tests | Sidecar agent runtime image that `tests/integrity` runs the fake agent in. |
 | `SSEBENCH_INTEGRITY_SOURCE` | `/src/gjson` | integrity tests | Source directory inside those images. |
 | `SSE_DAEMON_HTTP` | `http://localhost:4263` | integrity tests | The daemon's HTTP listener that `tests/integrity/fake_agent.sh` probes; in sidecar mode, the task container's. |
+| `SSEBENCH_SMOKE_TASK` | `gjson-196-bf4efcb` | tests/e2e/smoke.sh | Task of the end-to-end smoke run. |
+| `SSEBENCH_SMOKE_MODEL` | `claude-sonnet-4-6` | tests/e2e/smoke.sh | Model the smoke run names; the `dummy` agent never calls it. |
 
 <!-- end generated -->
 
