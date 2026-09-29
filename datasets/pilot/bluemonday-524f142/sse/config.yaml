@@ -1,5 +1,6 @@
 id: bluemonday-524f142
 project: bluemonday
+repository: https://github.com/microcosm-cc/bluemonday
 language: go
 source: /src/bluemonday
 task_description:
@@ -26,4 +27,4 @@ reference:
 - https://github.com/microcosm-cc/bluemonday.git
 - https://github.com/microcosm-cc/bluemonday/issues/111
 - https://github.com/microcosm-cc/bluemonday/commit/524f142fe46e945b7dcd291d7805c4b7dcf75bee
-originality: Publicly Available
+originality: public

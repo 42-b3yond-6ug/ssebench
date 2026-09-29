@@ -1,5 +1,6 @@
 id: kubernetes-dad0e93
 project: kubernetes
+repository: https://github.com/kubernetes/kubernetes
 language: go
 source: /src/kubernetes
 task_description:
@@ -24,4 +25,4 @@ reference:
 - https://github.com/kubernetes/kubernetes.git
 - https://github.com/kubernetes/kubernetes/commit/dad0e937c0f76344363eb691b2668490ffef8537
 - https://github.com/kubernetes/kubernetes/issues/101695
-originality: Self Craft
+originality: crafted

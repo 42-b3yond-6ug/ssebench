@@ -1,5 +1,6 @@
 id: dns-745-501e858
 project: dns
+repository: https://github.com/miekg/dns
 language: go
 source: /src/dns
 task_description:
@@ -17,7 +18,7 @@ files:
   - pocs/poc.go
   future_test: diffs/test.diff
   security_test:
-  intent_test: diffs/intent.diff
+  intent_test: diffs/intent_test.diff
 sanitizer:
 type: SEVG
 binary:
@@ -27,4 +28,4 @@ reference:
 - https://github.com/miekg/dns
 - https://github.com/miekg/dns/commit/501e858f679edecd4a38a86317ce50271014a80d
 - https://github.com/miekg/dns/issues/742
-originality: Publicly Available
+originality: public

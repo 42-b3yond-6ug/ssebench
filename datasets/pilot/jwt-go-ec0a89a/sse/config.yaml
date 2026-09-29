@@ -1,5 +1,6 @@
 id: jwt-go-ec0a89a
 project: jwt-go
+repository: https://github.com/dgrijalva/jwt-go
 language: go
 source: /src/jwt-go
 task_description:
@@ -26,4 +27,4 @@ reference:
 - https://github.com/dgrijalva/jwt-go.git
 - https://github.com/dgrijalva/jwt-go/commit/ec0a89a131e3e8567adcb21254a5cd20a70ea4ab
 - https://github.com/dgrijalva/jwt-go/issues/422
-originality: Self Craft
+originality: crafted

@@ -1,5 +1,6 @@
 id: phonenumbers-152-0479e35
 project: phonenumbers
+repository: https://github.com/nyaruka/phonenumbers
 language: go
 source: /src/phonenumbers
 task_description:
@@ -27,4 +28,4 @@ reference:
 - https://github.com/nyaruka/phonenumbers
 - https://github.com/nyaruka/phonenumbers/commit/0479e35488e8a002a261cdb515ef8a7f80ca37fe
 - https://github.com/nyaruka/phonenumbers/issues/148
-originality: Publicly Available
+originality: public

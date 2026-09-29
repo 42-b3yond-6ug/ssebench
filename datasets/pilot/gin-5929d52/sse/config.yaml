@@ -1,5 +1,6 @@
 id: gin-5929d52
 project: gin
+repository: https://github.com/gin-gonic/gin
 language: go
 source: /src/gin
 task_description:
@@ -26,4 +27,4 @@ reference:
 - https://github.com/gin-gonic/gin.git
 - https://github.com/gin-gonic/gin/commit/5929d521715610c9dd14898ebbe1d188d5de8937
 - https://github.com/gin-gonic/gin/issues/2862
-originality: Publicly Available
+originality: public

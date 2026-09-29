@@ -1,5 +1,6 @@
 id: generic-c-libtiff-tif_gh_647
 project: libtiff
+repository: https://gitlab.com/libtiff/libtiff
 language: c
 source: /src/libtiff
 task_description:

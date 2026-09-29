@@ -1,5 +1,6 @@
 id: interceptor-fa5b35e
 project: interceptor
+repository: https://github.com/pion/interceptor
 
 language: go
 source: /src/interceptor
@@ -30,4 +31,4 @@ reference:
 - https://github.com/pion/interceptor.git
 - https://github.com/pion/interceptor/commit/fa5b35ea867389cec33a9c82fffbd459ca8958e5
 - https://github.com/pion/webrtc/issues/3148
-originality: Publicly Available
+originality: public

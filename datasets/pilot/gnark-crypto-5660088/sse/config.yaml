@@ -1,5 +1,6 @@
 id: gnark-crypto-5660088
 project: gnark-crypto
+repository: https://github.com/Consensys/gnark-crypto
 language: go
 source: /src/gnark-crypto
 task_description:
@@ -26,4 +27,4 @@ reference:
 - https://github.com/Consensys/gnark-crypto.git
 - https://github.com/Consensys/gnark-crypto/commit/56600883e0e9f9b159e9c7000b94e76185ec3d0d
 - https://github.com/Consensys/gnark/issues/1483
-originality: Publicly Available
+originality: public

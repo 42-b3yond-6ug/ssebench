@@ -1,5 +1,6 @@
 id: generic-c-quickjs-qjs_gh_567
 project: quickjs
+repository: https://github.com/quickjs-ng/quickjs
 language: c
 source: /src/quickjs
 task_description:

@@ -1,5 +1,6 @@
 id: woodpecker-8aa3e5e
 project: woodpecker
+repository: https://github.com/woodpecker-ci/woodpecker
 language: go
 source: /src/woodpecker
 task_description:
@@ -24,4 +25,4 @@ reference:
 - https://github.com/woodpecker-ci/woodpecker.git
 - https://github.com/woodpecker-ci/woodpecker/commit/8aa3e5ec82c92eca3279e4be68625111eeedf1c4
 - https://github.com/woodpecker-ci/woodpecker/issues/3929
-originality: Publicly Available
+originality: public

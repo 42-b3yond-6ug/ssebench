@@ -4,10 +4,8 @@ import subprocess
 from pathlib import Path
 from typing import final, override
 
-import yaml
-
 from ssebench.pipe import REGISTRY
-from ssebench.tasks.metadata import TaskMetadata
+from ssebench.tasks.metadata import TaskMetadata, load_task_metadata
 
 from .task import Task
 
@@ -87,8 +85,7 @@ class LocalTask(Task):
             metadata_filepath = self.task_path / "config.yaml"
             if not metadata_filepath.exists():
                 raise ValueError("Task metadata config.yaml file cannot be found")
-        with open(metadata_filepath) as f:
-            task_metadata = TaskMetadata.model_validate(yaml.safe_load(f))
+        task_metadata = load_task_metadata(metadata_filepath)
         if task_metadata.id != self.name:
             raise ValueError(
                 f"{metadata_filepath}: id {task_metadata.id!r} must match the task folder name {self.name!r}"

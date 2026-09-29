@@ -1,5 +1,6 @@
 id: "ammonia-142-4b8426b"
 project: "ammonia"
+repository: https://github.com/rust-ammonia/ammonia
 language: "rust"
 source: "/src/ammonia"
 task_description:

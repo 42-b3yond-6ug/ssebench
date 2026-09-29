@@ -1,5 +1,6 @@
 id: RUSTSEC-2021-0031
 project: "nano-arena"
+repository: https://github.com/bennetthardwick/nano-arena
 language: "rust"
 source: "/src/nano-arena"
 task_description:

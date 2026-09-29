@@ -1,5 +1,6 @@
 id: gjson-196-bf4efcb
 project: gjson
+repository: https://github.com/tidwall/gjson
 language: go
 source: /src/gjson
 task_description:
@@ -27,4 +28,4 @@ reference:
 - https://github.com/tidwall/gjson
 - https://github.com/tidwall/gjson/commit/bf4efcb3c18d1825b2988603dea5909140a5302b
 - https://github.com/tidwall/gjson/issues/196
-originality: Publicly Available
+originality: public

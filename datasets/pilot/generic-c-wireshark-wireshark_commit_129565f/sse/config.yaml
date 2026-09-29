@@ -1,5 +1,6 @@
 id: generic-c-wireshark-wireshark_commit_129565f
 project: wireshark
+repository: https://github.com/wireshark/wireshark
 language: c
 source: /src/wireshark
 task_description:

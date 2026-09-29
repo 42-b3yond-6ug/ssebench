@@ -1,5 +1,6 @@
 id: generic-c-wabt-wabt_gh_2398
 project: wabt
+repository: https://github.com/WebAssembly/wabt
 language: c
 source: /src/wabt
 task_description:

@@ -1,5 +1,6 @@
 id: docconv-b19021a
 project: docconv
+repository: https://github.com/sajari/docconv
 language: go
 source: /src/docconv
 task_description:
@@ -24,4 +25,4 @@ reference:
 - https://github.com/sajari/docconv.git
 - https://github.com/sajari/docconv/commit/b19021ade3d0b71c89d35cb00eb9e589a121faa5
 - https://vuldb.com/?id.216502
-originality: Self Craft
+originality: crafted

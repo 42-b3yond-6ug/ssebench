@@ -1,5 +1,6 @@
 id: argo-workflows-2a2ecc9
 project: argo-workflows
+repository: https://github.com/argoproj/argo-workflows
 language: go
 source: /src/argo-workflows
 task_description:
@@ -27,4 +28,4 @@ reference:
 - https://github.com/argoproj/argo-workflows/commit/2a2ecc916925642fd8cb1efd026588e6828f82e1
 - https://github.com/argoproj/argo-workflows/issues/6441
 - https://github.com/argoproj/argo-workflows/pull/6285
-originality: Self Craft
+originality: crafted

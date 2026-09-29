@@ -1,5 +1,6 @@
 id: opa-064f616
 project: opa
+repository: https://github.com/open-policy-agent/opa
 
 language: go
 source: /src/opa
@@ -30,4 +31,4 @@ reference:
 - https://github.com/open-policy-agent/opa.git
 - https://github.com/open-policy-agent/opa/commit/064f6168a8dfebdeb2ea147f7882bb9f5d2b7f67
 - https://github.com/open-policy-agent/opa/issues/4762
-originality: Self Craft
+originality: crafted

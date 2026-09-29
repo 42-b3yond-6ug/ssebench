@@ -27,11 +27,12 @@ from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRuner
 from ssebench.tasks import LocalTask, RemoteTask
 from ssebench.version import VERSION
 
+from . import dataset
 from .build import build_case_image, get_tasks
 
 logger = logging.getLogger(__name__)
 
-BUILTIN_COMMANDS = ("run", "build-case")
+BUILTIN_COMMANDS = ("run", "build-case", "dataset")
 
 
 class RunArgs(argparse.Namespace):
@@ -247,6 +248,9 @@ def main(argv: Sequence[str] | None = None):
         help="Force rebuild existing images",
     )
 
+    # ==================== dataset subcommand ====================
+    dataset.add_parser(subparsers)
+
     extensions: dict[str, Command] = {}
     for command in requested_extensions(argv):
         try:
@@ -270,6 +274,8 @@ def main(argv: Sequence[str] | None = None):
             sys.exit(cmd_run(args))
         elif args.command == "build-case":
             sys.exit(cmd_build_case(args))
+        elif args.command == "dataset":
+            sys.exit(args.handler(args))
         elif args.command in extensions:
             sys.exit(extensions[args.command].run(args))
         else:

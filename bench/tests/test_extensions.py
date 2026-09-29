@@ -31,7 +31,7 @@ from ssebench.pipe import DockerLayerMixin
 from ssebench.runner import BenchmarkSandboxRunner
 from ssebench.runner import runner as runner_module
 from ssebench.tasks import Task
-from ssebench.tasks.metadata import Files, TaskDescription, TaskMetadata
+from ssebench.tasks.metadata import Files, Scripts, TaskDescription, TaskMetadata
 
 EXAMPLE = Path(__file__).parent / "fixtures" / "ssebench_example_ext"
 EXAMPLE_MODULE = "ssebench_example_ext"
@@ -158,10 +158,11 @@ class FakeTask(Task):
         return TaskMetadata(
             id=self.name,
             project="example",
+            repository="https://example.org/example",
             language="go",
             source="/src/example",
             task_description=TaskDescription(issue="An example issue"),
-            scripts={},
+            scripts=Scripts(),
             files=Files(),
         )
 

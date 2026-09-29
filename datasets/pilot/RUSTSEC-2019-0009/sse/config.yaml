@@ -1,5 +1,6 @@
 id: RUSTSEC-2019-0009
 project: "rust-smallvec"
+repository: https://github.com/servo/rust-smallvec
 language: "rust"
 source: "/src/rust-smallvec"
 task_description:

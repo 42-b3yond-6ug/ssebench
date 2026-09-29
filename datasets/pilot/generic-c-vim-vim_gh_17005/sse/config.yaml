@@ -1,5 +1,6 @@
 id: generic-c-vim-vim_gh_17005
 project: vim
+repository: https://github.com/vim/vim
 language: c
 source: /src/vim
 task_description:

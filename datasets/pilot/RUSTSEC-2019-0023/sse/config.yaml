@@ -1,5 +1,6 @@
 id: RUSTSEC-2019-0023
 project: "string-interner"
+repository: https://github.com/Robbepop/string-interner
 language: "rust"
 source: "/src/string-interner"
 task_description:

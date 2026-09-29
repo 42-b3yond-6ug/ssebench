@@ -1,5 +1,6 @@
 id: generic-c-libxml2-xml_commit_a820dbe
 project: libxml2
+repository: https://gitlab.gnome.org/GNOME/libxml2
 language: c
 source: /src/libxml2
 task_description:

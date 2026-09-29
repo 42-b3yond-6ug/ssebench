@@ -1,5 +1,6 @@
 id: xz-69c6093
 project: xz
+repository: https://github.com/ulikunitz/xz
 language: go
 source: /src/xz
 task_description:
@@ -26,4 +27,4 @@ reference:
 - https://github.com/ulikunitz/xz.git
 - https://github.com/ulikunitz/xz/commit/69c6093c7b2397b923acf82cb378f55ab2652b9b
 - https://github.com/ulikunitz/xz/issues/35
-originality: Self Craft
+originality: crafted
