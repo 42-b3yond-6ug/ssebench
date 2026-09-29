@@ -349,6 +349,10 @@ async def run_claude(dialog: DialogWriter):
         "--output-format",
         "stream-json",
         "--dangerously-skip-permissions",
+        # Passed here rather than written to the project's .claude/, which
+        # would become part of the agent's patch.
+        "--settings",
+        json.dumps({"permissions": {"defaultMode": "bypassPermissions"}}),
     ]
 
     # Set up environment for Claude Code
@@ -419,21 +423,6 @@ async def main():
             "user",
         ]
     )
-
-    # Create project-specific Claude Code configuration
-    project_config_dir = Path(project.source) / ".claude"
-    os.makedirs(project_config_dir, exist_ok=True)
-
-    # Must explicitly declare permissions here
-    # Allow all operations since we're in a sandboxed container
-    config = {
-        "permissions": {
-            "defaultMode": "bypassPermissions",
-        }
-    }
-    f = open(project_config_dir / "settings.json", "w")
-    json.dump(config, f, indent=2)
-    f.close()
 
     # Initialize dialog writer
     dialog = DialogWriter()
