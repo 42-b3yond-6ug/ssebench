@@ -108,7 +108,6 @@
     "Build",
     "PoC",
     "Func",
-    "Security",
     "Intent",
   ).map(t => table.cell(fill: c-header)[*#t*])
 
@@ -119,7 +118,6 @@
     [*#fmt-percent(pct-build, count)*],
     [*#fmt-percent(pct-poc, count)*],
     [*#fmt-percent(pct-func, count)*],
-    [*#fmt-percent(pct-security, count)*],
     [*#fmt-percent(pct-intent, count)*],
   ).map(t => table.cell(fill: c-header)[#t])
 
