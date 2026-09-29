@@ -77,9 +77,7 @@ def test_bash_execute_failing_command() -> TestResult:
     result = bash.execute("(exit 42)")
 
     if result.code != 42:
-        return TestResult(
-            "bash.execute (fail)", False, f"Expected exit 42, got {result.code}"
-        )
+        return TestResult("bash.execute (fail)", False, f"Expected exit 42, got {result.code}")
 
     return TestResult("bash.execute (fail)", True, "Correctly got exit code 42")
 
@@ -234,9 +232,7 @@ def test_diff() -> TestResult:
     from sse.tools import bash
 
     # Make a benign code change (append a comment — doesn't fix the bug)
-    bash.execute(
-        "echo '// integration-test-marker: agent was here' >> /src/buggy/buggy.go"
-    )
+    bash.execute("echo '// integration-test-marker: agent was here' >> /src/buggy/buggy.go")
 
     # Add build/ to .gitignore (simulates a real project with gitignored build dirs)
     bash.execute("echo 'build/' >> /src/buggy/.gitignore")
@@ -245,9 +241,7 @@ def test_diff() -> TestResult:
     # Because build/ is gitignored, get_full_diff won't capture it.
     # The live source folder is NOT cleaned during prepare_grading — it is left
     # intact so that vendor code and cached dependencies are preserved.
-    bash.execute(
-        "mkdir -p /src/buggy/build && echo 'junk' > /src/buggy/build/output.bin"
-    )
+    bash.execute("mkdir -p /src/buggy/build && echo 'junk' > /src/buggy/build/output.bin")
 
     # Call GET /diff
     data = Daemon().get("/diff")
@@ -317,9 +311,7 @@ def test_grading() -> TestResult:
         )
 
     # Agent's patch must have been applied to /ssebench-repo
-    marker_in_repo = bash.execute(
-        "grep 'integration-test-marker' /ssebench-repo/buggy.go"
-    )
+    marker_in_repo = bash.execute("grep 'integration-test-marker' /ssebench-repo/buggy.go")
     if marker_in_repo.code != 0:
         return TestResult(
             "grading",
@@ -332,9 +324,7 @@ def test_grading() -> TestResult:
     final_diff = final_diff_data.get("diff", "")
 
     if not final_diff:
-        return TestResult(
-            "grading", False, "GET /final_diff returned empty after prepare_grading"
-        )
+        return TestResult("grading", False, "GET /final_diff returned empty after prepare_grading")
 
     if "integration-test-marker" not in final_diff:
         return TestResult(
@@ -347,25 +337,17 @@ def test_grading() -> TestResult:
 
     # Build should succeed even on buggy code
     if result.build_success is not True:
-        return TestResult(
-            "grading", False, f"Build should succeed, got {result.build_success}"
-        )
+        return TestResult("grading", False, f"Build should succeed, got {result.build_success}")
 
     # Should NOT be fully successful on buggy code
     if result.is_fully_successful():
-        return TestResult(
-            "grading", False, "Should not be fully successful on buggy code"
-        )
+        return TestResult("grading", False, "Should not be fully successful on buggy code")
 
     # PoC should fail (0 out of 1 passed — the bug triggers a panic)
     if result.pov_total != 1:
-        return TestResult(
-            "grading", False, f"Expected pov_total=1, got {result.pov_total}"
-        )
+        return TestResult("grading", False, f"Expected pov_total=1, got {result.pov_total}")
     if result.pov_passed != 0:
-        return TestResult(
-            "grading", False, f"Expected pov_passed=0, got {result.pov_passed}"
-        )
+        return TestResult("grading", False, f"Expected pov_passed=0, got {result.pov_passed}")
 
     # All test types should fail on buggy code
     if result.func_test_success is not False:

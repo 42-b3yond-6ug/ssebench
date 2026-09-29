@@ -15,13 +15,10 @@ serves via the /agent/dialog endpoint.
 
 import asyncio
 import json
-import os
-import random
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 
 class DialogWriter:
@@ -47,7 +44,7 @@ class DialogWriter:
         print(f"[dialog] seq={entry['seq']} type={entry['type']}", file=sys.stderr)
 
     def _now(self) -> str:
-        return datetime.now(timezone.utc).isoformat()
+        return datetime.now(UTC).isoformat()
 
     def _next_seq(self) -> int:
         seq = self.seq
@@ -79,9 +76,7 @@ class DialogWriter:
             }
         )
 
-    def write_message(
-        self, content: str, input_tokens: int = 0, output_tokens: int = 0
-    ):
+    def write_message(self, content: str, input_tokens: int = 0, output_tokens: int = 0):
         self.turns += 1
         self.total_input_tokens += input_tokens
         self.total_output_tokens += output_tokens
@@ -106,7 +101,7 @@ class DialogWriter:
             }
         )
 
-    def write_tool_start(self, tool_id: str, name: str, args: Optional[dict] = None):
+    def write_tool_start(self, tool_id: str, name: str, args: dict | None = None):
         entry = {
             "seq": self._next_seq(),
             "ts": self._now(),
@@ -120,9 +115,7 @@ class DialogWriter:
         self._write_entry(entry)
         self.pending_tools[tool_id] = {"name": name}
 
-    def write_tool_result(
-        self, tool_id: str, result: Optional[str] = None, error: Optional[str] = None
-    ):
+    def write_tool_result(self, tool_id: str, result: str | None = None, error: str | None = None):
         name = self.pending_tools.pop(tool_id, {}).get("name", "unknown")
         entry = {
             "seq": self._next_seq(),
@@ -138,7 +131,7 @@ class DialogWriter:
             entry["error"] = error
         self._write_entry(entry)
 
-    def write_complete(self, status: str = "success", message: Optional[str] = None):
+    def write_complete(self, status: str = "success", message: str | None = None):
         duration_ms = int((time.time() - self.start_time) * 1000)
         entry = {
             "seq": self._next_seq(),
@@ -284,9 +277,7 @@ I'll fix this by adding a bounds check before copying. Let me edit the file.""",
     )
     await delay(2.0)
 
-    dialog.write_tool_result(
-        tool_id_2, result="Successfully edited /src/buggy/buggy.go"
-    )
+    dialog.write_tool_result(tool_id_2, result="Successfully edited /src/buggy/buggy.go")
     await delay(0.5)
 
     # Turn 3: Test the patch
@@ -334,15 +325,9 @@ async def main():
     """Main entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Mock Claude Code agent for dialog testing"
-    )
-    parser.add_argument(
-        "--fast", action="store_true", help="Use minimal delays for automated testing"
-    )
-    parser.add_argument(
-        "--loop", action="store_true", help="Run continuously (for interactive testing)"
-    )
+    parser = argparse.ArgumentParser(description="Mock Claude Code agent for dialog testing")
+    parser.add_argument("--fast", action="store_true", help="Use minimal delays for automated testing")
+    parser.add_argument("--loop", action="store_true", help="Run continuously (for interactive testing)")
     args = parser.parse_args()
 
     print("[mock-agent] Starting mock Claude Code agent...", file=sys.stderr)
