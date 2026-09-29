@@ -1,3 +1,5 @@
+FROM ghcr.io/astral-sh/uv:0.12.20@sha256:100047e74f30778ab704942321a09750d6158739573ff58bf3924085cc6cd2d8 AS uv
+
 # The runtime of the agent container in sidecar mode: the entrypoint, the MCP
 # server and the evaluator. It holds no task files; the project's source tree
 # and the daemon's sockets are shared from the task container at run time.
@@ -7,7 +9,7 @@
 # it needs, directly at its final location; --no-editable installs the SDK into
 # the venv, so /src is not needed at run time.
 FROM ubuntu:24.04 AS python-builder
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/
+COPY --from=uv /uv /bin/
 WORKDIR /src
 COPY pyproject.toml uv.lock ./
 COPY sdk/python/pyproject.toml sdk/python/
@@ -47,7 +49,7 @@ RUN userdel --remove ubuntu && \
     useradd -m -u 1000 -g 1000 -s /bin/bash model && \
     su model -c "git config --global user.name 'SSEBench' && git config --global user.email 'bench@ssebench.local'"
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=uv /uv /uvx /bin/
 COPY --from=python-builder /root/.local/share/uv/python /root/.local/share/uv/python
 COPY --from=python-builder /evaluator /evaluator
 COPY --from=python-builder /mcp /mcp
