@@ -1,0 +1,66 @@
+{
+  "task": {
+    "id": "bluemonday-524f142",
+    "project": "bluemonday",
+    "repository": "https://github.com/microcosm-cc/bluemonday",
+    "language": "go",
+    "source": "/src/bluemonday",
+    "task_description": {
+      "issue": null,
+      "crash_report": [
+        "reports/issue.md"
+      ],
+      "bug_description": null
+    },
+    "scripts": {
+      "build": "scripts/build.sh",
+      "run": "scripts/run.sh",
+      "test": "scripts/test.sh"
+    },
+    "files": {
+      "patch": "diffs/patch.diff",
+      "future_test": "diffs/test.diff",
+      "security_test": "diffs/security_test.diff",
+      "intent_test": null,
+      "poc": [
+        "pocs/poc.go"
+      ]
+    },
+    "sanitizer": null,
+    "type": "Improper Validation of Syntactic Correctness of Input",
+    "binary": null,
+    "trigger_commit": "3cce251c9ed2a9ee66c8f8984fff3d19d45999df",
+    "patch_commit": "524f142fe46e945b7dcd291d7805c4b7dcf75bee",
+    "reference": [
+      "https://github.com/microcosm-cc/bluemonday.git",
+      "https://github.com/microcosm-cc/bluemonday/issues/111",
+      "https://github.com/microcosm-cc/bluemonday/commit/524f142fe46e945b7dcd291d7805c4b7dcf75bee"
+    ],
+    "originality": "public"
+  },
+  "config": {
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "mode": "sandbox",
+    "timeout": 3600,
+    "difficulty": 0,
+    "tool_layer": "generic",
+    "egress": "restricted",
+    "reference_run": false
+  },
+  "patch_result": {
+    "build_success": true,
+    "pov_passed": 0,
+    "pov_total": 1,
+    "func_test_success": false,
+    "intent_test_success": false,
+    "error_msg": null,
+    "error_log": null
+  },
+  "runtime_result": {
+    "agent_duration": 900,
+    "agent_timeout": false,
+    "evaluator_timeout": false
+  },
+  "spend": 1.1
+}

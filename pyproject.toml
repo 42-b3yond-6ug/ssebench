@@ -52,12 +52,12 @@ pythonVersion = "3.12"
 typeCheckingMode = "standard"
 venvPath = "."
 venv = ".venv"
-include = ["bench", "runtime/evaluator", "runtime/mcp", "runtime/plugins", "sdk/python", "agents", "tools/docs"]
+include = ["bench", "runtime/evaluator", "runtime/mcp", "runtime/plugins", "sdk/python", "agents", "tools/docs", "tools/report"]
 # setuptools editable installs use an import hook that pyright cannot follow.
 extraPaths = ["sdk/python"]
 
 [tool.pytest.ini_options]
-testpaths = ["bench/tests", "sdk/python/tests", "tools/docs"]
+testpaths = ["bench/tests", "sdk/python/tests", "tools/docs", "tools/report"]
 # The reference docs generators (tools/docs/refdocs) are not a package; their tests import them from here.
 pythonpath = ["tools/docs"]
 addopts = ["--import-mode=importlib"]
