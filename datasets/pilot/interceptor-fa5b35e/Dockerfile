@@ -27,9 +27,12 @@ COPY sse/diffs /ssebench/diffs
 COPY sse/pocs /ssebench/pocs
 COPY sse/reports /ssebench/reports
 
+# Requiring the project before tidying takes pion/rtp at the version the
+# project pins, not at the latest release, which needs a newer Go toolchain
 RUN cd /ssebench/pocs && \
     go mod init poc-interceptor && \
     go mod edit -replace github.com/pion/interceptor=/src/interceptor && \
+    go mod edit -require github.com/pion/interceptor@v0.0.0-00010101000000-000000000000 && \
     go mod tidy
 
 RUN chmod +x /ssebench/scripts/*.sh
