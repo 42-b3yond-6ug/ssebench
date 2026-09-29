@@ -24,6 +24,7 @@ INCLUDE = (
     ".env.example",
     "agents",
     "deploy/compose/docker-compose.yaml",
+    "deploy/compose/demo.yaml",
     "images/common",
     "images/litellm",
     "images/sandbox",

@@ -207,6 +207,55 @@ def check_provider_keys() -> Check:
     )
 
 
+def model_names() -> set[str]:
+    """The names of the models that `models/*.yaml` define."""
+    names: set[str] = set()
+    for path in sorted(paths.models_dir().glob("*.y*ml")):
+        try:
+            entries = yaml.safe_load(path.read_text())
+        except yaml.YAMLError:
+            continue
+        if isinstance(entries, list):
+            names.update(str(e["model_name"]) for e in entries if isinstance(e, dict) and "model_name" in e)
+    return names
+
+
+def check_model_key(model: str) -> Check:
+    """Whether `.env` holds the provider key that `model` needs. A key set only in the shell does not
+    count: the proxy container reads its keys from `.env`."""
+    name = f"Key for {model}"
+    if model not in model_names():
+        return Check(
+            name,
+            Status.FAIL,
+            f"{model} is not defined in models/*.yaml",
+            "Use a model name from models/*.yaml.",
+        )
+    needed = sorted(var for var, models in provider_keys().items() if model in models)
+    in_file = settings.dotenv()
+    missing = [var for var in needed if not in_file.get(var, "").strip()]
+    if not missing:
+        return Check(name, Status.OK, f"{', '.join(needed)} set in .env" if needed else "no key needed")
+    return Check(
+        name,
+        Status.FAIL,
+        f"{', '.join(missing)} is not set in .env",
+        f"Put the key in {paths.env_file()}; the proxy reads provider keys only from there.",
+    )
+
+
+def host_checks() -> list[Check]:
+    """What every run needs from this host: Docker, buildx, Compose, the CPU, disk space and `.env`."""
+    return [
+        check_docker(),
+        check_buildx(),
+        check_compose(),
+        check_cpu(),
+        check_disk(paths.workspace()),
+        check_env_file(),
+    ]
+
+
 def run_checks() -> list[Check]:
     checks = [check_docker(), check_buildx(), check_compose(), check_cpu()]
     try:
