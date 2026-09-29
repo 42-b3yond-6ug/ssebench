@@ -1,5 +1,6 @@
 id: saml-8e92368
 project: saml
+repository: https://github.com/crewjam/saml
 language: go
 source: /src/saml
 task_description:
@@ -24,4 +25,4 @@ reference:
 - https://github.com/crewjam/saml.git
 - https://github.com/crewjam/saml/commit/8e9236867d176ad6338c870a84e2039aef8a5021
 - https://github.com/crewjam/saml/security/advisories/GHSA-5mqj-xc49-246p
-originality: Self Craft
+originality: crafted

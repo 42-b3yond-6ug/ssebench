@@ -1,5 +1,6 @@
 id: shoutrrr-6a27056
 project: shoutrrr
+repository: https://github.com/containrrr/shoutrrr
 
 language: go
 source: /src/shoutrrr
@@ -30,4 +31,4 @@ reference:
 - https://github.com/containrrr/shoutrrr.git 
 - https://github.com/containrrr/shoutrrr/commit/6a27056f9d7522a8b493216195cb7634bf4b5c42
 - https://github.com/containrrr/shoutrrr/issues/240
-originality: Publicly Available
+originality: public

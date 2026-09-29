@@ -1,5 +1,6 @@
 id: RUSTSEC-2021-0033
 project: "stack_dst-rs"
+repository: https://github.com/thepowersgang/stack_dst-rs
 language: "rust"
 source: "/src/stack_dst-rs"
 task_description:

@@ -1,5 +1,6 @@
 id: "nanoid-10-a902277"
 project: "nano-id"
+repository: https://github.com/viz-rs/nano-id
 language: "rust"
 source: "/src/nano-id"
 task_description:

@@ -1,5 +1,6 @@
 id: revel-d160ecb
 project: revel
+repository: https://github.com/revel/revel
 
 language: go
 source: /src/revel
@@ -30,4 +31,4 @@ reference:
 - https://github.com/revel/revel.git
 - https://github.com/revel/revel/commit/d160ecb72207824005b19778594cbdc272e8a605
 - https://github.com/revel/revel/issues/1424
-originality: Self Craft
+originality: crafted

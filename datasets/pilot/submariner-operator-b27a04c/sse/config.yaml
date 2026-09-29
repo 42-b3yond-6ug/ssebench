@@ -1,5 +1,6 @@
 id: submariner-operator-b27a04c
 project: submariner-operator
+repository: https://github.com/submariner-io/submariner-operator
 language: go
 source: /src/submariner-operator
 task_description:
@@ -24,4 +25,4 @@ reference:
 - https://github.com/submariner-io/submariner-operator.git
 - https://github.com/submariner-io/submariner-operator/commit/b27a04c4270e53cbff6ff8ac6245db10c204bcab
 - https://github.com/submariner-io/submariner-operator/issues/3041
-originality: Self Craft
+originality: crafted

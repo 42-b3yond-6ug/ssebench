@@ -1,5 +1,6 @@
 id: yaml-8f96da9
 project: yaml
+repository: https://github.com/go-yaml/yaml
 
 language: go
 source: /src/yaml
@@ -30,4 +31,4 @@ reference:
 - https://github.com/go-yaml/yaml.git 
 - https://github.com/go-yaml/yaml/commit/8f96da9f5d5eff988554c1aae1784627c4bf6754
 - https://github.com/go-yaml/yaml/issues/666
-originality: Publicly Available
+originality: public

@@ -1,0 +1,385 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Files": {
+      "additionalProperties": false,
+      "description": "Reference material. None of it is shown to the agent.",
+      "properties": {
+        "patch": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^[^/]",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The upstream fix, as a diff against the source directory.",
+          "title": "Patch"
+        },
+        "future_test": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^[^/]",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hidden tests of the fix, usually those added upstream, as a diff. The intent test applies it and runs scripts.test.",
+          "title": "Future Test"
+        },
+        "security_test": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^[^/]",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Regression test for the vulnerability, as a diff. Kept for reference: the grader does not apply it, and its security check runs the proofs of concept instead.",
+          "title": "Security Test"
+        },
+        "intent_test": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^[^/]",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tests of the intended behaviour, as a diff. Kept for reference: the intent test uses future_test.",
+          "title": "Intent Test"
+        },
+        "poc": {
+          "anyOf": [
+            {
+              "items": {
+                "minLength": 1,
+                "pattern": "^[^/]",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Proof-of-concept inputs, each run with scripts.run.",
+          "title": "Poc"
+        }
+      },
+      "title": "Files",
+      "type": "object"
+    },
+    "Scripts": {
+      "additionalProperties": false,
+      "description": "Scripts that the grader and the agent's test_patch tool run.",
+      "properties": {
+        "build": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^[^/]",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Builds the project in the source directory.",
+          "title": "Build"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^[^/]",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Runs the proof of concept given as its argument.",
+          "title": "Run"
+        },
+        "test": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^[^/]",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Runs the project's tests.",
+          "title": "Test"
+        }
+      },
+      "title": "Scripts",
+      "type": "object"
+    },
+    "TaskDescription": {
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "properties": {
+            "issue": {
+              "pattern": "\\S",
+              "type": "string"
+            }
+          },
+          "required": [
+            "issue"
+          ]
+        },
+        {
+          "properties": {
+            "crash_report": {
+              "minItems": 1,
+              "type": "array"
+            }
+          },
+          "required": [
+            "crash_report"
+          ]
+        },
+        {
+          "properties": {
+            "bug_description": {
+              "pattern": "\\S",
+              "type": "string"
+            }
+          },
+          "required": [
+            "bug_description"
+          ]
+        }
+      ],
+      "description": "What the agent is told about the vulnerability. At least one field must be set.",
+      "properties": {
+        "issue": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Issue text given to the agent.",
+          "title": "Issue"
+        },
+        "crash_report": {
+          "anyOf": [
+            {
+              "items": {
+                "minLength": 1,
+                "pattern": "^[^/]",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Report files given to the agent, such as the upstream issue or a sanitizer log.",
+          "title": "Crash Report"
+        },
+        "bug_description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Short description of the bug given to the agent.",
+          "title": "Bug Description"
+        }
+      },
+      "title": "TaskDescription",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A task's configuration, `sse/config.yaml` in the task folder.\n\nPaths are relative to /ssebench in the case image, which the task's Dockerfile fills from `sse/`.",
+  "properties": {
+    "id": {
+      "description": "Task ID, equal to the task's folder name.",
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9]+(?:(?:[._]|__|-+)[A-Za-z0-9]+)*$",
+      "title": "Id",
+      "type": "string"
+    },
+    "project": {
+      "description": "Name of the upstream project.",
+      "pattern": "\\S",
+      "title": "Project",
+      "type": "string"
+    },
+    "repository": {
+      "description": "URL of the upstream repository.",
+      "pattern": "^https://\\S+$",
+      "title": "Repository",
+      "type": "string"
+    },
+    "language": {
+      "description": "Language of the project, lowercase: c, go, rust.",
+      "pattern": "^[a-z][a-z0-9+]*$",
+      "title": "Language",
+      "type": "string"
+    },
+    "source": {
+      "description": "Absolute path of the project's source tree in the case image.",
+      "pattern": "^/\\S*$",
+      "title": "Source",
+      "type": "string"
+    },
+    "task_description": {
+      "$ref": "#/$defs/TaskDescription"
+    },
+    "scripts": {
+      "$ref": "#/$defs/Scripts"
+    },
+    "files": {
+      "$ref": "#/$defs/Files"
+    },
+    "sanitizer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Sanitizer the build enables, such as address.",
+      "title": "Sanitizer"
+    },
+    "type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Class of the bug, such as Heap Buffer Overflow or a CWE.",
+      "title": "Type"
+    },
+    "binary": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Program or harness that the proofs of concept exercise.",
+      "title": "Binary"
+    },
+    "trigger_commit": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Upstream revision that the case image builds.",
+      "title": "Trigger Commit"
+    },
+    "patch_commit": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Upstream commits that fix the bug, comma-separated.",
+      "title": "Patch Commit"
+    },
+    "reference": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Links to the advisory, the report and the fix.",
+      "title": "Reference"
+    },
+    "originality": {
+      "anyOf": [
+        {
+          "enum": [
+            "public",
+            "crafted"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Origin of the proofs of concept: public when they come from the public report or advisory, possibly adapted; crafted when they were written for the task because the report has no reproducer.",
+      "title": "Originality"
+    }
+  },
+  "required": [
+    "id",
+    "project",
+    "repository",
+    "language",
+    "source",
+    "task_description",
+    "scripts",
+    "files"
+  ],
+  "title": "SSEBench task config",
+  "type": "object"
+}

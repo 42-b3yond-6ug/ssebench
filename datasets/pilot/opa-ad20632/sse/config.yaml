@@ -1,5 +1,6 @@
 id: opa-ad20632
 project: opa
+repository: https://github.com/open-policy-agent/opa
 language: go
 source: /src/opa
 task_description:
@@ -24,4 +25,4 @@ reference:
 - https://github.com/open-policy-agent/opa.git
 - https://github.com/open-policy-agent/opa/commit/ad2063247a14711882f18c387a511fc8094aa79c
 - https://github.com/open-policy-agent/opa/security/advisories/GHSA-6m8w-jc87-6cr7
-originality: Self Craft
+originality: crafted

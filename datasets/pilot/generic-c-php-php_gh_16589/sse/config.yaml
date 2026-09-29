@@ -1,5 +1,6 @@
 id: generic-c-php-php_gh_16589
 project: php
+repository: https://github.com/php/php-src
 language: c
 source: /src/php
 task_description:

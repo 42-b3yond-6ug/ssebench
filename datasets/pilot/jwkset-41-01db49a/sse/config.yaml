@@ -1,5 +1,6 @@
 id: jwkset-41-01db49a
 project: jwkset
+repository: https://github.com/MicahParks/jwkset
 language: go
 source: /src/jwkset
 task_description:
@@ -26,4 +27,4 @@ reference:
 - https://github.com/MicahParks/jwkset
 - https://github.com/MicahParks/jwkset/commit/01db49a90f7f20c7fb39a699a2f19a7a5f379ed3
 - https://github.com/MicahParks/jwkset/issues/40
-originality: Publicly Available
+originality: public

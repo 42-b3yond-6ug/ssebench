@@ -1,5 +1,6 @@
 id: yaml-bb4e33b
 project: yaml
+repository: https://github.com/go-yaml/yaml
 language: go
 source: /src/yaml
 task_description:
@@ -25,4 +26,4 @@ reference:
 - https://github.com/go-yaml/yaml.git
 - https://github.com/go-yaml/yaml/commit/bb4e33bf68bf89cad44d386192cbed201f35b241
 - https://github.com/go-yaml/yaml/pull/375
-originality: Publicly Available
+originality: public

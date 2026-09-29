@@ -1,5 +1,6 @@
 id: gin-bfc8ca2
 project: gin
+repository: https://github.com/gin-gonic/gin
 language: go
 source: /src/gin
 task_description:
@@ -26,4 +27,4 @@ reference:
 - https://github.com/gin-gonic/gin.git
 - https://github.com/gin-gonic/gin/issues/2473
 - https://github.com/gin-gonic/gin/commit/bfc8ca285eb46dad60e037d57c545cd260636711
-originality: Publicly Available
+originality: public

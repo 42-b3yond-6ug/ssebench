@@ -1,5 +1,6 @@
 id: generic-c-jq-jq_gh_3196
 project: jq
+repository: https://github.com/jqlang/jq
 language: c
 source: /src/jq
 task_description:

@@ -1,5 +1,6 @@
 id: generic-c-exiv2-exiv2_gh_789
 project: exiv2
+repository: https://github.com/Exiv2/exiv2
 language: c
 source: /src/exiv2
 task_description:

@@ -1,5 +1,6 @@
 id: goyave-20243293-5836bff3efaa
 project: goyave
+repository: https://github.com/go-goyave/goyave
 language: go
 source: /src/goyave
 task_description:
@@ -23,4 +24,4 @@ patch_commit: 5836bff3efaa8a37fbd58d077b93f03e93e05edd
 reference:
 - https://github.com/go-goyave/goyave/commit/5836bff3efaa8a37fbd58d077b93f03e93e05edd
 - https://github.com/golang/vulndb/issues/3293
-originality: Publicly Available
+originality: public

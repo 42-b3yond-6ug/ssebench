@@ -1,5 +1,6 @@
 id: generic-c-cpython-py_pr_126033
 project: cpython
+repository: https://github.com/python/cpython
 language: c
 source: /src/cpython
 task_description:

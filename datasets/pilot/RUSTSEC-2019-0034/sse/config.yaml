@@ -1,5 +1,6 @@
 id: RUSTSEC-2019-0034
 project: "http"
+repository: https://github.com/hyperium/http
 language: "rust"
 source: "/src/http"
 task_description:
