@@ -25,12 +25,12 @@ from ssebench.runner.reference import REFERENCE_AGENT, is_reference_run, referen
 from ssebench.tasks import CatalogError, CatalogTask, LocalTask, Task, load_catalog
 from ssebench.version import VERSION
 
-from . import dataset, tasks
+from . import dataset, init, tasks
 from .build import build_case_image, get_tasks
 
 logger = logging.getLogger(__name__)
 
-BUILTIN_COMMANDS = ("run", "build-case", "dataset", "tasks", "proxy", "doctor")
+BUILTIN_COMMANDS = ("run", "build-case", "dataset", "tasks", "proxy", "doctor", "init")
 
 
 class RunArgs(argparse.Namespace):
@@ -360,6 +360,9 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
         help="With up or build, rebuild the proxy image even if it is current",
     )
 
+    # ==================== init subcommand ====================
+    init.add_parser(subparsers)
+
     # ==================== doctor subcommand ====================
     _ = subparsers.add_parser(
         "doctor",
@@ -402,7 +405,7 @@ def main(argv: Sequence[str] | None = None):
             sys.exit(cmd_run(args))
         elif args.command == "build-case":
             sys.exit(cmd_build_case(args))
-        elif args.command in ("dataset", "tasks"):
+        elif args.command in ("dataset", "tasks", "init"):
             sys.exit(args.handler(args))
         elif args.command == "proxy":
             sys.exit(cmd_proxy(args))

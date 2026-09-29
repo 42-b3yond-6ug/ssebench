@@ -126,16 +126,16 @@ def check_env_file() -> Check:
                 ".env",
                 Status.FAIL,
                 f"{path} does not set {', '.join(missing)}",
-                "Add them, or move .env aside and run `just setup` to write a new one.",
+                "Add them, or move .env aside and run `ssebench init` (`just setup` in a checkout) to write a new one.",
             )
         return Check(".env", Status.OK, str(path))
     if missing:
-        return Check(".env", Status.FAIL, f"{path} not found", "Run `just setup`.")
+        return Check(".env", Status.FAIL, f"{path} not found", "Run `ssebench init` (`just setup` in a checkout).")
     return Check(
         ".env",
         Status.WARN,
         f"{path} not found; the proxy secrets come from the environment",
-        "Run `just setup`: the proxy reads provider keys only from .env.",
+        "Run `ssebench init` (`just setup` in a checkout): the proxy reads provider keys only from .env.",
     )
 
 
@@ -151,7 +151,7 @@ def check_proxy() -> Check:
         "LiteLLM",
         Status.WARN,
         f"no answer at {stack.health_url()} (Compose project {project})",
-        "`ssebench run` starts the proxy when needed; start it now with `just launch`. "
+        "`ssebench run` starts the proxy when needed; start it now with `ssebench proxy up` (`just launch` in a checkout). "
         f"If another program uses port {settings.litellm_port()}, set LITELLM_PORT in .env.",
     )
 
@@ -203,7 +203,7 @@ def check_provider_keys() -> Check:
         Status.WARN,
         "; ".join(parts),
         "Put the key of each provider you use in .env (the proxy reads keys only from there), "
-        "then restart the proxy with `just launch`. The dummy agent needs no key.",
+        "then restart the proxy with `ssebench proxy up`. The dummy and reference agents need no key.",
     )
 
 
