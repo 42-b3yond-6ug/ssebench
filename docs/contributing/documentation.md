@@ -23,6 +23,12 @@ builds the static site into `docs/.vitepress/dist` and fails if any link
 between pages is broken; run it before you open a pull request.
 `bun run preview` serves the built site.
 
+## Publishing
+
+Merging a change under `docs/` into `main` deploys the site to GitHub Pages,
+and so does every release. Pull requests only build the site. See
+[Docs](/contributing/releasing#docs).
+
 ## Check external links
 
 `bun run build` checks the links between pages but never goes to the network.

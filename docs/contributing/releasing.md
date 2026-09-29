@@ -76,7 +76,7 @@ uv run tools/release/bump.py --check
 
 ## Cutting a release
 
-You need uv, cargo and bun on your `PATH`.
+You need uv, cargo and bun on your `PATH`, and permission to push tags.
 
 1. On a branch, set the new version:
 
@@ -91,7 +91,8 @@ You need uv, cargo and bun on your `PATH`.
    steps. It does not commit or tag.
 2. Commit the change as `chore(release): 1.2.0` and merge it through a pull
    request.
-3. Tag the commit as it landed on `main` with `v` and the version, and push
+3. Optionally rehearse the release from `main` with a [dry run](#dry-runs).
+4. Tag the commit as it landed on `main` with `v` and the version, and push
    the tag:
 
    ```sh
@@ -99,14 +100,192 @@ You need uv, cargo and bun on your `PATH`.
    git push origin v1.2.0
    ```
 
-4. Start the next development version the same way, for example with
+   Pushing the tag is the only manual step. The workflows in the next section
+   do the rest; watch them with `gh run list --limit 5` and `gh run watch`.
+5. Start the next development version the same way, for example with
    `just release 1.3.0-dev`.
 
-::: warning Coming soon
-A release workflow will publish the Python packages and attach the binaries to
-a GitHub release for every `v*` tag. Until it is available, a tag publishes
-only the [images](#images).
-:::
+A tag with a pre-release version, such as `v1.2.0-rc.1`, goes through the same
+steps. Its packages are pre-releases on PyPI, its GitHub release is marked as a
+pre-release and is never the latest release, and its images do not move
+`latest`.
+
+## What a tag does
+
+Pushing a `v*` tag starts two workflows. The Images workflow publishes the
+[images](#images). The Release workflow (`.github/workflows/release.yml`) runs
+these jobs:
+
+| Job | What it does |
+|---|---|
+| Plan | Fails unless the tag is `v` followed by `VERSION`, `VERSION` is not a `-dev` version, the tagged commit is on `main`, and `bump.py --check` passes. |
+| Build the Python packages | Builds the sdist and the wheel of `ssebench` and `ssebench-sdk` with `uv build`, checks their metadata with `twine check --strict`, installs the wheels in a clean environment, and checks that `ssebench --version` prints `VERSION`, that `import sse` works, and that both packages carry the PEP 440 form of `VERSION`. Produces the artifact `python-dist`. |
+| Binaries | Runs the [Binaries](#binaries) workflow, which produces the artifact `ssebench-binaries-<version>`. |
+| Build the dataset manifest | Runs `ssebench dataset manifest` on `datasets/pilot`, recording the commit it was generated from. Produces the artifact `pilot-manifest`. |
+| Publish to PyPI | Runs after all the jobs above have passed, so a build that fails publishes nothing. Uploads `python-dist` with PyPI trusted publishing, in the `pypi` environment; no PyPI token is stored anywhere. Files that PyPI already has are skipped. |
+| Create the GitHub release | Runs after PyPI. Checks the `SHA256SUMS` file against the binaries and creates a published (not draft) release named after the tag, with notes generated from the titles of the merged pull requests since the previous release. Attaches the eight binaries, `SHA256SUMS` and `pilot-manifest.json`. |
+| Docs | Runs after the release and deploys the [docs](#docs) from the tagged commit. |
+
+The jobs that publish or deploy something (PyPI, the GitHub release and the
+docs deployment) are skipped while the repository is private, so a tag then
+only produces the artifacts. Do not push a release tag before the repository is
+public: the Images workflow also builds every image for both platforms on a
+tag, which takes a long time, and publishes nothing. Use a
+[dry run](#dry-runs) instead.
+
+Every workflow action is pinned to a commit SHA. `TWINE_VERSION` in
+`release.yml` pins the version of Twine that checks the packages; update it by
+hand.
+
+## Dry runs
+
+To build everything a release builds without publishing anything, run the
+Release workflow by hand on any branch, in a private repository or a public
+one or a fork:
+
+```sh
+gh workflow run release.yml --ref my-branch
+gh run watch
+```
+
+A manual run never publishes or deploys, whatever the branch or tag it runs on,
+and the plan job then skips the checks of the tag. It still checks that every
+component carries `VERSION`; a `-dev` version builds fine. The results are
+kept as artifacts of the run, the binaries and the site for 7 days and the rest
+for 30:
+
+```sh
+gh run download <run-id>
+```
+
+| Artifact | Contents |
+|---|---|
+| `python-dist` | the sdists and wheels of `ssebench` and `ssebench-sdk` |
+| `ssebench-binaries-<version>` | the binaries for linux/amd64 and linux/arm64 and `SHA256SUMS` |
+| `pilot-manifest` | `pilot-manifest.json` |
+| `github-pages` | the built documentation site, as a tarball |
+
+`gh workflow run docs.yml --ref my-branch -f dry_run=true` builds only the site.
+A manual run of the Images workflow builds the images and never pushes them.
+
+## Docs
+
+The Docs workflow (`.github/workflows/docs.yml`) builds the site with VitePress
+and deploys it to GitHub Pages, in the `github-pages` environment. It runs for
+every push to `main` that changes `docs/`, `VERSION` or the Bun lockfile, and
+the Release workflow runs it for a release tag. Only `main` and `v*` tags
+deploy, only from a public repository, and one deployment runs at a time. The
+site takes its version from `VERSION` when it is built. Pull requests build the
+site in CI but do not deploy it. To deploy again without a change, for example
+after fixing the Pages settings, run the workflow on `main`:
+
+```sh
+gh workflow run docs.yml --ref main
+```
+
+## Recovering from a failed release
+
+Read the failed job's log first. Most failures are transient, or a setting to
+correct, and then re-running the failed jobs completes the release: open the
+run and choose "Re-run failed jobs", or use `gh run rerun <run-id> --failed`.
+Jobs that already succeeded are not run again, and the jobs after the failed
+one run once it passes. Re-running is safe at every step:
+
+- PyPI skips the files it already has, so a run that uploaded
+  `ssebench` but failed on `ssebench-sdk` uploads the rest.
+- The release job adds and replaces assets on a release that already exists.
+- The Docs job deploys the same site again.
+
+If a build job fails, nothing was published by the Release workflow. Runs
+retain their artifacts for a limited time; if the artifacts have expired,
+choose "Re-run all jobs" instead.
+
+| What went wrong | What to do |
+|---|---|
+| A tag was pushed while the repository was private | Nothing was published, and re-running does not change that, because a re-run keeps the state of the repository from when the tag was pushed. Once the repository is public, delete the tag on `origin` and push it again. |
+| Plan fails: the tag does not match `VERSION`, or is not on `main` | Nothing was built or published. Delete the tag locally and on `origin` (`git tag -d v1.2.0`, `git push --delete origin v1.2.0`), fix `VERSION` through a pull request, and tag again. |
+| Publish to PyPI fails with an authentication error | The trusted publisher on PyPI does not match. It must name this repository, the workflow `release.yml` and the environment `pypi`, for both `ssebench` and `ssebench-sdk`. Correct it and re-run the failed jobs. |
+| A different job fails after PyPI succeeded | Re-run the failed jobs. The packages are on PyPI and stay there. |
+| The release is missing an asset or has wrong notes | Re-run the release job to upload the assets again, or edit the release on GitHub. |
+| The Images workflow fails | Re-run its failed jobs; it is independent of the Release workflow. |
+| A published package or image turns out to be broken | Never delete or move anything. PyPI does not accept a file name twice, so yank the release on PyPI, mark the GitHub release as a pre-release or edit its notes, and publish the fix under the next version. |
+
+Once a tag has published anything, treat its version as used: fix forward with
+the next version instead of moving the tag.
+
+## First public release
+
+Do this checklist once, when the repository becomes public. The workflows do
+nothing until then, so only the first step can happen earlier. Commands assume
+the repository `42-b3yond-6ug/ssebench`.
+
+1. **PyPI pending publishers.** On pypi.org, under the maintaining account's
+   Publishing settings, add a pending trusted publisher for each of the
+   project names `ssebench` and `ssebench-sdk` with owner `42-b3yond-6ug`,
+   repository `ssebench`, workflow `release.yml` and environment `pypi`. The
+   first upload creates the project.
+2. **Make the repository public.**
+3. **Rulesets.** Apply a ruleset to `main`: require pull requests, require a
+   linear history, block force pushes and deletion, and require the `ci-ok`
+   and `images-ok` checks. Add a ruleset for the tags `v*` that restricts who
+   can create them and blocks updates and deletion, because pushing such a tag
+   publishes a release.
+4. **Environments.** Limit where the environments deploy from, so that only a
+   release tag can publish to PyPI:
+
+   ```sh
+   for env in pypi github-pages; do
+     gh api -X PUT repos/42-b3yond-6ug/ssebench/environments/$env --input - <<< \
+       '{"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}'
+     gh api -X POST repos/42-b3yond-6ug/ssebench/environments/$env/deployment-branch-policies \
+       -f name='v*' -f type=tag
+   done
+   gh api -X POST repos/42-b3yond-6ug/ssebench/environments/github-pages/deployment-branch-policies \
+     -f name=main -f type=branch
+   ```
+
+5. **Dependabot.** Version updates are paused: raise every
+   `open-pull-requests-limit` in `.github/dependabot.yml` from `0` (for
+   example to `5`) and remove the comment above `updates`, in a pull request.
+6. **GitHub Pages.** Publish from GitHub Actions and set the custom domain:
+
+   ```sh
+   gh api -X POST repos/42-b3yond-6ug/ssebench/pages -f build_type=workflow
+   gh api -X PUT repos/42-b3yond-6ug/ssebench/pages -f cname=docs.ssebench.com
+   gh workflow run docs.yml --ref main
+   ```
+
+   With a workflow as the publishing source, GitHub ignores a `CNAME` file in
+   the site, so the custom domain is a Pages setting and `docs/public/CNAME`
+   is not needed. The site is built for the root of the domain, so set the
+   domain before anyone links to the `github.io` address.
+7. **DNS.** In the DNS zone of `ssebench.com`, point `docs` at GitHub Pages
+   with a `CNAME` record for `docs.ssebench.com` with the value
+   `42-b3yond-6ug.github.io`, replacing the record that serves the site today.
+   Leave the record unproxied until GitHub has issued the certificate, then
+   enforce HTTPS:
+
+   ```sh
+   gh api -X PUT repos/42-b3yond-6ug/ssebench/pages -F https_enforced=true
+   ```
+
+8. **Container packages.** The first push to `main` after step 2 publishes
+   `base-generic-c`, `base-generic-go`, `base-generic-rust`, `runtime`,
+   `litellm`, `catalog` and `webui` to `ghcr.io/42-b3yond-6ug/ssebench/` as
+   private packages. GitHub has no API for this: for each package, open its
+   Package settings on GitHub and change the visibility to Public, which
+   cannot be undone. Check that an unauthenticated `docker pull` works for
+   each.
+9. **Rehearse.** Run `gh workflow run release.yml --ref main` and check the
+   artifacts of the [dry run](#dry-runs).
+10. **Release.** Cut the first version as a pre-release such as `1.0.0-rc.1`
+    with [the steps above](#cutting-a-release). When the pipeline has
+    published everything, cut `1.0.0` the same way.
+11. **Verify.** In a fresh environment, `pip install ssebench==<version>
+    ssebench-sdk==<version>` and `ssebench --version`; `docker pull
+    ghcr.io/42-b3yond-6ug/ssebench/runtime:<version>`; download the release
+    assets and run `sha256sum --check SHA256SUMS`; open
+    `https://docs.ssebench.com` and check the version in the navigation bar.
 
 ## Images
 
@@ -157,8 +336,8 @@ Linux on amd64 and arm64, named `ssebench-<program>-linux-<arch>`, checks that
 they report `VERSION`, and uploads them with a `SHA256SUMS` file as the
 workflow artifact `ssebench-binaries-<version>`. The daemon and the entrypoint
 are built by the runtime image's Dockerfile, so they are the same files as in
-that image. Other workflows run it through `workflow_call`; its `artifact`
-output names the artifact.
+that image. The Release workflow runs it through `workflow_call` and attaches
+the files to the GitHub release; its `artifact` output names the artifact.
 
 ## Datasets
 
