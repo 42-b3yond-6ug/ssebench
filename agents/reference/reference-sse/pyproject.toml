@@ -1,0 +1,11 @@
+[project]
+name = "reference-sse"
+version = "1.0.0.dev0"
+description = "Applies the task's reference patch"
+requires-python = ">=3.12"
+dependencies = [
+  "ssebench-sdk",
+]
+
+[tool.uv.sources]
+ssebench-sdk = { workspace = true }
