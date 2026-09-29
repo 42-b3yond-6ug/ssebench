@@ -1,26 +1,21 @@
-from multiprocessing import Value
-from re import I
-import yaml
-import tempfile
-import subprocess
 import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 
+import yaml
+
 SSE_DIR = Path("/ssebench")
+
 
 def build(config: dict, work_dir: Path) -> int:
     build_script = config.get("scripts", {}).get("build", "")
     if not build_script:
         raise ValueError("No build script in config")
-    result = subprocess.run(
-        [SSE_DIR / build_script],
-        cwd=work_dir,
-        timeout=3600,
-        capture_output=True
-    )
+    result = subprocess.run([SSE_DIR / build_script], cwd=work_dir, timeout=3600, capture_output=True)
     if result.returncode:
-        print(result.stdout.decode('utf-8', errors='ignore'))
-        print(result.stderr.decode('utf-8', errors='ignore'))
+        print(result.stdout.decode("utf-8", errors="ignore"))
+        print(result.stderr.decode("utf-8", errors="ignore"))
     return result.returncode
 
 
@@ -29,12 +24,9 @@ def run_poc(config: dict, work_dir: Path, poc_file: str, num_runs: int = 10) -> 
     if not run_script:
         raise ValueError("No run script in config")
     results = []
-    for i in range(num_runs):
+    for _ in range(num_runs):
         result = subprocess.run(
-            [SSE_DIR / run_script, SSE_DIR / poc_file],
-            cwd=work_dir,
-            timeout=3600,
-            capture_output=True
+            [SSE_DIR / run_script, SSE_DIR / poc_file], cwd=work_dir, timeout=3600, capture_output=True
         )
         results.append(result.returncode)
     return results
@@ -62,11 +54,13 @@ def reproduce(config: dict, work_dir: Path, is_patched: bool = False, num_poc_ru
             crash_count = sum(1 for r in results if r != 0)
             all_crashed = crash_count == num_poc_runs
             none_crashed = crash_count == 0
-            
+
             if all_crashed and is_patched:
                 print(f"        [!] [{state}] PoC {poc_file} crashed in all {num_poc_runs} runs (shouldn't crash).")
             elif none_crashed and not is_patched:
-                print(f"        [!] [{state}] PoC {poc_file} didn't crash in any of {num_poc_runs} runs (should crash).")
+                print(
+                    f"        [!] [{state}] PoC {poc_file} didn't crash in any of {num_poc_runs} runs (should crash)."
+                )
             else:
                 print(f"        ✓ [{state}] PoC {poc_file} crashed in {crash_count}/{num_poc_runs} runs.")
         except subprocess.TimeoutExpired:
@@ -80,7 +74,7 @@ def apply_patch(patch_file: Path, work_dir: Path) -> None:
     use_git = (work_dir / ".git").exists()
     tool_name = "git apply" if use_git else "patch"
     print(f"[*] Applying patch using {tool_name}...")
-    
+
     with open(patch_file, "rb") as patch_file_handle:
         if use_git:
             subprocess.run(
@@ -89,7 +83,7 @@ def apply_patch(patch_file: Path, work_dir: Path) -> None:
                 cwd=work_dir,
                 timeout=3600,
                 check=True,
-                capture_output=True
+                capture_output=True,
             )
         else:
             subprocess.run(
@@ -98,7 +92,7 @@ def apply_patch(patch_file: Path, work_dir: Path) -> None:
                 cwd=work_dir,
                 timeout=3600,
                 check=True,
-                capture_output=True
+                capture_output=True,
             )
 
 
@@ -120,17 +114,12 @@ def run_func_test(config: dict, work_dir: Path, apply_test_diff: bool = True) ->
             print("[!] Timeout while applying future test patch.")
             return 1
 
-    print(f"[*] Executing functional test script...")
+    print("[*] Executing functional test script...")
     try:
-        result = subprocess.run(
-            [SSE_DIR / test_script],
-            cwd=work_dir,
-            timeout=3600,
-            capture_output=True
-        )
+        result = subprocess.run([SSE_DIR / test_script], cwd=work_dir, timeout=3600, capture_output=True)
         if result.returncode:
-            print(result.stdout.decode('utf-8', errors='ignore'))
-            print(result.stderr.decode('utf-8', errors='ignore'))
+            print(result.stdout.decode("utf-8", errors="ignore"))
+            print(result.stderr.decode("utf-8", errors="ignore"))
         return result.returncode
     except subprocess.TimeoutExpired:
         print("[!] Functional test timed out.")
@@ -139,7 +128,7 @@ def run_func_test(config: dict, work_dir: Path, apply_test_diff: bool = True) ->
 
 def validate(num_poc_runs: int = 10) -> None:
     print("[*] Loading configuration...")
-    with open(SSE_DIR / "config.yaml", "r") as file:
+    with open(SSE_DIR / "config.yaml") as file:
         config = yaml.safe_load(file)
 
     print("[*] Checking required config fields...")
@@ -220,4 +209,3 @@ def validate(num_poc_runs: int = 10) -> None:
 
 if __name__ == "__main__":
     validate()
-    

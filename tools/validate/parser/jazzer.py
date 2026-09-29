@@ -1,14 +1,13 @@
-import re
-import hashlib
 import logging
-from typing import List, Optional, Tuple, Dict
-from enum import Enum
-from pathlib import Path
+import re
+from typing import Optional
 
 from parser.sanitizer import Sanitizer, SanitizerReport
 
 # Regex patterns for Jazzer outputs
-JazzerExceptionPattern = r"==\s*Java Exception:\s*(com\.code_intelligence\.jazzer\.api\.FuzzerSecurityIssue\w+):\s*(.*?)(?=\n|$)"
+JazzerExceptionPattern = (
+    r"==\s*Java Exception:\s*(com\.code_intelligence\.jazzer\.api\.FuzzerSecurityIssue\w+):\s*(.*?)(?=\n|$)"
+)
 JazzerStackTracePattern = r"^\s*at\s+([^(]+)\(([^:]+):(\d+)\)"
 JazzerDedupTokenPattern = r"DEDUP_TOKEN:\s*([^\n]+)"
 JazzerTimeoutPattern = r"==\d*==\s*ERROR:\s*libFuzzer: timeout after\s\d+\sseconds"
@@ -27,7 +26,7 @@ JAZZER_CWE_MAP = {
     "FuzzerSecurityIssueHigh: XPath Injection": "CWE-643",
     "FuzzerSecurityIssueHigh: Remote Code Execution": "CWE-94",
     "FuzzerSecurityIssueLow: Regular Expression Injection": "CWE-185",
-    "FuzzerSecurityIssueLow: Out of memory": "CWE-400"
+    "FuzzerSecurityIssueLow: Out of memory": "CWE-400",
 }
 
 
@@ -40,8 +39,8 @@ class JazzerSanitizerReport(SanitizerReport):
         cwe: str,
         trigger_point: str,
         exception_type: str = None,
-        stack_traces: List[str] = None,
-        dedup_token: str = None
+        stack_traces: list[str] = None,
+        dedup_token: str = None,
     ):
         super().__init__(Sanitizer.Jazzer, content, cwe, trigger_point)
         self.exception_type = exception_type
@@ -72,25 +71,13 @@ class JazzerSanitizerReport(SanitizerReport):
         """
         # Check for timeout
         if re.search(JazzerTimeoutPattern, raw_content) or "SUMMARY: libFuzzer: timeout" in raw_content:
-            return JazzerSanitizerReport(
-                raw_content,
-                "timeout",
-                "N/A",
-                exception_type="Timeout",
-                dedup_token="timeout"
-            )
+            return JazzerSanitizerReport(raw_content, "timeout", "N/A", exception_type="Timeout", dedup_token="timeout")
 
         # Check for OOM
         oom_match = re.search(JazzerOOMPattern, raw_content)
         if oom_match or "OutOfMemoryError" in raw_content:
-            oom_detail = oom_match.group(
-                1) if oom_match else "OutOfMemoryError"
             return JazzerSanitizerReport(
-                raw_content,
-                "Out of memory",
-                "N/A",
-                exception_type="OutOfMemoryError",
-                dedup_token="oom"
+                raw_content, "Out of memory", "N/A", exception_type="OutOfMemoryError", dedup_token="oom"
             )
 
         # Look for Jazzer exception
@@ -103,8 +90,7 @@ class JazzerSanitizerReport(SanitizerReport):
         exception_message = match.group(2)
 
         # Clean up exception class name
-        exception_type = exception_class.replace(
-            "com.code_intelligence.jazzer.api.", "")
+        exception_type = exception_class.replace("com.code_intelligence.jazzer.api.", "")
         cwe = f"{exception_type}: {exception_message}"
 
         # Extract stack traces
@@ -128,16 +114,18 @@ class JazzerSanitizerReport(SanitizerReport):
             trigger_point,
             exception_type=exception_type,
             stack_traces=stack_traces,
-            dedup_token=dedup_token
+            dedup_token=dedup_token,
         )
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Convert the report to a dictionary."""
         base_dict = super().to_dict()
-        base_dict.update({
-            "exception_type": self.exception_type,
-            "stack_traces": self.stack_traces,
-            "dedup_token": self.dedup_token,
-            "cwe_id": self.get_cwe_id()
-        })
+        base_dict.update(
+            {
+                "exception_type": self.exception_type,
+                "stack_traces": self.stack_traces,
+                "dedup_token": self.dedup_token,
+                "cwe_id": self.get_cwe_id(),
+            }
+        )
         return base_dict
