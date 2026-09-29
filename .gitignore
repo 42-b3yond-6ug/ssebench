@@ -47,7 +47,6 @@ docs/.vitepress/dist/
 dist/
 /webui/pty-proxy/pty-proxy
 *.sqlite
-/catalog.json
 
 # Nix
 result
