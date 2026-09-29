@@ -47,6 +47,7 @@ afterAll(() => {
 
 beforeEach(() => {
   writeFileSync(fakes.dockerLog, "")
+  writeFileSync(fakes.psFile, "")
   writeFileSync(fakes.inspectFile, inspectJson({ "ssebench.webui": "true" }))
 })
 
@@ -113,6 +114,39 @@ describe("container operations", () => {
 
   test("SDK URL comes from the container's network address", async () => {
     expect(await getSDKUrl(SHORT_ID)).toBe("http://172.30.0.5:4263")
+  })
+
+  test("listing marks reference runs from their label", async () => {
+    const row = (id: string, labels: string) =>
+      JSON.stringify({
+        ID: id,
+        Names: `run-${id}`,
+        Image: "agent-image",
+        Status: "Up 1 minute",
+        Ports: "",
+        Labels: labels,
+        CreatedAt: "2026-01-01 00:00:00 +0000 UTC",
+      })
+    writeFileSync(
+      fakes.psFile,
+      [
+        row(
+          "aaaaaaaaaaaa",
+          "ssebench.webui=true,ssebench.agent=reference,ssebench.model=none,ssebench.reference-run=true"
+        ),
+        row(
+          "bbbbbbbbbbbb",
+          "ssebench.webui=true,ssebench.agent=dummy,ssebench.model=test-model"
+        ),
+      ].join("\n")
+    )
+
+    const containers = await listContainers()
+
+    expect(containers.map((c) => [c.agent, c.model, c.referenceRun])).toEqual([
+      ["reference", "none", true],
+      ["dummy", "test-model", false],
+    ])
   })
 
   test("listing filters on the SSEBench label", async () => {

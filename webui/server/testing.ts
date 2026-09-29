@@ -31,6 +31,8 @@ export interface Fakes {
   dockerLog: string
   uvLog: string
   inspectFile: string
+  /** What `docker ps` prints */
+  psFile: string
   /** A path that exists only if an injected command ran */
   marker: string
   env: Record<string, string>
@@ -63,14 +65,16 @@ export function createFakes(): Fakes {
   const dockerLog = join(dir, "docker.log")
   const uvLog = join(dir, "uv.log")
   const inspectFile = join(dir, "inspect.json")
+  const psFile = join(dir, "ps.json")
   writeFileSync(dockerLog, "")
+  writeFileSync(psFile, "")
   writeFileSync(uvLog, "")
   writeFileSync(inspectFile, inspectJson({ "ssebench.webui": "true" }))
 
   writeFileSync(
     join(binDir, "docker"),
     RECORDER("FAKE_DOCKER_LOG") +
-      `case "$1" in inspect) cat "$FAKE_DOCKER_INSPECT" ;; esac\n`
+      `case "$1" in inspect) cat "$FAKE_DOCKER_INSPECT" ;; ps) cat "$FAKE_DOCKER_PS" ;; esac\n`
   )
   writeFileSync(join(binDir, "uv"), RECORDER("FAKE_UV_LOG"))
   chmodSync(join(binDir, "docker"), 0o755)
@@ -94,11 +98,13 @@ export function createFakes(): Fakes {
     dockerLog,
     uvLog,
     inspectFile,
+    psFile,
     marker: join(dir, "pwned"),
     env: {
       PATH: `${binDir}:${process.env.PATH ?? ""}`,
       FAKE_DOCKER_LOG: dockerLog,
       FAKE_DOCKER_INSPECT: inspectFile,
+      FAKE_DOCKER_PS: psFile,
       FAKE_UV_LOG: uvLog,
       SSEBENCH_PATH: repo,
       SSEBENCH_LOCAL_TASKS: join(repo, "datasets", "pilot"),

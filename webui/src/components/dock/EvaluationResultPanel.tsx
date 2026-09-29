@@ -6,6 +6,7 @@
  */
 
 import { useState } from "react"
+import { useContainers } from "../../context/ContainerContext"
 import { useSDKDataContext } from "../../context/SDKDataContext"
 import type { EvaluationResultResponse } from "../../types/container"
 
@@ -15,6 +16,7 @@ import type { EvaluationResultResponse } from "../../types/container"
 
 export function EvaluationResultPanel() {
   const { evaluationResult, resultAvailable } = useSDKDataContext()
+  const { activeContainer } = useContainers()
 
   if (!resultAvailable || !evaluationResult) {
     return (
@@ -45,7 +47,10 @@ export function EvaluationResultPanel() {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto p-4">
-      <ResultCard result={evaluationResult} />
+      <ResultCard
+        result={evaluationResult}
+        referenceRun={activeContainer?.referenceRun ?? false}
+      />
     </div>
   )
 }
@@ -96,7 +101,13 @@ function MetricBadge({
   )
 }
 
-function ResultCard({ result }: { result: EvaluationResultResponse }) {
+function ResultCard({
+  result,
+  referenceRun,
+}: {
+  result: EvaluationResultResponse
+  referenceRun: boolean
+}) {
   const [showErrorLog, setShowErrorLog] = useState(false)
 
   // Waiting state - shown while polling for result
@@ -169,6 +180,16 @@ function ResultCard({ result }: { result: EvaluationResultResponse }) {
         </svg>
         <span className="text-fg text-xs font-medium">Evaluation Result</span>
       </div>
+
+      {referenceRun && (
+        <div className="bg-gruvbox-blue/10 text-gruvbox-blue mb-2 rounded p-2 text-[10px]">
+          <div className="mb-1 font-medium">Reference run</div>
+          <div className="opacity-90">
+            The task&apos;s known fix was applied, so this grade checks the
+            task, not a model.
+          </div>
+        </div>
+      )}
 
       {/* Metrics Grid */}
       {patch_result && (

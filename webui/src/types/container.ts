@@ -8,6 +8,8 @@ export interface DockerContainer {
   taskId: string
   model: string
   agent: string
+  /** The reference agent applied the task's known fix: the grade rates the task, not a model */
+  referenceRun: boolean
   status: "running" | "exited" | "paused" | "created"
   image: string
   ports: ContainerPort[]
