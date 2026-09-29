@@ -11,7 +11,8 @@ starts. `ssebench run` starts it when it is not running, and `just launch` start
 it on its own.
 
 The stack holds only the proxy. The run containers are started by `docker run`, not
-by Compose, and the [web UI](/webui/) and the catalog service run separately.
+by Compose, and the [web UI](/webui/) and the catalog service run separately, except
+in the [demo](#the-demo-stack), which adds them.
 
 ```
                  host                                      Compose project
@@ -169,6 +170,29 @@ docker volume rm exp-a_postgres_data
 
 Removing the volume erases the stack's keys and spend history, and it is the way to
 start over after changing `POSTGRES_PASSWORD`.
+
+## The demo stack
+
+`deploy/compose/demo.yaml` adds two services to the stack for the
+[demo](/getting-started/demo), and only adds: the proxy and its database stay as
+described above.
+
+| Service | Image | Role |
+|---|---|---|
+| `catalog` | `$SSEBENCH_REGISTRY/catalog:<version>` | Serves the pilot manifest on `127.0.0.1:$SSEBENCH_DEMO_CATALOG_PORT` (8090) |
+| `webui` | `$SSEBENCH_REGISTRY/webui:<version>` | The web UI on `127.0.0.1:$SSEBENCH_DEMO_WEBUI_PORT` (3001), with its terminal off. It shares the host's network, to reach each run container by its IP address, and mounts the Docker socket |
+
+`just demo` starts the layered stack as the project `ssebench-demo` (see
+`SSEBENCH_DEMO_PROJECT`), and `just demo-down` removes it with its volume. Both
+services carry the label `ssebench.demo`, which the demo uses to tell that a
+project is its own. To start it by hand, list both files:
+
+```sh
+set -a; . ./.env; set +a
+docker compose --project-name ssebench-demo \
+  --file deploy/compose/docker-compose.yaml --file deploy/compose/demo.yaml \
+  up --detach
+```
 
 ## Without the CLI
 

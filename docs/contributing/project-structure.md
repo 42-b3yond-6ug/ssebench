@@ -35,7 +35,7 @@ ssebench/
 │   └── validate/        # Task validator
 ├── docs/                # Documentation (this site)
 ├── deploy/
-│   └── compose/         # Docker Compose stack: LiteLLM proxy and Postgres
+│   └── compose/         # Docker Compose stack: LiteLLM proxy and Postgres, plus the demo's catalog and web UI
 ├── just/                # Just recipes, imported by the Justfile
 ├── nix/                 # Nix flake outputs: devshell, packages, checks (optional)
 ├── Justfile             # Task runner entry point

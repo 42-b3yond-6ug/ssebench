@@ -127,11 +127,18 @@ just setup    # install dependencies and write .env with generated local secrets
 just doctor   # check Docker, disk space, .env and the LiteLLM proxy
 ```
 
-**See it work** (coming soon)
+**See it work**
 
 ```sh
 just demo     # apply the known fix to a pilot task, grade it, and show the run in the web UI; no API key needed
+just demo-down
 ```
+
+`just demo` starts the LiteLLM proxy, the task catalog and the web UI with
+Docker Compose, runs the `reference` agent on a fast Go task, and prints the
+address of the web UI, `http://127.0.0.1:3001`, where the run is open: the
+dialog, the diff and the evaluation result. `just demo-down` removes what it
+created. See [Try the demo](docs/getting-started/demo.md).
 
 **Run an agent on a pilot task**
 
@@ -179,7 +186,7 @@ component.
 | `tools/report/` | Typst report built from `results/`. |
 | `tools/validate/` | Task validator: checks that a task builds, its PoC reproduces and its tests behave. |
 | `docs/` | Documentation site (VitePress). |
-| `deploy/compose/` | Docker Compose stack: the LiteLLM proxy and its database. |
+| `deploy/compose/` | Docker Compose stack: the LiteLLM proxy and its database, and the demo's catalog and web UI. |
 | `.github/workflows/` | CI (GitHub Actions). |
 
 ## Dataset

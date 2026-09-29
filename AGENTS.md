@@ -61,7 +61,7 @@ tools/release/         bump.py: sets the version everywhere, or checks for drift
 tools/report/          Typst report from results/
 tools/validate/        task validator
 docs/                  VitePress documentation site
-deploy/compose/        Docker Compose stack (LiteLLM proxy and Postgres)
+deploy/compose/        Docker Compose stack (LiteLLM proxy and Postgres); demo.yaml adds the catalog and the web UI for `just demo`
 deploy/helm/           Helm chart (planned)
 pyproject.toml         uv workspace root (every Python project above is a member); uv.lock pins them all
 flake.nix, nix/        optional Nix flake (numtide/blueprint): devshell, packages, checks, formatter
@@ -86,7 +86,7 @@ Justfile yet.
 |---|---|
 | `just setup` | Install dependencies and write `.env` with generated local secrets. |
 | `just doctor` | Check Docker, disk, CPU, `.env`, the LiteLLM proxy and provider keys. |
-| `just demo` | Apply the known fix to a pilot task, grade it and show the run in the web UI, without an API key. *planned* |
+| `just demo` / `just demo-down` | Start the demo stack (proxy, catalog, web UI), apply the known fix to a pilot task, grade it and show the run in the web UI, without an API key; `--agent <agent> --model <model>` uses your own key. `demo-down` removes what it created. |
 | `just run --task <id> --agent <agent> --model <model>` | Run an agent × model × task on the pilot dataset; other options go to `ssebench run`. Without arguments it opens the fzf pickers (`just pick`). |
 | `just launch` / `just stop` | Start (rebuilding when `models/` changed) or stop the LiteLLM proxy. |
 | `just test [components]` | Unit tests: pytest, `cargo test`, `go test`, `bun test` in webui. |
