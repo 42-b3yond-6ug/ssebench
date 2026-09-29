@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { getWsBaseUrl } from "../lib/api"
+import { openWebSocket } from "../lib/api"
 
 interface UseContainerLogsReturn {
   logs: string[]
@@ -37,10 +37,10 @@ export function useContainerLogs(
       return
     }
 
-    const wsUrl = `${getWsBaseUrl()}/api/containers/${containerId}/logs-ws`
-    console.log("[useContainerLogs] Connecting to:", wsUrl)
+    const wsPath = `/api/containers/${containerId}/logs-ws`
+    console.log("[useContainerLogs] Connecting to:", wsPath)
 
-    const ws = new WebSocket(wsUrl)
+    const ws = openWebSocket(wsPath)
     wsRef.current = ws
 
     ws.onopen = () => {

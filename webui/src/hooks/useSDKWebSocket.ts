@@ -12,7 +12,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { getWsBaseUrl } from "../lib/api"
+import { openWebSocket } from "../lib/api"
 import type {
   ProjectInfo,
   ChangedFile,
@@ -110,10 +110,10 @@ export function useSDKWebSocket(
       isInitializing: true,
     })
 
-    const wsUrl = `${getWsBaseUrl()}/api/containers/${containerId}/sdk-ws`
-    console.log(`[useSDKWebSocket] Connecting to: ${wsUrl}`)
+    const wsPath = `/api/containers/${containerId}/sdk-ws`
+    console.log(`[useSDKWebSocket] Connecting to: ${wsPath}`)
 
-    const ws = new WebSocket(wsUrl)
+    const ws = openWebSocket(wsPath)
     wsRef.current = ws
 
     ws.onopen = () => {

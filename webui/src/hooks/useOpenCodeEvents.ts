@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { getWsBaseUrl } from "../lib/api"
+import { openWebSocket } from "../lib/api"
 import type {
   ToolExecution,
   PendingPermission,
@@ -129,12 +129,12 @@ export function useOpenCodeEvents({
       params.set("directory", directory)
     }
 
-    const wsUrl = `${getWsBaseUrl()}/api/containers/${containerId}/opencode/events-ws?${params}`
+    const wsPath = `/api/containers/${containerId}/opencode/events-ws?${params}`
 
-    console.log("[useOpenCodeEvents] Connecting to:", wsUrl)
+    console.log("[useOpenCodeEvents] Connecting to:", wsPath)
 
     try {
-      const ws = new WebSocket(wsUrl)
+      const ws = openWebSocket(wsPath)
       wsRef.current = ws
 
       ws.onopen = () => {

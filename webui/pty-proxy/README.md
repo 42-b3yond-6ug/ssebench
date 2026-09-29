@@ -46,11 +46,13 @@ missing, terminal sessions report an error instead of starting.
 ## Usage
 
 ```bash
-pty-proxy [--cmd COMMAND] [--workdir WORKDIR] <container-id>
+pty-proxy [--workdir WORKDIR] <container-id> [command [arg...]]
 ```
 
-- `--cmd`: command to run in the container (default `bash`). Commands with
-  spaces or quotes are run through `bash -c`.
+- `<container-id>`: hexadecimal container ID (12 to 64 characters).
+- `command [arg...]`: what to run in the container (default `bash`). The
+  words are passed to `docker exec` as separate arguments; nothing is parsed
+  by a shell.
 - `--workdir`: working directory inside the container (`docker exec -w`).
 
 There is no standalone server mode; the program is meant to be run by the

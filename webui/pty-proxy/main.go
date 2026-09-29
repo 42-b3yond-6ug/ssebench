@@ -3,16 +3,22 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"os/exec"
 	"os/signal"
+	"regexp"
 	"syscall"
 
 	"github.com/creack/pty"
 )
+
+const usage = "Usage: pty-proxy [--workdir WORKDIR] <container-id> [command [arg...]]"
+
+var containerIDPattern = regexp.MustCompile(`^[a-f0-9]{12,64}$`)
 
 // Message types - must match frontend/backend
 type ClientMessage struct {
@@ -29,69 +35,50 @@ type ServerMessage struct {
 	Code    *int   `json:"code,omitempty"`
 }
 
+// parseArgs reads the command line. Flags stop at the container ID, so the
+// command and its arguments reach docker exec verbatim and are never parsed
+// by a shell.
+func parseArgs(argv []string) (dockerArgs []string, err error) {
+	fs := flag.NewFlagSet("pty-proxy", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	workdir := fs.String("workdir", "", "working directory inside the container")
+	if err := fs.Parse(argv); err != nil {
+		return nil, err
+	}
+
+	args := fs.Args()
+	if len(args) == 0 {
+		return nil, fmt.Errorf("missing container ID")
+	}
+	containerID := args[0]
+	if !containerIDPattern.MatchString(containerID) {
+		return nil, fmt.Errorf("invalid container ID %q", containerID)
+	}
+	command := args[1:]
+	if len(command) == 0 {
+		command = []string{"bash"}
+	}
+
+	dockerArgs = []string{"exec", "-it"}
+	if *workdir != "" {
+		dockerArgs = append(dockerArgs, "-w", *workdir)
+	}
+	dockerArgs = append(dockerArgs, containerID)
+	return append(dockerArgs, command...), nil
+}
+
 func main() {
-	// Parse command-line arguments
-	// Usage: pty-proxy [--cmd COMMAND] [--workdir WORKDIR] <container-id>
-	var command string = "bash"
-	var workdir string = ""
-	var containerID string
-
-	args := os.Args[1:]
-	for i := 0; i < len(args); i++ {
-		switch args[i] {
-		case "--cmd":
-			if i+1 < len(args) {
-				command = args[i+1]
-				i++
-			}
-		case "--workdir":
-			if i+1 < len(args) {
-				workdir = args[i+1]
-				i++
-			}
-		default:
-			containerID = args[i]
-		}
-	}
-
-	if containerID == "" {
-		sendError("Usage: pty-proxy [--cmd COMMAND] [--workdir WORKDIR] <container-id>")
-		os.Exit(1)
-	}
-
 	// Set up logging to stderr (stdout is for JSON messages)
 	log.SetOutput(os.Stderr)
 	log.SetPrefix("[PTY-PROXY] ")
 
-	log.Printf("Starting PTY session for container: %s, command: %s, workdir: %s", containerID, command, workdir)
-
-	// Build docker exec command
-	dockerArgs := []string{"exec", "-it"}
-	if workdir != "" {
-		dockerArgs = append(dockerArgs, "-w", workdir)
+	dockerArgs, err := parseArgs(os.Args[1:])
+	if err != nil {
+		sendError(fmt.Sprintf("%v. %s", err, usage))
+		os.Exit(1)
 	}
-	dockerArgs = append(dockerArgs, containerID)
 
-	// If command contains spaces or special characters, wrap in bash -c
-	// This allows commands like "opencode run 'message'" to work properly
-	if command != "bash" && (len(command) > 4 && command[:5] != "bash ") {
-		// Check if command needs shell parsing (has spaces, quotes, etc.)
-		needsShell := false
-		for _, char := range command {
-			if char == ' ' || char == '"' || char == '\'' {
-				needsShell = true
-				break
-			}
-		}
-
-		if needsShell {
-			dockerArgs = append(dockerArgs, "bash", "-c", command)
-		} else {
-			dockerArgs = append(dockerArgs, command)
-		}
-	} else {
-		dockerArgs = append(dockerArgs, command)
-	}
+	log.Printf("Starting PTY session: docker %q", dockerArgs)
 
 	// Start docker exec with PTY
 	cmd := exec.Command("docker", dockerArgs...)

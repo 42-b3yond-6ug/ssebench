@@ -20,6 +20,7 @@ import {
   checkSDKHealth,
   stopContainer,
   removeContainer,
+  isContainerId,
 } from "./docker"
 import {
   createSession as createOpenCodeSession,
@@ -68,8 +69,29 @@ import {
   clearAllLaunches,
   subscribeToLaunch,
   unsubscribeFromLaunch,
-  type LaunchConfig,
+  validateLaunchConfig,
 } from "./launch"
+import {
+  checkApiRequest,
+  loadSecurityConfig,
+  SecurityConfigError,
+  webSocketResponseHeaders,
+  type SecurityConfig,
+} from "./security"
+
+function loadSecurityOrExit(): SecurityConfig {
+  try {
+    return loadSecurityConfig()
+  } catch (error) {
+    if (error instanceof SecurityConfigError) {
+      console.error(`[Server] ${error.message}`)
+      process.exit(1)
+    }
+    throw error
+  }
+}
+
+const security = loadSecurityOrExit()
 
 // WebSocket data attached to each connection
 interface WSData {
@@ -93,13 +115,33 @@ app.use("*", logger())
 app.use(
   "*",
   cors({
-    origin: "*",
+    // Same-origin requests need no CORS headers; other origins must be listed
+    origin: (origin) => (security.corsOrigins.has(origin) ? origin : null),
     allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Cache-Control"],
+    allowHeaders: ["Content-Type", "Cache-Control", "Authorization"],
     exposeHeaders: ["Content-Type", "Cache-Control"],
     credentials: false,
   })
 )
+
+// Registered here rather than in fetch() so the check sees the same
+// (percent-decoded) path that the router uses.
+app.use("/api/*", async (c, next) => {
+  const rejection = checkApiRequest(c.req.raw, security)
+  if (rejection) {
+    console.warn(`[Auth] ${rejection.status} ${c.req.method} ${c.req.path}`)
+    return rejection
+  }
+  await next()
+})
+
+// Container IDs reach the docker CLI; reject anything that is not one
+app.use("/api/containers/:id/*", async (c, next) => {
+  if (!isContainerId(c.req.param("id"))) {
+    return c.json({ error: "Invalid container ID" }, 400)
+  }
+  await next()
+})
 
 // Health check
 app.get("/api/health", async (c) => {
@@ -107,6 +149,7 @@ app.get("/api/health", async (c) => {
   return c.json({
     status: "ok",
     docker: dockerOk,
+    terminal: security.terminalEnabled,
     timestamp: new Date().toISOString(),
   })
 })
@@ -276,6 +319,9 @@ app.get("/api/containers/:id/sdk/version", async (c) => {
 app.get("/api/containers/:id/agent/dialog", async (c) => {
   const id = c.req.param("id")
   const since = c.req.query("since")
+  if (since !== undefined && !/^\d+$/.test(since)) {
+    return c.json({ error: "Invalid since: expected a sequence number" }, 400)
+  }
   const endpoint = since ? `/agent/dialog?since=${since}` : "/agent/dialog"
   const { data, status } = await proxyToSDK(id, endpoint)
   return c.json(data, status as 200 | 500 | 503 | 504)
@@ -458,24 +504,13 @@ app.get("/api/launch/config", (c) => {
 // Launch a new task (supports multiple concurrent launches)
 app.post("/api/launch", async (c) => {
   try {
-    const config = await c.req.json<LaunchConfig>()
-
-    // Validate required fields
-    if (
-      !config.task ||
-      !config.model ||
-      !config.agent ||
-      !config.mode ||
-      !config.source
-    ) {
-      return c.json({ error: "Missing required fields" }, 400)
+    const body = await c.req.json().catch(() => null)
+    const validation = validateLaunchConfig(body)
+    if (!validation.ok) {
+      return c.json({ error: validation.error }, 400)
     }
 
-    if (config.source === "remote" && !isCatalogConfigured()) {
-      return c.json({ error: CATALOG_NOT_CONFIGURED }, 400)
-    }
-
-    const status = await launchTask(config)
+    const status = await launchTask(validation.config)
     return c.json(status)
   } catch (error) {
     console.error("Launch failed:", error)
@@ -556,29 +591,50 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001
 // Store server reference for WebSocket upgrades
 let server: Server<WSData>
 
+/** Container ID segment of WebSocket routes (see isContainerId) */
+const WS_CONTAINER_ID = "([a-f0-9]{12,64})"
+const TERMINAL_WS_PATH = /^\/api\/pty(-debug)?\//
+
 export default {
   port: PORT,
-  hostname: "0.0.0.0",
+  hostname: security.host,
 
   // Main request handler
   fetch(request: Request, srv: Server<WSData>): Response | Promise<Response> {
     server = srv
     const url = new URL(request.url)
 
-    // Log WebSocket upgrade requests
-    if (request.headers.get("upgrade") === "websocket") {
+    // WebSocket upgrades are handled here, outside Hono, so they get the
+    // same checks as the /api routes. Everything else goes to Hono.
+    const upgradeHeaders = webSocketResponseHeaders(request)
+    if (request.headers.get("upgrade")?.toLowerCase() === "websocket") {
       console.log(`[WS] Upgrade request for: ${url.pathname}`)
+
+      const rejection = checkApiRequest(request, security)
+      if (rejection) {
+        console.warn(`[Auth] ${rejection.status} WS ${url.pathname}`)
+        return rejection
+      }
+      if (!security.terminalEnabled && TERMINAL_WS_PATH.test(url.pathname)) {
+        return Response.json(
+          { error: "Terminal is disabled on this server" },
+          { status: 403 }
+        )
+      }
     }
 
     // Handle WebSocket upgrade for PTY connections
     // Route: /api/pty/:containerId
-    const ptyMatch = url.pathname.match(/^\/api\/pty\/([a-zA-Z0-9]+)$/)
+    const ptyMatch = url.pathname.match(
+      new RegExp(`^/api/pty/${WS_CONTAINER_ID}$`)
+    )
     if (ptyMatch && request.headers.get("upgrade") === "websocket") {
       const containerId = ptyMatch[1]
 
       // Upgrade to WebSocket
       const success = server.upgrade(request, {
         data: { containerId, type: "bash" } satisfies WSData,
+        headers: upgradeHeaders,
       })
 
       if (success) {
@@ -593,7 +649,7 @@ export default {
     // Handle WebSocket upgrade for Debug PTY connections (OpenCode)
     // Route: /api/pty-debug/:containerId?message=...
     const ptyDebugMatch = url.pathname.match(
-      /^\/api\/pty-debug\/([a-zA-Z0-9]+)$/
+      new RegExp(`^/api/pty-debug/${WS_CONTAINER_ID}$`)
     )
     if (ptyDebugMatch && request.headers.get("upgrade") === "websocket") {
       const containerId = ptyDebugMatch[1]
@@ -604,6 +660,7 @@ export default {
       // Upgrade to WebSocket with debug type
       const success = server.upgrade(request, {
         data: { containerId, type: "debug", initialMessage } satisfies WSData,
+        headers: upgradeHeaders,
       })
 
       if (success) {
@@ -622,6 +679,7 @@ export default {
       console.log("[WS] Launch upgrade request")
       const success = server.upgrade(request, {
         data: { type: "launch" } satisfies WSData,
+        headers: upgradeHeaders,
       })
 
       if (success) {
@@ -634,7 +692,7 @@ export default {
     // Handle WebSocket upgrade for Container Logs (docker logs -f)
     // Route: /api/containers/:id/logs-ws
     const containerLogsMatch = url.pathname.match(
-      /^\/api\/containers\/([a-zA-Z0-9_-]+)\/logs-ws$/
+      new RegExp(`^/api/containers/${WS_CONTAINER_ID}/logs-ws$`)
     )
     if (containerLogsMatch && request.headers.get("upgrade") === "websocket") {
       const containerId = containerLogsMatch[1]
@@ -642,6 +700,7 @@ export default {
 
       const success = server.upgrade(request, {
         data: { containerId, type: "container-logs" } satisfies WSData,
+        headers: upgradeHeaders,
       })
 
       if (success) {
@@ -654,7 +713,7 @@ export default {
     // Handle WebSocket upgrade for OpenCode Events
     // Route: /api/containers/:containerId/opencode/events-ws?sessionId=...&directory=...
     const opencodeEventsMatch = url.pathname.match(
-      /^\/api\/containers\/([a-zA-Z0-9_-]+)\/opencode\/events-ws$/
+      new RegExp(`^/api/containers/${WS_CONTAINER_ID}/opencode/events-ws$`)
     )
     if (opencodeEventsMatch && request.headers.get("upgrade") === "websocket") {
       const containerId = opencodeEventsMatch[1]
@@ -672,6 +731,7 @@ export default {
           sessionId,
           directory,
         } satisfies WSData,
+        headers: upgradeHeaders,
       })
 
       if (success) {
@@ -686,7 +746,7 @@ export default {
     // Handle WebSocket upgrade for SDK Data Streaming
     // Route: /api/containers/:id/sdk-ws
     const sdkWsMatch = url.pathname.match(
-      /^\/api\/containers\/([a-zA-Z0-9_-]+)\/sdk-ws$/
+      new RegExp(`^/api/containers/${WS_CONTAINER_ID}/sdk-ws$`)
     )
     if (sdkWsMatch && request.headers.get("upgrade") === "websocket") {
       const containerId = sdkWsMatch[1]
@@ -694,6 +754,7 @@ export default {
 
       const success = server.upgrade(request, {
         data: { containerId, type: "sdk" } satisfies WSData,
+        headers: upgradeHeaders,
       })
 
       if (success) {
@@ -867,42 +928,33 @@ export default {
 
       // Handle debug terminal (OpenCode)
       if (type === "debug") {
+        // The message is one argument to opencode, never shell text
+        const command = initialMessage
+          ? ["opencode", "run", initialMessage]
+          : ["opencode"]
+        if (initialMessage) {
+          console.log(
+            `[WS] Starting OpenCode with message: ${initialMessage.substring(0, 100)}...`
+          )
+        }
+
+        let sourceDir = "/src"
         try {
-          // Fetch source directory from SDK
           const { data } = await proxyToSDK(containerId, "/project")
-          const project = data as { source?: string }
-          const sourceDir = project.source || "/src"
-
-          console.log(`[WS] Debug session - source directory: ${sourceDir}`)
-
-          // Build opencode command with message if provided
-          let command: string
-
-          if (initialMessage) {
-            // Escape single quotes in the message for bash safety
-            const escapedMessage = initialMessage.replace(/'/g, "'\\''")
-            // Format as shell command - the Go proxy will automatically wrap this in bash -c
-            command = `opencode run '${escapedMessage}'`
-            console.log(
-              `[WS] Starting OpenCode with message: ${initialMessage.substring(0, 100)}...`
-            )
-          } else {
-            command = "opencode"
+          const source = (data as { source?: unknown } | null)?.source
+          if (typeof source === "string" && source.startsWith("/")) {
+            sourceDir = source
           }
-
-          // Create PTY session with opencode command and source directory
-          await createPTYSession(containerId, ws, 80, 24, command, sourceDir)
         } catch (error) {
+          // Fall back to /src if we can't get project info
           console.error(
             `[WS] Failed to get source directory for debug session:`,
             error
           )
-          // Fall back to /src if we can't get project info
-          const command = initialMessage
-            ? `opencode run '${initialMessage.replace(/'/g, "'\\''")}'`
-            : "opencode"
-          await createPTYSession(containerId, ws, 80, 24, command, "/src")
         }
+        console.log(`[WS] Debug session - source directory: ${sourceDir}`)
+
+        await createPTYSession(containerId, ws, 80, 24, command, sourceDir)
       } else {
         // Regular bash terminal
         await createPTYSession(containerId, ws, 80, 24)
@@ -956,7 +1008,17 @@ export default {
   },
 }
 
-console.log(`🚀 SSEBench WebUI Server running on http://localhost:${PORT}`)
+const displayHost = security.host.includes(":")
+  ? `[${security.host}]`
+  : security.host
+console.log(`🚀 SSEBench WebUI Server running on http://${displayHost}:${PORT}`)
+console.log(
+  `   Auth: ${security.token ? "bearer token required" : "none (loopback only)"}`
+)
+console.log(`   Terminal: ${security.terminalEnabled ? "enabled" : "disabled"}`)
+if (security.corsOrigins.size > 0) {
+  console.log(`   CORS origins: ${[...security.corsOrigins].join(", ")}`)
+}
 console.log(``)
 console.log(`   Container Endpoints:`)
 console.log(`   - GET  /api/health                       Health check`)

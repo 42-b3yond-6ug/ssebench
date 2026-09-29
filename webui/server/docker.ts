@@ -1,12 +1,31 @@
 /**
- * Docker API wrapper - queries Docker daemon for SSEBench containers
+ * Docker CLI wrapper - queries the Docker daemon for SSEBench containers
+ *
+ * Every call passes an argument vector to the docker binary; nothing goes
+ * through a shell. Operations on a single container accept only container
+ * IDs and only act on containers carrying the SSEBench label, so request
+ * data can neither inject commands nor reach unrelated containers.
  */
 
-import { exec } from "node:child_process"
+import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 import type { DockerContainer, DockerPsJson } from "../src/types/container"
 
-const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
+
+async function docker(args: string[]): Promise<string> {
+  const { stdout } = await execFileAsync("docker", args, {
+    maxBuffer: 64 * 1024 * 1024,
+  })
+  return stdout
+}
+
+const CONTAINER_ID_PATTERN = /^[a-f0-9]{12,64}$/
+
+/** Short or full hexadecimal container ID, as listed by `docker ps`. */
+export function isContainerId(value: unknown): value is string {
+  return typeof value === "string" && CONTAINER_ID_PATTERN.test(value)
+}
 
 /**
  * Labels used to identify and describe SSEBench containers
@@ -91,7 +110,8 @@ function transformContainer(raw: DockerPsJson): DockerContainer {
   const labels = parseLabels(raw.Labels)
 
   return {
-    id: raw.ID,
+    // Short form, matching `docker ps` without --no-trunc
+    id: raw.ID.slice(0, 12),
     name: raw.Names,
     taskId: labels[TASK_ID_LABEL] || "unknown",
     model: labels[MODEL_LABEL] || "unknown",
@@ -103,35 +123,34 @@ function transformContainer(raw: DockerPsJson): DockerContainer {
   }
 }
 
+/** Parse `docker ps --format json` output: one JSON object per line */
+function parsePsLines(stdout: string): DockerPsJson[] {
+  const rows: DockerPsJson[] = []
+  for (const line of stdout.split("\n")) {
+    if (!line.trim()) continue
+    try {
+      rows.push(JSON.parse(line))
+    } catch {
+      console.error("Failed to parse Docker JSON line:", line)
+    }
+  }
+  return rows
+}
+
 /**
  * List all SSEBench containers (filtered by label)
  */
 export async function listContainers(): Promise<DockerContainer[]> {
   try {
-    // Query Docker for containers with our label
-    const { stdout } = await execAsync(
-      `docker ps -a --filter "label=${SSEBENCH_LABEL}" --format json`
-    )
-
-    if (!stdout.trim()) {
-      return []
-    }
-
-    // Docker outputs one JSON object per line
-    const lines = stdout.trim().split("\n")
-    const containers: DockerContainer[] = []
-
-    for (const line of lines) {
-      if (!line.trim()) continue
-      try {
-        const raw: DockerPsJson = JSON.parse(line)
-        containers.push(transformContainer(raw))
-      } catch {
-        console.error("Failed to parse Docker JSON line:", line)
-      }
-    }
-
-    return containers
+    const stdout = await docker([
+      "ps",
+      "-a",
+      "--filter",
+      `label=${SSEBENCH_LABEL}`,
+      "--format",
+      "json",
+    ])
+    return parsePsLines(stdout).map(transformContainer)
   } catch (error) {
     console.error("Failed to list containers:", error)
     throw new Error("Failed to query Docker daemon")
@@ -139,25 +158,75 @@ export async function listContainers(): Promise<DockerContainer[]> {
 }
 
 /**
- * Get a single container by ID
+ * Get a single SSEBench container by ID
  */
 export async function getContainer(
   id: string
 ): Promise<DockerContainer | null> {
+  if (!isContainerId(id)) return null
   try {
-    const { stdout } = await execAsync(
-      `docker ps -a --filter "id=${id}" --filter "label=${SSEBENCH_LABEL}" --format json`
-    )
-
-    if (!stdout.trim()) {
-      return null
-    }
-
-    const raw: DockerPsJson = JSON.parse(stdout.trim().split("\n")[0])
-    return transformContainer(raw)
+    // The id filter is an unanchored pattern match, so keep only rows whose
+    // full ID starts with the requested one.
+    const stdout = await docker([
+      "ps",
+      "-a",
+      "--no-trunc",
+      "--filter",
+      `id=${id}`,
+      "--filter",
+      `label=${SSEBENCH_LABEL}`,
+      "--format",
+      "json",
+    ])
+    const matches = parsePsLines(stdout).filter((raw) => raw.ID.startsWith(id))
+    return matches.length === 1 ? transformContainer(matches[0]) : null
   } catch {
     return null
   }
+}
+
+/** Result of resolving a request-supplied ID to an SSEBench container */
+export interface ResolvedContainer {
+  /** Full 64-character ID; never ambiguous with a container name */
+  id: string
+  /** Docker state, e.g. "running" or "exited" */
+  status: string
+  /** First IP address on any attached network */
+  ip: string | null
+}
+
+interface DockerInspect {
+  Id: string
+  State?: { Status?: string }
+  Config?: { Labels?: Record<string, string> | null }
+  NetworkSettings?: { Networks?: Record<string, { IPAddress?: string }> }
+}
+
+/**
+ * Resolve an ID to an SSEBench container. Returns null for malformed IDs,
+ * unknown containers and containers without the SSEBench label.
+ */
+export async function resolveContainer(
+  id: string
+): Promise<ResolvedContainer | null> {
+  if (!isContainerId(id)) return null
+  let info: DockerInspect | undefined
+  try {
+    const stdout = await docker(["inspect", "--type", "container", id])
+    info = (JSON.parse(stdout) as DockerInspect[])[0]
+  } catch {
+    return null
+  }
+  // docker resolves names before ID prefixes; insist on an ID match.
+  if (!info || !info.Id.startsWith(id)) return null
+  if (info.Config?.Labels?.[SSEBENCH_LABEL] === undefined) return null
+
+  const ip =
+    Object.values(info.NetworkSettings?.Networks ?? {})
+      .map((n) => n.IPAddress)
+      .find((addr) => !!addr) ?? null
+
+  return { id: info.Id, status: info.State?.Status ?? "unknown", ip }
 }
 
 /**
@@ -165,7 +234,7 @@ export async function getContainer(
  */
 export async function checkDockerAccess(): Promise<boolean> {
   try {
-    await execAsync("docker info")
+    await docker(["info"])
     return true
   } catch {
     return false
@@ -178,9 +247,11 @@ export async function checkDockerAccess(): Promise<boolean> {
  * @returns true if killed and removed successfully
  */
 export async function stopContainer(id: string): Promise<boolean> {
+  const container = await resolveContainer(id)
+  if (!container) return false
   try {
-    await execAsync(`docker kill ${id}`)
-    await execAsync(`docker rm ${id}`)
+    await docker(["kill", container.id])
+    await docker(["rm", container.id])
     return true
   } catch (error) {
     console.error(`Failed to kill/remove container ${id}:`, error)
@@ -194,8 +265,10 @@ export async function stopContainer(id: string): Promise<boolean> {
  * @returns true if removed successfully
  */
 export async function removeContainer(id: string): Promise<boolean> {
+  const container = await resolveContainer(id)
+  if (!container) return false
   try {
-    await execAsync(`docker rm ${id}`)
+    await docker(["rm", container.id])
     return true
   } catch (error) {
     console.error(`Failed to remove container ${id}:`, error)
@@ -211,41 +284,24 @@ export async function removeContainer(id: string): Promise<boolean> {
 const SDK_HTTP_PORT = 4263
 
 /**
- * Get container IP address on Docker network
- *
- * Containers on ssebench_net have predictable IPs that the host can access.
- * This avoids the need for random port mapping.
- */
-async function getContainerIP(containerId: string): Promise<string | null> {
-  try {
-    const { stdout } = await execAsync(
-      `docker inspect ${containerId} --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'`
-    )
-    const ip = stdout.trim()
-
-    if (!ip) {
-      console.error(`Container ${containerId} has no IP address`)
-      return null
-    }
-
-    return ip
-  } catch (error) {
-    console.error(`Failed to get IP for container ${containerId}:`, error)
-    return null
-  }
-}
-
-/**
  * Get SDK HTTP URL for a container
  *
- * SDK daemon runs on port 4263 inside containers, accessible via Docker network.
+ * SDK daemon runs on port 4263 inside containers, reached through the
+ * container's IP on its Docker network (no host port mapping needed).
  * Returns the full URL to use for SDK API requests.
  */
 export async function getSDKUrl(containerId: string): Promise<string | null> {
-  const ip = await getContainerIP(containerId)
-  if (!ip) return null
+  const container = await resolveContainer(containerId)
+  if (!container) {
+    console.error(`No SSEBench container with ID ${containerId}`)
+    return null
+  }
+  if (!container.ip) {
+    console.error(`Container ${containerId} has no IP address`)
+    return null
+  }
 
-  return `http://${ip}:${SDK_HTTP_PORT}`
+  return `http://${container.ip}:${SDK_HTTP_PORT}`
 }
 
 /**

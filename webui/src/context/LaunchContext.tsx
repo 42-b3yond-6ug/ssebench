@@ -20,7 +20,7 @@ import {
   useCallback,
 } from "react"
 import {
-  getWsBaseUrl,
+  openWebSocket,
   cancelLaunch as apiCancelLaunch,
   clearLaunchEntry as apiClearLaunchEntry,
   clearAllLaunches as apiClearAllLaunches,
@@ -82,10 +82,10 @@ export function LaunchProvider({ children }: LaunchProviderProps) {
       return
     }
 
-    const wsUrl = `${getWsBaseUrl()}/api/launch/ws`
-    console.log("[Launch] Connecting to:", wsUrl)
+    const wsPath = "/api/launch/ws"
+    console.log("[Launch] Connecting to:", wsPath)
 
-    const ws = new WebSocket(wsUrl)
+    const ws = openWebSocket(wsPath)
     wsRef.current = ws
 
     ws.onopen = () => {

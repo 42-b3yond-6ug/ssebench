@@ -174,8 +174,10 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                   </button>
                 </div>
                 <p className="text-fg-4 mt-2 text-xs">
-                  Your API key is stored locally in your browser and never sent
-                  to our servers.
+                  The key is saved in this browser&apos;s localStorage. When you
+                  start an AI session, the web UI server passes it to OpenCode
+                  inside the run container, which keeps it there; remove the
+                  container when you are done.
                   <br />
                   Get your key from{" "}
                   <a
