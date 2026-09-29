@@ -12,7 +12,7 @@
 
 import { createContext, useContext, ReactNode, useState, useEffect } from "react"
 import { useSDKWebSocket } from "../hooks/useSDKWebSocket"
-import { fetchGroundTruthPatch } from "../lib/api"
+import { fetchReferencePatch } from "../lib/api"
 import type {
   ProjectInfo,
   ChangedFile,
@@ -116,7 +116,7 @@ export function SDKDataProvider({
   useEffect(() => {
     if (sdk.sdkReady && !groundTruthFetched) {
       setGroundTruthFetched(true)
-      fetchGroundTruthPatch(containerId)
+      fetchReferencePatch(containerId)
         .then((data) => {
           if (data.diff && data.diff.trim()) {
             setGroundTruthPatch(data.diff)

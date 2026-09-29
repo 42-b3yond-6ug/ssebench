@@ -336,10 +336,11 @@ app.get("/api/containers/:id/result", async (c) => {
   return c.json(data, status as 200 | 500 | 503 | 504)
 })
 
-// Get ground truth patch (WebUI only - NOT for agents!)
-app.get("/api/containers/:id/cheating/ground_truth", async (c) => {
+// Get the reference patch. The daemon only serves it after the agent phase
+// ends, so this returns the answer to the host UI post-run, never to the agent.
+app.get("/api/containers/:id/reference/patch", async (c) => {
   const id = c.req.param("id")
-  const { data, status } = await proxyToSDK(id, "/cheating/ground_truth")
+  const { data, status } = await proxyToSDK(id, "/reference/patch")
   return c.json(data, status as 200 | 500 | 503 | 504)
 })
 
