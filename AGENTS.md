@@ -63,6 +63,7 @@ docs/                  VitePress documentation site
 deploy/compose/        Docker Compose stack (LiteLLM proxy and Postgres)
 deploy/helm/           Helm chart (planned)
 pyproject.toml         uv workspace root (every Python project above is a member); uv.lock pins them all
+flake.nix, nix/        optional Nix flake (numtide/blueprint): devshell, packages, checks, formatter
 .github/workflows/     CI (GitHub Actions)
 ```
 
@@ -127,6 +128,11 @@ bun run --cwd webui lint && bun run --cwd webui typecheck
 uv run ssebench dataset validate
 uv run ssebench dataset manifest --check
 uv run ssebench dataset schema --check
+
+# Nix (optional): every toolchain in one shell; the lint and test checks in the sandbox
+nix develop
+nix flake check
+nix fmt
 
 # One run end to end; the dummy agent makes no model calls
 uv run ssebench run --local datasets/pilot --task <task-id> --agent dummy --model <model-name>

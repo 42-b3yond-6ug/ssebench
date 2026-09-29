@@ -58,8 +58,9 @@ sudo pacman -S fzf jq typst
 ```
 
 ```sh [Nix]
-# From the repository root, after cloning it (see below).
-# Docker itself must still be installed on the host.
+# From the repository root, after cloning it (see below). The shell has uv,
+# Python, just, fzf, jq, Typst, Bun and the Docker CLI with buildx.
+# The Docker engine itself must still be installed on the host.
 nix develop
 ```
 

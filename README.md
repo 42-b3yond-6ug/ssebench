@@ -112,7 +112,8 @@ it works. Final grading always runs every check the task has.
   AddressSanitizer for amd64 only.
 - [uv](https://docs.astral.sh/uv/) and [just](https://just.systems/).
 - Optional: [Nix](https://nixos.org/). `nix develop` gives you every toolchain
-  (Python, Rust, Go, Bun, uv, just) in one shell.
+  (Python, uv, Rust, Go, Bun, just, Typst, the Docker CLI) in one shell; the
+  Docker engine still comes from your system.
 - To run a real agent: an API key for at least one model provider.
 
 **Set up**

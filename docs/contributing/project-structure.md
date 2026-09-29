@@ -36,7 +36,9 @@ ssebench/
 ├── deploy/
 │   └── compose/         # Docker Compose stack: LiteLLM proxy and Postgres
 ├── just/                # Just recipes, imported by the Justfile
+├── nix/                 # Nix flake outputs: devshell, packages, checks (optional)
 ├── Justfile             # Task runner entry point
+├── flake.nix            # Nix flake (numtide/blueprint); flake.lock pins its inputs
 ├── VERSION              # The version of every component
 ├── pyproject.toml       # uv workspace root for every Python project
 ├── uv.lock              # The workspace's single lockfile
