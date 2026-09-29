@@ -1,8 +1,8 @@
 """Local settings: the process environment first, then `.env` in the workspace.
 
-`just setup` writes `.env` from `.env.example`, including generated secrets for the LiteLLM proxy.
-Reading `.env` here, instead of relying on the caller to export it, makes `uv run ssebench` behave
-the same as the just recipes, which load it themselves.
+`ssebench init` and `just setup` write `.env` from `.env.example`, including generated secrets for
+the LiteLLM proxy. Reading `.env` here, instead of relying on the caller to export it, makes
+`uv run ssebench` behave the same as the just recipes, which load it themselves.
 """
 
 import os
@@ -14,7 +14,7 @@ from ssebench import paths
 
 DEFAULT_COMPOSE_PROJECT = "ssebench"
 DEFAULT_LITELLM_PORT = 4000
-SETUP_HINT = "Run `just setup` to write .env with generated local secrets"
+SETUP_HINT = "Run `ssebench init` (`just setup` in a checkout) to write .env with generated local secrets"
 
 
 class SettingError(RuntimeError):

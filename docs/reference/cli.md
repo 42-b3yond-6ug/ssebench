@@ -29,6 +29,7 @@ bench/src/ssebench/cli/, then run `just docs-gen`. -->
 | `ssebench dataset schema` | Write the JSON Schemas of the task config, dataset.yaml and the manifest |
 | `ssebench tasks list` | List the tasks of a catalog or a local dataset |
 | `ssebench proxy` | Start, rebuild or stop the local LiteLLM proxy |
+| `ssebench init` | Write .env with generated secrets, models/ and results/ to the current directory |
 | `ssebench doctor` | Check that this host can build and run benchmarks |
 
 <!-- end generated -->
@@ -291,6 +292,40 @@ which is how `up`, `build` and `ssebench run` tell that it is out of date. The
 stack's Compose project is `COMPOSE_PROJECT_NAME` (default `ssebench`), and the
 proxy listens on `LITELLM_PORT` (default 4000); see
 [SSEBench settings](/reference/environment#ssebench-settings).
+
+## `ssebench init`
+
+Sets up the current directory as a workspace, the way `just setup` does in a
+checkout. Run it once, in an empty directory, when you run `ssebench` without a
+clone of the repository.
+
+```sh
+ssebench init
+```
+
+<!-- generated: cli init -->
+
+```sh
+ssebench init [-h]
+```
+
+It takes no options.
+
+<!-- end generated -->
+
+It writes three things, and leaves each one alone if it already exists, so it is
+safe to run again:
+
+- `.env`, from the packaged `.env.example`, with a generated master key for the
+  LiteLLM proxy and a generated password for its database. Only you can read
+  the file. Add the keys of your model providers to it.
+- `models/`, a copy of the model definitions in the package. `ssebench run` and
+  `ssebench proxy up` build the proxy image from this directory, and rebuild it
+  when you change a file; see [Add a model](/guides/add-a-model).
+- `results/`, where runs write their results.
+
+In a checkout, the workspace is the checkout, which already has `models/`, so
+the command only writes `.env` and `results/`.
 
 ## `ssebench doctor`
 

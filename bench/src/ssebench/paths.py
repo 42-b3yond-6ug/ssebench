@@ -99,6 +99,11 @@ def env_file() -> Path:
     return workspace() / ".env"
 
 
+def env_example() -> Path:
+    """The template of `.env`; `ssebench init` fills in the secrets."""
+    return home() / ".env.example"
+
+
 def models_dir() -> Path:
     """The model definitions the LiteLLM proxy is built from: the workspace's, else the packaged ones."""
     own = workspace() / "models"
