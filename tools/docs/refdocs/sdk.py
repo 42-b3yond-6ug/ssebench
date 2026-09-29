@@ -21,6 +21,7 @@ PACKAGE = ROOT / "sdk" / "python" / "sse"
 MODULES = [
     "sse",
     "sse.project",
+    "sse.metadata",
     "sse.prompt",
     "sse.tools.bencher",
     "sse.tools.bash",

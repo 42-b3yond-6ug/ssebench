@@ -3,79 +3,27 @@
 Importing this module asks the daemon for the task's metadata and capabilities, so it works only
 where a daemon answers: inside a task container, or with ``SSE_DAEMON_SOCKET`` pointing at one.
 The checks go to the daemon's agent-facing socket, which refuses those that the run's difficulty
-level withholds: they raise :class:`~sse.error.SDKError`.
+level withholds: they raise :class:`~sse.error.SDKError`. The types of the metadata are in
+:mod:`sse.metadata`.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
-
-from dacite import Config, from_dict
 
 from sse import tools
 from sse.daemon import Daemon
 from sse.helper import ScriptResult
-
-
-@dataclass
-class TaskDescription:
-    """What the agent is told about the vulnerability."""
-
-    issue: str | None
-    """Issue text."""
-    crash_report: list[str] | None
-    """Contents of the report files, such as the upstream issue or a sanitizer log."""
-    bug_description: str | None
-    """Short description of the bug."""
-
-
-@dataclass
-class Metadata:
-    """The task, as the daemon's ``GET /project`` returns it. Reference material is left out."""
-
-    id: str
-    """Task ID."""
-    project: str
-    """Name of the upstream project."""
-    language: str
-    """Language of the project: ``c``, ``go`` or ``rust``."""
-    source: Path
-    """The project's source tree, which the agent edits."""
-    task_description: TaskDescription
-    """What the agent is told about the vulnerability."""
-    poc: list[Path]
-    """Proof-of-concept inputs, to pass to :func:`run_poc`. Only the daemon can read them."""
-    build_script: str | None = None
-    """Contents of the build script, if the task has one."""
-    test_script: str | None = None
-    """Contents of the test script, if the task has one."""
-
-
-@dataclass
-class Capabilities:
-    """The checks the task supports, as the daemon's ``GET /capabilities`` returns them.
-
-    The difficulty level can still withhold a supported check from the agent.
-    """
-
-    can_build: bool
-    """The task has a build script."""
-    can_run_poc: bool
-    """The task has a run script and at least one proof of concept."""
-    poc_count: int
-    """Number of proofs of concept."""
-    has_function_test: bool
-    """The task has a test script."""
-    has_intent_test: bool
-    """The task has a test script and hidden tests of the fix."""
+from sse.metadata import Capabilities as Capabilities
+from sse.metadata import Metadata as Metadata
+from sse.metadata import TaskDescription as TaskDescription
+from sse.metadata import parse_metadata
 
 
 def init_metadata() -> Metadata:
     """Ask the daemon for the task's metadata. Importing the module does this once; use :data:`metadata`."""
-    m = cast(dict[str, Any], Daemon().project())
-    return from_dict(Metadata, m, config=Config(cast=[Path]))
+    return parse_metadata(cast(dict[str, Any], Daemon().project()))
 
 
 def init_capabilities() -> Capabilities:

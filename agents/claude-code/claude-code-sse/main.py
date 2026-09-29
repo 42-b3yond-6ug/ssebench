@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from sse import project
-from sse.prompt import TASK_PROMPT
+from sse.prompt import task_prompt
 
 # =============================================================================
 # Dialog Writer - Converts Claude Code stream-json to SSEBench dialog format
@@ -333,8 +333,8 @@ async def run_claude(dialog: DialogWriter):
         agent="claude-code",
     )
 
-    # Write the prompt
-    dialog.write_prompt(TASK_PROMPT.strip())
+    prompt = task_prompt()
+    dialog.write_prompt(prompt)
 
     # Build Claude command arguments
     # --dangerously-skip-permissions requires non-root user (handled by entrypoint)
@@ -369,7 +369,7 @@ async def run_claude(dialog: DialogWriter):
     )
 
     if process.stdin:
-        process.stdin.write(TASK_PROMPT.encode("utf-8"))
+        process.stdin.write(prompt.encode("utf-8"))
         await process.stdin.drain()
         process.stdin.close()
 

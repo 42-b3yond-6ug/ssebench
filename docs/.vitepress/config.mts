@@ -22,6 +22,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
     items: [
       { text: 'Architecture', link: '/concepts/architecture' },
       { text: 'Tasks and datasets', link: '/concepts/tasks-and-datasets' },
+      { text: 'Task prompt', link: '/concepts/prompt' },
       { text: 'Image layers', link: '/concepts/image-layers' },
       { text: 'Sandbox and sidecar', link: '/concepts/sandbox-and-sidecar' },
       { text: 'Difficulty levels', link: '/concepts/difficulty-levels' },
