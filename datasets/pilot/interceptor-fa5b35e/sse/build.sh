@@ -2,7 +2,7 @@
 set -euo pipefail
 
 
-if [ -d "/src/interceptor/internal/rtpbuffer" ]; then
+if [ -d ./internal/rtpbuffer ]; then
     rm -rf ./public/rtpbuffer
     mkdir -p ./public
     cp -r ./internal/rtpbuffer ./public/
