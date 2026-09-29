@@ -49,7 +49,7 @@ runtime/plugins/       plugins and plugins.yaml (hooks around agent and grading)
 sdk/daemon/            ssebench-daemon (Rust, actix-web)
 sdk/python/            ssebench-sdk, import name `sse` (Python)
 images/                base images, litellm, sandbox and sidecar tool layers, shared scripts
-agents/                claude-code, codex, opencode, dummy; each has agent.yaml and a Dockerfile
+agents/                claude-code, codex, opencode, dummy, reference; each has agent.yaml and a Dockerfile
 models/                LiteLLM model definitions, one YAML file per provider
 catalog/               task catalog service (Go)
 webui/                 web UI: Vite + React client, Bun/Hono server, pty-proxy (Go)
@@ -134,8 +134,10 @@ nix develop
 nix flake check
 nix fmt
 
-# One run end to end; the dummy agent makes no model calls
+# One run end to end; the dummy agent makes no model calls, and the patch fails
 uv run ssebench run --local datasets/pilot --task <task-id> --agent dummy --model <model-name>
+# The reference agent applies the task's known fix, so every check passes; it needs no --model
+uv run ssebench run --local datasets/pilot --task <task-id> --agent reference
 ```
 
 Run results land in `results/<task>/<model>/<agent>/` under the working
@@ -203,6 +205,7 @@ contains the working directory, otherwise the checkout it was installed from.
   | MCP server | port 3000, path `/mcp` |
   | OpenCode server | port 4096, when the agent image includes OpenCode |
   | `dialog.jsonl` | the agent dialog in the results directory, read by the web UI |
+  | `/reference/patch.diff` | the task's reference patch, mounted read-only for the `reference` agent only |
 
 - **The extension API is stable.** Other packages register tool layers and
   CLI commands under the `ssebench.tool_layers` and `ssebench.commands`

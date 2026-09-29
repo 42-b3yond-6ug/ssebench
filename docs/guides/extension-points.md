@@ -331,6 +331,7 @@ A tool image, and so each agent image built from it, must:
 | `source_dir` from the task's `config.yaml` | The project source, owned by `model`, with its git history replaced by one commit |
 | `/sse_result` | The evaluator's result, bind-mounted from the host |
 | `/tmp/sse-archive` | The run's results directory (`SSE_ARCHIVE`), bind-mounted from the host |
+| `/reference/patch.diff` | The task's reference patch, bind-mounted read-only for the `reference` agent and no other; see [Reference runs](/reference/cli#reference-runs) |
 
 In the sidecar agent image the MCP server is in `/mcp`, and the task files
 come from the environment container through a shared volume.
@@ -351,6 +352,9 @@ gets `SSE_ARCHIVE`, `SSE_DAEMON_SOCKET` and `SSE_KEEP_ALIVE`.
 | `TIMEOUT` | The agent's time limit in seconds (`--timeout`); the evaluator uses the same limit |
 | `SSE_KEEP_ALIVE` | `1` keeps the container running after the run (`--keep-container`), otherwise `0` |
 | `SSE_DAEMON_SOCKET` | Sidecar mode only: the daemon's Unix socket, `/tmp/sse-archive/please-work.sock` |
+
+A [reference run](/reference/cli#reference-runs) uses no model:
+`SSE_MODEL_NAME` is `none`, and `SSE_API_KEY` and `SSE_BASE_URL` are empty.
 
 The components in the container read these, with these defaults:
 
@@ -406,7 +410,7 @@ directory, at `SSE_ARCHIVE`. The directory is emptied before each run.
 
 | File | Written by | Contents |
 |------|------------|----------|
-| `result.json` | evaluator, through `/sse_result` | The grade: `patch_result` and `runtime_result` |
+| `result.json` | evaluator, through `/sse_result`; `ssebench run` adds `config` | The grade: `patch_result` and `runtime_result`, and the run settings |
 | `agent.log`, `daemon.log`, `mcp.log`, `evaluator.log`, `opencode.log` | entrypoint | The output of each process |
 | `dialog.jsonl` | agent | The agent's session; see [Dialog protocol](/reference/dialog-protocol) |
 | `final.patch`, `commits.log` | daemon, when grading starts | The agent's diff and commit messages |
@@ -426,16 +430,30 @@ directory, at `SSE_ARCHIVE`. The directory is emptied before each run.
     "error_msg": "PoC failed: /ssebench/pocs/poc.go",
     "error_log": "..."
   },
-  "runtime_result": { "agent_duration": 0, "agent_timeout": false, "evaluator_timeout": false }
+  "runtime_result": { "agent_duration": 0, "agent_timeout": false, "evaluator_timeout": false },
+  "config": {
+    "agent": "dummy",
+    "model": "claude-sonnet-4-6",
+    "mode": "sandbox",
+    "timeout": 3600,
+    "difficulty": 2,
+    "tool_layer": "sandbox",
+    "egress": "restricted",
+    "reference_run": false
+  }
 }
 ```
 
-If the container leaves `result.json` empty, `ssebench run` records a failed
-run with the error `No result: evaluator did not produce output`. It then
-writes the summary, `results/<task>-<agent>-<model>.json`: the task metadata
-(`task`), the run settings (`config`: `agent`, `model`, `mode`, `timeout`,
-`difficulty`, `tool_layer` and `egress`), `patch_result`, `runtime_result` and
-the model `spend` in US dollars.
+The evaluator writes `patch_result` and `runtime_result`; after the container
+exits, `ssebench run` adds the run settings as `config`. If the container
+leaves `result.json` empty, `ssebench run` records a failed run with the error
+`No result: evaluator did not produce output`. It then writes the summary,
+`results/<task>-<agent>-<model>.json`: the task metadata (`task`), the run
+settings (`config`: `agent`, `model`, `mode`, `timeout`, `difficulty`,
+`tool_layer`, `egress` and `reference_run`), `patch_result`, `runtime_result`
+and the model `spend` in US dollars. `reference_run` is `true` when the
+`reference` agent applied the task's known fix: that grade rates the task, not
+a model.
 
 ### Container labels
 
@@ -448,6 +466,7 @@ environment container:
 | `ssebench.task-id` | The task ID |
 | `ssebench.model` | The model name |
 | `ssebench.agent` | The agent name |
+| `ssebench.reference-run` | `true` on a [reference run](/reference/cli#reference-runs); absent otherwise |
 
 The [web UI](/webui/) lists the containers that have `ssebench.webui` and acts
 only on those.

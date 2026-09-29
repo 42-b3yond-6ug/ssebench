@@ -74,6 +74,13 @@ The agent learns what it needs through other channels: its prompt contains the
 report files and the build and test scripts, and `test_patch` runs checks on
 its behalf.
 
+The one exception is the `reference` agent, which applies the known fix to
+check a task rather than a model. For that agent only, `ssebench run` copies
+the reference patch out of the case image and mounts it read-only at
+`/reference/patch.diff`; the daemon still withholds it. The run is labelled
+with `config.reference_run` and never counts as a model's score; see
+[Reference runs](/reference/cli#reference-runs).
+
 ### The project's history is replaced
 
 Upstream history would give the fix away, for example through `git log` on a
@@ -207,14 +214,17 @@ that:
 - each `bencher` action is allowed or rejected with 403 exactly as the level
   says, on both listeners;
 - the admin socket cannot be reached;
-- the reference patch, the hidden tests, the proofs of concept and
-  `/ssebench-repo` cannot be read;
+- the reference patch, the hidden tests, the proofs of concept,
+  `/ssebench-repo` and `/reference/patch.diff` cannot be read;
 - the source tree has at most one commit;
 - the internet cannot be reached;
 - the `bash` tool still works.
 
 A separate test checks from the host that the reference patch is refused on
 port 4263 during the agent phase and served after `POST /admin/agent_exited`.
+The unit tests in `bench/tests/test_reference_run.py` build the container
+commands of every agent in `agents/`, in both modes, and check that only the
+`reference` agent gets the reference patch mount.
 
 The suite needs Docker and a sandbox tool image of `gjson-196-bf4efcb`, which
 one run of that task builds:

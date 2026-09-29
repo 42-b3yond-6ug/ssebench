@@ -24,7 +24,7 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent <agent> --mo
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--model NAME` | *(required)* | Model name, as defined in `models/*.yaml` |
+| `--model NAME` | *(required)* | Model name, as defined in `models/*.yaml`. Optional with `--agent reference`; see [Reference runs](#reference-runs) |
 | `--agent NAME` | *(required)* | Agent name, a directory under `agents/` |
 | `--task ID` | *(required)* | Task ID, the name of the task's folder |
 | `--local DIR` | | Dataset directory that contains the task folder, for example `datasets/pilot`; the case image is built from the folder |
@@ -52,7 +52,34 @@ In order, `run`:
    can use only that model;
 3. builds the case, tool and agent [image layers](/concepts/image-layers);
 4. runs the task container, which runs the agent and then the evaluator;
-5. writes the grade, the run settings and the model spend to `results/`.
+5. writes the grade, the run settings and the model spend to `results/`, and
+   adds the run settings to the run's `result.json` as `config`.
+
+### Reference runs
+
+`--agent reference` runs the [`reference` agent](https://github.com/42-b3yond-6ug/ssebench/tree/main/agents/reference),
+which applies the task's reference patch, the known upstream fix, instead of
+asking a model for one. It checks the task and the grader rather than a model:
+on a sound task, every check passes. It makes no model calls, so it needs no
+provider key.
+
+```sh
+uv run ssebench run --local datasets/pilot --task gjson-196-bf4efcb --agent reference
+```
+
+A reference run differs from other runs in these ways:
+
+- `--model` is optional. The run's model is `none`: no proxy key is created,
+  the spend is 0, and the results go to `results/<task>/none/reference/` and
+  `results/<task>-reference-none.json`. Any other `--model` is ignored, with a
+  warning. The LiteLLM proxy still starts, as the container joins its network.
+- `run` copies the file that `files.patch` names out of the case image and
+  mounts it read-only at `/reference/patch.diff` in the container. No other
+  agent gets this mount. A task without `files.patch` cannot be run this way.
+- `result.json` and the summary record `config.reference_run: true`, the
+  container carries the label `ssebench.reference-run=true`, the web UI marks
+  the result as a reference run, and `just report` leaves reference runs out
+  of the scores.
 
 ## `ssebench tasks list`
 

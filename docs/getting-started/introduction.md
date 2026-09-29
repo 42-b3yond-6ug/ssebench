@@ -65,6 +65,9 @@ The container image for a run is assembled from four
 - **Codex**: OpenAI's command-line coding agent.
 - **OpenCode**: an open-source terminal coding agent.
 - **dummy**: does nothing and makes no model calls; for testing the pipeline.
+- **reference**: applies the task's known fix and makes no model calls; its
+  runs check a task, and never count as a model's score. See
+  [Reference runs](/reference/cli#reference-runs).
 
 To bring your own, see [Add an agent](/guides/add-an-agent).
 

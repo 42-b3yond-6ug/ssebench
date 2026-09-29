@@ -24,7 +24,8 @@ results/
 
 A run of the `dummy` agent on `gjson-196-bf4efcb` with `claude-sonnet-4-6`
 writes `results/gjson-196-bf4efcb-dummy-claude-sonnet-4-6.json` and
-`results/gjson-196-bf4efcb/claude-sonnet-4-6/dummy/`.
+`results/gjson-196-bf4efcb/claude-sonnet-4-6/dummy/`. A
+[reference run](#reference-runs) has the model `none`.
 
 ## The run directory
 
@@ -35,7 +36,7 @@ first to keep them.
 
 | File | Written by | Contents |
 |---|---|---|
-| `result.json` | evaluator | The grade; see [below](#result-json). |
+| `result.json` | evaluator, then the CLI | The grade and the run settings; see [below](#result-json). |
 | `dialog.jsonl` | the agent's wrapper | The agent's session, one JSON object per line, in the [dialog protocol](/reference/dialog-protocol) format. The web UI renders it. An agent without a wrapper, such as `dummy`, writes none. |
 | `final.patch` | daemon, when grading starts | The patch the grader applied, as a git diff; empty when the agent changed nothing. See [Capturing the patch](/concepts/grading#_1-capturing-the-patch). |
 | `commits.log` | daemon, when grading starts | Hash, subject and body of each commit the agent made, separated by `---`; empty when it made none. |
@@ -54,8 +55,9 @@ results.
 
 ## `result.json`
 
-The evaluator's grade, written through `/sse_result` when grading ends. The
-dummy run above produces:
+The evaluator's grade, written through `/sse_result` when grading ends. When
+the container exits, the CLI adds the run settings as `config`, the same object
+as in the [summary](#the-summary). The dummy run above produces:
 
 ```json
 {
@@ -72,6 +74,12 @@ dummy run above produces:
     "agent_duration": 0,
     "agent_timeout": false,
     "evaluator_timeout": false
+  },
+  "config": {
+    "agent": "dummy",
+    "model": "claude-sonnet-4-6",
+    "…": "…",
+    "reference_run": false
   }
 }
 ```
@@ -88,13 +96,14 @@ dummy run above produces:
 | `runtime_result.agent_duration` | int | Seconds the agent ran. |
 | `runtime_result.agent_timeout` | bool | The agent reached `--timeout` and was stopped. |
 | `runtime_result.evaluator_timeout` | bool | Grading did not finish within the time limit. |
+| `config` | object | The run settings, as in the [summary](#the-summary). |
 
 `null` means the check did not run: the task does not have it, or an earlier
 failure (a failed build, or a patch that did not apply) ended grading. See
 [Grading pipeline](/concepts/grading#the-result) for how to read a result.
 
-While a container runs, the web UI reads the same document from the daemon's
-`GET /result`.
+While a container runs, the web UI reads the evaluator's document, without
+`config`, from the daemon's `GET /result`.
 
 ## The summary
 
@@ -121,7 +130,8 @@ are copied from `result.json`; the rest comes from the CLI. For the dummy run
     "timeout": 3600,
     "difficulty": 2,
     "tool_layer": "sandbox",
-    "egress": "restricted"
+    "egress": "restricted",
+    "reference_run": false
   },
   "patch_result": { "build_success": true, "pov_passed": 0, "pov_total": 1, "…": "…" },
   "runtime_result": { "agent_duration": 0, "agent_timeout": false, "evaluator_timeout": false },
@@ -139,12 +149,28 @@ are copied from `result.json`; the rest comes from the CLI. For the dummy run
 | `config.difficulty` | The [difficulty level](/concepts/difficulty-levels), `--difficulty`. |
 | `config.tool_layer` | The [tool layer](/concepts/image-layers#tool), `--tool-layer`; `null` in sidecar mode. |
 | `config.egress` | The [egress policy](/deployment/integrity-and-egress), `restricted` or `open`. |
+| `config.reference_run` | `true` when the `reference` agent applied the task's known fix; see [Reference runs](#reference-runs). |
 | `patch_result`, `runtime_result` | As in `result.json`. |
 | `spend` | What the run's model calls cost, in US dollars, as the [LiteLLM proxy](/concepts/litellm-proxy#one-key-per-run) recorded it. |
 
 When the container leaves `result.json` empty, for example because it failed to
-start, the CLI still writes a summary, with every check `null`, `error_msg` set
-to `No result: evaluator did not produce output`, and `agent_duration` 0.
+start, the CLI still writes it and the summary, with every check `null`,
+`error_msg` set to `No result: evaluator did not produce output`, and
+`agent_duration` 0.
+
+## Reference runs
+
+A run of the `reference` agent grades the task's known fix instead of a
+model's patch; see [Reference runs](/reference/cli#reference-runs). Its grade
+rates the task and the grader, so the results say so wherever they go:
+
+- `config.agent` is `reference` and `config.reference_run` is `true`, in
+  `result.json` and in the summary;
+- the model is `none` and the spend 0, so the results are
+  `results/<task>-reference-none.json` and `results/<task>/none/reference/`;
+- the container carries the label `ssebench.reference-run=true`, and the web
+  UI marks its evaluation result as a reference run;
+- `just report` leaves reference runs out of the scores.
 
 ## Reports
 
@@ -152,8 +178,9 @@ to `No result: evaluator did not produce output`, and `agent_duration` 0.
 report with Typst (`tools/report/`; it needs jq and Typst). For each agent and
 model it shows the average spend and time, and the share of runs that built,
 stopped every proof of concept, passed the functional tests and passed the
-intent tests, followed by a table of every task. `just report anonymous`
-replaces the task IDs with short hashes.
+intent tests, followed by a table of every task. It leaves
+[reference runs](#reference-runs) out and says how many it left out.
+`just report anonymous` replaces the task IDs with short hashes.
 
 ## Next steps
 
