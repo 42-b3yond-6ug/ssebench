@@ -8,6 +8,7 @@
 
 import { spawn, type Subprocess } from "bun"
 import type { ServerWebSocket } from "bun"
+import { resolveContainer } from "./docker"
 
 // Track active log streams per WebSocket connection
 const activeStreams: Map<ServerWebSocket<unknown>, Subprocess> = new Map()
@@ -30,10 +31,17 @@ export async function startContainerLogStream(
   )
 
   try {
+    const container = await resolveContainer(containerId)
+    if (!container) {
+      throw new Error(`Container ${containerId} not found`)
+    }
+    // The client may have gone away while the container was being resolved
+    if (ws.readyState !== WebSocket.OPEN) return
+
     // Spawn docker logs with follow mode
     // No --tail limit to fetch ALL logs
     const proc = spawn({
-      cmd: ["docker", "logs", "-f", containerId],
+      cmd: ["docker", "logs", "-f", container.id],
       stdout: "pipe",
       stderr: "pipe",
     })

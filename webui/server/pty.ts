@@ -22,7 +22,7 @@
 import type { ServerWebSocket } from "bun"
 import { existsSync } from "fs"
 import { join } from "path"
-import { getContainer } from "./docker"
+import { resolveContainer } from "./docker"
 
 // =============================================================================
 // Configuration
@@ -150,18 +150,20 @@ function updateActivity(session: PTYSession): void {
 /**
  * Create a new PTY session for a container
  *
- * Spawns `docker exec -it <containerId> <command>` and sets up stream handling.
+ * Spawns `docker exec -it <containerId> <command...>` and sets up stream
+ * handling. `command` is an argument vector (default: bash); it is never
+ * parsed by a shell.
  */
 export async function createPTYSession(
   containerId: string,
   ws: ServerWebSocket<unknown>,
   cols: number = 80,
   rows: number = 24,
-  command: string = "bash",
+  command: string[] = [],
   workDir?: string
 ): Promise<PTYSession | null> {
   // Validate container exists and is running
-  const container = await getContainer(containerId)
+  const container = await resolveContainer(containerId)
   if (!container) {
     sendMessage(ws, {
       type: "error",
@@ -195,19 +197,10 @@ export async function createPTYSession(
     // The Go binary creates a real PTY using creack/pty library
     // Communication is via stdin/stdout with JSON messages
     const args = [PTY_PROXY_BIN]
-
-    // Add command flag if not bash
-    if (command !== "bash") {
-      args.push("--cmd", command)
-    }
-
-    // Add working directory flag if specified
     if (workDir) {
       args.push("--workdir", workDir)
     }
-
-    // Add container ID (must be last)
-    args.push(containerId)
+    args.push(container.id, ...command)
 
     const proc = Bun.spawn({
       cmd: args,

@@ -11,7 +11,7 @@
  * - Lifecycle management: Cleans up processes on shutdown
  */
 
-import { getSDKUrl } from "./docker"
+import { getSDKUrl, resolveContainer } from "./docker"
 import { spawn } from "bun"
 import { createOpencodeClient, type OpencodeClient } from "@opencode-ai/sdk"
 
@@ -180,6 +180,12 @@ async function startOpenCode(containerId: string): Promise<boolean> {
     // No existing server, proceed with spawn
   }
 
+  const container = await resolveContainer(containerId)
+  if (!container) {
+    console.error(`${logPrefix} Not an SSEBench container`)
+    return false
+  }
+
   try {
     console.log(`${logPrefix} Starting OpenCode server...`)
 
@@ -189,7 +195,7 @@ async function startOpenCode(containerId: string): Promise<boolean> {
         "docker",
         "exec",
         "-i", // Keep stdin open (even though we don't use it)
-        containerId,
+        container.id,
         "opencode",
         "serve",
         "--port",

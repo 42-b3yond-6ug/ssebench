@@ -10,7 +10,7 @@ import { Terminal } from "@xterm/xterm"
 import { FitAddon } from "@xterm/addon-fit"
 import { SearchAddon } from "@xterm/addon-search"
 import "@xterm/xterm/css/xterm.css"
-import { getWsBaseUrl } from "../../lib/api"
+import { openWebSocket } from "../../lib/api"
 import { useSettings } from "../../context/SettingsContext"
 
 type ConnectionState = "connecting" | "connected" | "disconnected" | "error"
@@ -232,11 +232,10 @@ export function TerminalContent({
     fitAddonRef.current = fitAddon
     searchAddonRef.current = searchAddon
 
-    // Connect to WebSocket (Bun backend on port 3001)
-    const wsUrl = `${getWsBaseUrl()}/api/pty/${containerId}`
+    // Connect to the PTY WebSocket
     setConnectionState("connecting")
 
-    const ws = new WebSocket(wsUrl)
+    const ws = openWebSocket(`/api/pty/${containerId}`)
     wsRef.current = ws
 
     ws.onopen = () => {

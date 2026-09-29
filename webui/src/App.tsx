@@ -21,6 +21,8 @@ import { LaunchProvider, useLaunchContext } from "./context/LaunchContext"
 import { Dock, DockProvider, useDock } from "./components/dock"
 import { EvaluationResultPanel } from "./components/dock/EvaluationResultPanel"
 import { useResizableRight, useResizableTop } from "./hooks/useResizable"
+import { AuthGate } from "./components/AuthGate"
+import { useServerInfo } from "./lib/serverInfo"
 
 // =============================================================================
 // Contexts for global modals
@@ -239,6 +241,9 @@ function ContainerLayout({ containerId }: { containerId: string }) {
   // Dock visibility
   const { isDockVisible } = useDock()
 
+  // The server may run with the container terminal switched off
+  const { terminal: terminalEnabled } = useServerInfo()
+
   // Panel resize hooks
   const agentPanel = useResizableRight({
     initialSize: 300,
@@ -301,9 +306,11 @@ function ContainerLayout({ containerId }: { containerId: string }) {
             <Dock.Panel id="ai" name="AI" icon={<AIIcon />}>
               <AIView containerId={containerId} />
             </Dock.Panel>
-            <Dock.Panel id="terminal" name="Terminal" icon={<TerminalIcon />}>
-              <TerminalContent containerId={containerId} showToolbar />
-            </Dock.Panel>
+            {terminalEnabled && (
+              <Dock.Panel id="terminal" name="Terminal" icon={<TerminalIcon />}>
+                <TerminalContent containerId={containerId} showToolbar />
+              </Dock.Panel>
+            )}
             <Dock.Panel
               id="eval-result"
               name="Evaluation Result"
@@ -330,19 +337,21 @@ function ContainerLayout({ containerId }: { containerId: string }) {
           }}
           className="border-gruvbox-orange-dim border-t-2"
         >
-          <Dock.Panel
-            id="terminal-bottom"
-            name="Terminal"
-            icon={<TerminalIcon />}
-          >
-            <TerminalContent
-              containerId={containerId}
-              onReady={(controls) => {
-                terminalControlsRef.current = controls
-              }}
-              showToolbar
-            />
-          </Dock.Panel>
+          {terminalEnabled && (
+            <Dock.Panel
+              id="terminal-bottom"
+              name="Terminal"
+              icon={<TerminalIcon />}
+            >
+              <TerminalContent
+                containerId={containerId}
+                onReady={(controls) => {
+                  terminalControlsRef.current = controls
+                }}
+                showToolbar
+              />
+            </Dock.Panel>
+          )}
           <Dock.Panel
             id="logs"
             name="Logs"
@@ -436,13 +445,15 @@ function AppContent() {
 
 function App() {
   return (
-    <SettingsProvider>
-      <LaunchProvider>
-        <ContainerProvider>
-          <AppContent />
-        </ContainerProvider>
-      </LaunchProvider>
-    </SettingsProvider>
+    <AuthGate>
+      <SettingsProvider>
+        <LaunchProvider>
+          <ContainerProvider>
+            <AppContent />
+          </ContainerProvider>
+        </LaunchProvider>
+      </SettingsProvider>
+    </AuthGate>
   )
 }
 

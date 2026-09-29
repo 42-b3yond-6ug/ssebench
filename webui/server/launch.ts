@@ -310,6 +310,115 @@ export function hasLocalBenchmarks(): boolean {
 }
 
 // =============================================================================
+// Launch Request Validation
+// =============================================================================
+
+const TASK_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/
+const MAX_TIMEOUT_SECONDS = 7 * 24 * 60 * 60
+const MAX_DIFFICULTY = 4
+
+export type LaunchValidation =
+  | { ok: true; config: LaunchConfig }
+  | { ok: false; error: string }
+
+/**
+ * Validate a launch request body. Models, agents and local tasks must be
+ * ones this server lists; remote task IDs must be plain identifiers.
+ */
+export function validateLaunchConfig(input: unknown): LaunchValidation {
+  const fail = (error: string): LaunchValidation => ({ ok: false, error })
+
+  if (typeof input !== "object" || input === null) {
+    return fail("Invalid launch request")
+  }
+  const { task, model, agent, mode, source, timeout, difficulty } =
+    input as Record<string, unknown>
+
+  if (!task || !model || !agent || !mode || !source) {
+    return fail("Missing required fields")
+  }
+  if (source !== "local" && source !== "remote") {
+    return fail("Invalid source: expected local or remote")
+  }
+  if (mode !== "sandbox" && mode !== "sidecar") {
+    return fail("Invalid mode: expected sandbox or sidecar")
+  }
+  if (typeof model !== "string" || !getModels().includes(model)) {
+    return fail("Unknown model")
+  }
+  if (typeof agent !== "string" || !getAgents().includes(agent)) {
+    return fail("Unknown agent")
+  }
+  if (typeof task !== "string" || !TASK_ID_PATTERN.test(task)) {
+    return fail("Invalid task ID")
+  }
+  if (source === "local" && !getLocalTasks().some((t) => t.id === task)) {
+    return fail("Unknown local task")
+  }
+  if (source === "remote" && !isCatalogConfigured()) {
+    return fail(CATALOG_NOT_CONFIGURED)
+  }
+
+  const config: LaunchConfig = { task, model, agent, mode, source }
+  if (timeout !== undefined && timeout !== null) {
+    if (
+      typeof timeout !== "number" ||
+      !Number.isInteger(timeout) ||
+      timeout <= 0 ||
+      timeout > MAX_TIMEOUT_SECONDS
+    ) {
+      return fail(
+        `Invalid timeout: expected whole seconds from 1 to ${MAX_TIMEOUT_SECONDS}`
+      )
+    }
+    config.timeout = timeout
+  }
+  if (difficulty !== undefined && difficulty !== null) {
+    if (
+      typeof difficulty !== "number" ||
+      !Number.isInteger(difficulty) ||
+      difficulty < 0 ||
+      difficulty > MAX_DIFFICULTY
+    ) {
+      return fail(`Invalid difficulty: expected 0 to ${MAX_DIFFICULTY}`)
+    }
+    config.difficulty = difficulty
+  }
+  return { ok: true, config }
+}
+
+/**
+ * Arguments for `uv` that run one benchmark. Values are attached with `=`
+ * so none can be read as an option of its own.
+ */
+export function buildLaunchArgs(config: LaunchConfig): string[] {
+  const args = [
+    "run",
+    "ssebench",
+    "run",
+    `--model=${config.model}`,
+    `--agent=${config.agent}`,
+    `--task=${config.task}`,
+    `--mode=${config.mode}`,
+    "--keep-container",
+  ]
+
+  if (config.source === "local") {
+    args.push(`--local=${LOCAL_TASKS_PATH}`)
+  }
+
+  if (config.timeout !== undefined) {
+    args.push(`--timeout=${config.timeout}`)
+  }
+
+  if (config.difficulty !== undefined) {
+    args.push(`--difficulty=${config.difficulty}`)
+  }
+
+  return args
+}
+
+// =============================================================================
 // Launch State Accessors
 // =============================================================================
 
@@ -444,36 +553,13 @@ export function unsubscribeFromLaunch(ws: any): void {
 // Launch a Task
 // =============================================================================
 
-/** Launch a new benchmark task. Returns immediately with the LaunchStatus. */
+/**
+ * Launch a new benchmark task. Returns immediately with the LaunchStatus.
+ * `config` must come from validateLaunchConfig.
+ */
 export async function launchTask(config: LaunchConfig): Promise<LaunchStatus> {
-  // Build command arguments
-  const args = [
-    "run",
-    "ssebench",
-    "run",
-    "--model",
-    config.model,
-    "--agent",
-    config.agent,
-    "--task",
-    config.task,
-    "--mode",
-    config.mode,
-    "--keep-container",
-  ]
-
-  if (config.source === "local") {
-    args.push("--local", LOCAL_TASKS_PATH)
-  }
-
-  if (config.timeout) {
-    args.push("--timeout", config.timeout.toString())
-  }
-
-  if (config.difficulty !== undefined) {
-    args.push("--difficulty", config.difficulty.toString())
-  }
-
+  const args = buildLaunchArgs(config)
+  // For display only; the process is spawned from the argument vector
   const command = `uv ${args.join(" ")}`
   const launch_id = crypto.randomUUID()
 

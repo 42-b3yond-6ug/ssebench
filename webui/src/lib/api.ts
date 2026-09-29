@@ -1,56 +1,40 @@
 /**
  * API configuration and utilities
  *
- * Uses window.location to derive the API base URL dynamically.
- * Backend runs on port 3001, frontend on port 5173 (dev) or same origin (prod).
+ * The API is always same-origin: the production server serves the front end
+ * itself, and the Vite dev and preview servers proxy /api to the backend.
  */
 
-/**
- * Get the API base URL based on current window location
- *
- * In development: http://[current-host]:3001
- * In production: same origin with /api prefix (assuming reverse proxy)
- */
-function getApiBaseUrl(): string {
-  const { protocol, hostname } = window.location
-
-  // In development, Vite runs on 5173, backend on 3001 on the same host
-  if (import.meta.env.DEV) {
-    return `${protocol}//${hostname}:3001`
-  }
-
-  // In production, assume API is served from same origin
-  return ""
-}
+import { getAuthToken, notifyAuthRequired, webSocketProtocols } from "./auth"
 
 /**
- * Fetch wrapper with base URL
+ * Fetch wrapper that adds the access token, if any
  */
 export async function apiFetch(
   path: string,
   options?: RequestInit
 ): Promise<Response> {
-  const baseUrl = getApiBaseUrl()
-  return fetch(`${baseUrl}${path}`, options)
+  const headers = new Headers(options?.headers)
+  const token = getAuthToken()
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`)
+  }
+  const response = await fetch(path, { ...options, headers })
+  if (response.status === 401) {
+    notifyAuthRequired()
+  }
+  return response
 }
 
 /**
- * Get the WebSocket base URL
+ * Open a WebSocket to an API path on the current origin
  *
  * Uses ws:// for http:// and wss:// for https://
  */
-export function getWsBaseUrl(): string {
-  const { protocol, hostname, port } = window.location
+export function openWebSocket(path: string): WebSocket {
+  const { protocol, host } = window.location
   const wsProtocol = protocol === "https:" ? "wss:" : "ws:"
-
-  // In development, Vite runs on 5173, backend on 3001 on the same host
-  if (import.meta.env.DEV) {
-    return `${wsProtocol}//${hostname}:3001`
-  }
-
-  // In production, use same origin with port if present
-  const portSuffix = port ? `:${port}` : ""
-  return `${wsProtocol}//${hostname}${portSuffix}`
+  return new WebSocket(`${wsProtocol}//${host}${path}`, webSocketProtocols())
 }
 
 // =============================================================================
