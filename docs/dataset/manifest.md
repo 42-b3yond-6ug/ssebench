@@ -123,7 +123,6 @@ files:
   poc:
   - pocs/poc.go
   future_test: diffs/test.diff
-  security_test: diffs/security_test.diff
   intent_test:
 sanitizer:
 type: Slice bounds out of range
@@ -156,8 +155,8 @@ originality: public
 | `files.patch` | | The upstream fix, as a diff against the source tree. |
 | `files.poc` | | Proof-of-concept inputs, each run with `scripts.run`. |
 | `files.future_test` | | Hidden tests of the fix, usually those added upstream, as a diff. The intent test applies it and runs `scripts.test`. |
-| `files.security_test` | | A regression test for the vulnerability, as a diff. Kept for reference; the grader does not apply it. |
-| `files.intent_test` | | Tests of the intended behaviour, as a diff. Kept for reference; the intent test uses `future_test`. |
+| `files.security_test` | | A regression test for the vulnerability, as a diff. Kept for reference; the grader does not apply it. Leave it unset when it would repeat `future_test`, as in every pilot task. |
+| `files.intent_test` | | Tests of the intended behaviour, as a diff. Kept for reference; the intent test uses `future_test`. Leave it unset when it would repeat `future_test`, as in every pilot task. |
 | `sanitizer` | | Sanitizer the build enables, such as `address`. |
 | `type` | | Class of the bug, such as `Heap Buffer Overflow` or a CWE. |
 | `binary` | | Program or harness that the proofs of concept exercise. |

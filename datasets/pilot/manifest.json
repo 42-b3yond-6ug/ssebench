@@ -616,9 +616,8 @@
       "files": {
         "Dockerfile": "c8812b89b0e6cc664f9815a5637b9cb8d5f34517c006d9734faa07604ced984b",
         "sse/build.sh": "ec145b00e197ebae7dd0f0621fc96da03af746aa524835942d2aff23e231692e",
-        "sse/config.yaml": "53e58d9e0b79ecb8ea8bf1638496e230d5549b7ae3d7569ab797a0cb895c2a09",
+        "sse/config.yaml": "d76cb1264fab6fc2d93752ae01c28aefb986b25bb873fbd65edde4762cae0daf",
         "sse/diffs/patch.diff": "5dfb80040855d5aa4e36499dc7d62c6ddb2b35e4300c5426b04d62894fdebd31",
-        "sse/diffs/security_test.diff": "0e0e175415072ad919a0bbdca3e39bfd0a7783932382dd95fd7875f965950452",
         "sse/diffs/test.diff": "0e0e175415072ad919a0bbdca3e39bfd0a7783932382dd95fd7875f965950452",
         "sse/pocs/poc.go": "62e627d58bdb51f3bb218d8b1e3dc28bf0ab80de0be7f1d327eddcd5a3aeba83",
         "sse/reports/issue.md": "49b570765c972889d0eabf55ee8ad1312cdb76615825f6da50449be53056d2fa",
@@ -646,7 +645,7 @@
         "files": {
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
-          "security_test": "diffs/security_test.diff",
+          "security_test": null,
           "intent_test": null,
           "poc": [
             "pocs/poc.go"
@@ -752,9 +751,8 @@
       "files": {
         "Dockerfile": "7bfdc135835fa01e521cede64f731a651d155ff2d1b29ff97afbaef25bd4816a",
         "sse/build.sh": "6a98860426b23a02bc5d4122320ae20c4fe544730698a59afa1acd854d7c1dd5",
-        "sse/config.yaml": "ff39da1086ec878076b2c72417525cc1f0c7089e3e62fab7b8dea83f91415401",
+        "sse/config.yaml": "bb179b04a957cd6a90a8def71f2afdf0cdfbf660dafe4b967edc5782c300ffe0",
         "sse/diffs/patch.diff": "21056e46290393501198bb8bb059be5387188fc1bf01eb18e281694a20e5b8f0",
-        "sse/diffs/security_test.diff": "23335eef703469a121981c78e52beb401afef9b53544b1f01e8f4951776d94cf",
         "sse/diffs/test.diff": "23335eef703469a121981c78e52beb401afef9b53544b1f01e8f4951776d94cf",
         "sse/pocs/poc.go": "ef0dc8232ab3ce3edc4d1b8ea9b86adda6ac74498e31c3e5c95ca7375e82be64",
         "sse/reports/issue.md": "7967080ef5ef27429d1ef15197c5cd79c8fd8f54b08a119159b41d2a781d9f18",
@@ -782,7 +780,7 @@
         "files": {
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
-          "security_test": "diffs/security_test.diff",
+          "security_test": null,
           "intent_test": null,
           "poc": [
             "pocs/poc.go"
@@ -820,8 +818,7 @@
       "files": {
         "Dockerfile": "9c4f3479ea51b5535a56d46d9ebb7bd9157906df50de17b3cb4978d311c13a86",
         "sse/build.sh": "b5788b2802f0870b807f5f3ed8459925dce67a2a8367d07365c615c8db3c2983",
-        "sse/config.yaml": "4352614d6c69d5748efe255f9490c4386febd71ff5b66c6760d1c226e3ce07da",
-        "sse/diffs/intent_test.diff": "e8b09e255f59ed964e06297d62086aed418947dec831ebce201add7a4cbdfc9a",
+        "sse/config.yaml": "b490e6156ddd17b2f8c3551a49f747a3509eee2f162010db2e20701baa7b6ada",
         "sse/diffs/patch.diff": "7c07e8de4d3a38652184e927e25b6c58c3d1484a4229087d1ad417d59a6cb1fd",
         "sse/diffs/test.diff": "e8b09e255f59ed964e06297d62086aed418947dec831ebce201add7a4cbdfc9a",
         "sse/pocs/poc.go": "a8c972189f3c225c1dd985af5e52f90ab3dee99366cdb8074fdec3412ba4b1f4",
@@ -853,7 +850,7 @@
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
           "security_test": null,
-          "intent_test": "diffs/intent_test.diff",
+          "intent_test": null,
           "poc": [
             "pocs/poc.go"
           ]
@@ -2403,9 +2400,8 @@
       "files": {
         "Dockerfile": "b6bf107673cc9faea31d0f1d63b77aded3977e729634e34ce1f6ed558e15a4c0",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
-        "sse/config.yaml": "f01339f26af3727fa02de126ca0db2fb14ad44c46adb6d2484c6901c796f633c",
+        "sse/config.yaml": "b37c641e3451336e471ac5fddb4940ddc86961bf7e9bb14ec1c2abf5c47f420d",
         "sse/diffs/patch.diff": "5e5b724cc7029fbb2167c3359f056b7b50a67afd05c54122f8d06aa9e2284a4a",
-        "sse/diffs/security_test.diff": "ec62a7a578d7f2c56c86b081cf2b9d9d945d768e44ca1ec3d07065c63a8f3c7f",
         "sse/diffs/test.diff": "ec62a7a578d7f2c56c86b081cf2b9d9d945d768e44ca1ec3d07065c63a8f3c7f",
         "sse/pocs/poc.go": "3a8d06c088f5efdbbce6580021b9c28f806f5913517a10d205cb624ffe1598e5",
         "sse/reports/issue.md": "d512a30a3d39d8b213f5b0a04764fdf1fe1d232ff95a6b77bece467639dc46e1",
@@ -2433,7 +2429,7 @@
         "files": {
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
-          "security_test": "diffs/security_test.diff",
+          "security_test": null,
           "intent_test": null,
           "poc": [
             "pocs/poc.go"
@@ -2471,9 +2467,8 @@
       "files": {
         "Dockerfile": "845d7a23080ddd0e846a272e937d5f5ac9aba7c175386f928e675cf1dcdf913a",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
-        "sse/config.yaml": "87414fc59fea06f5e7c69875df85ae3e6dd5bd7003177973678f72645338b247",
+        "sse/config.yaml": "59463abf6f30e0d05fce7efad1e46047365e99ae78b9e043dd2cf44a3051c7ca",
         "sse/diffs/patch.diff": "b6f95375f687293ce334f72ccb6b98c0c05274914d1993f5d8425436bea33df4",
-        "sse/diffs/security_test.diff": "5b011ed6a0d632bda46843beac681e079646047854152f208fb00404d5099e84",
         "sse/diffs/test.diff": "5b011ed6a0d632bda46843beac681e079646047854152f208fb00404d5099e84",
         "sse/pocs/poc.go": "f5d0ec56f5baef706b3bdb634fd95acfab294307e6165c6924310c916bb37314",
         "sse/reports/issue.md": "ea8dc62daf66d2e8838aff39ceb7f436ffd92c85c65b1e4dcea59b990fe5bd85",
@@ -2501,7 +2496,7 @@
         "files": {
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
-          "security_test": "diffs/security_test.diff",
+          "security_test": null,
           "intent_test": null,
           "poc": [
             "pocs/poc.go"
@@ -2542,7 +2537,6 @@
         "sse/build.sh": "b5788b2802f0870b807f5f3ed8459925dce67a2a8367d07365c615c8db3c2983",
         "sse/config.yaml": "2ed143b7e7e55d2da9ae784c79680f423eda92959fe999ed8278ae3431cfe79c",
         "sse/diffs/patch.diff": "0a7a753cc8c7af2ab78b81758ca23a23f1f97c1ebc42e04d5917c349df1928c6",
-        "sse/diffs/security_test.diff": "ff5d22ee2570da90e1415dde8b4419e670e040836aa417bc088b09279d457019",
         "sse/diffs/test.diff": "ff5d22ee2570da90e1415dde8b4419e670e040836aa417bc088b09279d457019",
         "sse/pocs/poc.go": "bac4b6435149d1020e731d26f53d587ae26b6fcc78d0890082c8dc81850b92c3",
         "sse/reports/crash_report_1.txt": "2396d42727eda334efa5aa40dd71d613a9346ec1d426cd5255fdf1aca4d6224a",
@@ -2611,9 +2605,8 @@
         "Dockerfile": "8bf55d6f15e2582e7ef4718da61e1cdf18c4ac2a5f47e6935d6e03f6585110f2",
         "README.md": "c258aaf33fa6070e7582a1d2a4131c47f27a7a26d45fddb2d15957d3228a3453",
         "sse/build.sh": "b5788b2802f0870b807f5f3ed8459925dce67a2a8367d07365c615c8db3c2983",
-        "sse/config.yaml": "3c51886a80a2131ec00a81a4cf802c7bd84dbc0c6a17aae6e09e4e14e9ba1335",
+        "sse/config.yaml": "0bae82654f3ed18bf6025f9017f6b12f4fbf4d8dfb339713b28b8753bdade5a3",
         "sse/diffs/patch.diff": "e1afd6cb86518715da0861b54ae14d797210e50461af33dc3ed4c97b297f1ec7",
-        "sse/diffs/security_test.diff": "9c1a1e23e876b556a10aa3722368fdb9ad6950e16b50850b7e8d0f8ca3668f50",
         "sse/diffs/test.diff": "9c1a1e23e876b556a10aa3722368fdb9ad6950e16b50850b7e8d0f8ca3668f50",
         "sse/pocs/poc.go": "4ee7482e30a611a87529558b855b7a257b5c81a74d44aa757d835ced51e18e85",
         "sse/reports/crash_report_1.txt": "40339cec35c342468e4caaf5d17cb98f6557d5f709a82dfc3d1e8354a8142bc2",
@@ -2643,7 +2636,7 @@
         "files": {
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
-          "security_test": "diffs/security_test.diff",
+          "security_test": null,
           "intent_test": null,
           "poc": [
             "pocs/poc.go"
@@ -2681,9 +2674,8 @@
       "files": {
         "Dockerfile": "d08a54476c2c29102cb47749da3dd89cb1e606ff6179b88dda8f0b28e55ad134",
         "sse/build.sh": "6a98860426b23a02bc5d4122320ae20c4fe544730698a59afa1acd854d7c1dd5",
-        "sse/config.yaml": "616be3433696fb8765084f899a299e123b21038003192f6f0af1b8584f5a1d54",
+        "sse/config.yaml": "12fc5ac0bb485d62f75ef6cd39cf98741933e0855bcc335675647795b3283cf3",
         "sse/diffs/patch.diff": "6bec1763adce9d3b52374745f7d8a347f5775749abe715f8f642a357b845bafc",
-        "sse/diffs/security_test.diff": "cee6758fdf6180676e1c8b222caad3f3b7453978d587272bf9d48fe3b98c89ed",
         "sse/diffs/test.diff": "e6b6b320358bce3fc5adaf70eb7f322e42204a89194a12d7c8baa8e2e45bd1f1",
         "sse/pocs/poc.go": "a1057fefee8c3213860e1d1a185ffe382eda0696daed8a2b11a166d955f580ea",
         "sse/reports/issue.md": "1bb734bc586dbce3ffa1e67d851aff961f185e54adb06b56cc3125966d3c6916",
@@ -2711,7 +2703,7 @@
         "files": {
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
-          "security_test": "diffs/security_test.diff",
+          "security_test": null,
           "intent_test": null,
           "poc": [
             "pocs/poc.go"
@@ -2751,7 +2743,6 @@
         "sse/build.sh": "aa7f42288d6ccc3a9088b54718fdd66034f058eaefc219ebd0250f171880b385",
         "sse/config.yaml": "7b0c22ac0af9a51782ce82fe8e5599e273bcfa6bb1d0b4f6137bc9a5a79c27e7",
         "sse/diffs/patch.diff": "6077b6cd4cecb276c5e94e8b9e6a2a01407b692a1b6996d32c82c1d8fa9fc802",
-        "sse/diffs/security_test.diff": "2fed71f3742cb9d389aae078e87820894aaf965ea35adc28454270e0af8f5b2c",
         "sse/diffs/test.diff": "2fed71f3742cb9d389aae078e87820894aaf965ea35adc28454270e0af8f5b2c",
         "sse/pocs/config.json": "ae3de1bc6b3245689e7e3466d403a090f9a7f26e1bed3787d2ccc696e8b7fb40",
         "sse/pocs/poc.go": "b403cfc8dab38bdafd85d8e83da2527c5fde463e66259504fa94f3162358f18e",
@@ -2817,9 +2808,8 @@
       "files": {
         "Dockerfile": "af25754043e663415c4b91fce8dcbb6556e83ae7a8337c82170b066b0f08fa63",
         "sse/build.sh": "176a229a1aa251850581d9a53c528eaacf3211123c64aa1e2b384e6fbc1c322c",
-        "sse/config.yaml": "c815f213a5eaa66bd21bc3cd28da8d5075d1f29d04810229f8d47b3ce3698c61",
+        "sse/config.yaml": "5e379605e6867bb44fe105fe94e8d5e6c9a811626234d7755af21ecb6e14ddfc",
         "sse/diffs/patch.diff": "c8ebe9d1304b72b8c6106ecce0edb920408a7d3406e299c0ed0a7faab5bd209b",
-        "sse/diffs/security_test.diff": "767ac1fbb42a31262c6e176957aac28fae26eec3eabaecddabd0284ad93344cd",
         "sse/diffs/test.diff": "767ac1fbb42a31262c6e176957aac28fae26eec3eabaecddabd0284ad93344cd",
         "sse/pocs/poc.go": "4f74db43c5b53d0e25b90636ccaaf2a7e8c0417ccb58c0c9d3d756aca12b6816",
         "sse/reports/crash_report_1.txt": "3a331ab47ad80e1ac899667a7ab4e98782481a1881b04ab8f307a475e55b00cc",
@@ -2849,7 +2839,7 @@
         "files": {
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
-          "security_test": "diffs/security_test.diff",
+          "security_test": null,
           "intent_test": null,
           "poc": [
             "pocs/poc.go"
@@ -2888,9 +2878,8 @@
         "Dockerfile": "0814b48cdfb9a2e0e32b0cfff4f749670c4d13d2991a7547a781219fec9d23f2",
         "README.md": "3fdf10dc16013809fd58338336c7c5f52c92e51b75453dade90b81717a0550e9",
         "sse/build.sh": "3bd1fdd8cb8606a630100c60a806826463feffd99050a71a6c1a088a2cf477db",
-        "sse/config.yaml": "5bfddacae821802a75799c788e7d4c8dad07545430f956edc87f2b5c2d61649b",
+        "sse/config.yaml": "9b8dafb3c6b3dea2bfb4efe582915c40c031114d87aa164105fa8e5c5a5011a6",
         "sse/diffs/patch.diff": "432b13f05a338490d67dbad18775ae5b7d07cf96010fda8ed98d58c97fbb4b4d",
-        "sse/diffs/security_test.diff": "1ad7ee23e2d8d1052e6229652f29975da7725d3f365d70dff2c5fcec18613da5",
         "sse/diffs/test.diff": "1ad7ee23e2d8d1052e6229652f29975da7725d3f365d70dff2c5fcec18613da5",
         "sse/pocs/poc.go": "0fbe639f19d6497cda7fcb1dc95233d7a4fc8a0d14df9f5a3156866fb8a55b11",
         "sse/reports/issue.md": "e7ce662c07d927be17728c031feb027de8abded60d1f86d4a63acae6a0a1a6b5",
@@ -2918,7 +2907,7 @@
         "files": {
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
-          "security_test": "diffs/security_test.diff",
+          "security_test": null,
           "intent_test": null,
           "poc": [
             "pocs/poc.go"
@@ -2956,8 +2945,7 @@
       "files": {
         "Dockerfile": "76ea8f767e7c69fa27e43ae3e5edfa00319035273012a2d725206ef20aee9f6e",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
-        "sse/config.yaml": "a64f06ef8fd30819a9097ddec50b8cb25a61431dff265680c7f5cf5ec4031d2c",
-        "sse/diffs/intent_test.diff": "794a66fcc3effe7b6adc5a5c7fa3911f5dbe0339567cdcf878ad7c898e0d77ce",
+        "sse/config.yaml": "27a278835562806ab63ce8fe21b8bdbcad5fbea6660906337c5ad51a49a3760c",
         "sse/diffs/patch.diff": "c0c7d9d313da55a1a51c0c0153bcf74af381377b62781292416e91d42411372c",
         "sse/diffs/test.diff": "794a66fcc3effe7b6adc5a5c7fa3911f5dbe0339567cdcf878ad7c898e0d77ce",
         "sse/pocs/poc.go": "716b11afa180ca18200a5bf3ff3ab646ad0620ea62faf0cd0363b756c6714266",
@@ -2987,7 +2975,7 @@
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
           "security_test": null,
-          "intent_test": "diffs/intent_test.diff",
+          "intent_test": null,
           "poc": [
             "pocs/poc.go"
           ]
@@ -3162,9 +3150,8 @@
       "files": {
         "Dockerfile": "d8f4ec2a1ce3c7d3db215cdabaa24d80030d5c5c6657d63d055b4e053a4522fe",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
-        "sse/config.yaml": "719792aa685fab6b73a35abf6788333a46b0bbdad18e8ce47806fd8a6fe30165",
+        "sse/config.yaml": "5b002ede2a587d5aeb8cba2082f0acde3ed3eaa2767006b416d4edf89365bb73",
         "sse/diffs/patch.diff": "f8b29f383bdd2a6b99d62db1fe34961f99f2a5296f43eb125a51661cda26e4ab",
-        "sse/diffs/security_test.diff": "07248022bb23b21d38c2842870443a25321cd2a1d5dabed290139dda3a9dbbfc",
         "sse/diffs/test.diff": "07248022bb23b21d38c2842870443a25321cd2a1d5dabed290139dda3a9dbbfc",
         "sse/pocs/poc.go": "d195048a07c7a74b546779f9ffb8b627e500b0af3d4af2ed8414dd26aba9693d",
         "sse/reports/crash_report_1.txt": "28d309855a1c336955e815ca28cbe5bb34b531c0d3e541c5f3da0d5a0d3319fb",
@@ -3194,7 +3181,7 @@
         "files": {
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
-          "security_test": "diffs/security_test.diff",
+          "security_test": null,
           "intent_test": null,
           "poc": [
             "pocs/poc.go"
@@ -3300,8 +3287,7 @@
         "Dockerfile": "c7be9079adffecd9b0e9d6506976b42cd32834d925ea96a9697ea8bbc9a45a35",
         "README.md": "734b5b095c6403ba5826ed843dd16eff70c669f230bc0c727bd8fcc419100dc4",
         "sse/build.sh": "b5788b2802f0870b807f5f3ed8459925dce67a2a8367d07365c615c8db3c2983",
-        "sse/config.yaml": "ccc036b7be52ab63fc98de9fa6e994ad4804d71ea162c97c0cd55c9585d7bdc1",
-        "sse/diffs/intent_test.diff": "6a73970c56b701e8801446b76b919afc6a6bdfa3dedc6bdd10b5aa7e727ef19c",
+        "sse/config.yaml": "7e002331daff11b669c4d2ffa0a4c6df106068dafcf03bac6f8f299c1c87d8d9",
         "sse/diffs/patch.diff": "7ab876f85d7a691a033dfe219db04f0934a8526adb10aa8b1133f71ea336c14a",
         "sse/diffs/test.diff": "6a73970c56b701e8801446b76b919afc6a6bdfa3dedc6bdd10b5aa7e727ef19c",
         "sse/pocs/poc.go": "fc2102c5f63833fa595fa2fcfb2b18efeedacbac46652d3bb8eb83a930fe8d2c",
@@ -3333,7 +3319,7 @@
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
           "security_test": null,
-          "intent_test": "diffs/intent_test.diff",
+          "intent_test": null,
           "poc": [
             "pocs/poc.go"
           ]
@@ -3370,9 +3356,8 @@
       "files": {
         "Dockerfile": "7c2ed55c43a20234587fb9f38299ee710e9cdf2b6381300daca3ef9b4951fa33",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
-        "sse/config.yaml": "e2287a0b459338eb18ba83cca61d591309af75e3857e0362563c66211257345c",
+        "sse/config.yaml": "d90979a8c47db67bf341ea658ebe9cbefef0e7616ab729928e419db7b0fa1b2f",
         "sse/diffs/patch.diff": "f0acb501a022a90632a8a34ae4c6a881fbfdf8febf841a60c466d04a3b8ecbef",
-        "sse/diffs/security_test.diff": "907202bd860d4848a04eb4ba6ccb7b16525bf29d3f3d53b2be8d9b7a21d6ab6a",
         "sse/diffs/test.diff": "907202bd860d4848a04eb4ba6ccb7b16525bf29d3f3d53b2be8d9b7a21d6ab6a",
         "sse/pocs/poc.go": "fa5134529a2264fe918a2c36f1e6bce8b4810ed59e4723828b69573621943e13",
         "sse/reports/crash_report_1.txt": "4c46947ec5ab927c9818e2192d5a255fe20464a2ea3795d8c8c2d9175b5c2014",
@@ -3402,7 +3387,7 @@
         "files": {
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
-          "security_test": "diffs/security_test.diff",
+          "security_test": null,
           "intent_test": null,
           "poc": [
             "pocs/poc.go"
@@ -3507,9 +3492,8 @@
       "files": {
         "Dockerfile": "31cb132fa3458e82f0eefe0850ee491cb465cfc47f20cac8f932f3ccc77921ec",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
-        "sse/config.yaml": "50edc7a8de0c860fd91ed7a7f3b85223e7bf611b0b82f70dec81c14178496695",
+        "sse/config.yaml": "885529dff607ca67b6ef2690043245fc4e8fa0175d3af4a58db0dfb56865930d",
         "sse/diffs/patch.diff": "c92e35b8f527b3530359c124bcd0e31dcb773c11c854e1883ea5d0bf73ca0fb6",
-        "sse/diffs/security_test.diff": "62ea2a1c9221179cdefd16937c67301dac7a7b580fdb9e0fcd1e9e02411977bd",
         "sse/diffs/test.diff": "62ea2a1c9221179cdefd16937c67301dac7a7b580fdb9e0fcd1e9e02411977bd",
         "sse/pocs/poc.go": "cc85e56ee4f3944d569518f457311e3fb7edb394bb58cc68c828b546628ac17e",
         "sse/reports/crash_report_1.txt": "a562ba8d2cb0fdeeb8381dcd9ebb2b89b69aba99e715fb4511a76afde0d8e60a",
@@ -3539,7 +3523,7 @@
         "files": {
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
-          "security_test": "diffs/security_test.diff",
+          "security_test": null,
           "intent_test": null,
           "poc": [
             "pocs/poc.go"
@@ -3711,9 +3695,8 @@
       "files": {
         "Dockerfile": "7b2649903e26b09e201a68db6d0bda6e053da49f720840e854d581042da655dd",
         "sse/build.sh": "6a98860426b23a02bc5d4122320ae20c4fe544730698a59afa1acd854d7c1dd5",
-        "sse/config.yaml": "6833b5a27d8c2a1d5c786a0b2c313f348845f779f9b347c8e4bef250fd4baca6",
+        "sse/config.yaml": "b46ca449bcfed5ce06815eb21fb1438912b7d626ee1087cf433916ac2719c672",
         "sse/diffs/patch.diff": "9fe68793537c57603922be4f98376671e65d8235094e906163872b682241c8a8",
-        "sse/diffs/security_test.diff": "136962d426b23eb1ec88260112390580238c2cc1ccb608e16740f567c03149ff",
         "sse/diffs/test.diff": "136962d426b23eb1ec88260112390580238c2cc1ccb608e16740f567c03149ff",
         "sse/pocs/poc.go": "163c8627c93c99aab676ff9036f3639390fa77b2d80f08c7ff8b580450d848e4",
         "sse/reports/issue.md": "47fc5c8bcadd3b2c03ff4cec9140bf25b5a4a1edc4b00abdf2774575f148f3f1",
@@ -3741,7 +3724,7 @@
         "files": {
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
-          "security_test": "diffs/security_test.diff",
+          "security_test": null,
           "intent_test": null,
           "poc": [
             "pocs/poc.go"
@@ -3779,9 +3762,8 @@
       "files": {
         "Dockerfile": "d775d8dac6adc9a7f5572c0ff45564f0db74f998b7e28c4ed150d32849aaa259",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
-        "sse/config.yaml": "6f0cd2f10b918f0c89e15442082e24ea4b25b3d6229722d3f53e096d874c3fce",
+        "sse/config.yaml": "ea40fd2e8e68a8e5105b7af6d5e5e6946394e91ddb02b5f07e39747fe60ebf41",
         "sse/diffs/patch.diff": "2868ed68f769b7933c41df9f23378f493de16edd09132c643c640a245c2c1dbd",
-        "sse/diffs/security_test.diff": "552dac34fbce5b1944e6ffb17f0c8367f96f35e1da7f3ec735efd87c8fc5cfe8",
         "sse/diffs/test.diff": "552dac34fbce5b1944e6ffb17f0c8367f96f35e1da7f3ec735efd87c8fc5cfe8",
         "sse/pocs/poc.go": "563cacd18ecfb43ae2b22088e051d868b7fc08abb50448f1692154613b5079b9",
         "sse/reports/crash_report_1.txt": "46c5b2124ae68b65c4bbedfe6f89e60cc3835db167374cd99286a5043e9ca733",
@@ -3811,7 +3793,7 @@
         "files": {
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
-          "security_test": "diffs/security_test.diff",
+          "security_test": null,
           "intent_test": null,
           "poc": [
             "pocs/poc.go"
