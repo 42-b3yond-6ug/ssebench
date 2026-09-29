@@ -15,8 +15,14 @@ from ssebench.middleware import (
     SidecarToolLayerEnvironment,
     ToolLayerContext,
 )
-from ssebench.models import Model
+from ssebench.models import Model, NoModel
 from ssebench.pipe import build_pipe
+from ssebench.runner.reference import (
+    is_reference_run,
+    reference_patch,
+    reference_patch_mount,
+    reference_run_labels,
+)
 from ssebench.runner.result import (
     EvaluationResult,
     FrameworkResult,
@@ -44,11 +50,38 @@ def clear_directory(path: Path) -> None:
     logger.debug(f"Cleared contents of {path}")
 
 
+def record_results(task: Task, run_config: RunConfig, spend: float, evaluator_file: Path) -> None:
+    """Complete the run's result.json with the run settings, and write the summary to results/."""
+    content = evaluator_file.read_text().strip()
+    if content:
+        container_result = EvaluationResult.model_validate_json(content)
+    else:
+        logger.error("Evaluator produced no output; recording framework failure.")
+        container_result = EvaluationResult(
+            patch_result=PatchResult(error_msg="No result: evaluator did not produce output"),
+            runtime_result=RuntimeResult(agent_duration=0, agent_timeout=False, evaluator_timeout=False),
+        )
+    container_result.config = run_config
+    _ = evaluator_file.write_text(container_result.model_dump_json())
+
+    per_task_result = PerTaskEvaluationResult.build(
+        tm=task.get_task_metadata(),
+        rc=run_config,
+        frs=FrameworkResult(spend=spend),
+        crs=container_result,
+    )
+
+    result_folder = Path("results")
+    result_folder.mkdir(exist_ok=True)
+    result_json_path = result_folder / f"{task.name}-{run_config.agent}-{run_config.model}.json"
+    _ = result_json_path.write_text(per_task_result.model_dump_json())
+
+
 class BenchmarkRunner(ABC):
     @abstractmethod
     def __init__(
         self,
-        model: Model,
+        model: Model | NoModel,
         agent: Agent,
         task: Task,
         timeout: int,
@@ -68,7 +101,7 @@ class BenchmarkRunner(ABC):
 class BenchmarkSandboxRunner(BenchmarkRunner):
     def __init__(
         self,
-        model: Model,
+        model: Model | NoModel,
         agent: Agent,
         task: Task,
         timeout: int,
@@ -96,6 +129,52 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
         self.sandbox_image = build_pipe([self.task, tool_layer, self.agent])
         logger.info(f"Build benchmark image {self.sandbox_image}")
 
+    def docker_command(self, results_path: Path, reference_patch: Path | None = None) -> list[str]:
+        """The `docker run` command of the task container.
+
+        `reference_patch` reaches the container only when the agent is the reference agent.
+        """
+        assert self.sandbox_image is not None
+        docker_cmd = ["docker", "run"]
+        if not self.keep_container:
+            docker_cmd.append("--rm")
+        docker_cmd.extend(
+            [
+                "--network",
+                stack.run_network(self.egress),
+                "-e",
+                f"SSE_API_KEY={self.model.api_key}",
+                "-e",
+                f"SSE_BASE_URL={self.model.service_url}",
+                "-e",
+                f"SSE_MODEL_NAME={self.model.model_name}",
+                "-e",
+                f"SSE_ARCHIVE={ARCHIVE_PATH}",
+                "-e",
+                f"SSE_DIFFICULTY={self.difficulty}",
+                "-e",
+                f"TIMEOUT={self.timeout}",
+                "-e",
+                f"SSE_KEEP_ALIVE={'1' if self.keep_container else '0'}",
+                "-v",
+                f"{results_path / 'result.json'}:/sse_result",
+                "-v",
+                f"{results_path}:{ARCHIVE_PATH}",
+                *reference_patch_mount(self.agent.agent_name, reference_patch),
+                "--label",
+                "ssebench.webui=true",
+                "--label",
+                f"ssebench.task-id={self.task.name}",
+                "--label",
+                f"ssebench.model={self.model.model_name}",
+                "--label",
+                f"ssebench.agent={self.agent.agent_name}",
+                *reference_run_labels(self.agent.agent_name),
+                self.sandbox_image,
+            ]
+        )
+        return docker_cmd
+
     @override
     def run(self):
         assert self.sandbox_image is not None
@@ -107,59 +186,12 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
         evaluator_file = results_path / "result.json"
         evaluator_file.touch(exist_ok=True)
 
-        try:
-            logger.info(f"Running Benchmark: {self.task.name}")
-            docker_cmd = ["docker", "run"]
-            if not self.keep_container:
-                docker_cmd.append("--rm")
-            docker_cmd.extend(
-                [
-                    "--network",
-                    stack.run_network(self.egress),
-                    "-e",
-                    f"SSE_API_KEY={self.model.api_key}",
-                    "-e",
-                    f"SSE_BASE_URL={self.model.service_url}",
-                    "-e",
-                    f"SSE_MODEL_NAME={self.model.model_name}",
-                    "-e",
-                    f"SSE_ARCHIVE={ARCHIVE_PATH}",
-                    "-e",
-                    f"SSE_DIFFICULTY={self.difficulty}",
-                    "-e",
-                    f"TIMEOUT={self.timeout}",
-                    "-e",
-                    f"SSE_KEEP_ALIVE={'1' if self.keep_container else '0'}",
-                    "-v",
-                    f"{evaluator_file}:/sse_result",
-                    "-v",
-                    f"{results_path}:{ARCHIVE_PATH}",
-                    "--label",
-                    "ssebench.webui=true",
-                    "--label",
-                    f"ssebench.task-id={self.task.name}",
-                    "--label",
-                    f"ssebench.model={self.model.model_name}",
-                    "--label",
-                    f"ssebench.agent={self.agent.agent_name}",
-                    self.sandbox_image,
-                ]
-            )
-            _ = subprocess.run(docker_cmd, check=True)
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Agent container stopped with a non-zero exit: {e}")
-
-        content = evaluator_file.read_text().strip()
-        if content:
-            container_result = EvaluationResult.model_validate_json(content)
-        else:
-            logger.error("Evaluator produced no output; recording framework failure.")
-            container_result = EvaluationResult(
-                patch_result=PatchResult(error_msg="No result: evaluator did not produce output"),
-                runtime_result=RuntimeResult(agent_duration=0, agent_timeout=False, evaluator_timeout=False),
-            )
-
-        framework_result = FrameworkResult(spend=self.model.get_spend())
+        with reference_patch(self.agent.agent_name, self.task) as patch:
+            try:
+                logger.info(f"Running Benchmark: {self.task.name}")
+                _ = subprocess.run(self.docker_command(results_path, patch), check=True)
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Agent container stopped with a non-zero exit: {e}")
 
         run_config = RunConfig(
             agent=self.agent.agent_name,
@@ -169,29 +201,16 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
             difficulty=self.difficulty,
             tool_layer=self.tool_layer_name,
             egress="open" if self.egress == "open" else "restricted",
+            reference_run=is_reference_run(self.agent.agent_name),
         )
-
-        per_task_result = PerTaskEvaluationResult.build(
-            tm=self.task.get_task_metadata(),
-            rc=run_config,
-            frs=framework_result,
-            crs=container_result,
-        )
-
-        result_folder = Path("results")
-        result_folder.mkdir(exist_ok=True)
-        result_json_path = result_folder / f"{self.task.name}-{self.agent.agent_name}-{self.model.model_name}.json"
-
-        report_json_str = per_task_result.model_dump_json()
-        with open(result_json_path, "w") as f:
-            _ = f.write(report_json_str)
+        record_results(self.task, run_config, self.model.get_spend(), evaluator_file)
 
 
 @final
 class BenchmarkSidecarRuner(BenchmarkRunner):
     def __init__(
         self,
-        model: Model,
+        model: Model | NoModel,
         agent: Agent,
         task: Task,
         timeout: int,
@@ -296,6 +315,7 @@ class BenchmarkSidecarRuner(BenchmarkRunner):
                     f"ssebench.model={self.model.model_name}",
                     "--label",
                     f"ssebench.agent={self.agent.agent_name}",
+                    *reference_run_labels(self.agent.agent_name),
                     self.sidecar_environ_image,
                 ],
                 check=True,
@@ -306,43 +326,45 @@ class BenchmarkSidecarRuner(BenchmarkRunner):
         evaluator_file = results_path / "result.json"
         evaluator_file.touch(exist_ok=True)
 
-        try:
-            logger.info(f"Running Agent: {self.task.name}")
-            docker_cmd = ["docker", "run"]
-            if not self.keep_container:
-                docker_cmd.append("--rm")
-            docker_cmd.extend(
-                [
-                    "--network",
-                    stack.run_network(self.egress),
-                    "-e",
-                    f"SSE_API_KEY={self.model.api_key}",
-                    "-e",
-                    f"SSE_BASE_URL={self.model.service_url}",
-                    "-e",
-                    f"SSE_MODEL_NAME={self.model.model_name}",
-                    "-e",
-                    f"SSE_ARCHIVE={ARCHIVE_PATH}",
-                    "-e",
-                    f"SSE_DAEMON_SOCKET={ARCHIVE_PATH}/please-work.sock",
-                    "-e",
-                    f"SSE_DIFFICULTY={self.difficulty}",
-                    "-e",
-                    f"TIMEOUT={self.timeout}",
-                    "-v",
-                    f"{evaluator_file}:/sse_result",
-                    "-v",
-                    f"{results_path}:{ARCHIVE_PATH}",
-                    "-v",
-                    f"{source_volume_name}:{source}",
-                    "-v",
-                    f"{scripts_volume_name}:/ssebench",
-                    self.sidecar_agentrt_image,
-                ]
-            )
-            _ = subprocess.run(docker_cmd, check=True)
-        except subprocess.CalledProcessError as e:
-            logger.warning(f"Agent runtime stopped with a non-zero exit: {e}")
+        with reference_patch(self.agent.agent_name, self.task) as patch:
+            try:
+                logger.info(f"Running Agent: {self.task.name}")
+                docker_cmd = ["docker", "run"]
+                if not self.keep_container:
+                    docker_cmd.append("--rm")
+                docker_cmd.extend(
+                    [
+                        "--network",
+                        stack.run_network(self.egress),
+                        "-e",
+                        f"SSE_API_KEY={self.model.api_key}",
+                        "-e",
+                        f"SSE_BASE_URL={self.model.service_url}",
+                        "-e",
+                        f"SSE_MODEL_NAME={self.model.model_name}",
+                        "-e",
+                        f"SSE_ARCHIVE={ARCHIVE_PATH}",
+                        "-e",
+                        f"SSE_DAEMON_SOCKET={ARCHIVE_PATH}/please-work.sock",
+                        "-e",
+                        f"SSE_DIFFICULTY={self.difficulty}",
+                        "-e",
+                        f"TIMEOUT={self.timeout}",
+                        "-v",
+                        f"{evaluator_file}:/sse_result",
+                        "-v",
+                        f"{results_path}:{ARCHIVE_PATH}",
+                        "-v",
+                        f"{source_volume_name}:{source}",
+                        "-v",
+                        f"{scripts_volume_name}:/ssebench",
+                        *reference_patch_mount(self.agent.agent_name, patch),
+                        self.sidecar_agentrt_image,
+                    ]
+                )
+                _ = subprocess.run(docker_cmd, check=True)
+            except subprocess.CalledProcessError as e:
+                logger.warning(f"Agent runtime stopped with a non-zero exit: {e}")
 
         # stop the environment, and clean the volume (skip if keeping containers)
         if not self.keep_container:
@@ -354,19 +376,6 @@ class BenchmarkSidecarRuner(BenchmarkRunner):
             except subprocess.CalledProcessError as e:
                 logger.warning(f"Failed to clean up: {e}")
 
-        # Collect results
-        framework_result = FrameworkResult(spend=self.model.get_spend())
-
-        content = evaluator_file.read_text().strip()
-        if content:
-            container_result = EvaluationResult.model_validate_json(content)
-        else:
-            logger.error("Evaluator produced no output; recording framework failure.")
-            container_result = EvaluationResult(
-                patch_result=PatchResult(error_msg="No result: evaluator did not produce output"),
-                runtime_result=RuntimeResult(agent_duration=0, agent_timeout=False, evaluator_timeout=False),
-            )
-
         run_config = RunConfig(
             agent=self.agent.agent_name,
             model=self.model.model_name,
@@ -374,19 +383,6 @@ class BenchmarkSidecarRuner(BenchmarkRunner):
             timeout=self.timeout,
             difficulty=self.difficulty,
             egress="open" if self.egress == "open" else "restricted",
+            reference_run=is_reference_run(self.agent.agent_name),
         )
-
-        per_task_result = PerTaskEvaluationResult.build(
-            tm=self.task.get_task_metadata(),
-            rc=run_config,
-            frs=framework_result,
-            crs=container_result,
-        )
-
-        result_folder = Path("results")
-        result_folder.mkdir(exist_ok=True)
-        result_json_path = result_folder / f"{self.task.name}-{self.agent.agent_name}-{self.model.model_name}.json"
-
-        report_json_str = per_task_result.model_dump_json()
-        with open(result_json_path, "w") as f:
-            _ = f.write(report_json_str)
+        record_results(self.task, run_config, self.model.get_spend(), evaluator_file)

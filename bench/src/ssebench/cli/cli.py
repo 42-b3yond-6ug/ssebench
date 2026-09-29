@@ -18,8 +18,9 @@ from ssebench.extensions import (
     get_tool_layer,
     load_commands,
 )
-from ssebench.models import Model
+from ssebench.models import NO_MODEL, Model, NoModel
 from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRuner
+from ssebench.runner.reference import REFERENCE_AGENT, is_reference_run, reference_patch_path
 from ssebench.tasks import CatalogError, CatalogTask, LocalTask, Task, load_catalog
 from ssebench.version import VERSION
 
@@ -34,7 +35,7 @@ BUILTIN_COMMANDS = ("run", "build-case", "dataset", "tasks", "proxy", "doctor")
 class RunArgs(argparse.Namespace):
     def __init__(self) -> None:
         super().__init__()
-        self.model: str
+        self.model: str | None
         self.agent: str
         self.task: str
         self.local: str
@@ -49,6 +50,13 @@ class RunArgs(argparse.Namespace):
 
 def cmd_run(args: argparse.Namespace) -> int:
     """Run a benchmark."""
+    reference_run = is_reference_run(args.agent)
+    if args.model is None and not reference_run:
+        logger.error(f"--model is required, except with --agent {REFERENCE_AGENT}")
+        return 1
+    if reference_run and args.model not in (None, NO_MODEL):
+        logger.warning(f"The {REFERENCE_AGENT} agent makes no model calls; ignoring --model {args.model}")
+
     if args.tool_layer is not None and args.mode != "sandbox":
         logger.error("--tool-layer applies to sandbox mode only")
         return 1
@@ -68,6 +76,12 @@ def cmd_run(args: argparse.Namespace) -> int:
     except (CatalogError, LookupError) as e:
         logger.error(e)
         return 1
+    if reference_run:
+        try:
+            _ = reference_patch_path(task)
+        except ValueError as e:
+            logger.error(e)
+            return 1
 
     try:
         stack.up()
@@ -80,7 +94,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 1
 
     # Run the experiment
-    model = Model(args.model)
+    model = NoModel() if reference_run or args.model is None else Model(args.model)
     agent = Agent(args.agent, task_name=task.name)
     timeout = args.timeout
     difficulty = args.difficulty
@@ -188,7 +202,12 @@ def main(argv: Sequence[str] | None = None):
 
     # ==================== run subcommand ====================
     run_parser = subparsers.add_parser("run", help="Run a benchmark")
-    run_parser.add_argument("--model", type=str, required=True)
+    run_parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help=f"Model name from models/*.yaml; required, except with --agent {REFERENCE_AGENT}, which uses none",
+    )
     run_parser.add_argument("--agent", type=str, required=True)
     run_parser.add_argument("--task", type=str, required=True)
     run_parser.add_argument(
