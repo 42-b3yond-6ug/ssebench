@@ -1,5 +1,9 @@
 name: Set up Python
 description: Install uv with a dependency cache and sync the uv workspace from uv.lock.
+inputs:
+  sync:
+    description: Whether to sync the workspace; jobs that only run PEP 723 scripts can skip it.
+    default: "true"
 runs:
   using: composite
   steps:
@@ -8,5 +12,6 @@ runs:
         enable-cache: true
         cache-dependency-glob: uv.lock
     - name: Sync the workspace
+      if: inputs.sync == 'true'
       shell: bash
       run: uv sync --locked

@@ -30,6 +30,7 @@ jobs:
       dataset: ${{ steps.filter.outputs.dataset }}
       sdk: ${{ steps.filter.outputs.sdk }}
       e2e: ${{ steps.filter.outputs.e2e }}
+      versions: ${{ steps.filter.outputs.versions }}
     steps:
       # Pull requests are diffed through the API; pushes to main need the checkout.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -109,6 +110,20 @@ jobs:
               - models/**
               - deploy/compose/**
               - datasets/pilot/gjson-196-bf4efcb/**
+            versions:
+              - *workflow
+              - VERSION
+              - tools/release/**
+              - rust-toolchain.toml
+              - uv.lock
+              - Cargo.lock
+              - bun.lock
+              - '**/pyproject.toml'
+              - '**/Cargo.toml'
+              - '**/package.json'
+              - '**/Dockerfile'
+              - deploy/compose/**
+              - '!datasets/**'
 
   secrets:
     name: Secret scan
@@ -140,6 +155,42 @@ jobs:
             range="$BASE..$HEAD"
           fi
           "$RUNNER_TEMP/gitleaks" git --no-banner --redact --verbose --log-opts="$range" .
+
+  versions:
+    name: Version pins
+    needs: changes
+    if: needs.changes.outputs.versions == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-python
+        with:
+          sync: "false"
+      - name: Every component carries VERSION
+        run: uv run tools/release/bump.py --check
+      - name: The rust images match rust-toolchain.toml
+        run: |
+          channel=$(sed -n 's/^channel *= *"\(.*\)"/\1/p' rust-toolchain.toml)
+          # The base images pin the Rust that tasks are built with, which is independent.
+          pins=$(git ls-files -- '*Dockerfile' ':!:datasets/**' ':!:images/base-images/**' \
+            | xargs grep -noE 'rust:[0-9][0-9.]*' | sed 's/:rust:/:/')
+          if [ -z "$channel" ] || [ -z "$pins" ]; then
+            echo "::error::No Rust channel in rust-toolchain.toml or no rust image in the Dockerfiles."
+            exit 1
+          fi
+          status=0
+          while IFS=: read -r file line tag; do
+            if [ "$tag" = "$channel" ]; then
+              echo "$file:$line rust:$tag"
+            else
+              echo "::error file=$file,line=$line::rust:$tag does not match rust-toolchain.toml ($channel)"
+              status=1
+            fi
+          done <<< "$pins"
+          exit "$status"
 
   python:
     name: Python
@@ -360,7 +411,7 @@ jobs:
   ci-ok:
     name: ci-ok
     if: always()
-    needs: [changes, secrets, python, rust, go, webui, docs, dataset, sdk-integration, e2e]
+    needs: [changes, secrets, versions, python, rust, go, webui, docs, dataset, sdk-integration, e2e]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
