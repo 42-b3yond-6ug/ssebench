@@ -1,4 +1,4 @@
-package main
+package entrypoint
 
 import (
 	"fmt"
@@ -42,14 +42,14 @@ func (p *processInfo) recentLogs(lines int) string {
 // serviceManager tracks all background processes and tail subprocesses so they
 // can be stopped cleanly on shutdown.
 type serviceManager struct {
-	cfg         config
+	cfg         Config
 	mu          sync.Mutex
 	processes   []*processInfo
 	tails       []*exec.Cmd
 	cleanupDone bool
 }
 
-func newServiceManager(cfg config) *serviceManager {
+func newServiceManager(cfg Config) *serviceManager {
 	return &serviceManager{cfg: cfg}
 }
 
@@ -114,7 +114,7 @@ func (sm *serviceManager) stopLogTail(cmd *exec.Cmd) {
 	if cmd == nil {
 		return
 	}
-	terminateProcess(cmd, 2)
+	terminateProcess(cmd, 2*time.Second)
 
 	sm.mu.Lock()
 	for i, t := range sm.tails {
@@ -144,24 +144,26 @@ func (sm *serviceManager) cleanup() {
 	logger.Info("Starting cleanup...")
 
 	for _, t := range tails {
-		terminateProcess(t, 2)
+		terminateProcess(t, 2*time.Second)
 	}
 
 	// Stop main processes in reverse start order.
 	for i := len(procs) - 1; i >= 0; i-- {
 		p := procs[i]
 		logger.Info("Shutting down", "name", p.name, "pid", p.cmd.Process.Pid)
-		terminateProcess(p.cmd, sm.cfg.shutdownTimeout)
+		terminateProcess(p.cmd, sm.cfg.ShutdownTimeout)
 	}
 
-	logger.Info("Waiting for processes to finish...", "seconds", sm.cfg.cleanupWaitTime)
-	time.Sleep(time.Duration(sm.cfg.cleanupWaitTime) * time.Second)
+	if len(procs) > 0 {
+		logger.Info("Waiting for processes to finish...", "seconds", int(sm.cfg.CleanupWait.Seconds()))
+		time.Sleep(sm.cfg.CleanupWait)
+	}
 	logger.Info("Cleanup complete.")
 }
 
-// terminateProcess sends SIGTERM and waits up to timeoutSec, then SIGKILLs the
+// terminateProcess sends SIGTERM and waits up to timeout, then SIGKILLs the
 // whole process group.
-func terminateProcess(cmd *exec.Cmd, timeoutSec int) {
+func terminateProcess(cmd *exec.Cmd, timeout time.Duration) {
 	if cmd == nil || cmd.Process == nil {
 		return
 	}
@@ -180,7 +182,7 @@ func terminateProcess(cmd *exec.Cmd, timeoutSec int) {
 	select {
 	case <-done:
 		return
-	case <-time.After(time.Duration(timeoutSec) * time.Second):
+	case <-time.After(timeout):
 		if pgid, err := syscall.Getpgid(cmd.Process.Pid); err == nil {
 			_ = syscall.Kill(-pgid, syscall.SIGKILL)
 		}

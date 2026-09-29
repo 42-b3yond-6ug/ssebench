@@ -1,4 +1,4 @@
-package main
+package entrypoint
 
 import (
 	"context"
@@ -39,8 +39,8 @@ func adminClient(socketPath string) *http.Client {
 // notifyAgentExited tells the daemon over the admin socket that the agent phase
 // has ended, which unlocks the reference patch for the web UI post-run. It
 // retries briefly so a slow admin-socket bind does not lose the signal.
-func (r *runner) notifyAgentExited() {
-	socket := r.cfg.adminSocketPath
+func (rt *Runtime) notifyAgentExited() {
+	socket := rt.cfg.AdminSocketPath
 	client := adminClient(socket)
 
 	var lastErr error

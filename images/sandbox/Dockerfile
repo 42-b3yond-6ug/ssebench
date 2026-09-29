@@ -41,7 +41,7 @@ FROM golang:1.26-bookworm AS entrypoint-builder
 COPY runtime/entrypoint/ /build/
 WORKDIR /build
 ARG VERSION=dev
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${VERSION}" -o /entrypoint .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${VERSION}" -o /entrypoint ./cmd/ssebench-entrypoint
 
 
 FROM case-image AS case-image-builder

@@ -1,4 +1,4 @@
-package main
+package entrypoint
 
 import (
 	"fmt"
@@ -7,10 +7,11 @@ import (
 	"time"
 )
 
-// waitForSocket blocks until a Unix socket appears at path, or until timeoutSec
+// waitForSocket blocks until a Unix socket appears at path, or until timeout
 // is exceeded. healthCheck (optional) is called every iteration; returning
 // false causes an immediate error.
-func waitForSocket(path string, timeoutSec int, name string, healthCheck func() bool, logInterval int) error {
+func waitForSocket(path string, timeout time.Duration, name string, healthCheck func() bool, logInterval time.Duration) error {
+	timeoutSec := int(timeout.Seconds())
 	logger.Info("Waiting for socket", "name", name, "timeout", timeoutSec)
 	start := time.Now()
 	lastLog := start
@@ -34,7 +35,7 @@ func waitForSocket(path string, timeoutSec int, name string, healthCheck func() 
 			return fmt.Errorf("timeout waiting for %s after %ds (socket path: %s)", name, timeoutSec, path)
 		}
 
-		if now := time.Now(); now.Sub(lastLog).Seconds() >= float64(logInterval) {
+		if now := time.Now(); now.Sub(lastLog) >= logInterval {
 			logger.Info("Still waiting...", "name", name, "elapsed", elapsed)
 			lastLog = now
 		}
@@ -44,13 +45,14 @@ func waitForSocket(path string, timeoutSec int, name string, healthCheck func() 
 }
 
 // waitForHTTP blocks until the given URL returns a non-5xx response, or until
-// timeoutSec is exceeded.
-func waitForHTTP(url string, timeoutSec int, name string, httpTimeout int, logInterval int) error {
+// timeout is exceeded.
+func waitForHTTP(url string, timeout time.Duration, name string, httpTimeout time.Duration, logInterval time.Duration) error {
+	timeoutSec := int(timeout.Seconds())
 	logger.Info("Waiting for HTTP", "name", name, "timeout", timeoutSec)
 	start := time.Now()
 	lastLog := start
 
-	client := &http.Client{Timeout: time.Duration(httpTimeout) * time.Second}
+	client := &http.Client{Timeout: httpTimeout}
 	var lastErr string
 
 	for {
@@ -76,7 +78,7 @@ func waitForHTTP(url string, timeoutSec int, name string, httpTimeout int, logIn
 			lastErr = err.Error()
 		}
 
-		if now := time.Now(); now.Sub(lastLog).Seconds() >= float64(logInterval) {
+		if now := time.Now(); now.Sub(lastLog) >= logInterval {
 			logger.Info("Still waiting...", "name", name, "elapsed", elapsed)
 			lastLog = now
 		}
