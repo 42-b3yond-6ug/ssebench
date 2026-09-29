@@ -48,6 +48,15 @@ ARG VERSION=dev
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${VERSION}" -o /entrypoint ./cmd/ssebench-entrypoint
 
 
+# The daemon and the entrypoint, laid out like the runtime image
+# (images/runtime). Passing
+#   --build-context runtime=docker-image://<registry>/runtime:<version>
+# replaces this stage, and skips both builds above.
+FROM scratch AS runtime
+COPY --from=daemon-builder /build/target/release/ssebench-daemon /ssebench/ssebench-daemon
+COPY --from=entrypoint-builder /entrypoint /usr/local/bin/entrypoint
+
+
 FROM case-image AS case-image-builder
 
 FROM case-image
@@ -65,7 +74,7 @@ COPY --from=python-builder /root/.local/share/uv/python /root/.local/share/uv/py
 COPY --from=python-builder /evaluator /evaluator
 COPY --from=python-builder /ssebench/mcp /ssebench/mcp
 COPY --from=opencode-downloader /usr/local/bin/opencode /usr/local/bin/opencode
-COPY --from=daemon-builder /build/target/release/ssebench-daemon /ssebench/ssebench-daemon
+COPY --from=runtime /ssebench/ssebench-daemon /ssebench/ssebench-daemon
 
-COPY --from=entrypoint-builder /entrypoint /usr/local/bin/entrypoint
+COPY --from=runtime /usr/local/bin/entrypoint /usr/local/bin/entrypoint
 ENTRYPOINT [ "/usr/local/bin/entrypoint" ]
