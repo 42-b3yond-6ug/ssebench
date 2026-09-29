@@ -1,3 +1,4 @@
+import json
 import subprocess
 import threading
 from collections.abc import Callable, Iterator
@@ -8,6 +9,7 @@ from typing import Any
 import pytest
 
 from ssebench import paths, settings
+from ssebench.cli import main
 from ssebench.dataset.generate import build_manifest, render_manifest
 from ssebench.pipe import REGISTRY
 from ssebench.tasks import catalog
@@ -215,3 +217,39 @@ def test_fails_without_a_local_copy(serve: Serve, tmp_path: Path, monkeypatch: p
 
     with pytest.raises(CatalogError, match="no local copy"):
         _ = task.docker_image(None)
+
+
+def run_cli(*argv: str) -> int:
+    with pytest.raises(SystemExit) as exit:
+        main(list(argv))
+    code = exit.value.code
+    assert isinstance(code, int)
+    return code
+
+
+def test_tasks_list(capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_cli("tasks", "list") == 0
+
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0].split() == ["ID", "LANGUAGE", "PROJECT"]
+    assert [TASK, "go", "gjson"] in [line.split() for line in lines]
+
+
+def test_tasks_list_json(serve: Serve, capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_cli("tasks", "list", "--json", "--catalog", serve({"/manifest.json": BUNDLED.read_bytes()})) == 0
+
+    tasks = {t["id"]: t for t in json.loads(capsys.readouterr().out)}
+    assert tasks[TASK]["image"] == f"{REGISTRY}/case/pilot/{TASK}"
+    assert "metadata" not in tasks[TASK] and "files" not in tasks[TASK]
+
+
+def test_tasks_list_local(tmp_path: Path, make_task: Callable[..., Path], capsys: pytest.CaptureFixture[str]) -> None:
+    _ = make_task(tmp_path / "demo", "demo-task")
+
+    assert run_cli("tasks", "list", "--json", "--local", str(tmp_path / "demo")) == 0
+    assert [t["id"] for t in json.loads(capsys.readouterr().out)] == ["demo-task"]
+
+
+def test_tasks_list_unreadable_catalog(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_cli("tasks", "list", "--catalog", str(tmp_path / "missing.json")) == 1
+    assert "Cannot read the catalog" in capsys.readouterr().err

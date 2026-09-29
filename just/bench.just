@@ -66,9 +66,9 @@ pick source="local":
             source_args=(--local datasets/pilot)
             ;;
         remote)
-            catalog="${SSEBENCH_CATALOG:?set SSEBENCH_CATALOG to the catalog server URL}"
-            task=$(curl -fsS "$catalog/tasks" | jq -r '.[].id' | fzf --prompt="Select Task> ")
-            source_args=(--catalog "$catalog")
+            # SSEBENCH_CATALOG, or the bundled pilot manifest when it is unset
+            task=$(uv run ssebench tasks list --json | jq -r '.[].id' | fzf --prompt="Select Task> ")
+            source_args=()
             ;;
         *)
             echo "unknown task source '$1' (local or remote)" >&2
