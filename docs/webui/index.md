@@ -20,6 +20,10 @@ This is the same as `cd webui && bun install && bun run prod`: it installs the
 dependencies, builds the front end and starts the server. Then open
 `http://localhost:3001`. Set `PORT` to use a different port.
 
+The terminal needs a helper that this does not build. To use it, run
+`bun run build:pty` in `webui/` once; it needs Go. See
+[Watching a run](/webui/run-view#terminal).
+
 ::: warning
 The web UI can start runs and open shells in task containers on its host. Don't
 expose it to a network you don't trust. See [Security model](/webui/security).
