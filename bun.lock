@@ -20,7 +20,7 @@
         "@opencode-ai/sdk": "^1.1.40",
         "@xterm/addon-fit": "^0.10.0",
         "@xterm/addon-search": "^0.15.0",
-        "@xterm/xterm": "^5.5.0",
+        "@xterm/xterm": "^6.0.0",
         "highlight.js": "^11.11.1",
         "hono": "^4.11.7",
         "lucide-react": "^0.563.0",
@@ -426,7 +426,7 @@
 
     "@xterm/addon-search": ["@xterm/addon-search@0.15.0", "", { "peerDependencies": { "@xterm/xterm": "^5.0.0" } }, "sha512-ZBZKLQ+EuKE83CqCmSSz5y1tx+aNOCUaA7dm6emgOX+8J9H1FWXZyrKfzjwzV+V14TV3xToz1goIeRhXBS5qjg=="],
 
-    "@xterm/xterm": ["@xterm/xterm@5.5.0", "", {}, "sha512-hqJHYaQb5OptNunnyAnkHyM8aCjZ1MEIDTQu1iIbbTD/xops91NB5yq1ZK/dC2JDbVWtF23zUtl9JE2NqwT87A=="],
+    "@xterm/xterm": ["@xterm/xterm@6.0.0", "", {}, "sha512-TQwDdQGtwwDt+2cgKDLn0IRaSxYu1tSUjgKarSDkUM0ZNiSRXFpjxEsvc/Zgc5kq5omJ+V0a8/kIM2WD3sMOYg=="],
 
     "acorn": ["acorn@8.15.0", "", { "bin": "bin/acorn" }, ""],
 
