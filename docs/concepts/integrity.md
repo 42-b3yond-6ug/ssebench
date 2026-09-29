@@ -266,3 +266,5 @@ what the agent gains.
   and deployment settings
 - [Difficulty levels](/concepts/difficulty-levels)
 - [Grading pipeline](/concepts/grading)
+- [Add an agent](/guides/add-an-agent#what-an-agent-must-not-do): what an
+  agent's author must respect

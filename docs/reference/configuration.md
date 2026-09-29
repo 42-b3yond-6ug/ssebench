@@ -94,6 +94,7 @@ them. The models defined now:
 Every directory in `agents/` is an agent: `ssebench run --agent <directory>`
 builds its `Dockerfile` on top of the tool layer and runs it. `agent.yaml` next
 to the Dockerfile names the agent's image. Unknown keys are rejected.
+[Add an agent](/guides/add-an-agent) builds one from scratch.
 
 ```yaml
 name: claude-code
@@ -144,7 +145,8 @@ The task config, in `sse/` of each task folder, describes the task to the CLI,
 the daemon and the grader. Paths in it are relative to `/ssebench` in the case
 image. Unknown keys are rejected. [Dataset manifest](/dataset/manifest#task-config)
 has an example and explains the layout of a task folder and the checks the
-grader derives from the config. `datasets/schema/task.schema.json` is its JSON
+grader derives from the config; [Add a task](/guides/add-a-task) shows how to
+write one. `datasets/schema/task.schema.json` is its JSON
 Schema, which `ssebench dataset schema` exports.
 
 <!-- generated: config task -->

@@ -93,7 +93,8 @@ Sidecar mode is experimental. It passes the same end-to-end and
 - The agent container has no toolchain for the project. An agent that builds
   or runs tests with its own shell cannot do so there; it has to use the MCP
   server's `test_patch` tool, or the SDK's `bash` and `bencher` tools, which
-  run in the task container.
+  run in the task container; see
+  [Add an agent](/guides/add-an-agent#check-the-work).
 - The bundled `opencode` agent does not work: it drives an OpenCode server that
   only the sandbox image has.
 - The web UI finds a run by its task container, so its terminal opens in the

@@ -110,3 +110,5 @@ An internal testing failure occurred. Your patch is not responsible for this fai
 - [Grading pipeline](/concepts/grading): how final grading differs from `test_patch`
 - [Environment variables](/reference/environment): variables available inside the container
 - [Dialog protocol](/reference/dialog-protocol): show your agent's session in the web UI
+- [Add an agent](/guides/add-an-agent#the-test-patch-tool): call `test_patch` from
+  your own agent
