@@ -23,6 +23,7 @@ func TestModesIncludeHelloAndTheBuiltins(t *testing.T) {
 func TestHelloMode(t *testing.T) {
 	archive := t.TempDir()
 	t.Setenv("SSE_ARCHIVE", archive)
+	t.Setenv("SSE_RESULTS", t.TempDir())
 
 	if status := entrypoint.Run([]string{"hello-mode", "--mode", "hello", "--", "echo", "hi"}); status != 0 {
 		t.Fatalf("status %d, want 0", status)

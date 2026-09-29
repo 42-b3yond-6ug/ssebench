@@ -56,6 +56,12 @@ func newServiceManager(cfg Config) *serviceManager {
 // startProcess launches a background process in its own session (new process
 // group), redirecting stdout+stderr to logPath.
 func (sm *serviceManager) startProcess(name string, argv []string, logPath string, cwd string, extraEnv []string) (*processInfo, error) {
+	return sm.startProcessAs(name, argv, logPath, cwd, extraEnv, nil)
+}
+
+// startProcessAs is startProcess with the process running as cred, or as the
+// entrypoint's user when cred is nil.
+func (sm *serviceManager) startProcessAs(name string, argv []string, logPath string, cwd string, extraEnv []string, cred *syscall.Credential) (*processInfo, error) {
 	logger.Info("Starting...", "name", name)
 
 	logFile, err := os.Create(logPath)
@@ -70,7 +76,7 @@ func (sm *serviceManager) startProcess(name string, argv []string, logPath strin
 		cmd.Dir = cwd
 	}
 	cmd.Env = append(os.Environ(), extraEnv...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true, Credential: cred}
 
 	if err := cmd.Start(); err != nil {
 		logFile.Close()

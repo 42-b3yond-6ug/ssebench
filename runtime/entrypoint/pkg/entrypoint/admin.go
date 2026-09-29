@@ -37,8 +37,8 @@ func adminClient(socketPath string) *http.Client {
 }
 
 // notifyAgentExited tells the daemon over the admin socket that the agent phase
-// has ended, which unlocks the reference patch for the web UI post-run. It
-// retries briefly so a slow admin-socket bind does not lose the signal.
+// has ended. It retries briefly so a slow admin-socket bind does not lose the
+// signal.
 func (rt *Runtime) notifyAgentExited() {
 	socket := rt.cfg.AdminSocketPath
 	client := adminClient(socket)
@@ -65,5 +65,5 @@ func (rt *Runtime) notifyAgentExited() {
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
-	logger.Warn("Failed to signal agent phase end; reference patch stays locked", "err", lastErr)
+	logger.Warn("Failed to signal agent phase end", "err", lastErr)
 }

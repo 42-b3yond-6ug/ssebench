@@ -11,11 +11,11 @@ import (
 // mode that --mode names.
 //
 // Before Run, the entrypoint has installed the signal handler, made the
-// archive directory world-writable and created the log files. After Run
-// returns, it stops every service the mode started and exits with Run's
-// status. A mode runs the agent with [Runtime.RunAgent] and grades with
-// [Runtime.Evaluate]; both end the agent phase, which the daemon needs before
-// it serves the reference patch.
+// results directory root-only, given the archive directory to the agent's
+// user and created the log files. After Run returns, it stops every service
+// the mode started and exits with Run's status. A mode runs the agent with
+// [Runtime.RunAgent] and grades with [Runtime.Evaluate]; both end the agent
+// phase, which stops what the agent left running before grading starts.
 type Mode interface {
 	// Name is the value of --mode that selects the mode.
 	Name() string

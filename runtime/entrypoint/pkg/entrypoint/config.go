@@ -7,16 +7,26 @@ import (
 )
 
 // Config is the runtime configuration of the entrypoint. [Run] builds it from
-// the defaults and SSE_ARCHIVE and SSE_KEEP_ALIVE, lets the selected mode
-// adjust it (see [Configurer]), and then applies the TIMEOUT,
+// the defaults and SSE_ARCHIVE, SSE_RESULTS and SSE_KEEP_ALIVE, lets the
+// selected mode adjust it (see [Configurer]), and then applies the TIMEOUT,
 // SSE_DAEMON_TIMEOUT and SSE_MCP_TIMEOUT overrides.
 type Config struct {
-	// ArchivePath is the run's results directory, from SSE_ARCHIVE. It is
-	// required.
+	// ArchivePath is the agent's archive directory, from SSE_ARCHIVE, where
+	// the agent side writes its dialog. It is required.
 	ArchivePath string
+	// ResultsPath is the run's results directory, from SSE_RESULTS: the
+	// grade, the patch that was graded and the logs. Only root writes it,
+	// and only root can reach it: its parent is made root-only.
+	ResultsPath string
 	// KeepAlive keeps the container running after grading, for the web UI.
 	// SSE_KEEP_ALIVE=1 sets it.
 	KeepAlive bool
+	// AgentWritesArchive is whether the agent side writes to the archive
+	// directory (its dialog, say). When true, [Runtime.setupArchive] gives the
+	// archive to the agent's user; when false it stays root-owned. The
+	// built-in modes set it; a mode where only root writes clears it in
+	// [Configurer.Configure].
+	AgentWritesArchive bool
 
 	// DaemonSocketPath is the daemon's agent-facing Unix socket.
 	DaemonSocketPath string
@@ -53,11 +63,20 @@ type Config struct {
 	HTTPRequestTimeout time.Duration
 }
 
-// defaultConfig returns the sandbox layout with SSE_ARCHIVE and SSE_KEEP_ALIVE
-// applied.
+// DefaultResultsPath is where the CLI mounts the run's results directory.
+const DefaultResultsPath = "/var/lib/ssebench/results"
+
+// defaultConfig returns the sandbox layout with SSE_ARCHIVE, SSE_RESULTS and
+// SSE_KEEP_ALIVE applied.
 func defaultConfig() Config {
+	results := os.Getenv("SSE_RESULTS")
+	if results == "" {
+		results = DefaultResultsPath
+	}
 	return Config{
 		ArchivePath:        os.Getenv("SSE_ARCHIVE"),
+		ResultsPath:        results,
+		AgentWritesArchive: true,
 		KeepAlive:          os.Getenv("SSE_KEEP_ALIVE") == "1",
 		DaemonSocketPath:   "/tmp/sse.sock",
 		AdminSocketPath:    "/run/ssebench/admin.sock",
