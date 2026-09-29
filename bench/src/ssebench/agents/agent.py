@@ -7,7 +7,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from ssebench import paths
-from ssebench.pipe import REGISTRY, DockerLayerMixin
+from ssebench.pipe import REGISTRY, TAG, DockerLayerMixin
 
 
 class AgentConfig(BaseModel):
@@ -16,7 +16,7 @@ class AgentConfig(BaseModel):
 
     # Agent Config Fields
     name: str
-    version: str = "latest"  # Default version is "latest"
+    version: str = TAG
 
     # Validators
     @field_validator("name")
