@@ -13,7 +13,11 @@
 
 import { getSDKUrl, resolveContainer } from "./docker"
 import { spawn } from "bun"
-import { createOpencodeClient, type OpencodeClient } from "@opencode-ai/sdk"
+import {
+  createOpencodeClient,
+  type Event,
+  type OpencodeClient,
+} from "@opencode-ai/sdk"
 
 /**
  * OpenCode process info - tracks a spawned OpenCode server process
@@ -84,11 +88,11 @@ async function isOpenCodeRunning(containerId: string): Promise<boolean> {
         }
         return true
       }
-    } catch (jsonError) {
+    } catch {
       // Not valid JSON - OpenCode might still be initializing
       return false
     }
-  } catch (error) {
+  } catch {
     // Network check failed - OpenCode not responding
   }
 
@@ -176,7 +180,7 @@ async function startOpenCode(containerId: string): Promise<boolean> {
         }
       }
     }
-  } catch (error) {
+  } catch {
     // No existing server, proceed with spawn
   }
 
@@ -835,7 +839,7 @@ export async function streamSessionEvents(
   containerId: string,
   directory?: string,
   sessionId?: string
-): Promise<AsyncGenerator<any> | null> {
+): Promise<AsyncGenerator<Event> | null> {
   const logPrefix = `[OpenCode:${containerId.substring(0, 12)}]`
 
   // Get SDK client with working directory
@@ -873,8 +877,14 @@ export async function streamSessionEvents(
         for await (const event of result.stream) {
           // Filter by sessionId if provided
           if (sessionId) {
-            // Check if event has session context (cast to any for flexibility)
-            const props = event?.properties as any
+            // Not every event type carries a session
+            const props = event?.properties as
+              | {
+                  sessionID?: string
+                  part?: { sessionID?: string }
+                  message?: { sessionID?: string }
+                }
+              | undefined
             const eventSessionId =
               props?.sessionID ||
               props?.part?.sessionID ||

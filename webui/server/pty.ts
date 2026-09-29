@@ -301,7 +301,7 @@ async function streamOutput(
             updateActivity(session)
             // Forward to WebSocket
             sendMessage(ws, message)
-          } catch (error) {
+          } catch {
             // This shouldn't happen if Go proxy is working correctly
             // Log but don't spam - this might be a malformed message
             console.warn(

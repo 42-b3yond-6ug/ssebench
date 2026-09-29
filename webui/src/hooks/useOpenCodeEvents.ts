@@ -15,7 +15,56 @@ import type {
 
 interface OpenCodeEvent {
   type: string
-  properties: any
+  properties: unknown
+}
+
+// The event properties this hook reads. The payload arrives as unvalidated
+// JSON, so every field is optional.
+interface EventTime {
+  start?: number
+  end?: number
+}
+
+interface PartUpdatedProperties {
+  delta?: string
+  part?: {
+    id: string
+    messageID: string
+    type?: string
+    callID?: string
+    tool?: string
+    text?: string
+    time?: EventTime
+    state?: {
+      status?: ToolExecution["status"]
+      input?: Record<string, unknown>
+      output?: string
+      error?: string
+      time?: EventTime
+    }
+  }
+}
+
+interface MessageUpdatedProperties {
+  info?: { id: string; time?: EventTime }
+}
+
+interface SessionStatusProperties {
+  status?: "idle" | "busy" | "retry"
+}
+
+interface PermissionAskedProperties {
+  id?: string
+  sessionID?: string
+  permission?: string
+  patterns?: string[]
+  metadata?: Record<string, unknown>
+  always?: unknown
+  tool?: { messageID?: string; callID?: string }
+}
+
+interface PermissionRepliedProperties {
+  permissionID?: string
 }
 
 interface UseOpenCodeEventsOptions {
@@ -184,7 +233,9 @@ export function useOpenCodeEvents({
 
           // Handle message.part.updated events
           if (eventType === "message.part.updated") {
-            const props = eventData.properties as any
+            const props = eventData.properties as
+              | PartUpdatedProperties
+              | undefined
 
             if (!props?.part) return
 
@@ -245,7 +296,9 @@ export function useOpenCodeEvents({
 
           // Handle message.updated events
           if (eventType === "message.updated") {
-            const props = eventData.properties as any
+            const props = eventData.properties as
+              | MessageUpdatedProperties
+              | undefined
 
             // Check if message is complete (has end time)
             if (
@@ -260,7 +313,9 @@ export function useOpenCodeEvents({
 
           // Handle session.status events
           if (eventType === "session.status") {
-            const props = eventData.properties as any
+            const props = eventData.properties as
+              | SessionStatusProperties
+              | undefined
 
             if (callbacksRef.current.onSessionStatus && props?.status) {
               callbacksRef.current.onSessionStatus(props.status)
@@ -273,7 +328,9 @@ export function useOpenCodeEvents({
             eventType === "permission.asked" ||
             eventType === "permission.updated"
           ) {
-            const props = eventData.properties as any
+            const props = eventData.properties as
+              | PermissionAskedProperties
+              | undefined
 
             console.log(
               "[useOpenCodeEvents] Permission event raw:",
@@ -318,7 +375,9 @@ export function useOpenCodeEvents({
 
           // Handle permission.replied events
           if (eventType === "permission.replied") {
-            const props = eventData.properties as any
+            const props = eventData.properties as
+              | PermissionRepliedProperties
+              | undefined
 
             console.log(
               "[useOpenCodeEvents] Permission replied:",

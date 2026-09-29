@@ -206,7 +206,7 @@ async function fetchSDKData(
     }
 
     return await response.json()
-  } catch (error) {
+  } catch {
     return null
   }
 }
@@ -525,7 +525,7 @@ export function stopSDKConnection(
 export function shutdownAllSDKConnections(): void {
   console.log(`[SDK-WS] Shutting down ${connections.size} connections`)
 
-  for (const [_containerId, conn] of connections) {
+  for (const conn of connections.values()) {
     if (conn.pollTimeout) {
       clearTimeout(conn.pollTimeout)
     }
