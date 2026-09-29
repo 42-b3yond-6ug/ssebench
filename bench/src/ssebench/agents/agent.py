@@ -6,6 +6,7 @@ from typing import ClassVar, final, override
 import yaml
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from ssebench import paths
 from ssebench.pipe import REGISTRY, DockerLayerMixin
 
 
@@ -26,12 +27,8 @@ class AgentConfig(BaseModel):
         return v.strip()
 
 
-# In-repo agent wrappers are uv workspace members; agent builds get the workspace root as the `workspace` context.
-WORKSPACE_ROOT = Path(".")
-
-
 def get_agent_path(name: str) -> Path:
-    agents_dir = Path("agents")
+    agents_dir = paths.agents_dir()
     if os.path.exists(agents_dir / name):
         return agents_dir / name
     else:
@@ -73,8 +70,9 @@ class Agent(DockerLayerMixin):
                 "build",
                 "--build-context",
                 f"ssebench-agent=docker-image://{base}",
+                # In-repo agent wrappers are uv workspace members and install from the workspace root.
                 "--build-context",
-                f"workspace={WORKSPACE_ROOT.resolve()}",
+                f"workspace={paths.home()}",
                 "-t",
                 docker_image_name,
                 "--load",
