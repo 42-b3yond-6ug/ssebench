@@ -24,8 +24,8 @@ files:
 sanitizer: 
 type: internal error
 binary:
-patch_commit: 539c8e751b99281a79dc659ba8dc44d91e444723
-trigger_commit: 8f96da9f5d5eff988554c1aae1784627c4bf6754
+patch_commit: 8f96da9f5d5eff988554c1aae1784627c4bf6754
+trigger_commit: 539c8e751b99281a79dc659ba8dc44d91e444723
 
 reference:
 - https://github.com/go-yaml/yaml.git 

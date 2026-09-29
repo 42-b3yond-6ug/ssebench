@@ -17,12 +17,11 @@ files:
   poc:
   - pocs/poc.go
   future_test: diffs/test.diff
-  security_test: diffs/security_test.diff
   intent_test:
 sanitizer:
 type: Slice bounds out of range
 binary:
-trigger_commit: 9f58baa7a613f89dfdc764c39e47fd3a15606153
+trigger_commit: 5100d6926a4bea3753fc72352fca70654f04cedc
 patch_commit: f0ee9ebde4b619767ae4ac03e8e42addb530f6bc
 reference:
 - https://github.com/tidwall/gjson
