@@ -68,7 +68,7 @@ tool layer and the command shown below. The tests in
 
 ## Tool layers
 
-A run's image is built from four [layers](/concepts/architecture#docker-image-layers):
+A run's image is built from four [layers](/concepts/image-layers):
 base, case, tool and agent. The tool layer adds the SSEBench runtime to the
 case image: the entrypoint, the daemon, the MCP server, the evaluator and
 OpenCode. The built-in layer is `sandbox` (`images/sandbox/Dockerfile`). An
@@ -347,7 +347,7 @@ gets `SSE_ARCHIVE`, `SSE_DAEMON_SOCKET` and `SSE_KEEP_ALIVE`.
 | `SSE_BASE_URL` | The LiteLLM proxy, `http://litellm:4000` |
 | `SSE_MODEL_NAME` | The selected model, as named in `models/*.yaml` |
 | `SSE_ARCHIVE` | The results directory in the container, `/tmp/sse-archive` |
-| `SSE_DIFFICULTY` | The [difficulty level](/reference/mcp-server#difficulty-levels), from 0 to 4 |
+| `SSE_DIFFICULTY` | The [difficulty level](/concepts/difficulty-levels), from 0 to 4 |
 | `TIMEOUT` | The agent's time limit in seconds (`--timeout`); the evaluator uses the same limit |
 | `SSE_KEEP_ALIVE` | `1` keeps the container running after the run (`--keep-container`), otherwise `0` |
 | `SSE_DAEMON_SOCKET` | Sidecar mode only: the daemon's Unix socket, `/tmp/sse-archive/please-work.sock` |
@@ -389,18 +389,20 @@ The reference patch is served at `GET /reference/patch` on the admin socket at
 any time, and on the agent-facing socket and HTTP only after the agent phase
 ends (the entrypoint sends `POST /admin/agent_exited` over the admin socket when
 the agent exits, which is how the web UI reads it from the host post-run).
-Post-agent SDK tooling uses `sse.reference.get_reference_patch()`.
+Post-agent SDK tooling uses `sse.reference.get_reference_patch()`. The
+[integrity model](/concepts/integrity) explains the two kinds of listener.
 
 The LiteLLM proxy is `litellm:4000` on two networks of its Compose project. By
 default the task container joins the internal one, `<project>_agents`
 (`ssebench_agents` by default), which reaches the proxy but not the internet.
 `ssebench run --egress open` puts it on `<project>_default` instead, a normal
-bridge.
+bridge; see [Integrity and egress](/deployment/integrity-and-egress).
 
 ### Result files
 
 `ssebench run` mounts `results/<task>/<model>/<agent>/`, under the working
 directory, at `SSE_ARCHIVE`. The directory is emptied before each run.
+[Results format](/concepts/results) describes every file.
 
 | File | Written by | Contents |
 |------|------------|----------|

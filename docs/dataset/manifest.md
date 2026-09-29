@@ -8,6 +8,9 @@ A dataset is a folder under `datasets/` with one folder per task. Each task
 has a config, `sse/config.yaml`, and each dataset has a generated
 `manifest.json` that lists its tasks for the CLI, the catalog service and CI.
 
+[Tasks and datasets](/concepts/tasks-and-datasets) explains the concepts; this
+page is the reference.
+
 The Pydantic models in `bench/src/ssebench/tasks/` (`metadata.py` for the task
 config, `manifest.py` for the manifest and `dataset.yaml`) are the definition
 of these files. The JSON Schemas in `datasets/schema/` are exported from them,
@@ -128,7 +131,8 @@ The Go tasks of `pilot` record it; the others leave it out.
 
 ### Checks
 
-The grader runs every check that the config makes possible, in this order. The
+The grader runs every check that the config makes possible, in this order; see
+[Grading pipeline](/concepts/grading). The
 [difficulty level](/concepts/difficulty-levels) only limits which of them the
 agent's `test_patch` tool may run.
 

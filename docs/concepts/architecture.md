@@ -200,6 +200,9 @@ against a later commit.
 ## Next steps
 
 - [Tasks and datasets](/concepts/tasks-and-datasets)
+- [Image layers](/concepts/image-layers)
+- [Grading pipeline](/concepts/grading) and [Results format](/concepts/results)
+- [Integrity model](/concepts/integrity)
 - [MCP server](/reference/mcp-server): the `test_patch` tool
 - [Dialog protocol](/reference/dialog-protocol): how agents report their
   session to the web UI

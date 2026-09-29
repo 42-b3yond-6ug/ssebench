@@ -93,4 +93,5 @@ See [Results format](/concepts/results) for the details.
 
 - [Web UI](/webui/): launch runs and watch them live
 - [Architecture](/concepts/architecture): what happens during a run
+- [Difficulty levels](/concepts/difficulty-levels): how much the agent may check while it works
 - [Add a model](/guides/add-a-model): use another provider or model
