@@ -1,41 +1,56 @@
-# =============================================================================
-# Stage 1: Build entrypoint binary (static Go binary, no runtime deps)
-# =============================================================================
-FROM golang:1.26-bookworm AS entrypoint-builder
+# The runtime of the agent container in sidecar mode: the entrypoint, the MCP
+# server and the evaluator. It holds no task files; the project's source tree
+# and the daemon's sockets are shared from the task container at run time.
 
+# The evaluator and the MCP server are members of the uv workspace at the
+# repository root. Each venv is synced from a copy of just the workspace files
+# it needs, directly at its final location; --no-editable installs the SDK into
+# the venv, so /src is not needed at run time.
+FROM ubuntu:24.04 AS python-builder
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/
+WORKDIR /src
+COPY pyproject.toml uv.lock ./
+COPY sdk/python/pyproject.toml sdk/python/
+COPY sdk/python/sse/ sdk/python/sse/
+COPY runtime/evaluator/pyproject.toml runtime/evaluator/
+COPY runtime/mcp/pyproject.toml runtime/mcp/
+RUN UV_PROJECT_ENVIRONMENT=/evaluator/.venv \
+        uv sync --package ssebench-evaluator --frozen --no-dev --no-editable && \
+    UV_PROJECT_ENVIRONMENT=/mcp/.venv \
+        uv sync --package ssebench-mcp --frozen --no-dev --no-editable
+COPY runtime/evaluator/pyproject.toml runtime/evaluator/*.py /evaluator/
+COPY runtime/mcp/pyproject.toml runtime/mcp/*.py /mcp/
+
+
+FROM golang:1.26-bookworm AS entrypoint-builder
 COPY runtime/entrypoint/ /build/
 WORKDIR /build
 ARG VERSION=dev
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${VERSION}" -o /entrypoint ./cmd/ssebench-entrypoint
 
 
-# =============================================================================
-# Stage 2: Final image
-# =============================================================================
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
+  ca-certificates \
   curl \
   git \
   wget && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
-# Create user "model" with uid/gid 1000 for running agents as non-root
-# This allows agents to use --dangerously-skip-permissions (requires non-root)
-# ubuntu:24.04 already has a user "ubuntu" with uid/gid 1000.
+# Agents run as the non-root user "model" (uid/gid 1000), which owns the shared
+# source tree. ubuntu:24.04 already has a user "ubuntu" with uid/gid 1000.
 RUN userdel --remove ubuntu && \
     groupadd -g 1000 model && \
-    useradd -m -u 1000 -g 1000 -s /bin/bash model
+    useradd -m -u 1000 -g 1000 -s /bin/bash model && \
+    su model -c "git config --global user.name 'SSEBench' && git config --global user.email 'bench@ssebench.local'"
 
-# SSEBench shared assets
-ENV PATH="/opt/venv/bin:$PATH"
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=python-builder /root/.local/share/uv/python /root/.local/share/uv/python
+COPY --from=python-builder /evaluator /evaluator
+COPY --from=python-builder /mcp /mcp
 
-COPY runtime/evaluator/ /evaluator/
-COPY runtime/mcp/ /mcp/
-
-# Copy entrypoint binary (static Go binary, works on any base image)
 COPY --from=entrypoint-builder /entrypoint /usr/local/bin/entrypoint
 ENTRYPOINT [ "/usr/local/bin/entrypoint", "--mode", "sidecar", "--" ]
