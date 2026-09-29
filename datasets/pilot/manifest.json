@@ -2889,7 +2889,7 @@
         "README.md": "3fdf10dc16013809fd58338336c7c5f52c92e51b75453dade90b81717a0550e9",
         "sse/build.sh": "3bd1fdd8cb8606a630100c60a806826463feffd99050a71a6c1a088a2cf477db",
         "sse/config.yaml": "5bfddacae821802a75799c788e7d4c8dad07545430f956edc87f2b5c2d61649b",
-        "sse/diffs/patch.diff": "be7538702498bef5512e6fcf830c3771b4257e230999547b3ef5219a850d8a09",
+        "sse/diffs/patch.diff": "432b13f05a338490d67dbad18775ae5b7d07cf96010fda8ed98d58c97fbb4b4d",
         "sse/diffs/security_test.diff": "1ad7ee23e2d8d1052e6229652f29975da7725d3f365d70dff2c5fcec18613da5",
         "sse/diffs/test.diff": "1ad7ee23e2d8d1052e6229652f29975da7725d3f365d70dff2c5fcec18613da5",
         "sse/pocs/poc.go": "0fbe639f19d6497cda7fcb1dc95233d7a4fc8a0d14df9f5a3156866fb8a55b11",
