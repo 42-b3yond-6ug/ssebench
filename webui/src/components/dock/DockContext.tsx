@@ -16,9 +16,15 @@ interface DockProviderProps {
   defaultPanels?: Record<string, string>
 }
 
-export function DockProvider({ children, defaultPanels = {} }: DockProviderProps) {
-  const [activePanels, setActivePanels] = useState<Record<string, string>>(defaultPanels)
-  const [dockVisibility, setDockVisibility] = useState<Record<string, boolean>>({})
+export function DockProvider({
+  children,
+  defaultPanels = {},
+}: DockProviderProps) {
+  const [activePanels, setActivePanels] =
+    useState<Record<string, string>>(defaultPanels)
+  const [dockVisibility, setDockVisibility] = useState<Record<string, boolean>>(
+    {}
+  )
 
   const setActivePanel = useCallback((dockId: string, panelId: string) => {
     setActivePanels((prev) => {
@@ -41,7 +47,13 @@ export function DockProvider({ children, defaultPanels = {} }: DockProviderProps
 
   return (
     <DockContext.Provider
-      value={{ activePanels, setActivePanel, dockVisibility, toggleDock, isDockVisible }}
+      value={{
+        activePanels,
+        setActivePanel,
+        dockVisibility,
+        toggleDock,
+        isDockVisible,
+      }}
     >
       {children}
     </DockContext.Provider>

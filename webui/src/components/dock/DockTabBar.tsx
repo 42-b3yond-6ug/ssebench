@@ -28,7 +28,9 @@ export function DockTabBar({
   orientation,
 }: DockTabBarProps) {
   if (orientation === "horizontal") {
-    return <HorizontalTabBar tabs={tabs} activeId={activeId} onSelect={onSelect} />
+    return (
+      <HorizontalTabBar tabs={tabs} activeId={activeId} onSelect={onSelect} />
+    )
   }
   return <VerticalTabBar tabs={tabs} activeId={activeId} onSelect={onSelect} />
 }

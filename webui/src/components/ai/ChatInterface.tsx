@@ -165,7 +165,7 @@ export function ChatInterface({
     return (
       <ViewContainer className="h-full">
         {/* Messages area - fills remaining space, scrollable */}
-      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
           <MessageList
             entries={dialogEntries}
             isStreaming={isStreaming}
@@ -253,7 +253,7 @@ export function ChatInterface({
       )}
 
       {/* Messages area - fills remaining space, scrollable */}
-      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
         <MessageList
           entries={dialogEntries}
           isLoading={isLoading}

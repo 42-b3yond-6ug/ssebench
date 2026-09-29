@@ -15,7 +15,10 @@ interface LogsContentProps {
   onLogCountChange?: (count: number) => void
 }
 
-export function LogsContent({ containerId, onLogCountChange }: LogsContentProps) {
+export function LogsContent({
+  containerId,
+  onLogCountChange,
+}: LogsContentProps) {
   const [isAtBottom, setIsAtBottom] = useState(true)
   const logsEndRef = useRef<HTMLDivElement>(null)
   const logsContainerRef = useRef<HTMLDivElement>(null)
@@ -150,7 +153,11 @@ export function LogsContent({ containerId, onLogCountChange }: LogsContentProps)
               />
             </svg>
             <p className="mb-2 text-sm">
-              {isConnected ? "No logs yet" : error ? "Connection error" : "Connecting..."}
+              {isConnected
+                ? "No logs yet"
+                : error
+                  ? "Connection error"
+                  : "Connecting..."}
             </p>
             <p className="text-center text-xs opacity-60">
               {error || "Waiting for container logs"}

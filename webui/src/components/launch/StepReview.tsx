@@ -5,12 +5,7 @@
  * Fires N independent launches (one per task) on submit.
  */
 
-import {
-  useState,
-  useCallback,
-  forwardRef,
-  useImperativeHandle,
-} from "react"
+import { useState, useCallback, forwardRef, useImperativeHandle } from "react"
 import type { TaskSource, LaunchMode } from "../../types/launch"
 import type { StepId } from "./WizardSteps"
 import { launchTask } from "../../lib/api"
@@ -45,9 +40,7 @@ export const StepReview = forwardRef<StepReviewRef, StepReviewProps>(
       try {
         // Fire all launches in parallel — each is independent
         const results = await Promise.allSettled(
-          tasks.map((task) =>
-            launchTask({ task, model, agent, mode, source })
-          )
+          tasks.map((task) => launchTask({ task, model, agent, mode, source }))
         )
 
         // Check if any failed at the API level (not the build itself)
