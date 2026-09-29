@@ -1,9 +1,17 @@
 """The container layout of a sidecar run: what each container gets, and what the agent never does."""
 
+import logging
 from pathlib import Path
 
+import pytest
+
+from ssebench import stack
+from ssebench.cli.cli import main
 from ssebench.runner import SidecarPair
 from ssebench.runner.runner import ARCHIVE_PATH, SIDECAR_DAEMON_SOCKET, SIDECAR_SOCKET_DIR
+
+PILOT = Path(__file__).resolve().parents[2] / "datasets" / "pilot"
+TASK = "gjson-196-bf4efcb"
 
 
 def make_pair(**kw: object) -> SidecarPair:
@@ -63,3 +71,17 @@ def test_each_run_has_its_own_names() -> None:
     assert pairs(first.environment_options(), "--name") == [first.environment_name]
     assert {first.source_volume, first.socket_volume}.isdisjoint({second.source_volume, second.socket_volume})
     assert len(SidecarPair(task_name="t", source_dir="/s", archive="a", network="n", difficulty=2).run_id) == 12
+
+
+def test_run_warns_that_sidecar_mode_is_experimental(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def stop(*_: object, **__: object) -> None:
+        raise TimeoutError("stopped before the proxy starts")
+
+    monkeypatch.setattr(stack, "up", stop)
+    with caplog.at_level(logging.WARNING), pytest.raises(SystemExit) as exit_info:
+        main(["run", "--model", "m", "--agent", "dummy", "--task", TASK, "--local", str(PILOT), "--mode", "sidecar"])
+
+    assert exit_info.value.code == 1
+    assert "Sidecar mode is experimental" in caplog.text
