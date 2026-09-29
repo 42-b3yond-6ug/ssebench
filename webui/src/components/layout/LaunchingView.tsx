@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { useLaunchContext } from "../../context/LaunchContext"
+import { useLaunchContext } from "../../context/useLaunchContext"
 
 interface LaunchingViewProps {
   launchId: string

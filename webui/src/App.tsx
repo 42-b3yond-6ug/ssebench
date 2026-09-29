@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, createContext, useContext } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Sidebar } from "./components/layout/Sidebar"
 import { ProjectInfoBar } from "./components/layout/ProjectInfoBar"
 import { AgentDialogContent } from "./components/layout/AgentPanel"
@@ -14,51 +14,19 @@ import { LaunchingView } from "./components/layout/LaunchingView"
 import { HomePage } from "./components/HomePage"
 import { NewPanel, type NewPanelTab } from "./components/modals/NewPanel"
 import { SettingsPanel } from "./components/modals/SettingsPanel"
-import { ContainerProvider, useContainers } from "./context/ContainerContext"
+import { ContainerProvider } from "./context/ContainerContext"
+import { useContainers } from "./context/useContainers"
 import { SDKDataProvider } from "./context/SDKDataContext"
-import { SettingsProvider, useSettings } from "./context/SettingsContext"
-import { LaunchProvider, useLaunchContext } from "./context/LaunchContext"
+import { SettingsProvider } from "./context/SettingsContext"
+import { useSettings } from "./context/useSettings"
+import { LaunchProvider } from "./context/LaunchContext"
+import { useLaunchContext } from "./context/useLaunchContext"
+import { NewPanelContext, SettingsPanelContext } from "./context/usePanels"
 import { Dock, DockProvider, useDock } from "./components/dock"
 import { EvaluationResultPanel } from "./components/dock/EvaluationResultPanel"
 import { useResizableRight, useResizableTop } from "./hooks/useResizable"
 import { AuthGate } from "./components/AuthGate"
 import { useServerInfo } from "./lib/serverInfo"
-
-// =============================================================================
-// Contexts for global modals
-// =============================================================================
-
-interface NewPanelContextValue {
-  openNewPanel: (tab: NewPanelTab) => void
-}
-
-const NewPanelContext = createContext<NewPanelContextValue | null>(null)
-
-export function useNewPanel() {
-  const context = useContext(NewPanelContext)
-  if (!context) {
-    throw new Error("useNewPanel must be used within NewPanelProvider")
-  }
-  return context
-}
-
-interface SettingsPanelContextValue {
-  openSettings: () => void
-}
-
-const SettingsPanelContext = createContext<SettingsPanelContextValue | null>(
-  null
-)
-
-export function useSettingsPanel() {
-  const context = useContext(SettingsPanelContext)
-  if (!context) {
-    throw new Error(
-      "useSettingsPanel must be used within SettingsPanelProvider"
-    )
-  }
-  return context
-}
 
 // =============================================================================
 // Icons for dock tabs

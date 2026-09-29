@@ -6,8 +6,8 @@
  */
 
 import { useState } from "react"
-import { useContainers } from "../../context/ContainerContext"
-import { useSDKDataContext } from "../../context/SDKDataContext"
+import { useContainers } from "../../context/useContainers"
+import { useSDKDataContext } from "../../context/useSDKDataContext"
 import type { EvaluationResultResponse } from "../../types/container"
 
 // =============================================================================

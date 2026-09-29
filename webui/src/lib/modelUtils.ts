@@ -120,3 +120,21 @@ export function groupModelsByVendor(models: string[]): ModelGroup[] {
 
   return result
 }
+
+/**
+ * Helper function to detect vendor from model/agent name
+ */
+export function getVendorFromName(name: string): VendorName {
+  const lower = name.toLowerCase()
+
+  // Models
+  if (lower.startsWith("claude")) return "anthropic"
+  if (lower.startsWith("gpt") || lower.startsWith("codex")) return "openai"
+  if (lower.startsWith("gemini")) return "google"
+
+  // Agents
+  if (lower.includes("claude")) return "anthropic"
+  if (lower.includes("codex") || lower.includes("openai")) return "openai"
+
+  return "unknown"
+}

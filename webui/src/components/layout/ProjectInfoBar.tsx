@@ -11,11 +11,12 @@
  */
 
 import { useState } from "react"
-import { useSDKDataContext } from "../../context/SDKDataContext"
-import { useContainers } from "../../context/ContainerContext"
-import { useDock } from "../dock/DockContext"
+import { useSDKDataContext } from "../../context/useSDKDataContext"
+import { useContainers } from "../../context/useContainers"
+import { useDock } from "../dock/useDock"
 import { ProjectInfoModal } from "../modals/ProjectInfoModal"
-import { VendorIcon, getVendorFromName } from "../icons/VendorIcon"
+import { VendorIcon } from "../icons/VendorIcon"
+import { getVendorFromName } from "../../lib/modelUtils"
 import * as SimpleIcons from "simple-icons"
 
 export function ProjectInfoBar() {

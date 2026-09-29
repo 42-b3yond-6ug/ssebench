@@ -6,7 +6,7 @@
  */
 
 import { useState, useMemo } from "react"
-import { useSDKDataContext } from "../../context/SDKDataContext"
+import { useSDKDataContext } from "../../context/useSDKDataContext"
 import hljs from "highlight.js/lib/core"
 import "../../styles/hljs-gruvbox.css"
 

@@ -9,7 +9,7 @@ import {
   useSettings,
   type TerminalThemeName,
   type DockTabPosition,
-} from "../../context/SettingsContext"
+} from "../../context/useSettings"
 
 interface SettingsPanelProps {
   isOpen: boolean

@@ -14,7 +14,7 @@ import type {
   ReasoningContent,
 } from "../types/opencode"
 import type { DialogEntry } from "../types/container"
-import { useSettings } from "../context/SettingsContext"
+import { useSettings } from "../context/useSettings"
 import { useOpenCodeEvents } from "./useOpenCodeEvents"
 
 interface UseOpenCodeSessionOptions {

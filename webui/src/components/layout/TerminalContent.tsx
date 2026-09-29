@@ -11,7 +11,7 @@ import { FitAddon } from "@xterm/addon-fit"
 import { SearchAddon } from "@xterm/addon-search"
 import "@xterm/xterm/css/xterm.css"
 import { openWebSocket } from "../../lib/api"
-import { useSettings } from "../../context/SettingsContext"
+import { useSettings } from "../../context/useSettings"
 
 type ConnectionState = "connecting" | "connected" | "disconnected" | "error"
 

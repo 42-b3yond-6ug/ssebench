@@ -10,8 +10,8 @@ import { MessageList } from "./MessageList"
 import { ChatInput } from "./ChatInput"
 import { PermissionDialogContainer } from "./PermissionDialog"
 import { useOpenCodeSession } from "../../hooks/useOpenCodeSession"
-import { useSDKDataContext } from "../../context/SDKDataContext"
-import { useSettingsPanel } from "../../App"
+import { useSDKDataContext } from "../../context/useSDKDataContext"
+import { useSettingsPanel } from "../../context/usePanels"
 import { ViewContainer } from "../layout/ViewContainer"
 
 interface ChatInterfaceProps {
