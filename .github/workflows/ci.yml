@@ -31,6 +31,7 @@ jobs:
       sdk: ${{ steps.filter.outputs.sdk }}
       e2e: ${{ steps.filter.outputs.e2e }}
       versions: ${{ steps.filter.outputs.versions }}
+      nix: ${{ steps.filter.outputs.nix }}
     steps:
       # Pull requests are diffed through the API; pushes to main need the checkout.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -123,6 +124,20 @@ jobs:
               - '**/package.json'
               - '**/Dockerfile'
               - deploy/compose/**
+              - '!datasets/**'
+            nix:
+              - *workflow
+              - flake.nix
+              - flake.lock
+              - nix/**
+              - VERSION
+              - rust-toolchain.toml
+              - uv.lock
+              - Cargo.lock
+              - bun.lock
+              - package.json
+              - '**/go.sum'
+              - '**/package.json'
               - '!datasets/**'
 
   secrets:
@@ -407,6 +422,22 @@ jobs:
           name: e2e-results
           path: results/
           retention-days: 7
+
+  nix:
+    # Not part of ci-ok: a lockfile update can need its Nix hashes refreshed,
+    # which should not block the update itself.
+    name: Nix flake check (informational)
+    needs: changes
+    if: needs.changes.outputs.nix == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+      - name: nix flake check
+        run: nix flake check -L
 
   ci-ok:
     name: ci-ok
