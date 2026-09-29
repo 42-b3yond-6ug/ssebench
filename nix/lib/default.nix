@@ -7,6 +7,19 @@ in
 rec {
   version = lib.fileContents (root + "/VERSION");
 
+  # The uv workspace; uv.lock is the only place Python dependencies are pinned.
+  workspace = inputs.uv2nix.lib.workspace.loadWorkspace { workspaceRoot = root; };
+
+  # Python package set for the workspace, built from the locked wheels.
+  mkPythonSet =
+    pkgs:
+    (pkgs.callPackage inputs.pyproject-nix.build.packages { python = pkgs.python312; }).overrideScope (
+      lib.composeManyExtensions [
+        inputs.pyproject-build-systems.overlays.wheel
+        (workspace.mkPyprojectOverlay { sourcePreference = "wheel"; })
+      ]
+    );
+
   # Bun at the version `packageManager` in package.json pins. The hashes must
   # be updated whenever that pin moves.
   mkBun =
