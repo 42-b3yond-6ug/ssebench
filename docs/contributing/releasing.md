@@ -287,6 +287,36 @@ the repository `42-b3yond-6ug/ssebench`.
     assets and run `sha256sum --check SHA256SUMS`; open
     `https://docs.ssebench.com` and check the version in the navigation bar.
 
+## Python packages
+
+Two distributions are published to PyPI, both built with `uv build`:
+
+```sh
+uv build --package ssebench       # the CLI
+uv build --package ssebench-sdk   # the SDK
+```
+
+`ssebench-sdk` is the code of `sdk/python`. Its `README.md` is the page on PyPI,
+and `LICENSE` and `NOTICE` next to its `pyproject.toml` are copies of the
+repository's, which a test keeps equal. The other members of the workspace use
+it as a workspace dependency, so only code outside this repository installs it
+from PyPI; see [Python SDK](/reference/python-sdk#install-and-versions).
+
+`ssebench` is the code of `bench/`, and works without a clone of the repository.
+Its build hook, `bench/hatch_build.py`, copies the files that the CLI needs into
+the wheel as `ssebench/_data/`, in the repository's layout: the agents, the
+models, the Compose file, the sources of the tool layer and proxy images, the
+SDK, evaluator and MCP sources, `uv.lock`, and the pilot manifest. `INCLUDE` in
+the hook lists them; add a file there when the CLI starts to need it. The sdist
+carries the same files under `src/ssebench/_data/`, so the wheel that `uv build`
+builds from it has them too. A build from a tree with no repository around it
+makes a wheel without them. Tests build both and check the contents; see
+[Without a clone](/reference/cli#without-a-clone) for how the CLI uses them.
+
+A wheel built for a release must be run once outside a checkout, in a clean
+virtual environment with `SSEBENCH_HOME` unset: install it, then run
+`ssebench init` and `ssebench tasks list`.
+
 ## Images
 
 The Images workflow (`.github/workflows/images.yml`) builds these images, and
