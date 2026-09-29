@@ -10,7 +10,7 @@ built on top of the one before it. The code that chains them is
 layer and returns its own.
 
 ```
-base      $SSEBENCH_REGISTRY/base-generic-go:latest              toolchain, per language
+base      $SSEBENCH_REGISTRY/base-generic-go:1.0.0               toolchain, per language
   |
 case      $SSEBENCH_REGISTRY/case/pilot/gjson-196-bf4efcb        project + task files, per task
   |
@@ -42,15 +42,19 @@ The toolchain for one language, shared by every task in that language:
 `generic-c` (Clang, LLVM with the sanitizer runtimes, CMake, autotools, gdb),
 `generic-go` (Go) and `generic-rust` (Rust through rustup, and the C
 toolchain). Each also has git, curl and uv. The Makefile tags each image with
-the SSEBench version and with `latest`; task Dockerfiles build on `latest`.
+the SSEBench version and with `latest`, and a local build also with every
+version that a dataset manifest names. Task Dockerfiles pin the base images of
+a release, such as `base-generic-go:1.0.0`; see
+[Base images](/dataset/manifest#base-images).
 
-`ssebench run` does not build base images: build the one your task needs
-before its first run, or pull it from the registry.
+`ssebench run` does not build base images: Docker pulls the one a task pins
+when it builds the case image, unless you built it first with
+`just base-images`.
 
 ### Case
 
 One image per task, from the `Dockerfile` in the task folder. It declares
-`ARG SSEBENCH_REGISTRY` and starts `FROM ${SSEBENCH_REGISTRY}/base-...:latest`,
+`ARG SSEBENCH_REGISTRY` and starts `FROM ${SSEBENCH_REGISTRY}/base-...:<version>`,
 so the CLI builds it with `--build-arg SSEBENCH_REGISTRY=$SSEBENCH_REGISTRY`.
 It contains:
 
