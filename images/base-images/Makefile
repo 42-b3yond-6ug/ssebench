@@ -8,6 +8,10 @@ CONTEXT       := .
 BUILD_FLAGS   :=
 
 IMAGE_PREFIX  := $(SSEBENCH_REGISTRY)/base-
+# Images are tagged with the SSEBench version and with latest, which the task
+# Dockerfiles build on.
+VERSION       := $(shell cat $(dir $(abspath $(lastword $(MAKEFILE_LIST))))../../VERSION)
+TAGS          := $(VERSION) latest
 
 BASE_IMAGES := generic-c generic-rust generic-go
 
@@ -21,22 +25,26 @@ $(BASE_IMAGES):
 	@echo "==> Building $@"
 	$(DOCKER) build $(BUILD_FLAGS) \
 		-f $(CONTEXT)/$@/Dockerfile \
-		-t $(IMAGE_PREFIX)$@:latest \
+		$(foreach tag,$(TAGS),-t $(IMAGE_PREFIX)$@:$(tag)) \
 		$(CONTEXT)
-	@echo "==> Built $(IMAGE_PREFIX)$@:latest"
+	@echo "==> Built $(IMAGE_PREFIX)$@ ($(TAGS))"
 
 ## Push all built images
 push:
 	@for img in $(BASE_IMAGES); do \
-		echo "==> Pushing $(IMAGE_PREFIX)$$img:latest"; \
-		$(DOCKER) push $(IMAGE_PREFIX)$$img:latest; \
+		for tag in $(TAGS); do \
+			echo "==> Pushing $(IMAGE_PREFIX)$$img:$$tag"; \
+			$(DOCKER) push $(IMAGE_PREFIX)$$img:$$tag || exit 1; \
+		done; \
 	done
 
 ## Remove all local base images
 clean:
 	@for img in $(BASE_IMAGES); do \
-		echo "==> Removing $(IMAGE_PREFIX)$$img:latest"; \
-		$(DOCKER) rmi -f $(IMAGE_PREFIX)$$img:latest || true; \
+		for tag in $(TAGS); do \
+			echo "==> Removing $(IMAGE_PREFIX)$$img:$$tag"; \
+			$(DOCKER) rmi -f $(IMAGE_PREFIX)$$img:$$tag || true; \
+		done; \
 	done
 
 ## Display available targets
@@ -49,6 +57,7 @@ help:
 	@echo "  make clean        - Remove all local images"
 	@echo ""
 	@echo "Registry prefix:    $(IMAGE_PREFIX)"
+	@echo "Tags:               $(TAGS)"
 	@echo "Source context:     $(CONTEXT)/"
 	@echo ""
 

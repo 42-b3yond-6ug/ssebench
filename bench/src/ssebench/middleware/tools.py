@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import final, override
 
 from ssebench import paths
-from ssebench.pipe import REGISTRY, DockerLayerMixin
+from ssebench.pipe import REGISTRY, TAG, DockerLayerMixin
 from ssebench.version import VERSION
 
 DOCKER_IMAGE_PREFIX_SANDBOX = f"{REGISTRY}/tool"
@@ -46,7 +46,7 @@ class SandboxToolLayer(ToolLayer):
         if base is None:
             raise RuntimeError("SandboxToolLayer requires a case image as base")
 
-        docker_image_name = f"{DOCKER_IMAGE_PREFIX_SANDBOX}/{self.context.task_name.lower()}"
+        docker_image_name = f"{DOCKER_IMAGE_PREFIX_SANDBOX}/{self.context.task_name.lower()}:{TAG}"
 
         logger.info(f"Building sandbox image {docker_image_name}...")
         docker_file = self.context.build_root / "images/sandbox/Dockerfile"
@@ -83,7 +83,7 @@ class SidecarToolLayerAgentRuntime(ToolLayer):
         if base is not None:
             raise RuntimeError("SidecarToolLayerAgentRuntime does not accept a base image")
 
-        docker_image_name = DOCKER_IMAGE_PREFIX_SIDECAR_AGENTRT
+        docker_image_name = f"{DOCKER_IMAGE_PREFIX_SIDECAR_AGENTRT}:{TAG}"
 
         logger.info(f"Building sidecar agent runtime image {docker_image_name}...")
         docker_file = self.context.build_root / "images/sidecar-agent/Dockerfile"
@@ -116,7 +116,7 @@ class SidecarToolLayerEnvironment(ToolLayer):
         if base is None:
             raise RuntimeError("SidecarToolLayerEnvironment requires a case image as base")
 
-        docker_image_name = f"{DOCKER_IMAGE_PREFIX_SIDECAR_ENVIRON}/{self.context.task_name.lower()}"
+        docker_image_name = f"{DOCKER_IMAGE_PREFIX_SIDECAR_ENVIRON}/{self.context.task_name.lower()}:{TAG}"
 
         logger.info(f"Building sidecar environment image {docker_image_name}...")
         docker_file = self.context.build_root / "images/sidecar-case/Dockerfile"
