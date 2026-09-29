@@ -64,6 +64,7 @@ as in the [summary](#the-summary). The dummy run above produces:
 ```json
 {
   "patch_result": {
+    "status": "failed",
     "build_success": true,
     "pov_passed": 0,
     "pov_total": 1,
@@ -88,12 +89,13 @@ as in the [summary](#the-summary). The dummy run above produces:
 
 | Field | Type | Meaning |
 |---|---|---|
+| `patch_result.status` | string | The verdict: `passed` when every check that ran passed, `failed` when a check failed or the patch did not apply, `error` when the patch was not graded because no check ran. See [Grading pipeline](/concepts/grading#the-result). |
 | `patch_result.build_success` | bool or null | The patched project built. |
 | `patch_result.pov_passed` | int or null | Proofs of concept that no longer trigger the vulnerability. |
 | `patch_result.pov_total` | int or null | Proofs of concept the task has. |
 | `patch_result.func_test_success` | bool or null | The project's own tests passed. |
 | `patch_result.intent_test_success` | bool or null | The tests of the upstream fix passed. |
-| `patch_result.error_msg` | string or null | The first failure: `Build failed`, `PoC failed: <poc>`, `Function test failed`, `Intent test failed`, `Patch apply failed`, `Timeout (<n>s)` or `Exception: <message>`. |
+| `patch_result.error_msg` | string or null | The first failure: `Build failed`, `PoC failed: <poc>`, `Function test failed`, `Intent test failed` or `Patch apply failed`; or, with `status` `error`, why the patch was not graded: `Timeout (<n>s)`, `Exception: <message>` or `No check ran`. |
 | `patch_result.error_log` | string or null | The output of the check that failed first. |
 | `runtime_result.agent_duration` | int | Seconds the agent ran. |
 | `runtime_result.agent_timeout` | bool | The agent reached `--timeout` and was stopped. |
@@ -136,7 +138,7 @@ are copied from `result.json`; the rest comes from the CLI. For the dummy run
     "reference_run": false,
     "plugins": []
   },
-  "patch_result": { "build_success": true, "pov_passed": 0, "pov_total": 1, "…": "…" },
+  "patch_result": { "status": "failed", "build_success": true, "pov_passed": 0, "pov_total": 1, "…": "…" },
   "runtime_result": { "agent_duration": 0, "agent_timeout": false, "evaluator_timeout": false },
   "spend": 0.0
 }
@@ -158,9 +160,11 @@ are copied from `result.json`; the rest comes from the CLI. For the dummy run
 | `spend` | What the run's model calls cost, in US dollars, as the [LiteLLM proxy](/concepts/litellm-proxy#one-key-per-run) recorded it. |
 
 When the container leaves `result.json` empty, for example because it failed to
-start, the CLI still writes it and the summary, with every check `null`,
-`error_msg` set to `No result: evaluator did not produce output`, and
-`agent_duration` 0.
+start, the CLI still writes it and the summary, with `status` `error`, every
+check `null`, `error_msg` set to `No result: evaluator did not produce output`,
+and `agent_duration` 0. When `result.json` has no `status`, as from an
+evaluator that predates the field, the CLI derives it from the checks in the
+same way.
 
 ## Reference runs
 

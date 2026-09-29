@@ -448,6 +448,7 @@ directory, at `SSE_ARCHIVE`. The directory is emptied before each run.
 ```json
 {
   "patch_result": {
+    "status": "failed",
     "build_success": true,
     "pov_passed": 0,
     "pov_total": 1,
@@ -472,14 +473,14 @@ directory, at `SSE_ARCHIVE`. The directory is emptied before each run.
 
 The evaluator writes `patch_result` and `runtime_result`; after the container
 exits, `ssebench run` adds the run settings as `config`. If the container
-leaves `result.json` empty, `ssebench run` records a failed run with the error
-`No result: evaluator did not produce output`. It then writes the summary,
-`results/<task>-<agent>-<model>.json`: the task metadata (`task`), the run
-settings (`config`: `agent`, `model`, `mode`, `timeout`, `difficulty`,
-`tool_layer`, `egress` and `reference_run`), `patch_result`, `runtime_result`
-and the model `spend` in US dollars. `reference_run` is `true` when the
-`reference` agent applied the task's known fix: that grade rates the task, not
-a model.
+leaves `result.json` empty, `ssebench run` records an ungraded run, `status`
+`error`, with the error `No result: evaluator did not produce output`. It then
+writes the summary, `results/<task>-<agent>-<model>.json`: the task metadata
+(`task`), the run settings (`config`: `agent`, `model`, `mode`, `timeout`,
+`difficulty`, `tool_layer`, `egress` and `reference_run`), `patch_result`,
+`runtime_result` and the model `spend` in US dollars. `reference_run` is `true`
+when the `reference` agent applied the task's known fix: that grade rates the
+task, not a model.
 
 ### Container labels
 

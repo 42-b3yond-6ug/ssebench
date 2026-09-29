@@ -8,10 +8,14 @@ from sse.grading import PatchResult
 class TestPatchResultSuccess:
     """Tests for is_fully_successful()."""
 
-    def test_all_none_is_successful(self):
-        """Nothing ran -> vacuously successful."""
+    def test_nothing_ran_is_not_successful(self):
+        """Nothing ran -> not graded, never a success."""
         result = PatchResult()
-        assert result.is_fully_successful() is True
+        assert result.is_fully_successful() is False
+
+    def test_error_without_checks_is_not_successful(self):
+        result = PatchResult(error_msg="Exception: daemon unreachable")
+        assert result.is_fully_successful() is False
 
     def test_all_passing(self):
         result = PatchResult(
@@ -73,6 +77,41 @@ class TestPatchResultSuccess:
             intent_test_success=False,
         )
         assert result.is_fully_successful() is False
+
+
+class TestPatchResultStatus:
+    """Tests for status()."""
+
+    def test_nothing_ran_is_an_error(self):
+        assert PatchResult().status() == "error"
+        assert PatchResult(error_msg="Timeout (60s)").status() == "error"
+
+    def test_all_passing_is_passed(self):
+        result = PatchResult(
+            build_success=True,
+            pov_passed=1,
+            pov_total=1,
+            func_test_success=True,
+            intent_test_success=True,
+        )
+        assert result.status() == "passed"
+
+    def test_one_check_passing_is_passed(self):
+        assert PatchResult(func_test_success=True).status() == "passed"
+
+    def test_a_failed_check_is_failed(self):
+        assert PatchResult(build_success=False).status() == "failed"
+        assert PatchResult(pov_passed=0, pov_total=1).status() == "failed"
+
+    def test_patch_that_did_not_apply_is_failed(self):
+        # grade() records an unapplicable patch as failed checks.
+        result = PatchResult(
+            build_success=False,
+            func_test_success=False,
+            intent_test_success=False,
+            error_msg="Patch apply failed",
+        )
+        assert result.status() == "failed"
 
 
 class TestPatchResultMarkFailure:

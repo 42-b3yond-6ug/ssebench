@@ -1,11 +1,16 @@
 from typing import Literal, Self
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from ssebench.tasks.metadata import TaskMetadata
 
+GradeStatus = Literal["passed", "failed", "error"]
+
 
 class PatchResult(BaseModel):
+    # Derived from the checks when absent: the CLI's own no-result record,
+    # and result.json from an evaluator that predates the field.
+    status: GradeStatus | None = None
     build_success: bool | None = None
     pov_passed: int | None = None
     pov_total: int | None = None
@@ -13,6 +18,25 @@ class PatchResult(BaseModel):
     intent_test_success: bool | None = None
     error_msg: str | None = None
     error_log: str | None = None
+
+    @model_validator(mode="after")
+    def derive_status(self) -> Self:
+        if self.status is None:
+            self.status = grade_status(self)
+        return self
+
+
+def grade_status(r: PatchResult) -> GradeStatus:
+    """`error` when no check ran, since nothing graded the patch; else whether every check that ran passed."""
+    if all(v is None for v in (r.build_success, r.pov_total, r.func_test_success, r.intent_test_success)):
+        return "error"
+    failed = (
+        r.build_success is False
+        or (r.pov_total is not None and r.pov_passed != r.pov_total)
+        or r.func_test_success is False
+        or r.intent_test_success is False
+    )
+    return "failed" if failed else "passed"
 
 
 class RuntimeResult(BaseModel):

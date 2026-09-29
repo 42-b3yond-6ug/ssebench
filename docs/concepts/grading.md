@@ -113,6 +113,7 @@ The evaluator writes one JSON document to `result.json`:
 ```json
 {
   "patch_result": {
+    "status": "failed",
     "build_success": true,
     "pov_passed": 0,
     "pov_total": 1,
@@ -131,17 +132,23 @@ tests fail. `error_msg` and `error_log` describe the **first** check that failed
 later failures are recorded only in their fields. See
 [Results format](/concepts/results#result-json) for every field.
 
-There is no single pass or fail field. A patch fixes the task when every check
-that ran passed: the build succeeded, `pov_passed` equals `pov_total`, and the
-functional and intent tests passed. The evaluator logs `[result] Patch success`
-in that case and `[result] Patch Failed or Incomplete` otherwise.
+`status` is the verdict:
+
+| `status` | Meaning | Evaluator log |
+|---|---|---|
+| `passed` | Grading ran, and every check that ran passed: the build succeeded, `pov_passed` equals `pov_total`, and the functional and intent tests passed. The patch fixes the task. | `[result] Patch success` |
+| `failed` | Grading ran, and a check failed or the patch did not apply. | `[result] Patch failed` |
+| `error` | The patch was not graded: no check ran. | `[result] Not graded: <error_msg>` |
+
+A run is `error` when grading raised an exception (`error_msg` starts with
+`Exception:`), when it ran out of time (`Timeout (<seconds>s)`, with
+`evaluator_timeout` set), when the task has no check at all (`No check ran`),
+or when the container wrote no result (`No result: evaluator did not produce
+output`). Such a run says nothing about the patch: it is never a success. Count
+it apart from failures, or run it again.
+
 `just report` shows, for each agent and model, the share of runs that passed
 each check.
-
-A result in which no check ran means grading did not happen: `error_msg` then
-starts with `Timeout` (with `evaluator_timeout` set) or `Exception:`, or reads
-`No result: evaluator did not produce output` when the container wrote nothing.
-Count such a run as failed.
 
 ## Time limit
 

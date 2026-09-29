@@ -1,20 +1,23 @@
 import asyncio
 import logging
 import os
+from collections.abc import Callable
+from typing import Literal
 
 from pydantic import BaseModel
 from sse.grading import PatchResult as SDKPatchResult
 from sse.grading import grade
-
-from archive import backup_src
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+NO_CHECK_RAN = "No check ran"
+
 
 class PatchResult(BaseModel):
+    status: Literal["passed", "failed", "error"]
     build_success: bool | None = None
     pov_passed: int | None = None
     pov_total: int | None = None
@@ -25,24 +28,21 @@ class PatchResult(BaseModel):
 
     @classmethod
     def from_sdk(cls, sdk_result: SDKPatchResult) -> "PatchResult":
+        status = sdk_result.status()
         return cls(
+            status=status,
             build_success=sdk_result.build_success,
             pov_passed=sdk_result.pov_passed,
             pov_total=sdk_result.pov_total,
             func_test_success=sdk_result.func_test_success,
             intent_test_success=sdk_result.intent_test_success,
-            error_msg=sdk_result.error_msg,
+            error_msg=sdk_result.error_msg or (NO_CHECK_RAN if status == "error" else None),
             error_log=sdk_result.error_log,
         )
 
-    def is_fully_successful(self) -> bool:
-        if self.build_success is not None and not self.build_success:
-            return False
-        if self.pov_total is not None and self.pov_passed != self.pov_total:
-            return False
-        if self.func_test_success is not None and not self.func_test_success:
-            return False
-        return not (self.intent_test_success is not None and not self.intent_test_success)
+    @classmethod
+    def not_graded(cls, error_msg: str) -> "PatchResult":
+        return cls(status="error", error_msg=error_msg)
 
 
 class RuntimeResult(BaseModel):
@@ -56,32 +56,40 @@ class EvaluationResult(BaseModel):
     runtime_result: RuntimeResult
 
 
+async def run_grading(timeout: float, grade_patch: Callable[[], SDKPatchResult] = grade) -> tuple[PatchResult, bool]:
+    """Grade the agent's patch within timeout seconds.
+
+    Returns the result and whether grading timed out. A grading that raised or
+    timed out ran no check to completion, so its result is an error.
+    """
+    try:
+        sdk_result = await asyncio.wait_for(asyncio.to_thread(grade_patch), timeout=timeout)
+    except TimeoutError:
+        logger.error(f"[evaluator] Timeout after {timeout}s")
+        return PatchResult.not_graded(f"Timeout ({timeout}s)"), True
+    except Exception as e:
+        logger.error(f"[evaluator] Unexpected Error: {e}", exc_info=True)
+        return PatchResult.not_graded(f"Exception: {e!s}"), False
+    return PatchResult.from_sdk(sdk_result), False
+
+
 async def main_async():
+    # archive asks the daemon for the task on import.
+    from archive import backup_src
+
     evaluator_timeout = int(os.getenv("TIMEOUT", 30 * 60))
-    is_self_timeout = False
 
     logger.info(f"[evaluator] Grading Start (Timeout: {evaluator_timeout}s)")
 
-    try:
-        sdk_result = await asyncio.wait_for(
-            asyncio.to_thread(grade),
-            timeout=evaluator_timeout,
-        )
-        patch_result = PatchResult.from_sdk(sdk_result)
-    except TimeoutError:
-        logger.error(f"[evaluator] Timeout after {evaluator_timeout}s")
-        patch_result = PatchResult()
-        patch_result.error_msg = f"Timeout ({evaluator_timeout}s)"
-        is_self_timeout = True
-    except Exception as e:
-        logger.error(f"[evaluator] Unexpected Error: {e}", exc_info=True)
-        patch_result = PatchResult()
-        patch_result.error_msg = f"Exception: {e!s}"
+    patch_result, is_self_timeout = await run_grading(evaluator_timeout)
 
-    if patch_result.is_fully_successful():
-        logger.info("[result] Patch success")
-    else:
-        logger.warning("[result] Patch Failed or Incomplete")
+    match patch_result.status:
+        case "passed":
+            logger.info("[result] Patch success")
+        case "failed":
+            logger.warning("[result] Patch failed")
+        case "error":
+            logger.error(f"[result] Not graded: {patch_result.error_msg}")
 
     # Save Output
     await asyncio.to_thread(backup_src)

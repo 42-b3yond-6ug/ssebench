@@ -8,18 +8,22 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from sse import tools
 from sse.helper import ScriptResult
+
+GradeStatus = Literal["passed", "failed", "error"]
+"""``passed``: every check that ran passed. ``failed``: a check failed, or the
+patch did not apply. ``error``: no check ran, so the patch was not graded."""
 
 
 @dataclass
 class PatchResult:
     """Structured result of grading a patch against all available tests.
 
-    Fields are ``None`` when the corresponding step was not applicable
-    (e.g. no build script configured).  A ``None`` value is *not* treated
-    as a failure by :meth:`is_fully_successful`.
+    Fields are ``None`` when the corresponding step did not run (e.g. no
+    build script configured, or an earlier failure ended grading).
     """
 
     build_success: bool | None = None
@@ -37,8 +41,25 @@ class PatchResult:
     error_log: str | None = None
     """Output of the step that failed first."""
 
+    def checks_ran(self) -> bool:
+        """Return True when at least one check ran."""
+        return any(
+            v is not None
+            for v in (
+                self.build_success,
+                self.pov_total,
+                self.func_test_success,
+                self.intent_test_success,
+            )
+        )
+
     def is_fully_successful(self) -> bool:
-        """Return True when every *executed* step passed."""
+        """Return True when at least one check ran and every check that ran passed.
+
+        A result in which no check ran was not graded, so it is never a success.
+        """
+        if not self.checks_ran():
+            return False
         if self.build_success is not None and not self.build_success:
             return False
         if self.pov_total is not None and self.pov_passed != self.pov_total:
@@ -48,6 +69,12 @@ class PatchResult:
         return not (
             self.intent_test_success is not None and not self.intent_test_success
         )
+
+    def status(self) -> GradeStatus:
+        """Return the verdict: ``passed``, ``failed``, or ``error`` when no check ran."""
+        if not self.checks_ran():
+            return "error"
+        return "passed" if self.is_fully_successful() else "failed"
 
     def mark_failure(self, msg: str, log: str | None = None) -> None:
         """Record the *first* failure encountered.
