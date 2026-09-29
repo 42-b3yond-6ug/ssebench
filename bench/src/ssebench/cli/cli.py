@@ -5,14 +5,11 @@ import logging
 import os
 import subprocess
 import sys
-import time
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
-import requests
-
-from ssebench import paths
+from ssebench import paths, settings, stack
 from ssebench.agents import Agent
 from ssebench.extensions import (
     DEFAULT_TOOL_LAYER,
@@ -32,7 +29,7 @@ from .build import build_case_image, get_tasks
 
 logger = logging.getLogger(__name__)
 
-BUILTIN_COMMANDS = ("run", "build-case", "dataset")
+BUILTIN_COMMANDS = ("run", "build-case", "dataset", "proxy")
 
 
 class RunArgs(argparse.Namespace):
@@ -48,42 +45,6 @@ class RunArgs(argparse.Namespace):
         self.timeout: int
         self.difficulty: int
         self.keep_container: bool
-
-
-def docker_compose_up(compose_dir: str = ".", compose_file: str | None = None) -> None:
-    cmd = ["docker", "compose"]
-    if compose_file:
-        cmd += ["-f", compose_file]
-    cmd += ["up", "-d"]
-
-    _ = subprocess.run(
-        cmd,
-        cwd=compose_dir,
-        check=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.STDOUT,
-    )
-
-
-def wait_for_health(
-    url: str = "http://localhost:4000/health/liveliness",
-    timeout: float = 180.0,
-    interval: float = 2.0,
-):
-    logger.info(f"Waiting for service health at {url}...")
-    deadline = time.monotonic() + timeout
-    while True:
-        try:
-            resp = requests.get(url, timeout=2)
-            if resp.status_code == 200:
-                logger.info("Service is healthy.")
-                return
-        except requests.RequestException:
-            pass
-
-        if time.monotonic() >= deadline:
-            raise TimeoutError("Service did not become healthy in time.")
-        time.sleep(interval)
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -107,16 +68,14 @@ def cmd_run(args: argparse.Namespace) -> int:
         logger.error(e)
         return 1
 
-    # Wait until LiteLLM is ready
-    compose_file = paths.compose_file()
     try:
-        docker_compose_up(compose_file=str(compose_file))
-        wait_for_health()
+        stack.up()
+        stack.wait_healthy()
     except TimeoutError as e:
-        logger.error(f"timeout: {e}")
+        logger.error(e)
         return 1
-    except Exception as e:
-        logger.error(f"unexpected error: {e}")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Could not start the LiteLLM proxy: {e}")
         return 1
 
     # Run the experiment
@@ -137,6 +96,27 @@ def cmd_run(args: argparse.Namespace) -> int:
             return 1
     runner.build()
     runner.run()
+    return 0
+
+
+def cmd_proxy(args: argparse.Namespace) -> int:
+    """Manage the local LiteLLM proxy."""
+    try:
+        match args.action:
+            case "up":
+                stack.up()
+                stack.wait_healthy()
+            case "down":
+                stack.down()
+            case _:
+                logger.error(f"Unknown action: {args.action}")
+                return 1
+    except TimeoutError as e:
+        logger.error(e)
+        return 1
+    except subprocess.CalledProcessError as e:
+        logger.error(f"docker compose failed: {e}")
+        return 1
     return 0
 
 
@@ -187,6 +167,10 @@ def requested_extensions(argv: Sequence[str]) -> list[Command]:
 
 def main(argv: Sequence[str] | None = None):
     argv = sys.argv[1:] if argv is None else list(argv)
+    # The `ssebench` console script enters here, not through __main__; without a handler the
+    # progress messages would be dropped. A no-op when logging is already configured.
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
     parser = argparse.ArgumentParser(
         description="SSEBench CLI",
@@ -251,6 +235,14 @@ def main(argv: Sequence[str] | None = None):
     # ==================== dataset subcommand ====================
     dataset.add_parser(subparsers)
 
+    # ==================== proxy subcommand ====================
+    proxy_parser = subparsers.add_parser(
+        "proxy",
+        help="Start or stop the local LiteLLM proxy",
+        description="`down` keeps the database volume.",
+    )
+    proxy_parser.add_argument("action", choices=["up", "down"])
+
     extensions: dict[str, Command] = {}
     for command in requested_extensions(argv):
         try:
@@ -276,11 +268,13 @@ def main(argv: Sequence[str] | None = None):
             sys.exit(cmd_build_case(args))
         elif args.command == "dataset":
             sys.exit(args.handler(args))
+        elif args.command == "proxy":
+            sys.exit(cmd_proxy(args))
         elif args.command in extensions:
             sys.exit(extensions[args.command].run(args))
         else:
             parser.print_help()
             sys.exit(1)
-    except paths.HomeNotFoundError as e:
+    except (paths.HomeNotFoundError, settings.SettingError) as e:
         logger.error(e)
         sys.exit(1)

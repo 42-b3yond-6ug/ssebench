@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import final, override
 from uuid import uuid4
 
+from ssebench import stack
 from ssebench.agents import Agent
 from ssebench.extensions import DEFAULT_TOOL_LAYER, get_tool_layer
 from ssebench.middleware import (
@@ -105,7 +106,7 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
             docker_cmd.extend(
                 [
                     "--network",
-                    "ssebench_net",
+                    stack.network(),
                     "-e",
                     f"SSE_API_KEY={self.model.api_key}",
                     "-e",
@@ -301,7 +302,7 @@ class BenchmarkSidecarRuner(BenchmarkRunner):
             docker_cmd.extend(
                 [
                     "--network",
-                    "ssebench_net",
+                    stack.network(),
                     "-e",
                     f"SSE_API_KEY={self.model.api_key}",
                     "-e",

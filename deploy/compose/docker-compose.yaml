@@ -1,3 +1,7 @@
+# The LiteLLM proxy and its database; `ssebench run` and `ssebench proxy up`
+# start it. Container, network and volume names are scoped to the Compose
+# project (COMPOSE_PROJECT_NAME, default ssebench), so stacks with different
+# project names and LITELLM_PORT values run side by side.
 name: ssebench
 
 services:
@@ -7,14 +11,15 @@ services:
       context: ../..
       dockerfile: images/litellm/Dockerfile
     ports:
-      - "4000:4000"
-    networks:
-      - benchnet
+      - "${LITELLM_PORT:-4000}:4000"
     environment:
-      DATABASE_URL: "postgresql://llmproxy:dbpassword9090@litellm_db:5432/litellm"
+      LITELLM_MASTER_KEY: "${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY is not set; run just setup to write .env}"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-litellm}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set; run just setup to write .env}@litellm_db:5432/litellm"
       STORE_MODEL_IN_DB: "True" # allows adding models to proxy via UI
+    # Provider keys that models/*.yaml reference as os.environ/<NAME>.
     env_file:
-      - ../../.env
+      - path: ../../.env
+        required: false
     depends_on:
       - litellm_db
     healthcheck:
@@ -31,25 +36,18 @@ services:
   litellm_db:
     image: postgres:16
     restart: always
-    container_name: litellm_db
-    networks:
-      - benchnet
     environment:
       POSTGRES_DB: litellm
-      POSTGRES_USER: llmproxy
-      POSTGRES_PASSWORD: dbpassword9090
+      POSTGRES_USER: ${POSTGRES_USER:-litellm}
+      # Postgres applies the password only when it creates the volume.
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set; run just setup to write .env}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d litellm -U llmproxy"]
+      test: ["CMD-SHELL", "pg_isready -d litellm -U $${POSTGRES_USER}"]
       interval: 1s
       timeout: 5s
       retries: 10
 
 volumes:
   postgres_data:
-    name: litellm_postgres_data
-
-networks:
-  benchnet:
-    name: ssebench_net
