@@ -179,10 +179,11 @@ Hello, SSEBench!
 
 Commands are imported only when they can be used: for `ssebench --help`,
 `ssebench` without a command, an unknown command, or the command itself. The
-built-in commands (`run`, `build-case`, `dataset`) import no extension. A command that
-cannot be imported, does not implement `Command`, has a different `name`, fails
-in `configure`, is registered more than once or has a built-in name is left
-out with a warning, and the rest of the CLI keeps working.
+built-in commands (`run`, `build-case`, `dataset`, `tasks`, `proxy`, `doctor`)
+import no extension. A command that cannot be imported, does not implement
+`Command`, has a different `name`, fails in `configure`, is registered more
+than once or has a built-in name is left out with a warning, and the rest of
+the CLI keeps working.
 
 ## Container contract
 

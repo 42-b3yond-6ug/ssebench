@@ -23,12 +23,12 @@ from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRuner
 from ssebench.tasks import CatalogError, CatalogTask, LocalTask, Task, load_catalog
 from ssebench.version import VERSION
 
-from . import dataset
+from . import dataset, tasks
 from .build import build_case_image, get_tasks
 
 logger = logging.getLogger(__name__)
 
-BUILTIN_COMMANDS = ("run", "build-case", "dataset", "proxy", "doctor")
+BUILTIN_COMMANDS = ("run", "build-case", "dataset", "tasks", "proxy", "doctor")
 
 
 class RunArgs(argparse.Namespace):
@@ -199,8 +199,7 @@ def main(argv: Sequence[str] | None = None):
         type=str,
         default="",
         metavar="PATH|URL",
-        help="Task catalog, used when --local is not given: a manifest.json path or URL, a dataset directory, or "
-        "the URL of a catalog service (default: $SSEBENCH_CATALOG, else the bundled pilot manifest)",
+        help=f"{tasks.CATALOG_HELP}; used when --local is not given",
     )
     run_parser.add_argument("--mode", choices=["sidecar", "sandbox"], default="sandbox")
     run_parser.add_argument(
@@ -256,6 +255,9 @@ def main(argv: Sequence[str] | None = None):
     # ==================== dataset subcommand ====================
     dataset.add_parser(subparsers)
 
+    # ==================== tasks subcommand ====================
+    tasks.add_parser(subparsers)
+
     # ==================== proxy subcommand ====================
     proxy_parser = subparsers.add_parser(
         "proxy",
@@ -296,7 +298,7 @@ def main(argv: Sequence[str] | None = None):
             sys.exit(cmd_run(args))
         elif args.command == "build-case":
             sys.exit(cmd_build_case(args))
-        elif args.command == "dataset":
+        elif args.command in ("dataset", "tasks"):
             sys.exit(args.handler(args))
         elif args.command == "proxy":
             sys.exit(cmd_proxy(args))
