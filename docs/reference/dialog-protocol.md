@@ -2,7 +2,7 @@
 outline: deep
 ---
 
-# Dialog Protocol
+# Dialog protocol
 
 This guide explains the **dialog protocol** — a JSONL-based log format that allows the SSEBench WebUI to display any agent's session in a unified way, regardless of the underlying agent implementation.
 
@@ -359,7 +359,7 @@ finally:
 
 The Claude Code agent wrapper at `agents/claude-code/claude-code-sse/main.py` is the canonical implementation of this protocol. It converts Claude Code's `stream-json` output format into dialog entries in real time. Refer to it for a production-grade example, including async streaming and token tracking.
 
-## Next Steps
+## Next steps
 
-- [MCP Server](/reference/mcp-server) - The `test_patch` tool
-- [Environment Variables](/reference/environment) - All available environment variables
+- [MCP server](/reference/mcp-server): the `test_patch` tool
+- [Environment variables](/reference/environment): every variable available to an agent

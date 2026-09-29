@@ -4,78 +4,73 @@ outline: deep
 
 # What is SSEBench?
 
-SSEBench (Software Security Evaluation Benchmark) is a comprehensive benchmark for evaluating the security capabilities of AI code agents on vulnerability patching tasks.
+SSEBench (Software Security Evaluation Benchmark) measures how well AI coding
+agents fix real security vulnerabilities.
 
-## Overview
+Every task is a publicly disclosed bug in an open-source C, Go or Rust project,
+paired with its upstream fix. SSEBench drops an agent into a Docker container
+with the vulnerable source tree and a tool for building and testing it, lets it
+work until it stops or times out, and then grades the patch it leaves behind:
+does the project still build, does the proof of concept stop reproducing, and do
+the project's tests pass, including the tests that came with the upstream fix?
 
-SSEBench provides:
+## What you can measure
 
-- **Real-world vulnerability tasks**: All tests represent real bugs from open-source projects, human-verified and aligned with developer expectations
-- **Model evaluation**: Test language models across various dimensions including tool-calling abilities, reasoning skills, and security knowledge
-- **Agent evaluation**: Test code agents on their ability to plan, call tools, analyze code, and adapt to diverse vulnerabilities
-- **Detailed reports**: Generate comprehensive reports assessing performance across multiple dimensions
+- **Agents.** Run Claude Code, Codex, OpenCode or your own agent on the same
+  tasks and compare how they plan, use tools and verify their fixes.
+- **Models.** Run one agent against different models. Agents and models are
+  decoupled, so any agent can use any model.
+- **Settings.** The [difficulty level](/concepts/difficulty-levels) controls
+  how much checking the agent may do while it works, so you can see how much an
+  agent relies on test feedback.
 
-## Key Features
+Each run produces a graded `result.json`, the agent's full dialog, a snapshot of
+the final source tree and the logs of every component. A report can be built
+from the results of many runs.
 
-### Docker-based Infrastructure
+## Key features
 
-SSEBench runs all benchmark tasks in Docker containers, providing:
+### Docker-based infrastructure
 
-- Isolated, reproducible environments
-- Consistent dependencies across tasks
-- Easy scaling and deployment
+Every run happens in Docker containers, which gives:
 
-### LiteLLM Proxy
+- isolated, reproducible environments;
+- the same toolchain and dependencies for every run of a task;
+- a clean copy of the project for every run.
 
-Models and agents are decoupled through a LiteLLM proxy, allowing:
+### LiteLLM proxy
 
-- Transparent model switching
-- Support for 100+ LLM providers
-- Unified API interface
+Agents never talk to a model provider directly. Every LLM request goes through
+a [LiteLLM proxy](/concepts/litellm-proxy), which:
 
-### Multi-layer Docker Architecture
+- lets you switch models without changing the agent;
+- supports the many providers LiteLLM supports;
+- gives each run its own key and records what the run spent.
 
-Tasks are built using a layered Docker image approach:
+### Layered images
 
-| Layer | Description |
-|-------|-------------|
-| **Base Image** | Language toolchain (C, Go or Rust) shared across tasks |
-| **Case Image** | Project source code + build dependencies |
-| **Tool Image** | MCP server and SDK tooling |
-| **Agent Image** | Agent installation (Claude Code, Codex, etc.) |
+The container image for a run is assembled from four
+[layers](/concepts/image-layers):
 
-## Supported Agents
+| Layer | Contents |
+|-------|----------|
+| **Base** | Toolchain for the task's language (C, Go or Rust), shared across tasks |
+| **Case** | The project at the vulnerable commit, with its build dependencies and the task's scripts |
+| **Tool** | The SSEBench runtime: entrypoint, daemon, SDK, MCP server and evaluator |
+| **Agent** | The agent under test |
 
-SSEBench includes state-of-the-art code agents:
+## Supported agents
 
-- **Claude Code** - Anthropic's CLI coding assistant
-- **Codex** - OpenAI's code generation agent
-- **OpenCode** - Open-source terminal coding agent
-- **dummy** - A no-op agent for testing the pipeline
+- **Claude Code**: Anthropic's command-line coding agent.
+- **Codex**: OpenAI's command-line coding agent.
+- **OpenCode**: an open-source terminal coding agent.
+- **dummy**: does nothing and makes no model calls; for testing the pipeline.
 
-## Use Cases
+To bring your own, see [Add an agent](/guides/add-an-agent).
 
-### For Researchers
+## Next steps
 
-- Evaluate new models on security-related coding tasks
-- Compare agent architectures and strategies
-- Publish reproducible benchmark results
-
-### For Developers
-
-- Test code agents before deployment
-- Identify weaknesses in vulnerability detection
-- Validate security patches
-
-### For Organizations
-
-- Assess AI readiness for security workflows
-- Compare commercial vs open-source solutions
-- Track improvements over time
-
-## Next Steps
-
-- [Getting Started](/getting-started/quickstart) - Set up SSEBench on your machine
-- [Architecture](/concepts/architecture) - Understand how SSEBench works
-- [Adding Models](/guides/add-a-model) - Integrate new LLM models
-- [MCP Server](/reference/mcp-server) - The `test_patch` tool agents use to check their work
+- [Installation](/getting-started/installation): set up SSEBench on your machine
+- [Quickstart](/getting-started/quickstart): run an agent on a pilot task
+- [Architecture](/concepts/architecture): how SSEBench works
+- [The pilot dataset](/dataset/pilot): the tasks that ship with SSEBench

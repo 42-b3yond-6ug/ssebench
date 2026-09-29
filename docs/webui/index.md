@@ -4,41 +4,49 @@ outline: deep
 
 # Web UI
 
-SSEBench includes a Web UI for launching runs and watching them live.
+The web UI launches runs and lets you watch them live: the agent's session, the
+diff of its changes, a terminal into the task container, the logs, and the
+evaluation result.
 
-## Starting the Web UI
+## Start the web UI
 
-The Web UI requires [Bun](https://bun.sh/). From the repository root:
+You need [Bun](https://bun.sh/). From the repository root:
 
-```bash
-cd webui
-bun install
-bun run prod
+```sh
+just webui
 ```
 
-This builds the frontend and starts the production server. Once started, open your browser to `http://localhost:3001`.
+This is the same as `cd webui && bun install && bun run prod`: it installs the
+dependencies, builds the front end and starts the server. Then open
+`http://localhost:3001`. Set `PORT` to use a different port.
 
-::: info Remote Server Access
-If you're running SSEBench on a remote server, you have two options:
-
-1. **Direct access**: Navigate to `http://<your-server-ip>:3001`. Make sure port 3001 is open in your server's firewall.
-
-2. **SSH tunnel (recommended)**: Forward the port through SSH for secure access without opening firewall ports:
-   ```bash
-   ssh -L 3001:localhost:3001 user@your-server
-   ```
-   Then access the Web UI at `http://localhost:3001` from your local machine.
+::: warning
+The web UI can start runs and open shells in task containers on its host. Don't
+expose it to a network you don't trust. See [Security model](/webui/security).
 :::
 
-## Features
+To use the web UI on a remote machine, forward its port over SSH instead of
+opening it to the network:
 
-The Web UI provides:
-- **Task Browser**: Browse and select benchmark tasks
-- **Launch Wizard**: Configure and launch benchmarks interactively
-- **Live Logs**: Stream launch output in real-time
-- **Container Management**: Attach to running containers, view terminal output
-- **AI Session Viewer**: Monitor agent conversations and tool executions
+```sh
+ssh -L 3001:localhost:3001 user@your-server
+```
 
-::: tip
-Make sure the LiteLLM proxy is running (`just launch`) before launching tasks from the Web UI.
-:::
+and open `http://localhost:3001` on your own machine.
+
+## What it does
+
+- **Launch wizard:** pick a task, an agent, a model and an execution mode, then
+  follow the launch output. See [Launching runs](/webui/launching-runs).
+- **Runs:** the web UI lists the task containers that SSEBench started. Runs it
+  launches keep their container after they finish, so you can still inspect
+  them.
+- **Run view:** the agent's dialog and tool calls, the diff of its changes, a
+  terminal into the container, the component logs, and the evaluation result.
+  See [Watching a run](/webui/run-view).
+
+The dialog view reads the `dialog.jsonl` file that each agent writes; see the
+[dialog protocol](/reference/dialog-protocol).
+
+To inspect a run started from the command line, pass `--keep-container` to
+`ssebench run`.
