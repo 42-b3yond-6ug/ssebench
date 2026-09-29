@@ -1,0 +1,228 @@
+name: Images
+
+# Pull requests build the images whose inputs changed, for linux/amd64, and
+# push nothing. main and v* tags build every image for linux/amd64 and
+# linux/arm64 and push it to ghcr.io/<owner>/<repo>/<name>, tagged with VERSION
+# and sha-<commit>; release tags (v* without a pre-release suffix) also move
+# latest. While the repository is private, main builds like a pull request and
+# nothing is pushed.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: Platforms to build every image for; a manual run never pushes.
+        type: choice
+        options:
+          - linux/amd64
+          - linux/amd64,linux/arm64
+        default: linux/amd64
+
+permissions:
+  contents: read
+
+concurrency:
+  # Pushes to one ref queue rather than cancel, so the last push wins the tags.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      publish: ${{ steps.plan.outputs.publish }}
+      registry: ${{ steps.plan.outputs.registry }}
+      version: ${{ steps.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        # Only pull requests and pushes to a private main build a subset.
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+        with:
+          filters: |
+            shared: &shared
+              - .github/workflows/images.yml
+              - .github/actions/build-image/**
+            base-generic-c:
+              - *shared
+              - images/base-images/generic-c/**
+            base-generic-go:
+              - *shared
+              - images/base-images/generic-go/**
+            base-generic-rust:
+              - *shared
+              - images/base-images/generic-rust/**
+            runtime:
+              - *shared
+              - VERSION
+              - Cargo.toml
+              - Cargo.lock
+              - sdk/daemon/**
+              - runtime/entrypoint/**
+              - images/runtime/**
+            litellm:
+              - *shared
+              - models/**
+              - images/litellm/**
+            catalog:
+              - *shared
+              - VERSION
+              - datasets/*/manifest.json
+              - catalog/**
+            webui:
+              - *shared
+              - VERSION
+              - package.json
+              - bun.lock
+              - bunfig.toml
+              - docs/package.json
+              - webui/**
+      - name: Plan the builds
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          PRIVATE: ${{ github.event.repository.private }}
+          CHANGES: ${{ steps.filter.outputs.changes || '[]' }}
+          DISPATCH_PLATFORMS: ${{ inputs.platforms }}
+          REPOSITORY: ${{ github.repository }}
+          IMAGES: |
+            [
+              {"name": "base-generic-c", "context": "images/base-images", "file": "images/base-images/generic-c/Dockerfile",
+               "description": "SSEBench base image for C and C++ tasks"},
+              {"name": "base-generic-go", "context": "images/base-images", "file": "images/base-images/generic-go/Dockerfile",
+               "description": "SSEBench base image for Go tasks"},
+              {"name": "base-generic-rust", "context": "images/base-images", "file": "images/base-images/generic-rust/Dockerfile",
+               "description": "SSEBench base image for Rust tasks"},
+              {"name": "runtime", "context": ".", "file": "images/runtime/Dockerfile",
+               "description": "The static ssebench-daemon and the SSEBench container entrypoint"},
+              {"name": "litellm", "context": ".", "file": "images/litellm/Dockerfile",
+               "description": "LiteLLM proxy configured with the SSEBench models"},
+              {"name": "catalog", "context": ".", "file": "catalog/Dockerfile",
+               "description": "SSEBench task catalog service"},
+              {"name": "webui", "context": ".", "file": "webui/Dockerfile",
+               "description": "SSEBench web UI"}
+            ]
+        run: |
+          version=$(cat VERSION)
+          case "$REF" in
+            refs/tags/v*)
+              if [ "$REF" != "refs/tags/v$version" ]; then
+                echo "::error::Tag ${REF#refs/tags/} does not match VERSION ($version)."
+                exit 1
+              fi ;;
+          esac
+
+          publish=false
+          if [ "$EVENT" = push ] && [ "$PRIVATE" = false ]; then
+            publish=true
+          fi
+
+          if [ "$EVENT" = workflow_dispatch ]; then
+            names=all platforms=$DISPATCH_PLATFORMS
+          elif [ "$publish" = true ] || [[ "$REF" == refs/tags/* ]]; then
+            names=all platforms=linux/amd64,linux/arm64
+          else
+            names=$CHANGES platforms=linux/amd64
+          fi
+
+          matrix=$(jq -c --arg names "$names" --arg platforms "$platforms" '
+            map(select($names == "all" or (.name as $n | $names | fromjson | index($n))) | .platforms = $platforms)
+          ' <<< "$IMAGES")
+
+          {
+            echo "version=$version"
+            echo "publish=$publish"
+            echo "registry=ghcr.io/${REPOSITORY,,}"
+            echo "matrix=$matrix"
+          } >> "$GITHUB_OUTPUT"
+          echo "Version $version, publish=$publish, platforms $platforms"
+          jq -r '.[].name' <<< "$matrix"
+
+  build:
+    name: Build ${{ matrix.image.name }}
+    needs: plan
+    if: needs.plan.outputs.publish != 'true' && needs.plan.outputs.matrix != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        if: contains(matrix.image.platforms, ',')
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: ./.github/actions/build-image
+        with:
+          name: ${{ matrix.image.name }}
+          context: ${{ matrix.image.context }}
+          file: ${{ matrix.image.file }}
+          platforms: ${{ matrix.image.platforms }}
+          description: ${{ matrix.image.description }}
+          registry: ${{ needs.plan.outputs.registry }}
+          version: ${{ needs.plan.outputs.version }}
+
+  publish:
+    name: Publish ${{ matrix.image.name }}
+    needs: plan
+    if: needs.plan.outputs.publish == 'true' && !github.event.repository.private
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        if: ${{ !github.event.repository.private }}
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: ./.github/actions/build-image
+        if: ${{ !github.event.repository.private }}
+        with:
+          name: ${{ matrix.image.name }}
+          context: ${{ matrix.image.context }}
+          file: ${{ matrix.image.file }}
+          platforms: ${{ matrix.image.platforms }}
+          description: ${{ matrix.image.description }}
+          registry: ${{ needs.plan.outputs.registry }}
+          version: ${{ needs.plan.outputs.version }}
+          push: "true"
+
+  images-ok:
+    name: images-ok
+    if: always()
+    needs: [plan, build, publish]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Fail if a job failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
