@@ -60,6 +60,8 @@ def cmd_run(args: argparse.Namespace) -> int:
     if args.tool_layer is not None and args.mode != "sandbox":
         logger.error("--tool-layer applies to sandbox mode only")
         return 1
+    if args.mode == "sidecar":
+        logger.warning("Sidecar mode is experimental; see 'Sandbox and sidecar' in the documentation for its limits")
     tool_layer = args.tool_layer or DEFAULT_TOOL_LAYER
     # Reject an unknown or broken layer before starting the proxy.
     try:
