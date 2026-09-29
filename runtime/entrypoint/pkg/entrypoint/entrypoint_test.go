@@ -85,10 +85,10 @@ func TestBuiltinModes(t *testing.T) {
 	}
 
 	t.Setenv("SSE_ARCHIVE", "/archive")
-	t.Setenv("SSE_DAEMON_SOCKET", "/archive/daemon.sock")
+	t.Setenv("SSE_DAEMON_SOCKET", "/run/ssebench/sse.sock")
 	cfg := defaultConfig()
 	Sidecar.(Configurer).Configure(&cfg)
-	if cfg.DaemonSocketPath != "/archive/daemon.sock" || cfg.AdminSocketPath != "/archive/admin.sock" ||
+	if cfg.DaemonSocketPath != "/run/ssebench/sse.sock" || cfg.AdminSocketPath != "/run/ssebench/admin.sock" ||
 		cfg.MCPServerPath != "/mcp" || cfg.EvaluatorPath != "/evaluator" {
 		t.Fatalf("sidecar config = %+v", cfg)
 	}

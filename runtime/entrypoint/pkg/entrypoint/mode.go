@@ -89,7 +89,8 @@ var (
 	// evaluator in one container.
 	Sandbox Mode = sandbox{}
 	// Sidecar runs the MCP server, the agent and the evaluator next to a
-	// daemon in another container, which shares the archive directory.
+	// daemon in another container, which shares the archive directory and a
+	// directory with the daemon's sockets.
 	Sidecar Mode = sidecar{}
 )
 

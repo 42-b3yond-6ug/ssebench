@@ -1,9 +1,6 @@
 package entrypoint
 
-import (
-	"os"
-	"path/filepath"
-)
+import "os"
 
 // sidecar runs next to a daemon in the case container: it waits for the
 // daemon's socket, then starts MCP, runs the agent, and evaluates.
@@ -16,9 +13,6 @@ func (sidecar) Configure(cfg *Config) {
 	if v := os.Getenv("SSE_DAEMON_SOCKET"); v != "" {
 		cfg.DaemonSocketPath = v
 	}
-	// The daemon (in the case container) exposes the admin socket on the
-	// shared archive volume; both containers reach it there.
-	cfg.AdminSocketPath = filepath.Join(cfg.ArchivePath, "admin.sock")
 	cfg.MCPServerPath = "/mcp"
 	cfg.EvaluatorPath = "/evaluator"
 }

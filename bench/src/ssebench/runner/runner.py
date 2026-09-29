@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import final, override
 from uuid import uuid4
@@ -206,8 +207,107 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
         record_results(self.task, run_config, self.model.get_spend(), evaluator_file)
 
 
+SIDECAR_SOCKET_DIR = "/run/ssebench"
+"""Where both containers of a sidecar run mount the volume that holds the daemon's sockets."""
+SIDECAR_DAEMON_SOCKET = f"{SIDECAR_SOCKET_DIR}/sse.sock"
+
+
+def _docker(*args: str) -> None:
+    _ = subprocess.run(["docker", *args], check=True, stdout=subprocess.DEVNULL)
+
+
+@dataclass(frozen=True, kw_only=True)
+class SidecarPair:
+    """The two containers of a sidecar run and the volumes they share.
+
+    The environment container is the case image with the daemon; the agent container is the
+    runtime image with the agent, the MCP server and the evaluator. They share the project's source
+    tree, the results directory and a root-owned directory with the daemon's sockets. The task's
+    `/ssebench` (reference patch, hidden tests, scripts) stays in the environment container.
+    """
+
+    task_name: str
+    source_dir: str
+    """Absolute path of the project source, the same in both containers."""
+    archive: str
+    """What to mount at the archive path in both containers: a host directory or a volume name."""
+    network: str
+    difficulty: int
+    keep_alive: bool = False
+    run_id: str = field(default_factory=lambda: uuid4().hex[:12])
+
+    @property
+    def environment_name(self) -> str:
+        return f"ssebench-env-{self.task_name.lower()}-{self.run_id}"
+
+    @property
+    def source_volume(self) -> str:
+        return f"ssebench-{self.run_id}-source"
+
+    @property
+    def socket_volume(self) -> str:
+        return f"ssebench-{self.run_id}-sockets"
+
+    def create_volumes(self) -> None:
+        for volume in (self.source_volume, self.socket_volume):
+            _docker("volume", "create", "--label", f"ssebench.run={self.run_id}", volume)
+
+    def _shared_options(self) -> list[str]:
+        return [
+            "--network",
+            self.network,
+            "--label",
+            f"ssebench.run={self.run_id}",
+            "-e",
+            f"SSE_ARCHIVE={ARCHIVE_PATH}",
+            "-e",
+            f"SSE_DAEMON_SOCKET={SIDECAR_DAEMON_SOCKET}",
+            # The daemon enforces the difficulty gate; the agent container's MCP server mirrors it.
+            "-e",
+            f"SSE_DIFFICULTY={self.difficulty}",
+            "-v",
+            f"{self.archive}:{ARCHIVE_PATH}",
+            "-v",
+            f"{self.source_volume}:{self.source_dir}",
+            "-v",
+            f"{self.socket_volume}:{SIDECAR_SOCKET_DIR}",
+        ]
+
+    def environment_options(self) -> list[str]:
+        """`docker run` options of the environment container, before its image."""
+        return [
+            "--name",
+            self.environment_name,
+            *self._shared_options(),
+            "-e",
+            f"SSE_KEEP_ALIVE={'1' if self.keep_alive else '0'}",
+        ]
+
+    def agent_options(self, env: dict[str, str] | None = None, result_file: Path | None = None) -> list[str]:
+        """`docker run` options of the agent container, before its image.
+
+        The evaluator writes the grade to `result_file` when one is given.
+        """
+        options = self._shared_options()
+        for name, value in (env or {}).items():
+            options += ["-e", f"{name}={value}"]
+        if result_file is not None:
+            options += ["-v", f"{result_file}:/sse_result"]
+        return options
+
+    def remove(self) -> None:
+        """Remove the environment container and the volumes; best effort."""
+        for cmd in (
+            ["docker", "rm", "--force", self.environment_name],
+            ["docker", "volume", "rm", self.source_volume, self.socket_volume],
+        ):
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode != 0:
+                logger.warning(f"Failed to clean up: {result.stderr.strip()}")
+
+
 @final
-class BenchmarkSidecarRuner(BenchmarkRunner):
+class BenchmarkSidecarRunner(BenchmarkRunner):
     def __init__(
         self,
         model: Model | NoModel,
@@ -235,11 +335,11 @@ class BenchmarkSidecarRuner(BenchmarkRunner):
 
         tool_layer_agentrt = SidecarToolLayerAgentRuntime(context)
         self.sidecar_agentrt_image = build_pipe([tool_layer_agentrt, self.agent])
-        logger.info(f"[experimental] Build agent runtime image {self.sidecar_agentrt_image}")
+        logger.info(f"Built agent image {self.sidecar_agentrt_image}")
 
         tool_layer_environ = SidecarToolLayerEnvironment(context)
         self.sidecar_environ_image = build_pipe([self.task, tool_layer_environ])
-        logger.info(f"[experimental] Build environment image {self.sidecar_environ_image}")
+        logger.info(f"Built environment image {self.sidecar_environ_image}")
 
     @override
     def run(self):
@@ -250,131 +350,59 @@ class BenchmarkSidecarRuner(BenchmarkRunner):
         os.makedirs(results_path, exist_ok=True)
         clear_directory(results_path)
 
-        # source_volume_name: mounted at the task's source path inside both containers
-        source_volume_name = uuid4().hex
-        try:
-            _ = subprocess.run(
-                [
-                    "docker",
-                    "volume",
-                    "create",
-                    source_volume_name,
-                ],
-                check=True,
-            )
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Docker volume creation failed: {e}")
-
-        # scripts_volume_name: mounted at /ssebench, contains build/test scripts from the case image
-        scripts_volume_name = uuid4().hex
-        try:
-            _ = subprocess.run(
-                [
-                    "docker",
-                    "volume",
-                    "create",
-                    scripts_volume_name,
-                ],
-                check=True,
-            )
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Docker volume creation failed: {e}")
-
-        source = Path(self.task.get_task_metadata().source).resolve()
-        environment_name = f"env-{self.task.name}"
-
-        # Start the environment first
-        # Environment must map the source code to an empty docker volume
-        try:
-            # TODO: if we want to map parent of source?
-            logger.info(f"Starting Environment: {self.task.name}")
-            _ = subprocess.run(
-                [
-                    "docker",
-                    "run",
-                    "-d",
-                    "--name",
-                    environment_name,
-                    "-e",
-                    f"SSE_ARCHIVE={ARCHIVE_PATH}",
-                    "-e",
-                    f"SSE_DAEMON_SOCKET={ARCHIVE_PATH}/please-work.sock",
-                    "-e",
-                    f"SSE_KEEP_ALIVE={'1' if self.keep_container else '0'}",
-                    "-v",
-                    f"{results_path}:{ARCHIVE_PATH}",
-                    "-v",
-                    f"{source_volume_name}:{source}",
-                    "-v",
-                    f"{scripts_volume_name}:/ssebench",
-                    "--label",
-                    "ssebench.webui=true",
-                    "--label",
-                    f"ssebench.task-id={self.task.name}",
-                    "--label",
-                    f"ssebench.model={self.model.model_name}",
-                    "--label",
-                    f"ssebench.agent={self.agent.agent_name}",
-                    *reference_run_labels(self.agent.agent_name),
-                    self.sidecar_environ_image,
-                ],
-                check=True,
-            )
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Environment started failed: {e}")
-
         evaluator_file = results_path / "result.json"
         evaluator_file.touch(exist_ok=True)
 
-        with reference_patch(self.agent.agent_name, self.task) as patch:
-            try:
-                logger.info(f"Running Agent: {self.task.name}")
+        pair = SidecarPair(
+            task_name=self.task.name,
+            source_dir=self.task.get_task_metadata().source,
+            archive=str(results_path),
+            network=stack.run_network(self.egress),
+            difficulty=self.difficulty,
+            keep_alive=self.keep_container,
+        )
+        labels = [
+            "--label",
+            "ssebench.webui=true",
+            "--label",
+            f"ssebench.task-id={self.task.name}",
+            "--label",
+            f"ssebench.model={self.model.model_name}",
+            "--label",
+            f"ssebench.agent={self.agent.agent_name}",
+            *reference_run_labels(self.agent.agent_name),
+        ]
+
+        try:
+            pair.create_volumes()
+            # The empty source volume takes the project from the environment image, so that
+            # container starts first; the agent container's entrypoint waits for the daemon.
+            logger.info(f"Starting environment {pair.environment_name} (run {pair.run_id})")
+            _docker("run", "--detach", *pair.environment_options(), *labels, self.sidecar_environ_image)
+
+            with reference_patch(self.agent.agent_name, self.task) as patch:
+                logger.info(f"Running agent: {self.task.name}")
                 docker_cmd = ["docker", "run"]
                 if not self.keep_container:
                     docker_cmd.append("--rm")
-                docker_cmd.extend(
-                    [
-                        "--network",
-                        stack.run_network(self.egress),
-                        "-e",
-                        f"SSE_API_KEY={self.model.api_key}",
-                        "-e",
-                        f"SSE_BASE_URL={self.model.service_url}",
-                        "-e",
-                        f"SSE_MODEL_NAME={self.model.model_name}",
-                        "-e",
-                        f"SSE_ARCHIVE={ARCHIVE_PATH}",
-                        "-e",
-                        f"SSE_DAEMON_SOCKET={ARCHIVE_PATH}/please-work.sock",
-                        "-e",
-                        f"SSE_DIFFICULTY={self.difficulty}",
-                        "-e",
-                        f"TIMEOUT={self.timeout}",
-                        "-v",
-                        f"{evaluator_file}:/sse_result",
-                        "-v",
-                        f"{results_path}:{ARCHIVE_PATH}",
-                        "-v",
-                        f"{source_volume_name}:{source}",
-                        "-v",
-                        f"{scripts_volume_name}:/ssebench",
-                        *reference_patch_mount(self.agent.agent_name, patch),
-                        self.sidecar_agentrt_image,
-                    ]
+                docker_cmd += pair.agent_options(
+                    {
+                        "SSE_API_KEY": self.model.api_key,
+                        "SSE_BASE_URL": self.model.service_url,
+                        "SSE_MODEL_NAME": self.model.model_name,
+                        "TIMEOUT": str(self.timeout),
+                    },
+                    result_file=evaluator_file,
                 )
+                docker_cmd += [*reference_patch_mount(self.agent.agent_name, patch), self.sidecar_agentrt_image]
                 _ = subprocess.run(docker_cmd, check=True)
-            except subprocess.CalledProcessError as e:
-                logger.warning(f"Agent runtime stopped with a non-zero exit: {e}")
-
-        # stop the environment, and clean the volume (skip if keeping containers)
-        if not self.keep_container:
-            try:
-                _ = subprocess.run(["docker", "kill", environment_name], check=True)
-                _ = subprocess.run(["docker", "rm", environment_name], check=True)
-                _ = subprocess.run(["docker", "volume", "rm", source_volume_name], check=True)
-                _ = subprocess.run(["docker", "volume", "rm", scripts_volume_name], check=True)
-            except subprocess.CalledProcessError as e:
-                logger.warning(f"Failed to clean up: {e}")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Sidecar run failed: {e}")
+        finally:
+            if self.keep_container:
+                logger.info(f"Kept the containers and volumes labelled ssebench.run={pair.run_id}")
+            else:
+                pair.remove()
 
         run_config = RunConfig(
             agent=self.agent.agent_name,

@@ -13,10 +13,17 @@ if [ "${SSE_KEEP_ALIVE:-0}" = "1" ]; then
 	echo "[ssebench] Keep-alive mode enabled: container will remain running for WebUI"
 fi
 
-# Expose the privileged admin socket on the shared archive volume so the
-# evaluator (root, in the agent container) can reach it while the agent
-# (model) cannot. The daemon binds it 0600.
-export SSE_ADMIN_SOCKET="${SSE_ADMIN_SOCKET:-${SSE_ARCHIVE}/admin.sock}"
+# /run/ssebench is a volume shared with the agent container. It holds both
+# daemon sockets, so it must stay root-owned and read-only to the agent, which
+# could otherwise swap a socket for a server of its own. The daemon binds the
+# agent socket 0666 and the admin socket 0600 (root only: the evaluator). The
+# agent container's entrypoint expects the admin socket at this fixed path.
+SOCKET_DIR=/run/ssebench
+mkdir -p "$SOCKET_DIR"
+chown root:root "$SOCKET_DIR"
+chmod 755 "$SOCKET_DIR"
+export SSE_DAEMON_SOCKET="${SSE_DAEMON_SOCKET:-${SOCKET_DIR}/sse.sock}"
+export SSE_ADMIN_SOCKET="${SOCKET_DIR}/admin.sock"
 
 echo "[ssebench] Starting sdk daemon..."
 exec /ssebench/ssebench-daemon 2>&1 | tee "$DAEMON_LOG_FILE"
