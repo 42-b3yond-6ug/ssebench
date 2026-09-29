@@ -265,13 +265,45 @@ function LayoutButton({
 function LeftPanelIcon({ active }: { active: boolean }) {
   const fill = active ? "currentColor" : "none"
   return (
-    <svg width="16" height="14" viewBox="0 0 16 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      width="16"
+      height="14"
+      viewBox="0 0 16 14"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       {/* outer frame */}
-      <rect x="0.5" y="0.5" width="15" height="13" rx="1.5" stroke="currentColor" strokeWidth="1" />
+      <rect
+        x="0.5"
+        y="0.5"
+        width="15"
+        height="13"
+        rx="1.5"
+        stroke="currentColor"
+        strokeWidth="1"
+      />
       {/* left panel */}
-      <rect x="1" y="1" width="5" height="12" rx="0.5" fill={fill} stroke="currentColor" strokeWidth="0.5" opacity={active ? 1 : 0.4} />
+      <rect
+        x="1"
+        y="1"
+        width="5"
+        height="12"
+        rx="0.5"
+        fill={fill}
+        stroke="currentColor"
+        strokeWidth="0.5"
+        opacity={active ? 1 : 0.4}
+      />
       {/* divider */}
-      <line x1="6.5" y1="1" x2="6.5" y2="13" stroke="currentColor" strokeWidth="0.5" opacity="0.3" />
+      <line
+        x1="6.5"
+        y1="1"
+        x2="6.5"
+        y2="13"
+        stroke="currentColor"
+        strokeWidth="0.5"
+        opacity="0.3"
+      />
     </svg>
   )
 }
@@ -279,15 +311,55 @@ function LeftPanelIcon({ active }: { active: boolean }) {
 function CenterPanelIcon({ active }: { active: boolean }) {
   const fill = active ? "currentColor" : "none"
   return (
-    <svg width="16" height="14" viewBox="0 0 16 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      width="16"
+      height="14"
+      viewBox="0 0 16 14"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       {/* outer frame */}
-      <rect x="0.5" y="0.5" width="15" height="13" rx="1.5" stroke="currentColor" strokeWidth="1" />
+      <rect
+        x="0.5"
+        y="0.5"
+        width="15"
+        height="13"
+        rx="1.5"
+        stroke="currentColor"
+        strokeWidth="1"
+      />
       {/* center panel (between left divider and right edge, above bottom divider) */}
-      <rect x="6" y="1" width="9" height="8" rx="0.5" fill={fill} stroke="currentColor" strokeWidth="0.5" opacity={active ? 1 : 0.4} />
+      <rect
+        x="6"
+        y="1"
+        width="9"
+        height="8"
+        rx="0.5"
+        fill={fill}
+        stroke="currentColor"
+        strokeWidth="0.5"
+        opacity={active ? 1 : 0.4}
+      />
       {/* left divider */}
-      <line x1="6" y1="1" x2="6" y2="13" stroke="currentColor" strokeWidth="0.5" opacity="0.3" />
+      <line
+        x1="6"
+        y1="1"
+        x2="6"
+        y2="13"
+        stroke="currentColor"
+        strokeWidth="0.5"
+        opacity="0.3"
+      />
       {/* bottom divider */}
-      <line x1="6" y1="9.5" x2="15" y2="9.5" stroke="currentColor" strokeWidth="0.5" opacity="0.3" />
+      <line
+        x1="6"
+        y1="9.5"
+        x2="15"
+        y2="9.5"
+        stroke="currentColor"
+        strokeWidth="0.5"
+        opacity="0.3"
+      />
     </svg>
   )
 }
@@ -295,15 +367,55 @@ function CenterPanelIcon({ active }: { active: boolean }) {
 function BottomPanelIcon({ active }: { active: boolean }) {
   const fill = active ? "currentColor" : "none"
   return (
-    <svg width="16" height="14" viewBox="0 0 16 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      width="16"
+      height="14"
+      viewBox="0 0 16 14"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       {/* outer frame */}
-      <rect x="0.5" y="0.5" width="15" height="13" rx="1.5" stroke="currentColor" strokeWidth="1" />
+      <rect
+        x="0.5"
+        y="0.5"
+        width="15"
+        height="13"
+        rx="1.5"
+        stroke="currentColor"
+        strokeWidth="1"
+      />
       {/* bottom panel */}
-      <rect x="6" y="9" width="9" height="4" rx="0.5" fill={fill} stroke="currentColor" strokeWidth="0.5" opacity={active ? 1 : 0.4} />
+      <rect
+        x="6"
+        y="9"
+        width="9"
+        height="4"
+        rx="0.5"
+        fill={fill}
+        stroke="currentColor"
+        strokeWidth="0.5"
+        opacity={active ? 1 : 0.4}
+      />
       {/* left divider */}
-      <line x1="6" y1="1" x2="6" y2="13" stroke="currentColor" strokeWidth="0.5" opacity="0.3" />
+      <line
+        x1="6"
+        y1="1"
+        x2="6"
+        y2="13"
+        stroke="currentColor"
+        strokeWidth="0.5"
+        opacity="0.3"
+      />
       {/* bottom divider */}
-      <line x1="6" y1="9" x2="15" y2="9" stroke="currentColor" strokeWidth="0.5" opacity="0.3" />
+      <line
+        x1="6"
+        y1="9"
+        x2="15"
+        y2="9"
+        stroke="currentColor"
+        strokeWidth="0.5"
+        opacity="0.3"
+      />
     </svg>
   )
 }

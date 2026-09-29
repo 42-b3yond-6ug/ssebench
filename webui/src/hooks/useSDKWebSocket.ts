@@ -249,7 +249,10 @@ export function useSDKWebSocket(
 
       // Auto-reconnect with backoff (only if not intentionally closed)
       if (event.code !== 1000 && reconnectAttemptRef.current < 5) {
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptRef.current), 30000)
+        const delay = Math.min(
+          1000 * Math.pow(2, reconnectAttemptRef.current),
+          30000
+        )
         reconnectAttemptRef.current++
         console.log(
           `[useSDKWebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current})`

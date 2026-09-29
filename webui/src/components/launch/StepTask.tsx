@@ -202,7 +202,7 @@ export function StepTask({
         {filteredTasks.length > 0 && (
           <button
             onClick={toggleAll}
-            className="text-fg-4 hover:text-gruvbox-aqua whitespace-nowrap text-xs font-medium transition-colors"
+            className="text-fg-4 hover:text-gruvbox-aqua text-xs font-medium whitespace-nowrap transition-colors"
           >
             {allVisibleSelected ? "Deselect all" : "Select all"}
           </button>
@@ -238,8 +238,8 @@ export function StepTask({
           <div className="text-fg-4 flex h-full flex-col items-center justify-center gap-1 px-6 text-center text-sm">
             <p className="text-fg font-medium">Task catalog not configured</p>
             <p>
-              Set <code className="font-mono">SSEBENCH_CATALOG</code> for
-              the webui server to list catalog tasks, or use local tasks.
+              Set <code className="font-mono">SSEBENCH_CATALOG</code> for the
+              webui server to list catalog tasks, or use local tasks.
             </p>
           </div>
         ) : source === "remote" && remoteError ? (

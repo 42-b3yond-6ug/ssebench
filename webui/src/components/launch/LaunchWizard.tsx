@@ -16,7 +16,11 @@ import { StepAgent } from "./StepAgent"
 import { StepMode } from "./StepMode"
 import { StepReview, type StepReviewRef } from "./StepReview"
 import type { TaskSource, LaunchMode } from "../../types/launch"
-import { fetchLaunchConfig, fetchLaunchModels, fetchLaunchAgents } from "../../lib/api"
+import {
+  fetchLaunchConfig,
+  fetchLaunchModels,
+  fetchLaunchAgents,
+} from "../../lib/api"
 
 interface LaunchWizardProps {
   /** Called after launches are fired — closes the wizard */
@@ -234,11 +238,7 @@ export function LaunchWizard({ onLaunch }: LaunchWizardProps) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-fg-4 flex items-center gap-2">
-          <svg
-            className="h-5 w-5 animate-spin"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
+          <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle
               className="opacity-25"
               cx="12"

@@ -10,7 +10,10 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useContainers } from "../../context/useContainers"
 import { useBackendHealth } from "../../hooks/useBackendHealth"
-import { useLaunchContext, type LaunchEntry } from "../../context/useLaunchContext"
+import {
+  useLaunchContext,
+  type LaunchEntry,
+} from "../../context/useLaunchContext"
 import { useNewPanel, useSettingsPanel } from "../../context/usePanels"
 import { DetachModal } from "../DetachModal"
 import { ResizeHandle } from "../ui/ResizeHandle"
@@ -41,8 +44,11 @@ export function Sidebar({ width, onResizeStart, isResizing }: SidebarProps) {
   } = useContainers()
   const { openNewPanel } = useNewPanel()
   const { isHealthy, docker, error } = useBackendHealth()
-  const { allLaunches, cancel: cancelLaunch, clear: clearLaunch } =
-    useLaunchContext()
+  const {
+    allLaunches,
+    cancel: cancelLaunch,
+    clear: clearLaunch,
+  } = useLaunchContext()
 
   // Track which launch_ids we've already started auto-attaching
   const attachedLaunchIds = useRef<Set<string>>(new Set())
