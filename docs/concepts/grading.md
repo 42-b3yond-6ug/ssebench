@@ -190,3 +190,6 @@ preview of the grade:
   before grading
 - [Integrity model](/concepts/integrity): how the grading material is kept from
   the agent
+- [Add a task](/guides/add-a-task): write the scripts and diffs that the grader
+  runs
+- [Add an agent](/guides/add-an-agent): what an agent leaves behind for grading

@@ -361,5 +361,7 @@ The Claude Code agent wrapper at `agents/claude-code/claude-code-sse/main.py` is
 
 ## Next steps
 
+- [Add an agent](/guides/add-an-agent#report-the-session): write a dialog from a
+  minimal agent
 - [MCP server](/reference/mcp-server): the `test_patch` tool
 - [Environment variables](/reference/environment): every variable available to an agent

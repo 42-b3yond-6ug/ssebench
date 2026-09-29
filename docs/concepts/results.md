@@ -194,4 +194,6 @@ intent tests, followed by a table of every task. It leaves
 
 - [Grading pipeline](/concepts/grading): how the grade is produced
 - [Dialog protocol](/reference/dialog-protocol): the format of `dialog.jsonl`
+- [Add an agent](/guides/add-an-agent): write an agent that produces these
+  files
 - [Web UI](/webui/): watch a run and its results live

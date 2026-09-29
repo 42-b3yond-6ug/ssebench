@@ -228,4 +228,5 @@ contains the working directory, otherwise the checkout it was installed from.
 - **Dataset licensing.** Task material is CC BY 4.0; upstream code in a task
   keeps its own license and license files. Only add publicly disclosed
   vulnerabilities with an upstream fix, and record them in
-  `datasets/pilot/THIRD_PARTY.md`.
+  `datasets/pilot/third_party.json`; `tools/dataset/third_party.py` generates
+  `datasets/pilot/THIRD_PARTY.md` from it.

@@ -86,7 +86,7 @@ While iterating on one component, you can run its tools directly:
 | Go | `runtime/entrypoint/`, `catalog/`, `webui/pty-proxy/` | `gofmt -l .`, `go vet ./...`, `go test ./...` |
 | TypeScript | `webui/` | `bun run lint`, `bun run typecheck`, `bun run build` |
 | Docs | `docs/` | `bun run build`; `just docs-check` checks the generated reference pages and `just docs-gen` rewrites them |
-| Dataset | `datasets/` | `uv run ssebench dataset validate`, `uv run ssebench dataset manifest --check` |
+| Dataset | `datasets/`, `tools/dataset/` | `uv run ssebench dataset validate`, `uv run ssebench dataset manifest --check`, `python3 tools/dataset/third_party.py --check` |
 
 Changes to the runtime, the images or a task should also be tried end to end.
 The `dummy` agent makes no model calls, so a run with it exercises image
@@ -127,13 +127,23 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent reference
 ## Extending SSEBench
 
 - **Add a task:** [docs/guides/add-a-task.md](docs/guides/add-a-task.md). Tasks
-  must be publicly disclosed vulnerabilities with an upstream fix, and must
-  pass `uv run ssebench dataset validate` and `just dataset-validate`.
-  Regenerate `datasets/pilot/manifest.json` with `uv run ssebench dataset
-  manifest`, and record the upstream project and license in
-  `datasets/pilot/THIRD_PARTY.md`.
+  must be publicly disclosed vulnerabilities with an upstream fix. A new task
+  must pass `uv run ssebench dataset validate` and `just dataset-validate
+  <task-id>`, and every check with the `reference` agent, while the `dummy`
+  agent must fail its proof-of-concept and hidden-test checks. Regenerate
+  `datasets/pilot/manifest.json` with `uv run ssebench dataset manifest`. Record
+  the upstream project and license in `datasets/pilot/third_party.json`, then
+  regenerate `datasets/pilot/THIRD_PARTY.md` with
+  `python3 tools/dataset/third_party.py`.
 - **Add an agent:** [docs/guides/add-an-agent.md](docs/guides/add-an-agent.md).
+  An agent is a folder in `agents/` with an `agent.yaml` and a Dockerfile; an
+  agent with a Python wrapper (`agents/<name>/<name>-sse`) is a member of the
+  uv workspace, so run `uv lock` and keep its version equal to `VERSION`
+  (`uv run tools/release/bump.py --check`). An agent must not need the
+  network when it runs, since runs restrict it by default.
 - **Add a model:** [docs/guides/add-a-model.md](docs/guides/add-a-model.md).
+  Add the model to a file in `models/` and its key to `.env`; `just launch`
+  rebuilds the proxy.
 - **Write a plugin or extend the runtime:**
   [docs/guides/write-a-plugin.md](docs/guides/write-a-plugin.md).
 

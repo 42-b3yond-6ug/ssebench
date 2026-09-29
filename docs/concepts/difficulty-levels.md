@@ -124,4 +124,6 @@ shows how much an agent relies on being told that its fix works.
 
 - [Grading pipeline](/concepts/grading): the checks the grader runs
 - [MCP server](/reference/mcp-server): the `test_patch` tool
+- [Add an agent](/guides/add-an-agent#check-the-work): call `test_patch` and
+  the checks from your own agent
 - [Results format](/concepts/results): where the level is recorded

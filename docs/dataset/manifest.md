@@ -9,7 +9,8 @@ has a config, `sse/config.yaml`, and each dataset has a generated
 `manifest.json` that lists its tasks for the CLI, the catalog service and CI.
 
 [Tasks and datasets](/concepts/tasks-and-datasets) explains the concepts; this
-page is the reference.
+page is the reference, and [Add a task](/guides/add-a-task) walks through
+writing and checking a task.
 
 The Pydantic models in `bench/src/ssebench/tasks/` (`metadata.py` for the task
 config, `manifest.py` for the manifest and `dataset.yaml`) are the definition

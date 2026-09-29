@@ -207,5 +207,7 @@ against a later commit.
 - [MCP server](/reference/mcp-server): the `test_patch` tool
 - [Dialog protocol](/reference/dialog-protocol): how agents report their
   session to the web UI
+- [Add an agent](/guides/add-an-agent), [Add a task](/guides/add-a-task) and
+  [Add a model](/guides/add-a-model): extend a run
 - [Project structure](/contributing/project-structure): where each component
   lives
