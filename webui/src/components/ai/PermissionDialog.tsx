@@ -180,6 +180,18 @@ export function PermissionDialog({
     }
   }, [permission.id, onReply])
 
+  const handleAllow = useCallback(() => {
+    onReply(permission.id, true, false)
+  }, [permission.id, onReply])
+
+  const handleAlwaysAllow = useCallback(() => {
+    onReply(permission.id, true, true)
+  }, [permission.id, onReply])
+
+  const handleDeny = useCallback(() => {
+    onReply(permission.id, false)
+  }, [permission.id, onReply])
+
   // Don't render if auto-allowing
   if (allowedPermissions.has(permission.permission)) {
     return null
@@ -198,18 +210,6 @@ export function PermissionDialog({
     medium: "text-gruvbox-yellow",
     high: "text-gruvbox-red",
   }
-
-  const handleAllow = useCallback(() => {
-    onReply(permission.id, true, false)
-  }, [permission.id, onReply])
-
-  const handleAlwaysAllow = useCallback(() => {
-    onReply(permission.id, true, true)
-  }, [permission.id, onReply])
-
-  const handleDeny = useCallback(() => {
-    onReply(permission.id, false)
-  }, [permission.id, onReply])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
