@@ -24,7 +24,7 @@ import { listContainers } from "./docker"
 // and agents/ are read from here. The webui lives in webui/ at that root.
 const SSEBENCH_PATH =
   process.env.SSEBENCH_PATH || join(import.meta.dir, "..", "..")
-const LOCAL_TASKS_PATH =
+export const LOCAL_TASKS_PATH =
   process.env.SSEBENCH_LOCAL_TASKS || join(SSEBENCH_PATH, "datasets", "pilot")
 const MODELS_PATH = join(SSEBENCH_PATH, "models")
 const AGENTS_PATH = join(SSEBENCH_PATH, "agents")

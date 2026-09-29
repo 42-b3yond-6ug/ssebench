@@ -195,6 +195,8 @@ export interface ResolvedContainer {
   status: string
   /** First IP address on any attached network */
   ip: string | null
+  /** The container's labels */
+  labels: Record<string, string>
 }
 
 interface DockerInspect {
@@ -228,7 +230,12 @@ export async function resolveContainer(
       .map((n) => n.IPAddress)
       .find((addr) => !!addr) ?? null
 
-  return { id: info.Id, status: info.State?.Status ?? "unknown", ip }
+  return {
+    id: info.Id,
+    status: info.State?.Status ?? "unknown",
+    ip,
+    labels: info.Config?.Labels ?? {},
+  }
 }
 
 /**

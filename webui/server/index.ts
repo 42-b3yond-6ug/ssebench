@@ -22,7 +22,9 @@ import {
   stopContainer,
   removeContainer,
   isContainerId,
+  resolveContainer,
 } from "./docker"
+import { readReferencePatch } from "./reference"
 import {
   createSession as createOpenCodeSession,
   sendMessage as sendOpenCodeMessage,
@@ -72,6 +74,7 @@ import {
   subscribeToLaunch,
   unsubscribeFromLaunch,
   validateLaunchConfig,
+  LOCAL_TASKS_PATH,
 } from "./launch"
 import {
   checkApiRequest,
@@ -337,12 +340,15 @@ app.get("/api/containers/:id/result", async (c) => {
   return c.json(data, status as 200 | 500 | 503 | 504)
 })
 
-// Get the reference patch. The daemon only serves it after the agent phase
-// ends, so this returns the answer to the host UI post-run, never to the agent.
+// Get the reference patch, from the host: the daemon serves it only on its
+// admin socket inside the container.
 app.get("/api/containers/:id/reference/patch", async (c) => {
-  const id = c.req.param("id")
-  const { data, status } = await proxyToSDK(id, "/reference/patch")
-  return c.json(data, status as 200 | 500 | 503 | 504)
+  const container = await resolveContainer(c.req.param("id"))
+  if (!container) {
+    return c.json({ error: "Container not found" }, 404)
+  }
+  const diff = readReferencePatch(container.labels, LOCAL_TASKS_PATH)
+  return c.json({ diff: diff ?? "" })
 })
 
 // =============================================================================
