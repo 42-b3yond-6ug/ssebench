@@ -105,17 +105,22 @@ Sidecar mode is experimental. It passes the same end-to-end and
 The [integrity model](/concepts/integrity) describes these protections, and
 their limits, in full. In both modes:
 
-- The agent runs as `model` (uid 1000). The entrypoint, the daemon, the MCP
-  server and the evaluator run as root.
+- The agent runs as `model` (uid 1000), created fresh with no supplementary
+  groups. The entrypoint, the daemon, the MCP server and the evaluator run as
+  root. The task's build, PoC and test scripts run as `sse-runner`, a third
+  uid with no groups, in a scratch copy of the project.
 - The task's files in `/ssebench` (the reference patch, the hidden tests, the
   proofs of concept and the scripts) and the original source in
-  `/ssebench-repo` are readable only by root.
+  `/ssebench-repo` are readable only by root; the runner gets only a copy of
+  what a check needs.
+- The grade and the logs go to a root-only results directory; the agent's own
+  files (its dialog) go to a separate archive directory.
 - The project's git history is replaced by a single commit.
 - The daemon's agent-facing Unix socket (mode 0666) and HTTP listener (port
   4263) refuse the checks the [difficulty level](/concepts/difficulty-levels)
-  withholds, and the reference patch until the agent phase ends. Grading and
-  the reference patch go through a separate admin socket, mode 0600 and
-  root-only.
+  withholds, and every tool once the agent phase ends. Grading and the
+  reference patch go through a separate admin socket, mode 0600 and root-only;
+  the reference patch is never served on the agent-facing listeners.
 - With the default `--egress restricted`, the run's containers are on an
   internal network: they reach the LiteLLM proxy but not the internet.
 
@@ -127,20 +132,25 @@ In sidecar mode, also:
 - Both daemon sockets are in `/run/ssebench`, on a volume that is owned by root
   and not writable by anyone else. The agent can connect to the agent-facing
   socket, but cannot connect to the admin socket, or move or replace either
-  socket. The results directory cannot hold them: it is writable by the agent,
-  which could otherwise put a server of its own in the daemon's place, for
-  example one that hands the evaluator a passing grade.
+  socket. The results directory cannot hold them: it is root-only, so the agent
+  cannot put a server of its own in the daemon's place.
+- The results directory is mounted root-only in both containers; only the
+  agent's archive directory is writable by the agent.
 - The task container runs with the run's difficulty level and on the run's
   network, so the difficulty gate and the egress policy also apply to what the
   agent runs through the daemon.
 
 What the agent shares with the task container is the project's source tree,
-which it is meant to edit, and the results directory, which is writable by the
+which it is meant to edit, and its archive directory, which is writable by the
 agent in both modes.
 
 `tests/integrity/test_bypass.py` checks these properties in both modes: it holds
 a run in its agent phase and runs a fake agent as `model` that tries to read
 the protected files, directly and through the daemon's `bash` tool, reach the
 admin socket, move the sockets, run withheld checks, read the reference patch
-early and reach the internet. `tests/e2e/smoke.sh sidecar` runs the `dummy`
-agent end to end in sidecar mode and checks its grade.
+and reach the internet, and that `model` has no supplementary groups. A second
+test commits a malicious build/test hook and confirms it runs as `sse-runner`,
+reaches neither the hidden material nor the grade in `test_patch` or grading,
+and leaves no process behind; another confirms a second run on the network
+cannot fetch the first's reference patch. `tests/e2e/smoke.sh sidecar` runs the
+`dummy` agent end to end in sidecar mode and checks its grade.

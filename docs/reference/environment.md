@@ -106,13 +106,14 @@ task container. Agents and plugins read them.
 | `SSE_API_KEY` | set by `ssebench run` | agents, plugins, sse.ai | The run's LiteLLM key, which can use only the selected model; empty in a reference run. |
 | `SSE_BASE_URL` | set by `ssebench run` | agents, plugins, sse.ai | URL of the LiteLLM proxy, `http://litellm:4000`; empty in a reference run. |
 | `SSE_MODEL_NAME` | set by `ssebench run` | agents, plugins, sse.ai | The selected model, as named in `models/*.yaml`; `none` in a reference run. |
-| `SSE_ARCHIVE` | `/tmp/sse-archive` | entrypoint, daemon, evaluator, agents | The run's results directory, `/tmp/sse-archive`, writable by the agent: logs, `dialog.jsonl` and the final patch go there. The entrypoint requires it. |
+| `SSE_ARCHIVE` | `/tmp/sse-archive` | entrypoint, daemon, evaluator, agents | The agent's archive directory, `/tmp/sse-archive`, writable by the agent: `dialog.jsonl` and whatever the agent side writes go there. The entrypoint requires it. The graded outputs go to `SSE_RESULTS` instead, root-only. |
+| `SSE_RESULTS` | `/var/lib/ssebench/results` | entrypoint, daemon, evaluator | The run's results directory, root-only: the grade (`result.json`), the graded patch (`final.patch`), the commit log and the run's logs. Its parent is made `0700` root, so neither the agent nor the task runner can reach it. The CLI mounts the run directory here and its `archive/` subdirectory at `SSE_ARCHIVE`. Falls back to `SSE_ARCHIVE` when unset. |
 | `SSE_DIFFICULTY` | `2` | daemon, MCP server | The [difficulty level](/concepts/difficulty-levels), from 0 to 4. The MCP server decides from it which checks `test_patch` runs, and the daemon refuses the withheld `bencher` actions on its agent-facing listeners. |
 | `TIMEOUT` | `14400` in the entrypoint, `1800` in the evaluator | entrypoint, evaluator, agents | How long the agent may run, in seconds (`--timeout`). The evaluator uses the same limit for grading. |
 | `SSE_KEEP_ALIVE` | `0` | entrypoint | `1` keeps the container running after grading (`--keep-container`), for the web UI. |
 | `SSE_PLUGINS` | the plugins `plugins.yaml` enables | entrypoint | Comma-separated plugins to run, set by `ssebench run --plugin`; when it is set, it replaces the `enabled` field of `plugins.yaml`, and an empty value runs none. See [Plugins and hooks](/concepts/plugins-and-hooks). |
 | `SSE_DAEMON_SOCKET` | `/tmp/sse.sock` | entrypoint, daemon, SDK | The daemon's agent-facing Unix socket, mode `0666`. The entrypoint sets it for every process it starts; in sidecar mode `ssebench run` sets it to `/run/ssebench/sse.sock`, on a root-owned volume the two containers share. Without it, the daemon serves HTTP only. |
-| `SSE_ADMIN_SOCKET` | `/run/ssebench/admin.sock` | entrypoint, daemon | The daemon's privileged Unix socket, mode `0600`, root only: grading, the reference patch and phase changes. In sidecar mode it is on the volume the two containers share, and the task container's entrypoint sets it. The daemon binds it only when this is set; the entrypoint sets it, and points the evaluator's `SSE_DAEMON_SOCKET` at it. |
+| `SSE_ADMIN_SOCKET` | `/run/ssebench/admin.sock` | entrypoint, daemon | The daemon's privileged Unix socket, mode `0600`, root only: grading, the reference patch and phase changes. In sidecar mode it is on the volume the two containers share, and the task container's entrypoint sets it. The daemon binds it only when this is set; the entrypoint sets it, and points the evaluator's `SSE_DAEMON_SOCKET` at it. The SDK's `sse.reference.get_reference_patch` reads it to reach the admin socket. |
 
 <!-- end generated -->
 
@@ -123,6 +124,9 @@ defaults:
 
 | Variable | Default | Used by | Description |
 |---|---|---|---|
+| `SSE_AGENT_USER` | `model` | daemon | The agent's user, whose processes the daemon kills when the agent phase ends. |
+| `SSE_RUNNER_USER` | `sse-runner` | daemon | The unprivileged user the daemon runs the task's build, PoC and test scripts as, when it runs as root. A dedicated uid with no groups, neither the agent nor root; the tool layer creates it. The daemon refuses to start as root without it. |
+| `SSE_RUNNER_DIR` | `/var/lib/ssebench-runner` | daemon | The root of the task runner's scratch copies, reachable only by the runner and root (`0710`). Each check runs in a private copy of the project here. |
 | `SSE_DAEMON_TIMEOUT` | `300` | entrypoint | Seconds to wait for the daemon's socket. |
 | `SSE_MCP_TIMEOUT` | `300` | entrypoint | Seconds to wait for the MCP server. |
 | `SSE_DEBUG` | unset | entrypoint | Any non-empty value turns on debug logs. |

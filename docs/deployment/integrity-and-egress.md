@@ -104,11 +104,12 @@ on `config.egress` when you aggregate results.
   features of the provider's API it uses.
 - **Other runs.** Run containers of one Compose project share
   `<project>_agents` and can connect to each other. The daemon's HTTP port,
-  4263, listens on all interfaces, and after a run's agent phase ends it
-  serves that run's reference patch; so do containers kept with
-  `--keep-container`, for as long as they run. Do not keep finished containers
-  of a task while other runs of the same task are in progress, or use a
-  separate Compose project for each experiment, as below.
+  4263, listens on all interfaces, so one run can reach another's public view
+  and its live diff. It does not serve the reference patch or any grading
+  route there — only the root-only admin socket does — so a concurrent or kept
+  run cannot read another run's answer through it. Use a separate Compose
+  project for each experiment, as below, if even the public view should be
+  private.
 - **The host's kernel.** The network policy does nothing against an escape
   from the container itself.
 
@@ -134,8 +135,10 @@ task, model and agent.
 
 `--keep-container` keeps the run container running after grading, so you can
 inspect it or watch it in the [web UI](/webui/). The container stays on the
-agents network, and its daemon keeps serving its API on port 4263, including
-the reference patch. Stop kept containers when you are done with them:
+agents network, and its daemon keeps serving its API on port 4263. That port
+never serves the reference patch or the grading routes, so a kept container
+does not expose its answer to the other runs on the network. Stop kept
+containers when you are done with them:
 
 ```sh
 docker ps --filter label=ssebench.webui=true

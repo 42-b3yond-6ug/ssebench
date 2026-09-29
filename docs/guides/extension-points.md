@@ -234,17 +234,22 @@ The package provides:
 | `Version` | Printed by `--version` |
 | `Configurer` | Optional interface with `Configure(cfg *Config)`, called before the `TIMEOUT`, `SSE_DAEMON_TIMEOUT` and `SSE_MCP_TIMEOUT` overrides; the sidecar mode uses it to read the daemon's socket from `SSE_DAEMON_SOCKET` and to move the MCP server and evaluator paths |
 
-Before `Run`, the entrypoint installs the SIGINT and SIGTERM handler, makes
-`SSE_ARCHIVE` world-writable and creates the log files. After `Run` returns,
-it stops every service the mode started and exits with the returned status.
-Inside `Run`, the mode uses the `*Runtime`:
+Before `Run`, the entrypoint installs the SIGINT and SIGTERM handler, makes the
+results directory (`SSE_RESULTS`) `0755` inside a root-only parent, so only
+root in the container can reach it and write the grade and logs, and creates
+the log files. It gives the agent's
+archive (`SSE_ARCHIVE`) to the `model` user only when the mode leaves
+`Config.AgentWritesArchive` set, which the built-in modes do; a mode where only
+root writes clears it in `Configure`, and the archive stays root-owned. After
+`Run` returns, it stops every service the mode started and exits with the
+returned status. Inside `Run`, the mode uses the `*Runtime`:
 
 | Method | Description |
 |--------|-------------|
 | `Config() Config` | Paths, sockets and timeouts of this run |
 | `AgentCommand() []string` | The agent command, from the arguments after `--` |
 | `Logger() *slog.Logger` | The entrypoint's logger |
-| `LogPath(name string) string` | `<SSE_ARCHIVE>/<name>.log` |
+| `LogPath(name string) string` | `<SSE_RESULTS>/<name>.log` |
 | `StartDaemon() error` | Starts the daemon with its agent-facing and admin sockets |
 | `WaitForDaemon() error` | Waits for a daemon in another container, as the sidecar mode does |
 | `StartMCPServer() error` | Starts the MCP server and waits until it answers |
@@ -252,17 +257,19 @@ Inside `Run`, the mode uses the `*Runtime`:
 | `StartService(name string, argv []string, dir string, env []string) error` | Starts another background process, logged to `LogPath(name)` |
 | `RunAgent() (AgentResult, error)` | Runs the agent as `model` with its time limit, then ends the agent phase; runs the agent-phase [plugins](/concepts/plugins-and-hooks#hooks) around it |
 | `EndAgentPhase()` | Ends the agent phase; only the first call has an effect |
-| `Evaluate(result AgentResult)` | Ends the agent phase, then grades through the admin socket and writes `/sse_result`; runs the grading plugins around it |
+| `Evaluate(result AgentResult)` | Ends the agent phase, then grades through the admin socket and writes `result.json` to the results directory; runs the grading plugins around it |
 | `KeepAlive()` | Blocks while `SSE_KEEP_ALIVE=1` keeps the container for the web UI |
 
 `AgentResult` has the agent's `ExitStatus` (124 when it was killed at its time
 limit), its `Duration` and `TimedOut`.
 
-The daemon serves the reference patch on its agent-facing socket and HTTP
-port only after the agent phase ends. `RunAgent` ends it once the agent has
-exited, and `Evaluate` ends it before grading at the latest. A mode whose
-agent does not run through `RunAgent`, for example because it runs
-elsewhere, calls `EndAgentPhase` when the agent is done, and never before.
+Ending the agent phase closes the daemon's tools to the agent-facing listeners
+and kills the agent user's processes, so nothing the agent left running takes
+part in grading. `RunAgent` ends it once the agent has exited, and `Evaluate`
+ends it before grading at the latest. A mode whose agent does not run through
+`RunAgent`, for example because it runs elsewhere, calls `EndAgentPhase` when
+the agent is done, and never before. The reference patch is served only on the
+admin socket, at any time.
 
 This mode greets and writes the agent command to `hello.txt` in the results
 directory, without starting anything:
@@ -322,7 +329,8 @@ A tool image, and so each agent image built from it, must:
   which is the agent image's `CMD`, as its arguments, runs it as the user
   `model` (uid 1000) and exits with the agent's exit status, or 124 when the
   agent timed out;
-- write the grade to `/sse_result` before it exits (the evaluator does this);
+- write the grade to `result.json` in the results directory (`SSE_RESULTS`)
+  before it exits (the evaluator does this);
 - keep the paths below. An agent Dockerfile builds on the tool image with
   `FROM ssebench-agent`; `ssebench run` passes the tool image as the
   `ssebench-agent` build context.
@@ -334,11 +342,12 @@ A tool image, and so each agent image built from it, must:
 | `/ssebench/mcp` | The MCP server (`runtime/mcp`) and its virtual environment |
 | `/evaluator` | The evaluator (`runtime/evaluator`) and its virtual environment |
 | `/plugins` | `plugins.yaml`, its schema and the plugins the run selected, each with its virtual environment; root-owned. `Config.PluginsDir` points elsewhere. |
-| `/ssebench` | The task's scripts and files from the case image; root only |
+| `/ssebench` | The task's scripts and files from the case image; root only, except the build and test scripts and their support directories, which `sse-runner` may read and run |
 | `/ssebench-repo` | The original project source; root only |
 | `source_dir` from the task's `config.yaml` | The project source, owned by `model`, with its git history replaced by one commit |
-| `/sse_result` | The evaluator's result, bind-mounted from the host |
-| `/tmp/sse-archive` | The run's results directory (`SSE_ARCHIVE`), bind-mounted from the host |
+| `/var/lib/ssebench/results` | The run directory (`SSE_RESULTS`), bind-mounted root-only from the host; the grade and the logs go here |
+| `/tmp/sse-archive` | The agent's archive (`SSE_ARCHIVE`), the run directory's `archive/` bind-mounted from the host, owned by `model` |
+| `/var/lib/ssebench-runner` | The task runner's scratch copies; `sse-runner` and root only |
 | `/reference/patch.diff` | The task's reference patch, bind-mounted read-only for the `reference` agent and no other; see [Reference runs](/reference/cli#reference-runs) |
 
 In the sidecar agent image the MCP server is in `/mcp`. The project source
@@ -350,14 +359,16 @@ container. See [Sandbox and sidecar](/concepts/sandbox-and-sidecar#sidecar-mode)
 
 `ssebench run` sets these in the task container. In sidecar mode, the agent
 container gets them all except `SSE_KEEP_ALIVE`, and the environment container
-gets `SSE_ARCHIVE`, `SSE_DAEMON_SOCKET`, `SSE_DIFFICULTY` and `SSE_KEEP_ALIVE`.
+gets `SSE_ARCHIVE`, `SSE_RESULTS`, `SSE_DAEMON_SOCKET`, `SSE_DIFFICULTY` and
+`SSE_KEEP_ALIVE`.
 
 | Variable | Value |
 |----------|-------|
 | `SSE_API_KEY` | The run's LiteLLM key, which can use only the selected model |
 | `SSE_BASE_URL` | The LiteLLM proxy, `http://litellm:4000` |
 | `SSE_MODEL_NAME` | The selected model, as named in `models/*.yaml` |
-| `SSE_ARCHIVE` | The results directory in the container, `/tmp/sse-archive` |
+| `SSE_ARCHIVE` | The agent's archive directory, `/tmp/sse-archive` |
+| `SSE_RESULTS` | The root-only results directory, `/var/lib/ssebench/results` |
 | `SSE_DIFFICULTY` | The [difficulty level](/concepts/difficulty-levels), from 0 to 4 |
 | `TIMEOUT` | The agent's time limit in seconds (`--timeout`); the evaluator uses the same limit |
 | `SSE_KEEP_ALIVE` | `1` keeps the container running after the run (`--keep-container`), otherwise `0` |
@@ -376,13 +387,17 @@ generated from the [environment variable registry](/reference/environment).
 | `SSE_API_KEY` | set by `ssebench run` | agents, plugins, sse.ai | The run's LiteLLM key, which can use only the selected model; empty in a reference run. |
 | `SSE_BASE_URL` | set by `ssebench run` | agents, plugins, sse.ai | URL of the LiteLLM proxy, `http://litellm:4000`; empty in a reference run. |
 | `SSE_MODEL_NAME` | set by `ssebench run` | agents, plugins, sse.ai | The selected model, as named in `models/*.yaml`; `none` in a reference run. |
-| `SSE_ARCHIVE` | `/tmp/sse-archive` | entrypoint, daemon, evaluator, agents | The run's results directory, `/tmp/sse-archive`, writable by the agent: logs, `dialog.jsonl` and the final patch go there. The entrypoint requires it. |
+| `SSE_ARCHIVE` | `/tmp/sse-archive` | entrypoint, daemon, evaluator, agents | The agent's archive directory, `/tmp/sse-archive`, writable by the agent: `dialog.jsonl` and whatever the agent side writes go there. The entrypoint requires it. The graded outputs go to `SSE_RESULTS` instead, root-only. |
+| `SSE_RESULTS` | `/var/lib/ssebench/results` | entrypoint, daemon, evaluator | The run's results directory, root-only: the grade (`result.json`), the graded patch (`final.patch`), the commit log and the run's logs. Its parent is made `0700` root, so neither the agent nor the task runner can reach it. The CLI mounts the run directory here and its `archive/` subdirectory at `SSE_ARCHIVE`. Falls back to `SSE_ARCHIVE` when unset. |
 | `SSE_DIFFICULTY` | `2` | daemon, MCP server | The [difficulty level](/concepts/difficulty-levels), from 0 to 4. The MCP server decides from it which checks `test_patch` runs, and the daemon refuses the withheld `bencher` actions on its agent-facing listeners. |
 | `TIMEOUT` | `14400` in the entrypoint, `1800` in the evaluator | entrypoint, evaluator, agents | How long the agent may run, in seconds (`--timeout`). The evaluator uses the same limit for grading. |
 | `SSE_KEEP_ALIVE` | `0` | entrypoint | `1` keeps the container running after grading (`--keep-container`), for the web UI. |
 | `SSE_PLUGINS` | the plugins `plugins.yaml` enables | entrypoint | Comma-separated plugins to run, set by `ssebench run --plugin`; when it is set, it replaces the `enabled` field of `plugins.yaml`, and an empty value runs none. See [Plugins and hooks](/concepts/plugins-and-hooks). |
 | `SSE_DAEMON_SOCKET` | `/tmp/sse.sock` | entrypoint, daemon, SDK | The daemon's agent-facing Unix socket, mode `0666`. The entrypoint sets it for every process it starts; in sidecar mode `ssebench run` sets it to `/run/ssebench/sse.sock`, on a root-owned volume the two containers share. Without it, the daemon serves HTTP only. |
-| `SSE_ADMIN_SOCKET` | `/run/ssebench/admin.sock` | entrypoint, daemon | The daemon's privileged Unix socket, mode `0600`, root only: grading, the reference patch and phase changes. In sidecar mode it is on the volume the two containers share, and the task container's entrypoint sets it. The daemon binds it only when this is set; the entrypoint sets it, and points the evaluator's `SSE_DAEMON_SOCKET` at it. |
+| `SSE_ADMIN_SOCKET` | `/run/ssebench/admin.sock` | entrypoint, daemon | The daemon's privileged Unix socket, mode `0600`, root only: grading, the reference patch and phase changes. In sidecar mode it is on the volume the two containers share, and the task container's entrypoint sets it. The daemon binds it only when this is set; the entrypoint sets it, and points the evaluator's `SSE_DAEMON_SOCKET` at it. The SDK's `sse.reference.get_reference_patch` reads it to reach the admin socket. |
+| `SSE_AGENT_USER` | `model` | daemon | The agent's user, whose processes the daemon kills when the agent phase ends. |
+| `SSE_RUNNER_USER` | `sse-runner` | daemon | The unprivileged user the daemon runs the task's build, PoC and test scripts as, when it runs as root. A dedicated uid with no groups, neither the agent nor root; the tool layer creates it. The daemon refuses to start as root without it. |
+| `SSE_RUNNER_DIR` | `/var/lib/ssebench-runner` | daemon | The root of the task runner's scratch copies, reachable only by the runner and root (`0710`). Each check runs in a private copy of the project here. |
 | `SSE_DAEMON_TIMEOUT` | `300` | entrypoint | Seconds to wait for the daemon's socket. |
 | `SSE_MCP_TIMEOUT` | `300` | entrypoint | Seconds to wait for the MCP server. |
 | `SSE_DEBUG` | unset | entrypoint | Any non-empty value turns on debug logs. |
@@ -431,14 +446,15 @@ bridge; see [Integrity and egress](/deployment/integrity-and-egress).
 ### Result files
 
 `ssebench run` mounts `results/<task>/<model>/<agent>/`, under the working
-directory, at `SSE_ARCHIVE`. The directory is emptied before each run.
+directory, at `SSE_RESULTS` (root-only), and its `archive/` subdirectory at
+`SSE_ARCHIVE` (the agent's). The run directory is emptied before each run.
 [Results format](/concepts/results) describes every file.
 
 | File | Written by | Contents |
 |------|------------|----------|
-| `result.json` | evaluator, through `/sse_result`; `ssebench run` adds `config` | The grade: `patch_result` and `runtime_result`, and the run settings |
+| `result.json` | evaluator, to the results directory; `ssebench run` adds `config` | The grade: `patch_result` and `runtime_result`, and the run settings |
 | `agent.log`, `daemon.log`, `mcp.log`, `evaluator.log`, `opencode.log` | entrypoint | The output of each process |
-| `dialog.jsonl` | agent | The agent's session; see [Dialog protocol](/reference/dialog-protocol) |
+| `archive/dialog.jsonl` | agent | The agent's session; see [Dialog protocol](/reference/dialog-protocol) |
 | `final.patch`, `commits.log` | daemon, when grading starts | The agent's diff and commit messages |
 | `scriptrunner-<ms>.log`, `patch-<ms>.log` | daemon | The output of each script the daemon runs, and of each test patch it applies |
 | `source.tar.gz` | evaluator | The project source after grading |

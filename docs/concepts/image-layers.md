@@ -81,8 +81,11 @@ on top of the case image:
    readable by root only;
 2. copies the source back to `SOURCE_DIR`, owned by uid 1000;
 3. runs `images/common/setup-source.sh`, which creates the user `model`
-   (uid 1000), deletes every `.git` directory in the source and commits the
-   tree again as a single commit, `buggy commit`;
+   (uid 1000) fresh with no supplementary groups, removing a base image's
+   uid-1000 user (such as `ubuntu`) if one clashes; creates the unprivileged
+   `sse-runner` user the daemon runs task scripts as; removes world-writable
+   bits from files a check must not change; deletes every `.git` directory in
+   the source and commits the tree again as a single commit, `buggy commit`;
 4. adds the runtime:
 
 | Path | Component |

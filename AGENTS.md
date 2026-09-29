@@ -23,9 +23,13 @@ Each run uses an image built from four layers:
 Inside the container, the Go entrypoint (`runtime/entrypoint`) starts
 `ssebench-daemon` (`sdk/daemon`), then the MCP server (`runtime/mcp`), then the
 agent as the unprivileged user `model`, and finally the evaluator
-(`runtime/evaluator`). The evaluator writes `result.json` into the results
-directory. Agents never talk to a model provider directly: every LLM call goes
-through the LiteLLM proxy (`images/litellm`, models in `models/*.yaml`).
+(`runtime/evaluator`). The daemon runs the task's build, PoC and test scripts
+as a third unprivileged user, `sse-runner`, in a scratch copy of the project,
+so code the agent wrote never runs as root or as the agent. The evaluator
+writes `result.json` into the root-only results directory (`SSE_RESULTS`), kept
+apart from the agent's writable archive (`SSE_ARCHIVE`). Agents never talk to a
+model provider directly: every LLM call goes through the LiteLLM proxy
+(`images/litellm`, models in `models/*.yaml`).
 
 The difficulty level (`SSE_DIFFICULTY`) controls which checks the agent's
 `test_patch` tool runs. Final grading always runs every check the task has.
@@ -187,19 +191,30 @@ contains the working directory, otherwise the checkout it was installed from.
 
 - **Benchmark integrity.** Nothing the agent can reach while it works may
   reveal the reference patch, the hidden tests, the upstream fix commit, or a
-  check that its difficulty level withholds. The agent runs as `model` (uid
-  1000); task metadata and reference files are root-only; the project's git
-  history is replaced by a single commit. The daemon enforces this, not just
-  the MCP server: it reads `SSE_DIFFICULTY` at startup and rejects withheld
-  `bencher` actions (403) on the agent-facing listeners, and it serves the
+  check that its difficulty level withholds, and nothing it does may change how
+  it is graded. The agent runs as `model` (uid 1000), created fresh with no
+  supplementary groups; the task's build, PoC and test scripts run as
+  `sse-runner` (a third uid with no groups) in a scratch copy of the project,
+  since they run code the agent wrote; task metadata and reference files are
+  root-only; the graded outputs (`result.json`, the logs) go to a root-only
+  results directory, kept apart from the agent's writable archive; the
+  project's git history is replaced by a single commit. The daemon enforces
+  this, not just the MCP server: it reads `SSE_DIFFICULTY` at startup and
+  rejects withheld `bencher` actions (403) on the agent-facing listeners,
+  refuses every tool on them once the agent phase has ended, and serves the
   reference patch (`GET /reference/patch`) only on the privileged admin socket
-  or, on the agent-facing listeners, after the agent phase has ended (the
-  entrypoint signals `POST /admin/agent_exited` over the admin socket, which is
-  how the web UI reads the patch from the host post-run). Grading goes through
-  the admin socket so it runs every check regardless of difficulty. By default
-  a run container has no internet, only the LiteLLM proxy (`--egress open`
-  opts out). Treat any change that weakens this as a security bug, and add a
-  test to `tests/integrity/` that tries the bypass.
+  — never on the agent-facing listeners, which other run containers on the
+  network can reach. Post-run consumers read the patch from the host (the task
+  folder or the run's `reference.patch`) or, as root in the container, over the
+  admin socket. Git on the agent's tree (`/diff`, `/files`, the patch
+  capture) runs as the tree's owner with the repository's configuration
+  ignored. Grading goes through the admin socket so it runs every check
+  regardless of difficulty. When the agent phase
+  ends, the entrypoint and the daemon kill the agent user's and the runner's
+  processes so nothing it left running takes part in grading. By default a run
+  container has no internet, only the LiteLLM proxy (`--egress open` opts out).
+  Treat any change that weakens this as a security bug, and add a test to
+  `tests/integrity/` that tries the bypass.
 - **Plugins never change the grade.** A plugin that fails or times out must
   not alter the evaluation result.
 - **The container contract is stable.** Agents, plugins and third-party
@@ -211,15 +226,16 @@ contains the working directory, otherwise the checkout it was installed from.
   |---|---|
   | `SSE_BASE_URL`, `SSE_API_KEY`, `SSE_MODEL_NAME` | LiteLLM proxy endpoint, key and model name for the agent |
   | `SSE_DIFFICULTY` | difficulty level, 0 to 4 |
-  | `SSE_ARCHIVE` | results directory inside the container |
+  | `SSE_ARCHIVE` | the agent's writable archive directory inside the container |
+  | `SSE_RESULTS` | root-only results directory (grade, graded patch, logs) |
   | `TIMEOUT` | agent time limit in seconds |
   | `SSE_DAEMON_SOCKET` | agent-facing daemon Unix socket, 0666 (default `/tmp/sse.sock`) |
-  | `SSE_ADMIN_SOCKET` | privileged daemon Unix socket, 0600 root-only (default `/run/ssebench/admin.sock`) |
+  | `SSE_ADMIN_SOCKET` | privileged daemon Unix socket, 0600 root-only (default `/run/ssebench/admin.sock`); the only listener that serves `GET /reference/patch` |
   | `SSE_KEEP_ALIVE`, `SSE_DEBUG` | keep the container after the run; verbose entrypoint logs |
   | daemon HTTP port | 4263 (agent-facing) |
   | MCP server | port 3000, path `/mcp` |
   | OpenCode server | port 4096, when the agent image includes OpenCode |
-  | `dialog.jsonl` | the agent dialog in the results directory, read by the web UI |
+  | `dialog.jsonl` | the agent dialog in the archive directory, read by the web UI |
   | `/reference/patch.diff` | the task's reference patch, mounted read-only for the `reference` agent only |
 
 - **The extension API is stable.** Other packages register tool layers and

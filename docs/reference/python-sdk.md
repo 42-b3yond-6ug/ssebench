@@ -483,12 +483,13 @@ Raises `SDKError` on infrastructure failures
 
 ## `sse.reference`
 
-Reference patch access for post-agent tooling (grading, review, web UI).
+Reference patch access for tooling that runs as root in the task container.
 
-WARNING: This exposes the reference patch (the answer). It must never be used
-by an agent while it works. The daemon serves `/reference/patch` only on its
-privileged admin socket or after the agent phase has ended, so a call made
-during the agent phase over the agent-facing socket fails.
+WARNING: This exposes the reference patch (the answer). The daemon serves
+`/reference/patch` only on its privileged admin socket, which only root in
+the task container can reach; the agent-facing listeners refuse it at all
+times. Tools on the host read the patch from the task folder, or from
+`reference.patch` in the run's results directory.
 
 ### `get_reference_patch()`
 
@@ -498,8 +499,10 @@ def get_reference_patch() -> str
 
 Return the reference patch as a unified diff string.
 
-Calls the daemon's `/reference/patch` endpoint. Returns an empty string
-if no reference patch is configured for the task.
+Calls `/reference/patch` on the daemon's admin socket, `SSE_ADMIN_SOCKET`
+(default `/run/ssebench/admin.sock`), so the caller must run as root in the
+task container. Returns an empty string if no reference patch is configured
+for the task.
 
 ## `sse.helper`
 
@@ -586,14 +589,15 @@ Both come from the same release, spelled per ecosystem (1.0.0rc1 and
 ### `class Daemon`
 
 ```python
-class Daemon()
+class Daemon(socket: str | None = None)
 ```
 
 A connection to the daemon.
 
 Creating one asks the daemon for its version and logs a warning when it differs from the
-SDK's. Raises `Exception` when neither `SSE_DAEMON_SOCKET` nor `SSE_AGENT_DOCKER` is
-set, and `RuntimeError` when the daemon does not answer.
+SDK's. It connects to `socket` when given, else to `SSE_DAEMON_SOCKET`, else to the
+daemon at `SSE_AGENT_DOCKER`. Raises `Exception` when there is none of them, and
+`RuntimeError` when the daemon does not answer.
 
 #### `Daemon.get()`
 

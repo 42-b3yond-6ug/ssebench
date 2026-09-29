@@ -46,12 +46,14 @@ the [integrity model](/concepts/integrity) explains why:
   answers `403` to the `bencher` actions that the level withholds; see
   [Difficulty gate](#difficulty-gate). The MCP server applies the same levels
   to `test_patch`.
-- **Admin-only endpoints.** `POST /prepare_grading` and
-  `POST /admin/agent_exited` answer `403`.
-- **Reference patch.** `GET /reference/patch` answers `403` until the agent
-  phase ends: the entrypoint calls `POST /admin/agent_exited` on the admin
-  socket when the agent process exits, and from then on the agent-facing
-  listeners serve the patch, which is how the web UI shows it after a run.
+- **Agent phase.** Once the agent phase ends — the entrypoint calls
+  `POST /admin/agent_exited` on the admin socket when the agent process exits —
+  the agent-facing listeners answer `403` to every tool, and the daemon kills
+  the agent user's processes.
+- **Admin-only endpoints.** `POST /prepare_grading`, `POST /admin/agent_exited`
+  and `GET /reference/patch` answer `403` on the agent-facing listeners at all
+  times; only the admin socket serves them. Post-run tooling on the host reads
+  the reference patch from the task folder or the run's results instead.
 
 The admin socket is never gated, so grading runs every check the task has. The
 evaluator's SDK talks to it because the entrypoint points the evaluator's
@@ -67,7 +69,7 @@ patch with [`sse.reference.get_reference_patch()`](/reference/python-sdk#sse-ref
 | [`GET /version`](#get-version) | every listener | The daemon's version. |
 | [`GET /project`](#get-project) | every listener | The task's metadata, without the reference material. |
 | [`GET /capabilities`](#get-capabilities) | every listener | Which checks the task supports. |
-| [`POST /tool/{name}`](#post-tool-name) | every listener | Run an action of a tool. |
+| [`POST /tool/{name}`](#post-tool-name) | every listener, until the agent phase ends; then admin socket only | Run an action of a tool. |
 | [`GET /diff`](#get-diff) | every listener | The agent's changes so far, as a unified diff. |
 | [`GET /files`](#get-files) | every listener | The files the agent changed, with line counts. |
 | [`GET /agent/dialog`](#get-agent-dialog) | every listener | The agent's dialog, from `$SSE_ARCHIVE/dialog.jsonl`. |
@@ -75,7 +77,7 @@ patch with [`sse.reference.get_reference_patch()`](/reference/python-sdk#sse-ref
 | [`POST /prepare_grading`](#post-prepare-grading) | admin socket only | Save the agent's diff and apply it to the copy of the repository that is graded. |
 | [`GET /final_diff`](#get-final-diff) | every listener | The agent's diff that `POST /prepare_grading` saved. |
 | [`POST /admin/agent_exited`](#post-admin-agent-exited) | admin socket only | End the agent phase. |
-| [`GET /reference/patch`](#get-reference-patch) | admin socket; agent-facing listeners after the agent exits | The reference patch, the answer to the task. |
+| [`GET /reference/patch`](#get-reference-patch) | admin socket only | The reference patch, the answer to the task. |
 
 <!-- end generated -->
 
@@ -145,9 +147,9 @@ Served on: every listener.
 
 Run an action of a tool.
 
-`bencher` builds and tests a copy of the source tree; `bash` runs a command in one interactive shell in the source tree, as the unprivileged user `model`. The daemon runs one action at a time. A script that runs and fails is a 200 with a non-zero `code`.
+`bencher` builds and tests a private copy of the source tree, running the task's scripts as the unprivileged runner user; `bash` runs a command in one interactive shell in the source tree, as the unprivileged user `model`. The daemon runs one action at a time. A script that runs and fails is a 200 with a non-zero `code`. The agent-facing listeners serve tools during the agent phase only, and never with `grading: true`.
 
-Served on: every listener.
+Served on: every listener, until the agent phase ends; then admin socket only.
 
 | Parameter | In | Type | Required | Description |
 |---|---|---|---|---|
@@ -160,7 +162,7 @@ Request body (`application/json`): [GradingArgument](#gradingargument) \| [PocAr
 |---|---|---|
 | `200` | [ScriptResult](#scriptresult) | The action ran; its script's exit code and output. |
 | `400` |  | The `action` parameter is missing, or the body is not JSON. |
-| `403` | [Error](#error) | On an agent-facing listener, a `bencher` action that the difficulty level withholds. |
+| `403` | [Error](#error) | On an agent-facing listener: a `bencher` action that the difficulty level withholds, an argument with `grading: true`, or any tool after the agent phase. |
 | `500` | [Error](#error) | An unknown tool or action, an invalid argument, a script the task does not have, or hidden tests that do not apply (`git apply failed`). |
 
 ### `GET /diff`
@@ -230,7 +232,7 @@ Served on: every listener.
 ## Admin endpoints
 
 These endpoints answer on the admin socket. The agent-facing listeners refuse
-them with `403`, except `GET /reference/patch` after the agent phase.
+them with `403` at all times.
 
 <!-- generated: daemon admin -->
 
@@ -238,7 +240,7 @@ them with `403`, except `GET /reference/patch` after the agent phase.
 
 Save the agent's diff and apply it to the copy of the repository that is graded.
 
-Writes the agent's diff to `$SSE_ARCHIVE/final.patch` and its commit messages to `$SSE_ARCHIVE/commits.log`, then applies the diff to the clean clone of the repository in `$SSE_REPO_PATH`, which the `bencher` actions use with `grading: true`. The evaluator calls it once, after the agent has finished.
+Starts a new session of the runner user, which kills its processes and discards its caches and workspaces, writes the agent's diff to `final.patch` and its commit messages to `commits.log` in the results directory (`$SSE_RESULTS`), then applies the diff to the clean clone of the repository in `$SSE_REPO_PATH`, which the `bencher` actions use with `grading: true`. The evaluator calls it once, after the agent has finished.
 
 Served on: admin socket only.
 
@@ -252,7 +254,7 @@ Served on: admin socket only.
 
 End the agent phase.
 
-The entrypoint calls it once the agent process has exited. From then on the agent-facing listeners serve `GET /reference/patch`, so that the web UI can show it. Calling it again has no effect.
+The entrypoint calls it once the agent process has exited. From then on the agent-facing listeners refuse tools, and every process of the agent's user in the daemon's container is killed. Calling it again has no other effect.
 
 Served on: admin socket only.
 
@@ -260,19 +262,20 @@ Served on: admin socket only.
 |---|---|---|
 | `200` | [Success](#success) | The agent phase has ended. |
 | `403` | [Error](#error) | The request came from an agent-facing listener. |
+| `500` | [Error](#error) | A process of the agent's user could not be killed. |
 
 ### `GET /reference/patch`
 
 The reference patch, the answer to the task.
 
-The upstream fix that the task config names as `files.patch`. It must never reach the agent while it works, so the agent-facing listeners refuse it until the agent phase has ended.
+The upstream fix that the task config names as `files.patch`. Only the admin socket serves it: the agent-facing listeners are reachable from other containers on the run network, also after the run. Tools on the host read it from the task folder or the run's results directory.
 
-Served on: admin socket; agent-facing listeners after the agent exits.
+Served on: admin socket only.
 
 | Status | Body | Description |
 |---|---|---|
 | `200` | [Diff](#diff) | The patch; empty when the task has none or it cannot be read. |
-| `403` | [Error](#error) | The request came from an agent-facing listener while the agent works. |
+| `403` | [Error](#error) | The request came from an agent-facing listener. |
 
 <!-- end generated -->
 

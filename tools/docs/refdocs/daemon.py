@@ -19,10 +19,10 @@ METHODS = ["get", "post", "put", "patch", "delete"]
 ACCESS = {
     "any": "every listener",
     "admin": "admin socket only",
-    "after-agent": "admin socket; agent-facing listeners after the agent exits",
+    "agent-phase": "every listener, until the agent phase ends; then admin socket only",
 }
 # Page sections: the operations each one lists, by x-access.
-GROUPS = {"daemon agent-facing": ["any"], "daemon admin": ["admin", "after-agent"]}
+GROUPS = {"daemon agent-facing": ["any", "agent-phase"], "daemon admin": ["admin"]}
 LEVEL_NAMES = ["FULL_ASSISTANCE", "NO_INTENT_TEST", "NO_FUTURE_TEST", "BUILD_ONLY", "NO_BUILD"]
 
 

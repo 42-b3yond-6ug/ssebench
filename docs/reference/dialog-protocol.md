@@ -14,7 +14,7 @@ Your agent writes a single file — `dialog.jsonl` — containing one JSON objec
 
 **File location:** `$SSE_ARCHIVE/dialog.jsonl`
 
-The `SSE_ARCHIVE` environment variable points to a shared, world-writable directory (defaults to `/tmp/sse-archive` if unset). Write your `dialog.jsonl` there.
+The `SSE_ARCHIVE` environment variable points to the agent's archive directory, which the agent user owns (it defaults to `/tmp/sse-archive` if unset). Write your `dialog.jsonl` there. It is separate from the root-only results directory that holds the grade and the logs, so what the agent writes cannot reach the graded outputs.
 
 ## File Format
 
