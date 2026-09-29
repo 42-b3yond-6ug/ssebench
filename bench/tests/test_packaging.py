@@ -137,6 +137,29 @@ def test_the_wheel_keeps_scripts_executable(wheel: Path) -> None:
     assert mode & 0o111
 
 
+def test_an_installed_wheel_finds_its_home_without_a_checkout(wheel: Path, tmp_path: Path) -> None:
+    site = tmp_path / "site-packages"
+    with zipfile.ZipFile(wheel) as z:
+        z.extractall(site)
+    program = (
+        "from ssebench import paths\n"
+        "print(paths.home())\n"
+        "print(paths.is_packaged())\n"
+        "print(paths.compose_file().is_file(), (paths.agents_dir() / 'dummy' / 'agent.yaml').is_file())\n"
+        "print(paths.default_dataset_dir().joinpath('manifest.json').is_file())\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", program],
+        cwd=tmp_path,
+        env={"PYTHONPATH": str(site), "PATH": ""},
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == [str(site.resolve() / "ssebench" / "_data"), "True", "True True", "True"]
+
+
 def test_a_build_outside_the_repository_has_no_assets(tmp_path: Path) -> None:
     project = tmp_path / "bench"
     shutil.copytree(BENCH, project, ignore=shutil.ignore_patterns("__pycache__", ".venv", "dist"))

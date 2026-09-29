@@ -125,7 +125,7 @@ def test_non_amd64_warns(healthy_host: Path, monkeypatch: pytest.MonkeyPatch, ma
 
 
 def test_missing_env_file_fails_with_setup_hint(home: Path) -> None:
-    check = doctor.check_env_file(home)
+    check = doctor.check_env_file()
 
     assert check.status is Status.FAIL
     assert "just setup" in check.fix
@@ -134,7 +134,7 @@ def test_missing_env_file_fails_with_setup_hint(home: Path) -> None:
 def test_env_file_without_secrets_fails(home: Path) -> None:
     _ = (home / ".env").write_text("POSTGRES_PASSWORD=pw\n")
 
-    check = doctor.check_env_file(home)
+    check = doctor.check_env_file()
     assert check.status is Status.FAIL
     assert "LITELLM_MASTER_KEY" in check.detail
 
@@ -143,7 +143,7 @@ def test_secrets_from_the_environment_only_warn(home: Path, monkeypatch: pytest.
     monkeypatch.setenv("LITELLM_MASTER_KEY", "sk-test")
     monkeypatch.setenv("POSTGRES_PASSWORD", "pw")
 
-    assert doctor.check_env_file(home).status is Status.WARN
+    assert doctor.check_env_file().status is Status.WARN
 
 
 def test_proxy_down_warns_with_the_configured_port(healthy_host: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -165,14 +165,14 @@ def test_bad_port_fails(healthy_host: Path, monkeypatch: pytest.MonkeyPatch) -> 
 def test_provider_keys_are_read_from_models(home: Path) -> None:
     _ = (home / "models" / "broken.yaml").write_text("- model_name: [unclosed\n")
 
-    assert doctor.provider_keys(home) == {"ANTHROPIC_API_KEY": ["claude"], "OPENAI_API_KEY": ["gpt"]}
+    assert doctor.provider_keys() == {"ANTHROPIC_API_KEY": ["claude"], "OPENAI_API_KEY": ["gpt"]}
 
 
 def test_provider_keys_report_missing_and_shell_only(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _ = (home / ".env").write_text(SECRETS + "ANTHROPIC_API_KEY=\n")
     monkeypatch.setenv("OPENAI_API_KEY", "from-shell")
 
-    check = doctor.check_provider_keys(home)
+    check = doctor.check_provider_keys()
     assert check.status is Status.WARN
     assert "missing: ANTHROPIC_API_KEY (1 model)" in check.detail
     assert "only in your shell, not in .env: OPENAI_API_KEY" in check.detail

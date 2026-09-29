@@ -38,6 +38,8 @@ class CatalogError(RuntimeError):
 def bundled_manifest() -> Path:
     """The pilot dataset's manifest that ships with SSEBench, the catalog when none is configured.
 
+    A checkout has it in `datasets/pilot`; an installed wheel carries a copy, and no task folders.
+
     Raises:
         paths.HomeNotFoundError: If there is no SSEBench home to find it in.
     """

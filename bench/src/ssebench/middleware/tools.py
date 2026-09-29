@@ -10,11 +10,26 @@ from ssebench.pipe import REGISTRY, TAG, DockerLayerMixin
 from ssebench.version import VERSION
 
 DOCKER_IMAGE_PREFIX_SANDBOX = f"{REGISTRY}/tool"
-# `runtime` is the published image that carries the daemon and the entrypoint.
 DOCKER_IMAGE_PREFIX_SIDECAR_AGENTRT = f"{REGISTRY}/tool-sidecar-agent"
 DOCKER_IMAGE_PREFIX_SIDECAR_ENVIRON = f"{REGISTRY}/tool-sidecar"
 
 logger = logging.getLogger(__name__)
+
+
+def runtime_image() -> str:
+    """The published image of this version that holds the daemon and the entrypoint."""
+    return f"{REGISTRY}/runtime:{TAG}"
+
+
+def runtime_build_args(build_root: Path) -> list[str]:
+    """`docker buildx build` arguments that take the daemon and the entrypoint from the runtime image.
+
+    The Dockerfiles of the tool layers build both from source unless a `runtime` build context replaces
+    that stage. A home without their sources, as in an installation without a checkout, cannot build them.
+    """
+    if (build_root / "sdk" / "daemon").is_dir() and (build_root / "runtime" / "entrypoint").is_dir():
+        return []
+    return ["--build-context", f"runtime=docker-image://{runtime_image()}"]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -62,6 +77,7 @@ class SandboxToolLayer(ToolLayer):
                 "build",
                 "--build-context",
                 f"case-image=docker-image://{base}",
+                *runtime_build_args(self.context.build_root),
                 "--build-arg",
                 f"SOURCE_DIR={self.context.source_dir}",
                 "--build-arg",
@@ -99,6 +115,7 @@ class SidecarToolLayerAgentRuntime(ToolLayer):
                 "docker",
                 "buildx",
                 "build",
+                *runtime_build_args(self.context.build_root),
                 "--build-arg",
                 f"VERSION={VERSION}",
                 "-t",
@@ -134,6 +151,7 @@ class SidecarToolLayerEnvironment(ToolLayer):
                 "build",
                 "--build-context",
                 f"case-image=docker-image://{base}",
+                *runtime_build_args(self.context.build_root),
                 "--build-arg",
                 f"SOURCE_DIR={self.context.source_dir}",
                 "-t",
