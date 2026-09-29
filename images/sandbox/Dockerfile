@@ -19,6 +19,21 @@ RUN UV_PROJECT_ENVIRONMENT=/evaluator/.venv \
 COPY runtime/evaluator/pyproject.toml runtime/evaluator/*.py /evaluator/
 COPY runtime/mcp/pyproject.toml runtime/mcp/*.py /ssebench/mcp/
 
+# Plugins: plugins.yaml and the schema always ship, so the entrypoint validates
+# them at startup; a venv per plugin is installed only for the plugins this run
+# selected (PLUGINS is a space-separated list). Each plugin gets its own venv
+# next to its code, like the evaluator; run.sh runs it with that venv's Python.
+ARG PLUGINS=""
+COPY runtime/plugins/ /src/runtime/plugins/
+RUN mkdir -p /plugins && \
+    cp /src/runtime/plugins/plugins.yaml /src/runtime/plugins/schema.json /plugins/ && \
+    for name in ${PLUGINS}; do \
+        cp -r "/src/runtime/plugins/${name}/." "/plugins/${name}/" && \
+        UV_PROJECT_ENVIRONMENT="/plugins/${name}/.venv" \
+            uv sync --package "ssebench-plugin-${name}" --frozen --no-dev --no-editable && \
+        chmod +x "/plugins/${name}/run.sh" ; \
+    done
+
 
 FROM alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8 AS opencode-downloader
 RUN apk add --no-cache wget ca-certificates
@@ -73,6 +88,9 @@ RUN /tmp/setup-source.sh "${SOURCE_DIR}" && rm /tmp/setup-source.sh
 COPY --from=python-builder /root/.local/share/uv/python /root/.local/share/uv/python
 COPY --from=python-builder /evaluator /evaluator
 COPY --from=python-builder /ssebench/mcp /ssebench/mcp
+# Root-owned and not writable by the agent, so a plugin's code cannot be
+# tampered with before a grading-phase plugin runs it as root.
+COPY --from=python-builder /plugins /plugins
 COPY --from=opencode-downloader /usr/local/bin/opencode /usr/local/bin/opencode
 COPY --from=runtime /ssebench/ssebench-daemon /ssebench/ssebench-daemon
 

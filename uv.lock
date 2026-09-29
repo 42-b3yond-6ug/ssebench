@@ -15,6 +15,7 @@ members = [
     "ssebench",
     "ssebench-evaluator",
     "ssebench-mcp",
+    "ssebench-plugin-artifact",
     "ssebench-plugin-oracle",
     "ssebench-sdk",
 ]
@@ -1594,6 +1595,7 @@ source = { editable = "bench" }
 dependencies = [
     { name = "httpx" },
     { name = "jinja2" },
+    { name = "jsonschema" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
@@ -1604,6 +1606,7 @@ dependencies = [
 requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "jinja2", specifier = ">=3.1.6" },
+    { name = "jsonschema", specifier = ">=4.26.0" },
     { name = "pydantic", specifier = ">=2.11.9" },
     { name = "python-dotenv", specifier = ">=1.1.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
@@ -1639,6 +1642,11 @@ requires-dist = [
     { name = "fastmcp", specifier = ">=2.0.0" },
     { name = "ssebench-sdk", editable = "sdk/python" },
 ]
+
+[[package]]
+name = "ssebench-plugin-artifact"
+version = "1.0.0.dev0"
+source = { virtual = "runtime/plugins/artifact" }
 
 [[package]]
 name = "ssebench-plugin-oracle"

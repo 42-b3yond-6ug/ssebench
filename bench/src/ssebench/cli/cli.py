@@ -19,6 +19,7 @@ from ssebench.extensions import (
     load_commands,
 )
 from ssebench.models import NO_MODEL, Model, NoModel
+from ssebench.plugins import PluginError, selected_plugins
 from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
 from ssebench.runner.reference import REFERENCE_AGENT, is_reference_run, reference_patch_path
 from ssebench.tasks import CatalogError, CatalogTask, LocalTask, Task, load_catalog
@@ -46,6 +47,7 @@ class RunArgs(argparse.Namespace):
         self.difficulty: int
         self.keep_container: bool
         self.egress: Literal["restricted", "open"]
+        self.plugin: list[str]
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -69,6 +71,19 @@ def cmd_run(args: argparse.Namespace) -> int:
     except ExtensionError as e:
         logger.error(e)
         return 1
+
+    if getattr(args, "plugin", None) and args.mode != "sandbox":
+        logger.error("--plugin applies to sandbox mode only")
+        return 1
+    # A run selects plugins with --plugin, or enables the ones plugins.yaml
+    # marks enabled. Validate the file and the selection before the proxy.
+    requested = getattr(args, "plugin", None) or None
+    try:
+        plugins = selected_plugins(requested)
+    except PluginError as e:
+        logger.error(e)
+        return 1
+    plugin_names = [p.name for p in plugins]
 
     task: Task
     try:
@@ -106,7 +121,18 @@ def cmd_run(args: argparse.Namespace) -> int:
     runner: BenchmarkSandboxRunner | BenchmarkSidecarRunner
     match args.mode:
         case "sandbox":
-            runner = BenchmarkSandboxRunner(model, agent, task, timeout, difficulty, keep_container, tool_layer, egress)
+            runner = BenchmarkSandboxRunner(
+                model,
+                agent,
+                task,
+                timeout,
+                difficulty,
+                keep_container,
+                tool_layer,
+                egress,
+                plugins=plugin_names,
+                select_plugins=requested is not None,
+            )
         case "sidecar":
             runner = BenchmarkSidecarRunner(model, agent, task, timeout, difficulty, keep_container, egress)
         case _:
@@ -246,6 +272,13 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
         default=None,
         metavar="NAME",
         help=f"Tool layer to build in sandbox mode (default: {DEFAULT_TOOL_LAYER}); installed extensions can add more",
+    )
+    run_parser.add_argument(
+        "--plugin",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help="Run a plugin in this run (repeatable), instead of those plugins.yaml enables; sandbox mode only",
     )
     run_parser.add_argument("--timeout", type=int, default=3600, metavar="SECONDS", help="How long the agent may run")
     run_parser.add_argument(

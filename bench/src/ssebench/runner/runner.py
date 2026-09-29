@@ -110,6 +110,8 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
         keep_container: bool = False,
         tool_layer: str = DEFAULT_TOOL_LAYER,
         egress: str = "restricted",
+        plugins: list[str] | None = None,
+        select_plugins: bool = False,
     ):
         self.model = model
         self.agent = agent
@@ -120,13 +122,22 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
         self.tool_layer_name = tool_layer
         self.tool_layer = get_tool_layer(tool_layer)
         self.egress = egress
+        # plugins: the names to install and enable for the run.
+        # select_plugins is True when the user chose them with --plugin, so the
+        # container is told exactly which to run (SSE_PLUGINS); when False the
+        # set came from plugins.yaml's enabled field and the container reads the
+        # same file.
+        self.plugins = plugins or []
+        self.select_plugins = select_plugins
 
         self.sandbox_image = None
 
     @override
     def build(self):
         metadata = self.task.get_task_metadata()
-        tool_layer = self.tool_layer(ToolLayerContext(task_name=self.task.name, source_dir=metadata.source))
+        tool_layer = self.tool_layer(
+            ToolLayerContext(task_name=self.task.name, source_dir=metadata.source, plugins=tuple(self.plugins))
+        )
         self.sandbox_image = build_pipe([self.task, tool_layer, self.agent])
         logger.info(f"Build benchmark image {self.sandbox_image}")
 
@@ -157,6 +168,7 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
                 f"TIMEOUT={self.timeout}",
                 "-e",
                 f"SSE_KEEP_ALIVE={'1' if self.keep_container else '0'}",
+                *(["-e", f"SSE_PLUGINS={','.join(self.plugins)}"] if self.select_plugins else []),
                 "-v",
                 f"{results_path / 'result.json'}:/sse_result",
                 "-v",
@@ -203,6 +215,7 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
             tool_layer=self.tool_layer_name,
             egress="open" if self.egress == "open" else "restricted",
             reference_run=is_reference_run(self.agent.agent_name),
+            plugins=self.plugins,
         )
         record_results(self.task, run_config, self.model.get_spend(), evaluator_file)
 
