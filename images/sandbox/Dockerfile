@@ -2,7 +2,7 @@
 # repository root. Each venv is synced from a copy of just the workspace files
 # it needs, directly at its final location; --no-editable installs the SDK into
 # the venv, so /src is not needed at run time.
-FROM ubuntu:24.04 AS python-builder
+FROM ubuntu:26.04 AS python-builder
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/
 WORKDIR /src
 COPY pyproject.toml uv.lock ./
@@ -37,7 +37,7 @@ COPY sdk/daemon/src/ sdk/daemon/src/
 RUN cargo build --release --locked --bin ssebench-daemon
 
 
-FROM golang:1.26-bookworm AS entrypoint-builder
+FROM golang:1.27-bookworm AS entrypoint-builder
 COPY runtime/entrypoint/ /build/
 WORKDIR /build
 ARG VERSION=dev

@@ -1,7 +1,7 @@
 # =============================================================================
 # Stage 1: Build entrypoint binary (static Go binary, no runtime deps)
 # =============================================================================
-FROM golang:1.26-bookworm AS entrypoint-builder
+FROM golang:1.27-bookworm AS entrypoint-builder
 
 COPY runtime/entrypoint/ /build/
 WORKDIR /build
@@ -12,7 +12,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.versi
 # =============================================================================
 # Stage 2: Final image
 # =============================================================================
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
