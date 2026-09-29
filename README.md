@@ -208,7 +208,7 @@ SSEBench was built by (in alphabetical order by family name):
 - [Dang (midas) Le](https://github.com/lkmidas)
 - [Nguyễn Anh Khoa](https://github.com/nganhkhoa)
 - [Wenxuan Shi](https://github.com/whexy)
-- Xinyu Xing
+- [Xinyu Xing](https://github.com/xxy83)
 - [Dongpeng Xu](https://github.com/dongpengxu)
 
 ## Citation
