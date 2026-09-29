@@ -70,7 +70,7 @@ export function PromptSelector({
             }
           }
         }
-      } catch (err) {
+      } catch {
         if (mounted) {
           setIsHealthy(false)
           setIsConnecting(false)

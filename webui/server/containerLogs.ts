@@ -67,7 +67,7 @@ export async function startContainerLogStream(
 
               try {
                 ws.send(JSON.stringify({ type: "log", data: line }))
-              } catch (error) {
+              } catch {
                 // WebSocket closed, stop streaming
                 console.log(
                   `[containerLogs] WebSocket closed for ${containerId}, stopping stream`
@@ -102,7 +102,7 @@ export async function startContainerLogStream(
 
               try {
                 ws.send(JSON.stringify({ type: "log", data: line }))
-              } catch (error) {
+              } catch {
                 // WebSocket closed, stop streaming
                 stopContainerLogStream(ws)
                 return

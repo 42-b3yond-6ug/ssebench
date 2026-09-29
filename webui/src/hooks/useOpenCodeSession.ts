@@ -665,9 +665,7 @@ export function useOpenCodeSession({
       // Add tool parts if present (and not already in the message)
       if (messageTools && messageTools.length > 0) {
         const existingToolIds = new Set(
-          updatedParts
-            .filter((p) => p.type === "tool")
-            .map((p) => (p as any).id)
+          updatedParts.filter((p) => p.type === "tool").map((p) => p.id)
         )
         const newToolParts = createToolParts(
           messageTools.filter((t) => !existingToolIds.has(t.id))

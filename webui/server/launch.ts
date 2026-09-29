@@ -10,7 +10,7 @@
  * - Broadcasting tagged status/log messages over WebSocket
  */
 
-import { spawn, type Subprocess } from "bun"
+import { spawn, type ServerWebSocket, type Subprocess } from "bun"
 import { readdirSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
 import { loadCatalogTasks, resolveCatalog, type CatalogTask } from "./catalog"
@@ -86,7 +86,7 @@ const MAX_LAUNCH_OUTPUT_LINES = 5000
 const launches: Map<string, LaunchEntry> = new Map()
 
 /** WebSocket clients subscribed to launch updates */
-let launchSubscribers: Set<any> = new Set()
+const launchSubscribers: Set<ServerWebSocket<unknown>> = new Set()
 
 // =============================================================================
 // WebSocket broadcast helpers
@@ -487,7 +487,7 @@ export function clearAllLaunches(): void {
 // =============================================================================
 
 /** Subscribe a WebSocket client to launch updates */
-export function subscribeToLaunch(ws: any): void {
+export function subscribeToLaunch(ws: ServerWebSocket<unknown>): void {
   launchSubscribers.add(ws)
 
   // Send current state for all active launches
@@ -526,7 +526,7 @@ export function subscribeToLaunch(ws: any): void {
 }
 
 /** Unsubscribe a WebSocket client */
-export function unsubscribeFromLaunch(ws: any): void {
+export function unsubscribeFromLaunch(ws: ServerWebSocket<unknown>): void {
   launchSubscribers.delete(ws)
 }
 

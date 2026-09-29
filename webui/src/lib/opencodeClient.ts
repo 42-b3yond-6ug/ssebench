@@ -238,7 +238,7 @@ export function transformToDialogEntries(
           type: "prompt",
           seq: seq++,
           ts: new Date(info.time.created).toISOString(),
-          content: textParts.map((p) => (p as any).text).join("\n"),
+          content: textParts.map((p) => p.text).join("\n"),
         })
       }
       continue
@@ -287,7 +287,7 @@ export function transformToDialogEntries(
           })
           break
 
-        case "tool_result":
+        case "tool_result": {
           // Find the matching tool_use entry and update it
           const toolEntry = entries.find(
             (e) =>
@@ -313,10 +313,10 @@ export function transformToDialogEntries(
             })
           }
           break
+        }
 
-        case "tool":
+        case "tool": {
           // Streaming tool part - has full state info
-          const toolPart = part as any
           const statusMap: Record<string, "running" | "success" | "error"> = {
             pending: "running",
             running: "running",
@@ -327,14 +327,15 @@ export function transformToDialogEntries(
             type: "tool",
             seq: seq++,
             ts: timestamp,
-            tool_id: toolPart.callID || toolPart.id,
-            name: toolPart.tool,
-            status: statusMap[toolPart.state?.status] || "running",
-            args: toolPart.state?.input,
-            result: toolPart.state?.output,
-            error: toolPart.state?.error,
+            tool_id: part.callID || part.id,
+            name: part.tool,
+            status: statusMap[part.state?.status] || "running",
+            args: part.state?.input,
+            result: part.state?.output,
+            error: part.state?.error,
           })
           break
+        }
       }
     }
   }
