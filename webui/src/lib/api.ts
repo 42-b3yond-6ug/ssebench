@@ -51,8 +51,9 @@ import type {
 } from "../types/launch"
 
 /**
- * Fetch the reference patch from the SDK. The daemon withholds it until the
- * agent phase ends, so it is only available for a finished run.
+ * Fetch the reference patch. The server reads it on the host, from the run
+ * directory once the run is over or from the task's local folder; the diff is
+ * empty when neither has it.
  */
 export async function fetchReferencePatch(
   containerId: string

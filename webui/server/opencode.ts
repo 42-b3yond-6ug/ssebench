@@ -199,6 +199,10 @@ async function startOpenCode(containerId: string): Promise<boolean> {
         "docker",
         "exec",
         "-i", // Keep stdin open (even though we don't use it)
+        // It listens on the run network, which other containers share, so
+        // it gets the agent's privileges, not root's.
+        "--user",
+        "model",
         container.id,
         "opencode",
         "serve",
