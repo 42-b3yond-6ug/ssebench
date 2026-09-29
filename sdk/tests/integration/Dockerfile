@@ -21,7 +21,7 @@ RUN cargo build --release --locked --bin ssebench-daemon
 FROM python:3.12-alpine AS python-builder
 
 WORKDIR /build
-COPY sdk/python/pyproject.toml ./
+COPY sdk/python/pyproject.toml sdk/python/README.md ./
 COPY sdk/python/sse/ ./sse/
 
 RUN pip wheel . --no-deps -w dist/

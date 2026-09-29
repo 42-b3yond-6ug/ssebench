@@ -15,7 +15,7 @@ RUN uv python install 3.14
 
 # Owned by model: uv builds the SDK inside its source tree when the agent starts.
 COPY --from=workspace --chown=model:model pyproject.toml uv.lock /app/
-COPY --from=workspace --chown=model:model sdk/python/pyproject.toml /app/sdk/python/
+COPY --from=workspace --chown=model:model sdk/python/pyproject.toml sdk/python/README.md /app/sdk/python/
 COPY --from=workspace --chown=model:model sdk/python/sse/ /app/sdk/python/sse/
 COPY codex-sse/ /app/agents/codex/codex-sse
 

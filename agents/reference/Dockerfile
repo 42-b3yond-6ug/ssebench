@@ -8,7 +8,7 @@ FROM ssebench-agent
 # repository layout.
 WORKDIR /app
 COPY --from=workspace pyproject.toml uv.lock /app/
-COPY --from=workspace sdk/python/pyproject.toml /app/sdk/python/
+COPY --from=workspace sdk/python/pyproject.toml sdk/python/README.md /app/sdk/python/
 COPY --from=workspace sdk/python/sse/ /app/sdk/python/sse/
 COPY reference-sse/pyproject.toml /app/agents/reference/reference-sse/
 
