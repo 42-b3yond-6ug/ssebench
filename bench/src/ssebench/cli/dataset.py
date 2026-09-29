@@ -16,11 +16,15 @@ def add_parser(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]"
     commands = parser.add_subparsers(dest="dataset_command", metavar="COMMAND", required=True)
 
     validate = commands.add_parser("validate", help="Check every task folder of a dataset against the task schema")
-    _ = validate.add_argument("dir", nargs="?", help="Dataset directory (default: datasets/pilot in the SSEBench home)")
+    _ = validate.add_argument(
+        "dir", nargs="?", metavar="DIR", help="Dataset directory (default: datasets/pilot in the SSEBench home)"
+    )
     validate.set_defaults(handler=cmd_validate)
 
     manifest = commands.add_parser("manifest", help="Validate a dataset and write its manifest.json")
-    _ = manifest.add_argument("dir", nargs="?", help="Dataset directory (default: datasets/pilot in the SSEBench home)")
+    _ = manifest.add_argument(
+        "dir", nargs="?", metavar="DIR", help="Dataset directory (default: datasets/pilot in the SSEBench home)"
+    )
     _ = manifest.add_argument(
         "-o", "--output", metavar="FILE", help="Output file, or - for stdout (default: manifest.json in the dataset)"
     )
@@ -33,7 +37,9 @@ def add_parser(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]"
     )
     manifest.set_defaults(handler=cmd_manifest)
 
-    export = commands.add_parser("schema", help="Write the JSON Schemas of the task config and the manifest")
+    export = commands.add_parser(
+        "schema", help="Write the JSON Schemas of the task config, dataset.yaml and the manifest"
+    )
     _ = export.add_argument(
         "-o", "--output", metavar="DIR", help="Output directory (default: datasets/schema in the SSEBench home)"
     )
