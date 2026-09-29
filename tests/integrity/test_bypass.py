@@ -69,6 +69,9 @@ IMAGE = os.environ.get("SSEBENCH_INTEGRITY_IMAGE") or _SANDBOX_IMAGE
 SIDECAR_ENV_IMAGE = os.environ.get("SSEBENCH_INTEGRITY_SIDECAR_ENV_IMAGE") or _SIDECAR_ENV_IMAGE
 SIDECAR_AGENT_IMAGE = os.environ.get("SSEBENCH_INTEGRITY_SIDECAR_AGENT_IMAGE") or _SIDECAR_AGENT_IMAGE
 SOURCE_DIR = os.environ.get("SSEBENCH_INTEGRITY_SOURCE", "/src/gjson")
+# Plugins the sandbox container enables (SSE_PLUGINS), to check that they do
+# not open a bypass; the image must have them installed.
+PLUGINS = os.environ.get("SSEBENCH_INTEGRITY_PLUGINS")
 NETWORK = "ssebench-integrity-testnet"
 FAKE_AGENT = Path(__file__).with_name("fake_agent.sh")
 # The same path in both modes; in sidecar mode it is on a volume the two containers share.
@@ -131,6 +134,7 @@ def start_sandbox(difficulty: int) -> Deployment:
             "SSE_ARCHIVE=/tmp/sse-archive",
             "-e",
             f"SSE_DIFFICULTY={difficulty}",
+            *(["-e", f"SSE_PLUGINS={PLUGINS}"] if PLUGINS is not None else []),
             # Hold the agent phase open so we can probe as `model`.
             IMAGE,
             "sleep",
