@@ -1,0 +1,4 @@
+* text=auto eol=lf
+# Task material is kept byte for byte: diffs, proofs of concept, reports and
+# vendored sources reproduce upstream files, line endings included.
+datasets/** -text
