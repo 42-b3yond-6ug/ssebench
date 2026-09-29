@@ -356,28 +356,36 @@ gets `SSE_ARCHIVE`, `SSE_DAEMON_SOCKET` and `SSE_KEEP_ALIVE`.
 A [reference run](/reference/cli#reference-runs) uses no model:
 `SSE_MODEL_NAME` is `none`, and `SSE_API_KEY` and `SSE_BASE_URL` are empty.
 
-The components in the container read these, with these defaults:
+The components in the container read these, with these defaults. The table is
+generated from the [environment variable registry](/reference/environment).
 
-| Variable | Read by | Default | Description |
-|----------|---------|---------|-------------|
-| `SSE_ARCHIVE` | entrypoint, daemon, evaluator, agents | required by the entrypoint; `/tmp/sse-archive` in the daemon and agents | Where logs, `dialog.jsonl` and the final patch go |
-| `SSE_DAEMON_SOCKET` | entrypoint (sidecar mode), daemon, SDK | `/tmp/sse.sock` in sandbox mode | The daemon's agent-facing Unix socket (mode `0666`). The entrypoint sets it for every process it starts; without it, the daemon serves HTTP only |
-| `SSE_ADMIN_SOCKET` | entrypoint, daemon, evaluator | `/run/ssebench/admin.sock` in sandbox mode | The daemon's privileged Unix socket (mode `0600`, root-only). Grading, the reference patch and phase changes go here; the agent cannot reach it |
-| `SSE_HTTP_PORT` | daemon | `4263` | The daemon's agent-facing HTTP port |
-| `SSE_BENCH_PATH` | daemon | `/ssebench` | The task's scripts and files |
-| `SSE_REPO_PATH` | daemon | `/ssebench-repo` | The original project source |
-| `SSE_AGENT_DOCKER` | SDK | unset | `host:port` of the daemon's HTTP API, used when `SSE_DAEMON_SOCKET` is not set |
-| `SSE_DIFFICULTY` | MCP server, daemon | `2` | Which checks `test_patch` runs. The daemon reads it too and rejects withheld `bencher` actions (403) on the agent-facing listeners |
-| `MCP_LOG_DIR` | MCP server | `/tmp/mcp/logs` | Where the full logs of long check results go |
-| `TIMEOUT` | entrypoint, evaluator | `14400` (entrypoint), `1800` (evaluator) | Time limits in seconds |
-| `SSE_DAEMON_TIMEOUT` | entrypoint | `300` | Seconds to wait for the daemon socket |
-| `SSE_MCP_TIMEOUT` | entrypoint | `300` | Seconds to wait for the MCP server |
-| `SSE_KEEP_ALIVE` | entrypoint | `0` | `1` keeps a sandbox container running after grading |
-| `SSE_DEBUG` | entrypoint | unset | Any non-empty value turns on debug logs |
+<!-- generated: env container and runtime -->
 
-The entrypoint passes two more variables to the evaluator: `AGENT_DURATION`,
-the agent's run time in seconds, and `SSE_METRIC_AGENT_TIMEOUT=true` when the
-agent hit its time limit.
+| Variable | Default | Used by | Description |
+|---|---|---|---|
+| `SSE_API_KEY` | set by `ssebench run` | agents, plugins, sse.ai | The run's LiteLLM key, which can use only the selected model; empty in a reference run. |
+| `SSE_BASE_URL` | set by `ssebench run` | agents, plugins, sse.ai | URL of the LiteLLM proxy, `http://litellm:4000`; empty in a reference run. |
+| `SSE_MODEL_NAME` | set by `ssebench run` | agents, plugins, sse.ai | The selected model, as named in `models/*.yaml`; `none` in a reference run. |
+| `SSE_ARCHIVE` | `/tmp/sse-archive` | entrypoint, daemon, evaluator, agents | The run's results directory, `/tmp/sse-archive`, writable by the agent: logs, `dialog.jsonl` and the final patch go there. The entrypoint requires it. |
+| `SSE_DIFFICULTY` | `2` | daemon, MCP server | The [difficulty level](/concepts/difficulty-levels), from 0 to 4. The MCP server decides from it which checks `test_patch` runs, and the daemon refuses the withheld `bencher` actions on its agent-facing listeners. |
+| `TIMEOUT` | `14400` in the entrypoint, `1800` in the evaluator | entrypoint, evaluator, agents | How long the agent may run, in seconds (`--timeout`). The evaluator uses the same limit for grading. |
+| `SSE_KEEP_ALIVE` | `0` | entrypoint | `1` keeps the container running after grading (`--keep-container`), for the web UI. |
+| `SSE_DAEMON_SOCKET` | `/tmp/sse.sock` | entrypoint, daemon, SDK | The daemon's agent-facing Unix socket, mode `0666`. The entrypoint sets it for every process it starts; in sidecar mode `ssebench run` sets it to `/tmp/sse-archive/please-work.sock`, shared through the results directory. Without it, the daemon serves HTTP only. |
+| `SSE_ADMIN_SOCKET` | `/run/ssebench/admin.sock` | entrypoint, daemon | The daemon's privileged Unix socket, mode `0600`, root only: grading, the reference patch and phase changes. In sidecar mode it is `$SSE_ARCHIVE/admin.sock`. The daemon binds it only when this is set; the entrypoint sets it, and points the evaluator's `SSE_DAEMON_SOCKET` at it. |
+| `SSE_DAEMON_TIMEOUT` | `300` | entrypoint | Seconds to wait for the daemon's socket. |
+| `SSE_MCP_TIMEOUT` | `300` | entrypoint | Seconds to wait for the MCP server. |
+| `SSE_DEBUG` | unset | entrypoint | Any non-empty value turns on debug logs. |
+| `SSE_BENCH_PATH` | `/ssebench` | daemon | Directory with the task's `config.yaml`, scripts and files. |
+| `SSE_HTTP_PORT` | `4263` | daemon | The daemon's agent-facing HTTP port. |
+| `SSE_REPO_PATH` | `/ssebench-repo` | daemon | Clean clone of the project that grading applies the agent's diff to and builds. |
+| `SSE_AGENT_DOCKER` | unset | SDK | `host:port` of the daemon's HTTP listener, used when `SSE_DAEMON_SOCKET` is not set. |
+| `MCP_LOG_DIR` | `/tmp/mcp/logs` | MCP server | Where the MCP server writes the full logs of long check results; see [Long logs](/reference/mcp-server#long-logs). |
+| `AGENT_DURATION` | `0` | evaluator | The agent's run time in seconds; the entrypoint sets it for the evaluator. |
+| `SSE_METRIC_AGENT_TIMEOUT` | unset | evaluator | Set to `true` by the entrypoint for the evaluator when the agent hit its time limit. |
+| `CLAUDE` | unset | claude-code agent | Path of the Claude Code executable; the `claude-code` agent image sets it. |
+| `OPENCODE_CONFIG_CONTENT` | unset | OpenCode | OpenCode's configuration as JSON; `sse.ai` and the `opencode` agent set it for the OpenCode server they start. |
+
+<!-- end generated -->
 
 ### Sockets and ports
 

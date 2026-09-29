@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from . import cli, daemon, sdk
+from . import cli, daemon, env, sdk
 from .page import Page
 
 PAGES: dict[str, Page] = {
@@ -13,5 +13,7 @@ PAGES: dict[str, Page] = {
         Page("cli", Path("docs/reference/cli.md"), cli.regions),
         Page("python-sdk", Path("docs/reference/python-sdk.md"), sdk.regions),
         Page("daemon-api", Path("docs/reference/daemon-api.md"), daemon.regions),
+        Page("environment", Path("docs/reference/environment.md"), env.regions),
+        Page("extension-points", Path("docs/guides/extension-points.md"), env.contract_regions),
     ]
 }
