@@ -7,6 +7,14 @@ outline: deep
 SSEBench runs from a clone of its repository. This page sets up the tools it
 needs; the [Quickstart](/getting-started/quickstart) then runs your first task.
 
+::: tip Without a clone
+The `ssebench` CLI is also on PyPI. With Docker and [uv](https://docs.astral.sh/uv/)
+installed, `uvx ssebench init` in an empty directory sets up a workspace, and
+`uvx ssebench run --task <id> --agent reference` runs a pilot task. The
+package carries what the CLI needs, and the task images are pulled from the
+registry; see [Without a clone](/reference/cli#without-a-clone).
+:::
+
 ## Prerequisites
 
 | Tool | Needed for |

@@ -15,7 +15,9 @@ offered under their `model_name`. That name is what you pass to
 `ssebench run --model`.
 
 The repository has one file per provider: `anthropic-claude.yaml`,
-`google-gemini.yaml` and `openai-gpt.yaml`.
+`google-gemini.yaml` and `openai-gpt.yaml`. `ssebench init` copies them into
+the `models/` of your workspace when you run `ssebench` without a clone; edit
+that copy.
 
 ## Quick start
 
@@ -33,7 +35,7 @@ Add an entry to the provider's file, or create a new file such as
 
 ### 2. Set the API key
 
-Add the key to `.env` in the repository root:
+Add the key to `.env` in the repository root (or in your workspace):
 
 ```sh
 OPENAI_API_KEY=sk-...
