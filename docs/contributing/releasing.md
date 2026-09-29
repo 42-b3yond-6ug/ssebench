@@ -37,6 +37,7 @@ forms below are accepted, because each has exactly one PEP 440 spelling:
 | Docs site | version in the navigation bar | read from `VERSION` when the site is built |
 | Tool layer, sidecar runtime and agent images | image tag | the CLI, from its own version |
 | Base images | image tags | `images/base-images/Makefile` tags them with the version and with `latest`; local builds also carry the versions that the datasets pin |
+| Published images | image tags | the Images workflow, from `VERSION`; see [Images](#images) |
 
 Case images are named after the dataset and task and are not tagged with the
 SSEBench version. Task Dockerfiles build on the base images of one release,
@@ -102,9 +103,62 @@ You need uv, cargo and bun on your `PATH`.
    `just release 1.3.0-dev`.
 
 ::: warning Coming soon
-A release workflow will build and publish the packages, binaries and images
-for every `v*` tag. Until it is available, a tag publishes nothing.
+A release workflow will publish the Python packages and attach the binaries to
+a GitHub release for every `v*` tag. Until it is available, a tag publishes
+only the [images](#images).
 :::
+
+## Images
+
+The Images workflow (`.github/workflows/images.yml`) builds these images, and
+every push to `main` and every `v*` tag publishes them as
+`ghcr.io/42-b3yond-6ug/ssebench/<name>`, for `linux/amd64` and `linux/arm64`:
+
+| Image | Contents |
+|---|---|
+| `base-generic-c`, `base-generic-go`, `base-generic-rust` | the base images that task Dockerfiles build on |
+| `runtime` | the static `ssebench-daemon` and the container entrypoint |
+| `litellm` | the LiteLLM proxy with the models in `models/` |
+| `catalog` | the task catalog service with the pilot manifest |
+| `webui` | the web UI; see [Web UI](/webui/#in-a-container) |
+
+Each image is tagged with `VERSION`, for example `1.3.0-dev` from `main`, and
+with `sha-<commit>`. A release tag such as `v1.2.0` also moves `latest`; a
+pre-release tag such as `v1.2.0-rc.1` does not. A tag that does not match
+`VERSION` fails the workflow before anything is built. Published images carry
+an SBOM, provenance attestations, and OCI labels for their source, revision,
+version and license. Pull requests build the images whose inputs changed, for
+`linux/amd64` only, and push nothing.
+
+The tool layers and the agent images are not published: the CLI builds them
+itself for each task, on top of the task's case image, and never pulls them.
+The tool layers build the daemon and the entrypoint from source, so building
+them needs no registry. To use the published binaries instead, pass
+`--build-context runtime=docker-image://ghcr.io/42-b3yond-6ug/ssebench/runtime:<version>`
+to the build. Other images copy them from the runtime image:
+
+```dockerfile
+COPY --from=ghcr.io/42-b3yond-6ug/ssebench/runtime:1.2.0 /ssebench/ssebench-daemon /ssebench/ssebench-daemon
+COPY --from=ghcr.io/42-b3yond-6ug/ssebench/runtime:1.2.0 /usr/local/bin/entrypoint /usr/local/bin/entrypoint
+```
+
+Upstream images are pinned by tag, and most also by digest. Dependabot
+proposes updates for the directories it watches; the base images are left to
+change with the datasets (see [Base images](/dataset/manifest#base-images)).
+Tools downloaded during a build (Claude Code, Codex, OpenCode, ccache) are
+pinned by version, and binaries also by their SHA-256 sum, next to the
+download; update those by hand.
+
+## Binaries
+
+The Binaries workflow (`.github/workflows/binaries.yml`) builds
+`ssebench-daemon` (static, musl), the entrypoint, the catalog and pty-proxy for
+Linux on amd64 and arm64, named `ssebench-<program>-linux-<arch>`, checks that
+they report `VERSION`, and uploads them with a `SHA256SUMS` file as the
+workflow artifact `ssebench-binaries-<version>`. The daemon and the entrypoint
+are built by the runtime image's Dockerfile, so they are the same files as in
+that image. Other workflows run it through `workflow_call`; its `artifact`
+output names the artifact.
 
 ## Datasets
 
