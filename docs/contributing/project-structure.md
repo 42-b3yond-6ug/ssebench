@@ -28,6 +28,7 @@ ssebench/
 │   └── pilot/           # The pilot dataset, one folder per task
 ├── tools/
 │   ├── bear/            # compile_commands.json generation for C tasks
+│   ├── release/         # Version bump and drift check (bump.py)
 │   ├── report/          # Typst report built from results/
 │   └── validate/        # Task validator
 ├── docs/                # Documentation (this site)
@@ -35,6 +36,7 @@ ssebench/
 │   └── compose/         # Docker Compose stack: LiteLLM proxy and Postgres
 ├── just/                # Just recipes, imported by the Justfile
 ├── Justfile             # Task runner entry point
+├── VERSION              # The version of every component
 ├── pyproject.toml       # uv workspace root for every Python project
 ├── uv.lock              # The workspace's single lockfile
 └── .env                 # Your API keys (not committed)

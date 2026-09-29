@@ -9,6 +9,10 @@ task with one model. From a clone of the repository, run it as
 `uv run ssebench` in the repository root or any directory below it; see
 [Working directory](#working-directory).
 
+`ssebench --version` prints the SSEBench version, which is also the tag of the
+tool layer and agent images the CLI builds; see
+[Releasing and versioning](/contributing/releasing).
+
 ## `ssebench run`
 
 Runs one agent × model × task combination and writes the
