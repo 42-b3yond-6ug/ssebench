@@ -390,12 +390,13 @@ The grade; a check the task does not have is `null`.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
+| `status` | `passed` \| `failed` \| `error` | no | `passed` when every check that ran passed, `failed` when a check failed or the patch did not apply, `error` when no check ran and the patch was not graded. Absent from the results of older evaluators. |
 | `build_success` | `boolean` \| `null` | no | Whether the patched project builds. |
 | `pov_passed` | `integer` \| `null` | no | Number of proofs of concept that no longer trigger the vulnerability. |
 | `pov_total` | `integer` \| `null` | no | Number of proofs of concept run. |
 | `func_test_success` | `boolean` \| `null` | no | Whether the project's tests pass. |
 | `intent_test_success` | `boolean` \| `null` | no | Whether the tests pass with the hidden tests applied. |
-| `error_msg` | `string` \| `null` | no | The first failure. |
+| `error_msg` | `string` \| `null` | no | The first failure, or with `status` `error`, why the patch was not graded. |
 | `error_log` | `string` \| `null` | no | Output of the step that failed first. |
 
 ### RuntimeResult

@@ -353,6 +353,15 @@ Grading module for SSEBench SDK.
 Runs all available tests for a benchmark case (based on capabilities)
 and returns a structured PatchResult describing what passed and what failed.
 
+### `GradeStatus`
+
+```python
+GradeStatus
+```
+
+`passed`: every check that ran passed. `failed`: a check failed, or the
+patch did not apply. `error`: no check ran, so the patch was not graded.
+
 ### `class PatchResult`
 
 ```python
@@ -370,9 +379,8 @@ class PatchResult(
 
 Structured result of grading a patch against all available tests.
 
-Fields are `None` when the corresponding step was not applicable
-(e.g. no build script configured).  A `None` value is *not* treated
-as a failure by `is_fully_successful`.
+Fields are `None` when the corresponding step did not run (e.g. no
+build script configured, or an earlier failure ended grading).
 
 | Field | Type | Description |
 |---|---|---|
@@ -384,13 +392,31 @@ as a failure by `is_fully_successful`.
 | `error_msg` | `str \| None` | The first failure, such as `Build failed`. |
 | `error_log` | `str \| None` | Output of the step that failed first. |
 
+#### `PatchResult.checks_ran()`
+
+```python
+def checks_ran() -> bool
+```
+
+Return True when at least one check ran.
+
 #### `PatchResult.is_fully_successful()`
 
 ```python
 def is_fully_successful() -> bool
 ```
 
-Return True when every *executed* step passed.
+Return True when at least one check ran and every check that ran passed.
+
+A result in which no check ran was not graded, so it is never a success.
+
+#### `PatchResult.status()`
+
+```python
+def status() -> GradeStatus
+```
+
+Return the verdict: `passed`, `failed`, or `error` when no check ran.
 
 #### `PatchResult.mark_failure()`
 

@@ -289,6 +289,9 @@ struct EvaluationResult {
 
 #[derive(Serialize, Deserialize)]
 struct PatchResult {
+    /// `passed`, `failed`, or `error` when the patch was not graded.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    status: Option<String>,
     build_success: Option<bool>,
     pov_passed: Option<i32>,
     pov_total: Option<i32>,
@@ -518,4 +521,33 @@ routes! {
     post "/admin/agent_exited" => agent_exited,
     // Reference patch: privileged, or agent-facing only after the agent phase
     get "/reference/patch" => reference_patch,
+}
+
+#[cfg(test)]
+mod result_tests {
+    use super::RawEvaluationResult;
+
+    #[test]
+    fn result_keeps_the_grade_status() {
+        let raw: RawEvaluationResult = serde_json::from_str(
+            r#"{"patch_result": {"status": "error", "error_msg": "Timeout (60s)"},
+                "runtime_result": {"agent_duration": 3, "agent_timeout": false, "evaluator_timeout": true}}"#,
+        )
+        .unwrap();
+        let patch = serde_json::to_value(&raw.patch_result).unwrap();
+        assert_eq!(patch["status"], "error");
+        assert_eq!(patch["error_msg"], "Timeout (60s)");
+    }
+
+    #[test]
+    fn result_without_a_status_is_still_served() {
+        let raw: RawEvaluationResult = serde_json::from_str(
+            r#"{"patch_result": {"build_success": true},
+                "runtime_result": {"agent_duration": 3, "agent_timeout": false, "evaluator_timeout": false}}"#,
+        )
+        .unwrap();
+        let patch = serde_json::to_value(&raw.patch_result).unwrap();
+        assert!(patch.get("status").is_none());
+        assert_eq!(patch["build_success"], true);
+    }
 }

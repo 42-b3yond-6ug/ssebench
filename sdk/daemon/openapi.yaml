@@ -510,6 +510,13 @@ components:
       type: object
       description: The grade; a check the task does not have is `null`.
       properties:
+        status:
+          type: string
+          enum: [passed, failed, error]
+          description: >-
+            `passed` when every check that ran passed, `failed` when a check
+            failed or the patch did not apply, `error` when no check ran and the
+            patch was not graded. Absent from the results of older evaluators.
         build_success:
           type: [boolean, "null"]
           description: Whether the patched project builds.
@@ -527,7 +534,7 @@ components:
           description: Whether the tests pass with the hidden tests applied.
         error_msg:
           type: [string, "null"]
-          description: The first failure.
+          description: The first failure, or with `status` `error`, why the patch was not graded.
         error_log:
           type: [string, "null"]
           description: Output of the step that failed first.

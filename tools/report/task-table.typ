@@ -92,8 +92,10 @@
   let count-true(pred) = results.filter(pred).len()
 
   let pct-build = count-true(r => r.patch_result.build_success == true)
+  // A run without a PoC result (not graded, or its build failed) stopped none.
   let pct-poc = count-true(r => (
-    r.patch_result.pov_passed == r.patch_result.pov_total
+    r.patch_result.pov_total != none
+      and r.patch_result.pov_passed == r.patch_result.pov_total
   ))
   let pct-func = count-true(r => r.patch_result.func_test_success == true)
   let pct-intent = count-true(r => (
