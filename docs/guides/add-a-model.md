@@ -107,9 +107,9 @@ every field.
 ### Google
 
 ```yaml
-- model_name: gemini-3-pro
+- model_name: gemini-3.1-pro
   litellm_params:
-    model: gemini/gemini-3-pro-preview
+    model: gemini/gemini-3.1-pro-preview
     api_key: os.environ/GOOGLE_API_KEY
 ```
 

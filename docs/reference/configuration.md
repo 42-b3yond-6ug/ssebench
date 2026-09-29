@@ -73,15 +73,14 @@ them. The models defined now:
 
 | `--model` | LiteLLM model | Key | File |
 |---|---|---|---|
+| `claude-opus-5-5` | `anthropic/claude-opus-5-5` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
+| `claude-sonnet-5-5` | `anthropic/claude-sonnet-5-5` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
 | `claude-opus-4-6` | `anthropic/claude-opus-4-6` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
 | `claude-sonnet-4-6` | `anthropic/claude-sonnet-4-6` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
 | `claude-opus-4-5` | `anthropic/claude-opus-4-5` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
 | `claude-sonnet-4-5` | `anthropic/claude-sonnet-4-5` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
 | `claude-haiku-4-5` | `anthropic/claude-haiku-4-5` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
-| `claude-opus-4-1` | `anthropic/claude-opus-4-1` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
-| `claude-opus-4-0` | `anthropic/claude-opus-4-0` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
-| `claude-sonnet-4-0` | `anthropic/claude-sonnet-4-0` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
-| `gemini-3-pro` | `gemini/gemini-3-pro-preview` | `GOOGLE_API_KEY` | `models/google-gemini.yaml` |
+| `gemini-3.1-pro` | `gemini/gemini-3.1-pro-preview` | `GOOGLE_API_KEY` | `models/google-gemini.yaml` |
 | `gemini-3-flash` | `gemini/gemini-3-flash-preview` | `GOOGLE_API_KEY` | `models/google-gemini.yaml` |
 | `gpt-5.2` | `openai/gpt-5.2` | `OPENAI_API_KEY` | `models/openai-gpt.yaml` |
 | `gpt-5.1` | `openai/gpt-5.1` | `OPENAI_API_KEY` | `models/openai-gpt.yaml` |
