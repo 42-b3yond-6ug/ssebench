@@ -20,7 +20,7 @@ from sse.prompt import task_prompt
 
 class DialogWriter:
     """
-    Writes agent dialog entries to /ssebench/log/dialog.jsonl for WebUI consumption.
+    Writes agent dialog entries to $SSE_ARCHIVE/dialog.jsonl for WebUI consumption.
 
     Converts Claude Code's stream-json output to our simplified dialog format:
     - init: Session start metadata
@@ -254,17 +254,14 @@ class DialogWriter:
                         self.write_tool_result(tool_id, result=content)
 
         elif event_type == "result":
-            # Session ended
-            result = event.get("result", "")
-            if result == "success":
+            # Session ended. `result` holds the final text; `subtype` says how it ended.
+            subtype = event.get("subtype", "")
+            if subtype == "success" and not event.get("is_error", False):
                 self.write_complete("success")
-            elif result == "error":
-                error_msg = event.get("error", "Unknown error")
-                self.write_complete("error", message=error_msg)
-            elif result == "interrupted":
-                self.write_complete("timeout", message="Session interrupted")
             else:
-                self.write_complete("error", message=f"Unknown result: {result}")
+                self.write_complete(
+                    "error", message=f"Session ended: {subtype or 'unknown'}"
+                )
 
     def close(self):
         """Close the log file."""
