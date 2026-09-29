@@ -76,6 +76,27 @@ every version that a dataset manifest names, so that case builds use them.
 Moving a task to the base images of a later release changes its Dockerfile, and
 so the dataset version.
 
+## Network access
+
+Building a case image uses the network: the Dockerfile clones the upstream
+project at a pinned commit and installs its distribution packages, Go modules,
+crates and toolchains. Pin versions where the upstream project does not: the
+Rust tasks whose upstream project commits no `Cargo.lock` carry one next to
+their Dockerfile.
+
+Grading does not use the network. Under the default egress policy (see
+[`--egress`](/reference/cli#ssebench-run)), a run container reaches only the
+LiteLLM proxy, so everything that `build.sh`, `run.sh` and `test.sh` need, with
+or without the reference patch and the hidden tests applied, must already be in
+the case image: vendored Go modules or the module cache, fetched crates,
+toolchains and test data. To check a task, run its scripts in the case image
+without a network, for example:
+
+```sh
+docker run --rm --network none <case image> \
+    bash -c 'cd <source> && /ssebench/scripts/build.sh && /ssebench/scripts/test.sh'
+```
+
 ## Task config
 
 `sse/config.yaml` describes the task to the CLI, the daemon and the grader. Keys
