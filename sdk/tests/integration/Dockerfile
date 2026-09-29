@@ -4,15 +4,16 @@
 # =============================================================================
 # Stage 1: Build Rust daemon
 # =============================================================================
-FROM rust:1.83-alpine AS rust-builder
+FROM rust:1.98.1-alpine AS rust-builder
 
 RUN apk add --no-cache musl-dev
 
 WORKDIR /build
-COPY daemon/Cargo.toml daemon/Cargo.lock ./
-COPY daemon/src/ ./src/
+COPY Cargo.toml Cargo.lock ./
+COPY sdk/daemon/Cargo.toml sdk/daemon/
+COPY sdk/daemon/src/ sdk/daemon/src/
 
-RUN cargo build --release --bin ssebench-daemon
+RUN cargo build --release --locked --bin ssebench-daemon
 
 # =============================================================================
 # Stage 2: Build Python wheel
@@ -20,8 +21,8 @@ RUN cargo build --release --bin ssebench-daemon
 FROM python:3.11-alpine AS python-builder
 
 WORKDIR /build
-COPY python/pyproject.toml ./
-COPY python/sse/ ./sse/
+COPY sdk/python/pyproject.toml ./
+COPY sdk/python/sse/ ./sse/
 
 RUN pip wheel . --no-deps -w dist/
 
@@ -56,10 +57,10 @@ RUN mkdir -p /ssebench/scripts /ssebench/pocs /ssebench/diffs /ssebench/reports 
 ENV SSE_ARCHIVE=/archive
 
 # Copy test fixtures: config
-COPY tests/integration/fixtures/config.yaml /ssebench/config.yaml
+COPY sdk/tests/integration/fixtures/config.yaml /ssebench/config.yaml
 
 # Copy test fixtures: buggy source code
-COPY tests/integration/fixtures/source/ /src/buggy/
+COPY sdk/tests/integration/fixtures/source/ /src/buggy/
 
 # Make source folder owned by model user (uid 1000) so bash tool can write
 RUN chown -R model:model /src/buggy /archive
@@ -85,19 +86,19 @@ RUN cp -r /src/buggy /ssebench-repo && \
     git config --global --add safe.directory /ssebench-repo
 
 # Copy test fixtures: scripts
-COPY tests/integration/fixtures/scripts/ /ssebench/scripts/
+COPY sdk/tests/integration/fixtures/scripts/ /ssebench/scripts/
 RUN chmod +x /ssebench/scripts/*.sh
 
 # Copy test fixtures: PoC, diffs, reports
-COPY tests/integration/fixtures/pocs/ /ssebench/pocs/
-COPY tests/integration/fixtures/diffs/ /ssebench/diffs/
-COPY tests/integration/fixtures/reports/ /ssebench/reports/
+COPY sdk/tests/integration/fixtures/pocs/ /ssebench/pocs/
+COPY sdk/tests/integration/fixtures/diffs/ /ssebench/diffs/
+COPY sdk/tests/integration/fixtures/reports/ /ssebench/reports/
 
 # Copy integration test script
-COPY tests/integration/test_sdk.py /test_sdk.py
+COPY sdk/tests/integration/test_sdk.py /test_sdk.py
 
 # Copy mock agent script for dialog testing
-COPY tests/integration/mock_agent.py /mock_agent.py
+COPY sdk/tests/integration/mock_agent.py /mock_agent.py
 RUN chmod +x /mock_agent.py
 
 WORKDIR /ssebench

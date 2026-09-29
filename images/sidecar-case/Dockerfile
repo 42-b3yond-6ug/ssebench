@@ -1,8 +1,9 @@
-FROM rust:1.83.0-alpine AS daemon-builder
+FROM rust:1.98.1-alpine AS daemon-builder
 RUN apk add --no-cache musl-dev
 WORKDIR /build
-COPY sdk/daemon/Cargo.toml sdk/daemon/Cargo.lock ./
-COPY sdk/daemon/src/ ./src/
+COPY Cargo.toml Cargo.lock ./
+COPY sdk/daemon/Cargo.toml sdk/daemon/
+COPY sdk/daemon/src/ sdk/daemon/src/
 RUN cargo build --release --locked --bin ssebench-daemon
 
 

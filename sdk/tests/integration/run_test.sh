@@ -1,7 +1,7 @@
 #!/bin/bash
 # SSEBench SDK Integration Test Runner
 #
-# Usage: ./tests/integration/run_test.sh [OPTIONS]
+# Usage: sdk/tests/integration/run_test.sh [OPTIONS]
 #
 # Options:
 #   --no-cache    Build Docker image without cache
@@ -13,7 +13,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+# The daemon builds from the repository-level Cargo workspace.
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 cd "$PROJECT_ROOT"
 
@@ -52,7 +53,7 @@ done
 echo ""
 echo "Step 1: Building Docker image..."
 echo "------------------------------------------"
-docker build $BUILD_ARGS -f tests/integration/Dockerfile -t ssebench-sdk-integration .
+docker build $BUILD_ARGS -f sdk/tests/integration/Dockerfile -t ssebench-sdk-integration .
 
 if [ "$BUILD_ONLY" = true ]; then
 	echo ""
