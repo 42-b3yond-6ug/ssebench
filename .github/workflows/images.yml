@@ -47,6 +47,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # paths-filter diffs a push against its "before" commit; without the
+          # history it would fetch it, which needs the credentials dropped above.
+          fetch-depth: 0
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
         # Only pull requests and pushes to a private main build a subset.
