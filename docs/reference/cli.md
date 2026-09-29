@@ -72,7 +72,8 @@ ssebench run [-h] [--model NAME] --agent NAME --task ID [--local DIR]
 in [Extension points](/guides/extension-points#tool-layers), and `--egress` in
 [Integrity and egress](/deployment/integrity-and-egress); the egress policy is
 recorded as `config.egress` in the run summary. `--keep-container` leaves the
-container for the [web UI](/webui/) to inspect.
+container for the [web UI](/webui/) to inspect; in sidecar mode it leaves both
+containers and their volumes.
 
 Without `--local`, the task comes from the [task catalog](#task-catalog), and
 its case image is pulled from `$SSEBENCH_REGISTRY`. When the pull fails, the CLI
@@ -89,7 +90,10 @@ In order, `run`:
 2. checks that the proxy knows the model, and creates a key for this run that
    can use only that model;
 3. builds the case, tool and agent [image layers](/concepts/image-layers);
-4. runs the task container, which runs the agent and then the evaluator;
+4. runs the task container, which runs the agent and then the evaluator. In
+   sidecar mode, it starts the task container with the daemon, then runs the
+   agent container, which runs the agent and then the evaluator, and removes
+   the task container afterwards;
 5. writes the grade, the run settings and the model spend to `results/`, and
    adds the run settings to the run's `result.json` as `config`.
 
@@ -112,8 +116,9 @@ A reference run differs from other runs in these ways:
   `results/<task>-reference-none.json`. Any other `--model` is ignored, with a
   warning. The LiteLLM proxy still starts, as the container joins its network.
 - `run` copies the file that `files.patch` names out of the case image and
-  mounts it read-only at `/reference/patch.diff` in the container. No other
-  agent gets this mount. A task without `files.patch` cannot be run this way.
+  mounts it read-only at `/reference/patch.diff` in the container (in sidecar
+  mode, the agent container). No other agent gets this mount. A task without
+  `files.patch` cannot be run this way.
 - `result.json` and the summary record `config.reference_run: true`, the
   container carries the label `ssebench.reference-run=true`, the web UI marks
   the result as a reference run, and `just report` leaves reference runs out

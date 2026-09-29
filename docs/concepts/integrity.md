@@ -9,9 +9,10 @@ The agent under test is a capable program with a shell inside the task
 container, and it may go looking for the answer, deliberately or not. This page
 describes what SSEBench keeps from it, how, and where the protections stop.
 
-It describes sandbox mode, the default. Sidecar mode is experimental and does
-not provide all of these protections yet; see
-[Sandbox and sidecar](/concepts/sandbox-and-sidecar).
+It describes sandbox mode, the default. Sidecar mode keeps the same
+protections across its two containers; see
+[Sandbox and sidecar](/concepts/sandbox-and-sidecar#security-properties) for
+what differs.
 
 ## What must stay hidden
 
@@ -205,19 +206,22 @@ reach:
 
 ## Testing the protections
 
-`tests/integrity/` holds a bypass suite. It starts a real sandbox container,
-holds it in the agent phase, and runs `fake_agent.sh` as `model` to try the
-known ways around the protections. At difficulty levels 0, 2 and 4 it checks
-that:
+`tests/integrity/` holds a bypass suite. It starts a real run, in each mode,
+holds it in the agent phase, and runs `fake_agent.sh` as `model` in the agent's
+container to try the known ways around the protections. At difficulty levels
+0, 2 and 4 it checks that:
 
 - `GET /reference/patch` returns 403 on the agent socket and on HTTP;
 - each `bencher` action is allowed or rejected with 403 exactly as the level
   says, on both listeners;
-- the admin socket cannot be reached;
+- the admin socket cannot be reached, and neither daemon socket can be
+  moved;
 - the reference patch, the hidden tests, the proofs of concept,
-  `/ssebench-repo` and `/reference/patch.diff` cannot be read;
+  `/ssebench-repo` and `/reference/patch.diff` cannot be read, and the task
+  files not through the daemon's `bash` tool either, which in sidecar mode
+  runs in the task container;
 - the source tree has at most one commit;
-- the internet cannot be reached;
+- the internet cannot be reached, directly or through the `bash` tool;
 - the `bash` tool still works.
 
 A separate test checks from the host that the reference patch is refused on
@@ -226,19 +230,22 @@ The unit tests in `bench/tests/test_reference_run.py` build the container
 commands of every agent in `agents/`, in both modes, and check that only the
 `reference` agent gets the reference patch mount.
 
-The suite needs Docker and a sandbox tool image of `gjson-196-bf4efcb`, which
-one run of that task builds:
+The suite needs Docker and the images of `gjson-196-bf4efcb`, which one run of
+that task in each mode builds:
 
 ```sh
 make -C images/base-images generic-go
 uv run ssebench run --local datasets/pilot --task gjson-196-bf4efcb --agent dummy --model claude-sonnet-4-6
+uv run ssebench run --local datasets/pilot --task gjson-196-bf4efcb --agent dummy --model claude-sonnet-4-6 --mode sidecar
 uv run pytest tests/integrity -m integrity
 ```
 
-`uv run python tests/integrity/test_bypass.py [LEVEL ...]` runs the same checks
-as a script. `SSEBENCH_INTEGRITY_IMAGE` selects another tool image, and
-`SSEBENCH_INTEGRITY_SOURCE` its source directory (default `/src/gjson`).
-Without the image, the tests are skipped.
+`uv run python tests/integrity/test_bypass.py [--mode sidecar] [LEVEL ...]`
+runs the same checks as a script. `SSEBENCH_INTEGRITY_IMAGE` selects another
+sandbox tool image, `SSEBENCH_INTEGRITY_SIDECAR_ENV_IMAGE` and
+`SSEBENCH_INTEGRITY_SIDECAR_AGENT_IMAGE` other sidecar images, and
+`SSEBENCH_INTEGRITY_SOURCE` their source directory (default `/src/gjson`).
+The tests of a mode whose images are missing are skipped.
 
 A change that touches any of these protections must keep the suite passing,
 and a newly found bypass should come with a check that tries it.
