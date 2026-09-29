@@ -33,9 +33,28 @@ def image() -> str:
     return f"{REGISTRY}/litellm:{TAG}"
 
 
+EGRESS_POLICIES = ("restricted", "open")
+
+
 def network() -> str:
-    """The Compose network of the stack; run containers join it to reach the proxy."""
+    """The stack's default Compose network: a normal bridge with internet access."""
     return f"{settings.compose_project()}_default"
+
+
+def agents_network() -> str:
+    """The stack's internal network: it reaches the proxy but not the internet."""
+    return f"{settings.compose_project()}_agents"
+
+
+def run_network(egress: str = "restricted") -> str:
+    """The network a run container joins for an egress policy.
+
+    `restricted` (the default) keeps agents off the internet so they cannot look up the upstream
+    fix; `open` gives them the default bridge. The proxy is on both, as `litellm`.
+    """
+    if egress not in EGRESS_POLICIES:
+        raise ValueError(f"unknown egress policy {egress!r}; expected one of {EGRESS_POLICIES}")
+    return network() if egress == "open" else agents_network()
 
 
 def service_url() -> str:
