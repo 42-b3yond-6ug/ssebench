@@ -1,5 +1,5 @@
 ARG SSEBENCH_REGISTRY=ghcr.io/42-b3yond-6ug/ssebench
-FROM ${SSEBENCH_REGISTRY}/base-generic-go:latest
+FROM ${SSEBENCH_REGISTRY}/base-generic-go:1.0.0
 
 WORKDIR /src/aws-iam-authenticator
 

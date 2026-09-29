@@ -15,11 +15,15 @@ just base-images
 ```
 
 This builds the C, Go and Rust toolchain images that every pilot task builds
-on. To build only the one you need, name it:
+on, tagged with the release the tasks pin (`1.0.0`). To build only the one you
+need, name it:
 
 ```sh
 make -C images/base-images generic-go   # or generic-c, generic-rust
 ```
+
+If you skip this step, Docker pulls the published base image the first time it
+builds a task.
 
 ## 2. Start the LiteLLM proxy
 

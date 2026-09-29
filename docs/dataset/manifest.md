@@ -48,13 +48,32 @@ The rules for a task folder:
   result paths, and the config's `id` must be equal to it. IDs are letters and
   digits separated by `.`, `_` or `-`, up to 128 characters. The case image is
   `case/<dataset>/<id>` in lowercase, so two IDs may not differ only in case.
-- **The Dockerfile builds on an SSEBench base image.** It declares
+- **The Dockerfile builds on a pinned SSEBench base image.** It declares
   `ARG SSEBENCH_REGISTRY` before the first `FROM`, and its last `FROM` is
-  `${SSEBENCH_REGISTRY}/<base image>`, for example
-  `${SSEBENCH_REGISTRY}/base-generic-go:latest`.
+  `${SSEBENCH_REGISTRY}/<base image>:<version>`, for example
+  `${SSEBENCH_REGISTRY}/base-generic-go:1.0.0`. See [Base images](#base-images).
 - **The Dockerfile copies `sse/` to `/ssebench`** as shown above. Paths in the
   config are relative to `/ssebench` in the case image, and each one must be a
   file that the Dockerfile copies from the task folder.
+
+## Base images
+
+The base images hold the toolchain of each language and are defined in
+`images/base-images/`: `generic-c`, `generic-go` and `generic-rust`. Their
+inputs are pinned: the upstream images by digest, and the ccache release that
+`generic-c` downloads by checksum.
+
+A task builds on the base images of one SSEBench release, named by the
+release's version tag; every `pilot` task uses `1.0.0`. The manifest records
+each task's base image, so
+`jq -r '.tasks[].base' datasets/pilot/manifest.json | sort -u` lists the images
+a dataset needs. Docker pulls them when it builds a case image.
+`make -C images/base-images` (or `just base-images`) builds them from your
+checkout instead: besides the current version and `latest`, it tags them with
+every version that a dataset manifest names, so that case builds use them.
+
+Moving a task to the base images of a later release changes its Dockerfile, and
+so the dataset version.
 
 ## Task config
 
@@ -169,7 +188,7 @@ the task folders and committed next to them:
       "language": "go",
       "project": "gjson",
       "repository": "https://github.com/tidwall/gjson",
-      "base": "base-generic-go:latest",
+      "base": "base-generic-go:1.0.0",
       "image": "case/pilot/gjson-196-bf4efcb",
       "arch": ["amd64"],
       "checks": ["build", "poc", "function_test", "intent_test"],
@@ -191,7 +210,7 @@ the task folders and committed next to them:
 | `tasks` | One entry per task, sorted by `id`. |
 | `tasks[].id` | Task ID. |
 | `tasks[].language`, `project`, `repository` | From the task config. |
-| `tasks[].base` | Base image of the case image, relative to the registry: the last `FROM` of the task's Dockerfile without `${SSEBENCH_REGISTRY}/`. |
+| `tasks[].base` | Base image of the case image, relative to the registry, with its version: the last `FROM` of the task's Dockerfile without `${SSEBENCH_REGISTRY}/`, such as `base-generic-go:1.0.0`. |
 | `tasks[].image` | Case image, relative to the registry: `case/<dataset>/<id>`, lowercase. |
 | `tasks[].arch` | Platforms the task runs on. `amd64` for every task today, since the tool layers are built for amd64 only. |
 | `tasks[].checks` | The [checks](#checks) the grader can run for the task. |

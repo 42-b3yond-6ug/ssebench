@@ -1,5 +1,5 @@
 ARG SSEBENCH_REGISTRY=ghcr.io/42-b3yond-6ug/ssebench
-FROM ${SSEBENCH_REGISTRY}/base-generic-rust:latest
+FROM ${SSEBENCH_REGISTRY}/base-generic-rust:1.0.0
 
 WORKDIR /src/nano-id
 

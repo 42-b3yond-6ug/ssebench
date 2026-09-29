@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -59,12 +60,18 @@ def test_pilot_manifest() -> None:
 
     assert (manifest.dataset, manifest.version) == ("pilot", "pilot-v1")
     assert [t.id for t in manifest.tasks] == folders
+    base_tags: set[str] = set()
     for task in manifest.tasks:
         assert task.metadata.id == task.id
         assert task.image == f"case/pilot/{task.id.lower()}"
-        assert task.base == f"base-generic-{task.language}:latest"
+        name, _, tag = task.base.partition(":")
+        assert name == f"base-generic-{task.language}"
+        base_tags.add(tag)
         assert task.checks == ["build", "poc", "function_test", "intent_test"]
         assert task.files is not None and "sse/config.yaml" in task.files
+    # Every pilot task builds on the base images of one SSEBench release.
+    assert len(base_tags) == 1
+    assert re.fullmatch(r"\d+\.\d+\.\d+", base_tags.pop())
 
 
 # Generation
