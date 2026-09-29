@@ -1,12 +1,10 @@
-use std::process::Command;
-
 use actix_web::{HttpResponse, web};
-use anyhow::{Context, anyhow};
+use anyhow::Context;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
-use super::diff::get_full_diff;
+use super::diff::baseline;
 use super::error::AppError;
 use super::grading::prepare_grading;
 use super::state::{Access, AppState};
@@ -81,137 +79,26 @@ async fn tool(
 // WebUI Endpoints - For real-time code change monitoring
 // =============================================================================
 
-/// GET /diff - Returns unified diff of working directory vs HEAD (buggy commit)
-///
-/// The source folder is expected to be a git repository with an initial "buggy commit".
-/// This endpoint shows all uncommitted changes made by the agent, including:
-/// - Staged changes (index vs HEAD)
-/// - Unstaged changes (working tree vs index)
-/// - New untracked files (as proper git patches)
-async fn diff(state: web::Data<AppState>) -> Result<HttpResponse, AppError> {
+/// GET /diff - Returns the agent's changes so far: the working tree against the
+/// task's base commit, captured as for grading (see `diff::Baseline`).
+async fn diff() -> Result<HttpResponse, AppError> {
     debug!("Received request: GET /diff");
 
-    let source_folder = state.project.source_folder();
-    let diff_text = get_full_diff(source_folder)?;
+    let diff_text = baseline()?.diff()?;
 
     Ok(HttpResponse::Ok().json(json!({
-        "diff": diff_text
+        "diff": String::from_utf8_lossy(&diff_text)
     })))
 }
 
-/// Response structure for a single changed file
-#[derive(Serialize)]
-struct ChangedFile {
-    path: String,
-    status: String,
-    additions: u32,
-    deletions: u32,
-}
-
-/// GET /files - Returns list of modified files with addition/deletion stats
-///
-/// Returns only files that have been modified since the initial "buggy commit".
-/// Each file includes its path, status (modified/added/deleted), and line counts.
-async fn files(state: web::Data<AppState>) -> Result<HttpResponse, AppError> {
+/// GET /files - Returns the files in `GET /diff`, each with its status
+/// (added, deleted or modified) and line counts.
+async fn files() -> Result<HttpResponse, AppError> {
     debug!("Received request: GET /files");
 
-    let source_folder = state.project.source_folder();
-
-    // Get modified files using git status --porcelain
-    let status_output = Command::new("git")
-        .args(["status", "--porcelain"])
-        .current_dir(source_folder)
-        .output()
-        .context("Failed to execute git status command")?;
-
-    if !status_output.status.success() {
-        let stderr = String::from_utf8_lossy(&status_output.stderr);
-        return Err(anyhow!("git status failed: {}", stderr).into());
-    }
-
-    let mut files: Vec<ChangedFile> = Vec::new();
-
-    for line in String::from_utf8_lossy(&status_output.stdout).lines() {
-        if line.is_empty() {
-            continue;
-        }
-
-        // Git status porcelain format: "XY filename"
-        // X = index status, Y = working tree status
-        let chars: Vec<char> = line.chars().collect();
-        if chars.len() < 3 {
-            continue;
-        }
-
-        let index_status = chars[0];
-        let worktree_status = chars[1];
-        let file_path = line[3..].trim().to_string();
-
-        // Determine overall status and whether file is untracked
-        let is_untracked = index_status == '?' && worktree_status == '?';
-        let status = match (index_status, worktree_status) {
-            ('M', _) | (_, 'M') => "modified",
-            ('A', _) => "added",
-            ('?', '?') => "added", // Untracked files are shown as "added"
-            ('D', _) | (_, 'D') => "deleted",
-            ('R', _) => "renamed",
-            _ => "modified",
-        }
-        .to_string();
-
-        // Get diff stats for this file
-        let (additions, deletions) = get_file_diff_stats(source_folder, &file_path, is_untracked);
-
-        files.push(ChangedFile {
-            path: file_path,
-            status,
-            additions,
-            deletions,
-        });
-    }
+    let files = baseline()?.changed_files()?;
 
     Ok(HttpResponse::Ok().json(json!({ "files": files })))
-}
-
-/// Helper: Get addition/deletion counts for a single file
-/// For untracked files, counts lines in the file as additions
-fn get_file_diff_stats(
-    source_folder: &std::path::Path,
-    file_path: &str,
-    is_untracked: bool,
-) -> (u32, u32) {
-    if is_untracked {
-        // For untracked files, count lines as additions
-        let file_full_path = source_folder.join(file_path);
-        match std::fs::read_to_string(&file_full_path) {
-            Ok(content) => {
-                let line_count = content.lines().count() as u32;
-                (line_count, 0)
-            }
-            Err(_) => (0, 0),
-        }
-    } else {
-        // For tracked files, use git diff --numstat
-        let output = Command::new("git")
-            .args(["diff", "--numstat", "HEAD", "--", file_path])
-            .current_dir(source_folder)
-            .output();
-
-        match output {
-            Ok(output) if output.status.success() => {
-                let line = String::from_utf8_lossy(&output.stdout);
-                let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() >= 2 {
-                    let additions = parts[0].parse::<u32>().unwrap_or(0);
-                    let deletions = parts[1].parse::<u32>().unwrap_or(0);
-                    (additions, deletions)
-                } else {
-                    (0, 0)
-                }
-            }
-            _ => (0, 0),
-        }
-    }
 }
 
 // =============================================================================
@@ -383,20 +270,14 @@ fn archive_dir() -> std::path::PathBuf {
 /// IMPORTANT: This is an intrusive, destructive operation. It should only
 /// be called by the evaluator after the agent has finished working, and so is
 /// restricted to the privileged admin socket.
-async fn prepare_grading_handler(
-    state: web::Data<AppState>,
-    access: web::Data<Access>,
-) -> Result<HttpResponse, AppError> {
+async fn prepare_grading_handler(access: web::Data<Access>) -> Result<HttpResponse, AppError> {
     debug!("Received request: POST /prepare_grading");
 
     if !access.privileged {
         return Ok(forbidden_privileged());
     }
 
-    let source_folder = state.project.source_folder();
-    let archive = archive_dir();
-
-    prepare_grading(source_folder, &archive)?;
+    prepare_grading(baseline()?, &archive_dir())?;
 
     Ok(HttpResponse::Ok().json(json!({ "success": true })))
 }

@@ -6,7 +6,7 @@ use actix_web::{App, HttpServer, middleware::Logger, web};
 use env_logger::Env;
 use log::info;
 
-use ssebench::api::{Access, AppState, Difficulty, configure_routes};
+use ssebench::api::{Access, AppState, Difficulty, configure_routes, record_baseline};
 use ssebench::bench::BenchCore;
 
 /// Default HTTP port for WebUI access
@@ -41,6 +41,10 @@ async fn main() -> std::io::Result<()> {
         .ok()
         .and_then(|p| p.parse().ok())
         .unwrap_or(DEFAULT_HTTP_PORT);
+
+    // Before any listener binds: the entrypoint starts the agent only once
+    // the daemon's socket exists, so the tree is still as the image built it.
+    record_baseline(state.project.source_folder());
 
     // Optional root-only admin socket for privileged callers (entrypoint and
     // evaluator): full grading, the reference patch, and phase changes.
