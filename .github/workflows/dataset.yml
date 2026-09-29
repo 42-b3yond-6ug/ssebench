@@ -1,0 +1,238 @@
+name: Dataset
+
+# Grades pilot tasks with `ssebench dataset verify`: the reference agent's
+# upstream fix must pass every check, and the dummy agent's unmodified project
+# must build and pass its tests while every PoC still triggers the bug.
+#
+# Pull requests verify the tasks whose files they change, every task of a base
+# image they change, and one canary task when only this workflow or the
+# verifier changes. The weekly run and a manual run verify every task; the
+# weekly run is skipped while the repository is private, to save minutes.
+# The config, manifest and schema checks run in the CI workflow.
+
+on:
+  pull_request:
+    paths:
+      - datasets/**
+      - images/base-images/**
+      - bench/src/ssebench/dataset/verify.py
+      - .github/workflows/dataset.yml
+  schedule:
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      tasks:
+        description: Tasks to verify, separated by spaces; empty for every task.
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # A prefix that no registry serves, so every image comes from this checkout.
+  SSEBENCH_REGISTRY: ssebench-ci
+  DATASET: datasets/pilot
+  OUTPUT: results/dataset-verify
+  CANARY_TASK: gjson-196-bf4efcb
+
+jobs:
+  plan:
+    name: Select tasks
+    if: ${{ github.event_name != 'schedule' || !github.event.repository.private }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      tasks: ${{ steps.select.outputs.tasks }}
+      count: ${{ steps.select.outputs.count }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The base of a pull request, to compare its tasks with.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup-python
+      - name: Select the tasks
+        id: select
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          TASKS: ${{ inputs.tasks }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          verify() { uv run ssebench dataset verify --dir "$DATASET" --list "$@"; }
+          case "$EVENT" in
+            pull_request)
+              tasks=$(verify --changed-since "$BASE")
+              if [ "$tasks" = "[]" ] && ! git diff --quiet "$BASE" HEAD -- \
+                  .github/workflows/dataset.yml bench/src/ssebench/dataset/verify.py; then
+                tasks=$(verify "$CANARY_TASK")
+              fi ;;
+            schedule)
+              # The payload of a scheduled run need not describe the
+              # repository, so the job condition alone may not see that it is
+              # private.
+              if [ "$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" != false ]; then
+                echo "The repository is private; skipping the weekly run."
+                tasks="[]"
+              else
+                tasks=$(verify)
+              fi ;;
+            *)
+              # shellcheck disable=SC2086 # the input is a list of task names
+              tasks=$(verify $TASKS) ;;
+          esac
+          {
+            echo "tasks=$tasks"
+            echo "count=$(jq length <<< "$tasks")"
+          } >> "$GITHUB_OUTPUT"
+          jq -r '.[] | "\(.task) on \(.base)"' <<< "$tasks"
+
+  verify:
+    name: ${{ matrix.task.task }}
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    runs-on: ubuntu-24.04
+    # The C tasks with AddressSanitizer build and test their projects several
+    # times per run; CPython runs most of its test suite.
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        task: ${{ fromJSON(needs.plan.outputs.tasks) }}
+    env:
+      TASK: ${{ matrix.task.task }}
+      BASE: ${{ matrix.task.base }}
+    steps:
+      - name: Free disk space
+        # The largest case images are 3.4 GB, and each run adds a tool layer
+        # and copies of the built project.
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/share/swift
+          df -h /
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-python
+      - name: Switch Docker to the containerd image store
+        # With it, the default builder, which the CLI uses and which can see
+        # local images, can import and export the GitHub Actions build cache.
+        run: |
+          config=/etc/docker/daemon.json
+          current=$(sudo cat "$config" 2>/dev/null || echo '{}')
+          echo "$current" | jq '.features["containerd-snapshotter"] = true' | sudo tee "$config"
+          sudo systemctl restart docker
+          docker info -f '{{ .DriverStatus }}'
+      - name: Locate the base image
+        id: base
+        run: |
+          name=${BASE%%[:@]*}
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "dir=${name#base-}" >> "$GITHUB_OUTPUT"
+      - name: Build the base image from the cache
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: images/base-images
+          file: images/base-images/${{ steps.base.outputs.dir }}/Dockerfile
+          builder: default
+          load: true
+          tags: ${{ env.SSEBENCH_REGISTRY }}/${{ matrix.task.base }}
+          cache-from: type=gha,scope=${{ steps.base.outputs.name }}
+          cache-to: type=gha,mode=max,scope=${{ steps.base.outputs.name }}
+      - name: Build the daemon stage from the cache
+        # The release build of the daemon dominates the tool layer; building
+        # this stage first leaves it in the local cache for the CLI's build.
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: images/sandbox/Dockerfile
+          target: daemon-builder
+          builder: default
+          load: true
+          tags: ${{ env.SSEBENCH_REGISTRY }}/cache/daemon-builder
+          cache-from: type=gha,scope=sandbox-daemon
+          cache-to: type=gha,mode=max,scope=sandbox-daemon
+      - name: Write .env with generated secrets
+        # As `just setup` does; the reference and dummy agents never call a model.
+        run: |
+          secret() { head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n'; }
+          sed -e "s|^LITELLM_MASTER_KEY=.*|LITELLM_MASTER_KEY=sk-$(secret)|" \
+              -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(secret)|" \
+              .env.example > .env
+      - name: Verify the task
+        # A retry covers a case image build that loses the network, not a failed check.
+        run: uv run ssebench dataset verify --dir "$DATASET" --output "$OUTPUT" --jobs 1 --retries 1 "$TASK"
+      - name: Annotate the failures
+        if: failure()
+        run: |
+          result="$OUTPUT/tasks/$TASK.json"
+          if [ -f "$result" ]; then
+            jq -r '.failures[]' "$result" | while IFS= read -r line; do
+              echo "::error title=$TASK::$line"
+            done
+          else
+            echo "::error title=$TASK::The verification wrote no result; see the step logs."
+          fi
+          df -h /
+      - name: Upload the task result
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dataset-verify-result-${{ matrix.task.task }}
+          path: ${{ env.OUTPUT }}/tasks/
+          if-no-files-found: ignore
+          retention-days: 30
+      - name: Upload the run logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dataset-verify-logs-${{ matrix.task.task }}
+          path: |
+            ${{ env.OUTPUT }}/logs/
+            ${{ env.OUTPUT }}/runs/results/**/*.log
+            ${{ env.OUTPUT }}/runs/results/**/*.patch
+          if-no-files-found: ignore
+          retention-days: 7
+
+  summary:
+    name: Summary
+    needs: [plan, verify]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.count != '0'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-python
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: dataset-verify-result-*
+          path: ${{ env.OUTPUT }}/tasks
+          merge-multiple: true
+      - name: Summarize
+        env:
+          TASKS: ${{ needs.plan.outputs.tasks }}
+        run: |
+          # A selected task without a result counts as failed.
+          mapfile -t names < <(jq -r '.[].task' <<< "$TASKS")
+          status=0
+          uv run ssebench dataset verify --dir "$DATASET" --output "$OUTPUT" --summarize "${names[@]}" \
+            > /dev/null || status=$?
+          cat "$OUTPUT/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+      - name: Upload the summary
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dataset-verify-summary
+          path: |
+            ${{ env.OUTPUT }}/summary.md
+            ${{ env.OUTPUT }}/summary.json
+          if-no-files-found: ignore
+          retention-days: 90
