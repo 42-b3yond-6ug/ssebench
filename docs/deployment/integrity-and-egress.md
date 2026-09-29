@@ -62,6 +62,31 @@ commit, or download packages while it works. Everything a task needs to build
 and test must be in its case image, and everything an agent needs when it
 starts must be in its agent image.
 
+### Agents without internet
+
+The bundled agents are built for this. Each agent image installs its wrapper's
+Python environment, with its interpreter, when it is built, and the wrapper
+starts with `uv run --offline --no-sync`. The agents' command-line tools are
+told not to reach for the internet:
+
+| Agent | Setting | What it turns off |
+|---|---|---|
+| `claude-code` | `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`, `CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL=1` | update checks, telemetry, error reports, release notes, plugin marketplace installs |
+| `codex` | `check_for_update_on_startup = false`, `analytics.enabled = false`, `otel.metrics_exporter = "none"` in `~/.codex/config.toml` | update checks, analytics, usage metrics |
+| `opencode` | `OPENCODE_DISABLE_AUTOUPDATE`, `OPENCODE_DISABLE_MODELS_FETCH`, `OPENCODE_DISABLE_DEFAULT_PLUGINS`, `OPENCODE_DISABLE_LSP_DOWNLOAD` | update checks, the models.dev catalogue, default plugin installs, language server downloads |
+
+`tests/agents` checks it: it runs every agent, in each mode it supports, on an
+internal network whose only other member is a stub of the proxy that answers
+every model call with "I'm done.", and requires that the agent starts, makes a
+model call, finishes cleanly and is graded:
+
+```sh
+make -C images/base-images generic-go
+uv run pytest tests/agents -m agents
+```
+
+An agent you add should pass it too.
+
 ### `open`
 
 The run container joins `<project>_default`, the normal bridge with internet
@@ -129,6 +154,8 @@ docker stop <container>
 - The [integrity bypass suite](/concepts/integrity#testing-the-protections)
   checks, among the other protections, that a container on an internal
   network cannot reach the internet.
+- `tests/agents` checks that each bundled agent works with no internet; see
+  [Agents without internet](#agents-without-internet).
 
 ## Next steps
 
