@@ -1,10 +1,10 @@
-use std::io::Write;
 use std::path::Path;
 use std::process::Command;
 
 use anyhow::Result;
 
-use super::logging::create_timestamped_log;
+use super::logging::log_script;
+use crate::isolation::run_captured;
 
 /// Output from running a script
 #[derive(Debug, Clone, PartialEq)]
@@ -28,27 +28,14 @@ impl ScriptOutput {
     }
 }
 
-/// Execute a script or command with arguments in the specified working directory.
+/// Execute a script or command with arguments in the specified working
+/// directory, as the daemon's own user. Task scripts go through
+/// [`crate::isolation::TaskRunner`] instead.
 pub fn run_script<P: AsRef<Path>>(binary: &str, args: &[String], cwd: P) -> Result<ScriptOutput> {
     let mut cmd = Command::new(binary);
-    cmd.current_dir(cwd);
-    cmd.args(args);
-
-    let output = cmd.output()?;
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let code = output.status.code().unwrap_or(-1);
-
-    if let Ok(mut f) = create_timestamped_log("scriptrunner") {
-        writeln!(f, "{:?}", cmd).ok();
-        writeln!(f, "code={}", code).ok();
-        writeln!(f, "=== stdout ===\n{}", stdout).ok();
-        writeln!(f, "=== stderr ===\n{}", stderr).ok();
-    }
-
-    Ok(ScriptOutput::new(
-        code,
-        stdout.to_string(),
-        stderr.to_string(),
-    ))
+    cmd.current_dir(cwd).args(args);
+    let description = format!("{cmd:?}");
+    let output = run_captured(cmd, None)?;
+    log_script(&description, &output);
+    Ok(output)
 }
