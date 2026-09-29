@@ -1,7 +1,7 @@
 {
   "type": "array",
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "description": "",
+  "description": "runtime/plugins/plugins.yaml: the plugins, each in the folder runtime/plugins/<name> with a run.sh.",
   "minItems": 1,
   "uniqueItems": true,
   "items": {
@@ -10,20 +10,26 @@
     "properties": {
       "name": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "description": "Name of the plugin; it must equal the name of its folder."
       },
       "enabled": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "Whether the plugin runs."
       },
       "hook": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "description": "When the plugin runs: before (blocking), on (in parallel with) or after (blocking) the agent or the grading.",
+        "enum": ["before-agent", "on-agent", "after-agent", "before-grading", "on-grading", "after-grading"]
       },
       "llm": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "Whether the plugin uses an LLM."
       },
       "timeout": {
-        "type": "number"
+        "type": "number",
+        "description": "Time limit of the plugin."
       }
     }
   }

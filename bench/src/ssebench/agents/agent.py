@@ -4,19 +4,24 @@ from pathlib import Path
 from typing import ClassVar, final, override
 
 import yaml
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ssebench import paths
 from ssebench.pipe import REGISTRY, TAG, DockerLayerMixin
 
 
 class AgentConfig(BaseModel):
+    """An agent's `agent.yaml`, next to its Dockerfile in `agents/<agent>/`."""
+
     # Forbid extra / unknown keys from YAML
-    model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
+    model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid", title="SSEBench agent config")
 
     # Agent Config Fields
-    name: str
-    version: str = TAG
+    name: str = Field(description="Name of the agent, used in the names of its images.")
+    # A factory keeps the release version out of the JSON Schema, which documents this file.
+    version: str = Field(
+        default_factory=lambda: TAG, description="Tag of the agent image; the SSEBench version when it is not set."
+    )
 
     # Validators
     @field_validator("name")

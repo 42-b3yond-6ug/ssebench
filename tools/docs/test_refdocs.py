@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
+import jsonschema
 import pytest
+import yaml
 
 from refdocs import PAGES, cli, env, sdk
-from refdocs.page import Page, PageError
+from refdocs.page import ROOT, Page, PageError
+from ssebench.agents.agent import AgentConfig
 
 # Built at run time, so that no source file mentions it.
 UNREGISTERED = "SSE_" + "NOT_A_REGISTERED_VARIABLE"
@@ -68,3 +72,14 @@ def test_a_page_must_have_every_region(tmp_path: Path) -> None:
 
 def test_every_sdk_module_is_listed() -> None:
     assert set(sdk.discovered_modules()) == set(sdk.MODULES) | set(sdk.UNDOCUMENTED)
+
+
+def test_plugins_yaml_matches_its_schema() -> None:
+    plugins = ROOT / "runtime" / "plugins"
+    schema = json.loads((plugins / "schema.json").read_text())
+    jsonschema.validate(yaml.safe_load((plugins / "plugins.yaml").read_text()), schema)
+
+
+@pytest.mark.parametrize("path", sorted(ROOT.glob("agents/*/agent.yaml")), ids=lambda p: p.parent.name)
+def test_agent_yaml_matches_its_schema(path: Path) -> None:
+    _ = AgentConfig.model_validate(yaml.safe_load(path.read_text()))
