@@ -4,19 +4,23 @@ outline: deep
 
 # Extension points
 
-Third parties can extend SSEBench from their own Python package, without
-forking it:
+Third parties can extend SSEBench from their own package, without forking
+it:
 
 - a **tool layer** changes the runtime image that the agent runs in, and is
   selected with `ssebench run --tool-layer NAME`;
-- a **command** adds a subcommand, `ssebench NAME`.
+- a **command** adds a subcommand, `ssebench NAME`;
+- a **container mode** changes how the entrypoint orchestrates the task
+  container, and is selected with `entrypoint --mode NAME`.
 
-A package registers both as
-[entry points](https://packaging.python.org/en/latest/specifications/entry-points/).
-Everything an extension imports comes from `ssebench.extensions`. This page
-also lists the [container contract](#container-contract): the environment
-variables, sockets, ports, paths and labels that SSEBench keeps stable for
-extensions, agents and plugins.
+A Python package registers tool layers and commands as
+[entry points](https://packaging.python.org/en/latest/specifications/entry-points/)
+and imports everything it needs from `ssebench.extensions`. A Go program adds
+container modes by importing the entrypoint as a library; a tool layer then
+ships that program in the image. This page also lists the
+[container contract](#container-contract): the environment variables,
+sockets, ports, paths and labels that SSEBench keeps stable for extensions,
+agents and plugins.
 
 ## Register an extension
 
@@ -184,6 +188,119 @@ import no extension. A command that cannot be imported, does not implement
 `Command`, has a different `name`, fails in `configure`, is registered more
 than once or has a built-in name is left out with a warning, and the rest of
 the CLI keeps working.
+
+## Container modes
+
+The entrypoint is the Go package
+`github.com/42-b3yond-6ug/ssebench/runtime/entrypoint/pkg/entrypoint`. The
+default binary, `runtime/entrypoint/cmd/ssebench-entrypoint`, registers the
+built-in modes, `sandbox` and `sidecar`, and calls `entrypoint.Main()`. Your
+own `main` package can register more modes next to them:
+
+```go
+func main() {
+	entrypoint.MustRegister(entrypoint.BuiltinModes()...)
+	entrypoint.MustRegister(hello{})
+	entrypoint.Main()
+}
+```
+
+A mode implements `Mode`:
+
+```go
+type Mode interface {
+	Name() string        // the value of --mode that selects it
+	Run(rt *Runtime) int // orchestrates the container; returns the exit status
+}
+```
+
+The package provides:
+
+| Name | Description |
+|------|-------------|
+| `Register(modes ...Mode) error` | Adds modes; an empty or already registered name is an error |
+| `MustRegister(modes ...Mode)` | Like `Register`, but panics on error |
+| `Lookup(name string) (Mode, bool)`, `Modes() []string` | The registered modes |
+| `Sandbox`, `Sidecar`, `BuiltinModes() []Mode` | The built-in modes; a mode can call `entrypoint.Sandbox.Run(rt)` to add steps around the standard run |
+| `Main()` | Runs the entrypoint with the process arguments and exits |
+| `Run(args []string) int` | The same, returning the exit status; for tests |
+| `Version` | Printed by `--version` |
+| `Configurer` | Optional interface with `Configure(cfg *Config)`, called before the `TIMEOUT`, `SSE_DAEMON_TIMEOUT` and `SSE_MCP_TIMEOUT` overrides; the sidecar mode uses it to move the sockets and paths |
+
+Before `Run`, the entrypoint installs the SIGINT and SIGTERM handler, makes
+`SSE_ARCHIVE` world-writable and creates the log files. After `Run` returns,
+it stops every service the mode started and exits with the returned status.
+Inside `Run`, the mode uses the `*Runtime`:
+
+| Method | Description |
+|--------|-------------|
+| `Config() Config` | Paths, sockets and timeouts of this run |
+| `AgentCommand() []string` | The agent command, from the arguments after `--` |
+| `Logger() *slog.Logger` | The entrypoint's logger |
+| `LogPath(name string) string` | `<SSE_ARCHIVE>/<name>.log` |
+| `StartDaemon() error` | Starts the daemon with its agent-facing and admin sockets |
+| `WaitForDaemon() error` | Waits for a daemon in another container, as the sidecar mode does |
+| `StartMCPServer() error` | Starts the MCP server and waits until it answers |
+| `StartOpenCodeServer()` | Starts OpenCode on port 4096 if it is installed |
+| `StartService(name string, argv []string, dir string, env []string) error` | Starts another background process, logged to `LogPath(name)` |
+| `RunAgent() (AgentResult, error)` | Runs the agent as `model` with its time limit, then ends the agent phase |
+| `EndAgentPhase()` | Ends the agent phase; only the first call has an effect |
+| `Evaluate(result AgentResult)` | Ends the agent phase, then grades through the admin socket and writes `/sse_result` |
+| `KeepAlive()` | Blocks while `SSE_KEEP_ALIVE=1` keeps the container for the web UI |
+
+`AgentResult` has the agent's `ExitStatus` (124 when it was killed at its time
+limit), its `Duration` and `TimedOut`.
+
+The daemon serves the reference patch on its agent-facing socket and HTTP
+port only after the agent phase ends. `RunAgent` ends it once the agent has
+exited, and `Evaluate` ends it before grading at the latest. A mode whose
+agent does not run through `RunAgent`, for example because it runs
+elsewhere, calls `EndAgentPhase` when the agent is done, and never before.
+
+This mode greets and writes the agent command to `hello.txt` in the results
+directory, without starting anything:
+
+```go
+type hello struct{}
+
+func (hello) Name() string { return "hello" }
+
+func (hello) Run(rt *entrypoint.Runtime) int {
+	command := strings.Join(rt.AgentCommand(), " ")
+	rt.Logger().Info("Hello from a registered mode", "command", command)
+
+	path := filepath.Join(rt.Config().ArchivePath, "hello.txt")
+	if err := os.WriteFile(path, []byte("hello: "+command+"\n"), 0o644); err != nil {
+		rt.Logger().Error("Failed to write hello.txt", "err", err)
+		return 1
+	}
+	return 0
+}
+```
+
+`runtime/entrypoint/examples/hello-mode` is the complete program, in its own
+module, with a test. Its `go.mod` points the entrypoint module at a local
+checkout:
+
+```
+require github.com/42-b3yond-6ug/ssebench/runtime/entrypoint v0.0.0
+
+replace github.com/42-b3yond-6ug/ssebench/runtime/entrypoint => ../..
+```
+
+To use a mode in runs, a [tool layer](#tool-layers) builds the program on top
+of the standard runtime and makes it the entrypoint, with the mode selected:
+
+```dockerfile
+FROM golang:1.26-bookworm AS builder
+COPY . /build
+WORKDIR /build
+RUN CGO_ENABLED=0 go build -o /entrypoint .
+
+FROM runtime
+COPY --from=builder /entrypoint /usr/local/bin/entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint", "--mode", "hello", "--"]
+```
 
 ## Container contract
 
