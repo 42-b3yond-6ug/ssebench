@@ -171,10 +171,13 @@ export function TerminalContent({
     }
   }, [fontSize])
 
-  // Update terminal theme when it changes
+  // Update terminal theme when it changes. The terminal is created with the
+  // theme from this ref, so a theme change does not recreate it.
+  const themeRef = useRef(getTerminalTheme())
   useEffect(() => {
+    themeRef.current = getTerminalTheme()
     if (terminalInstance.current) {
-      terminalInstance.current.options.theme = getTerminalTheme()
+      terminalInstance.current.options.theme = themeRef.current
     }
   }, [terminalTheme, getTerminalTheme])
 
@@ -211,7 +214,7 @@ export function TerminalContent({
       fontSize: fontSize,
       fontFamily:
         '"JetBrainsMono Nerd Font", "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Monaco, monospace',
-      theme: getTerminalTheme(),
+      theme: themeRef.current,
       scrollback: 10000,
       convertEol: true,
     })

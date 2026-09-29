@@ -127,6 +127,163 @@ export function useOpenCodeSession({
   const hasApiKey = hasAnthropicApiKey()
   const needsApiKey = !hasApiKey && !sessionId
 
+  const refreshMessagesInternal = useCallback(
+    async (sid: string) => {
+      try {
+        const msgs = await client.getMessages(sid)
+        console.log("[OpenCode] Messages refreshed:", msgs.length)
+        setMessages(msgs)
+
+        // Clear pending user message after refresh
+        pendingUserMessageRef.current = null
+
+        // Check if we should reset streaming state
+        // If there are no streaming messages left, we're done streaming
+        setStreamingMessages((prev) => {
+          if (prev.size === 0) {
+            setIsStreaming(false)
+            setStreamingMessageId(null)
+          }
+          return prev
+        })
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to refresh messages"
+        console.error("[OpenCode] Refresh messages failed:", errorMessage)
+        throw err
+      }
+    },
+    [client]
+  )
+
+  const sendMessageInternal = useCallback(
+    async (sid: string, message: string) => {
+      // Track the user message to avoid showing it as assistant message in streaming
+      pendingUserMessageRef.current = message
+
+      // Clear previous streaming state for new message
+      setToolExecutions(new Map())
+      setReasoningContent(new Map())
+
+      // Optimistic update: Add user message immediately to UI
+      const optimisticUserMessage: OpenCodeMessage = {
+        info: {
+          id: `temp-${Date.now()}`,
+          sessionID: sid,
+          role: "user" as const,
+          time: {
+            created: Date.now(),
+          },
+        },
+        parts: [
+          {
+            type: "text" as const,
+            text: message,
+          },
+        ],
+      }
+
+      // Add to messages list immediately for instant feedback
+      setMessages((prev) => [...prev, optimisticUserMessage])
+
+      try {
+        // Send message asynchronously - don't wait for completion
+        // Real-time updates will come via WebSocket streaming
+        // Pass workingDir so the server knows which directory context to use
+        client
+          .sendMessage(sid, message, workingDir)
+          .then((response) => {
+            console.log("[OpenCode] Message sent, response:", response)
+
+            // The response contains the complete assistant message
+            // This means AI has finished generating - reset streaming state
+            setIsStreaming(false)
+            setStreamingMessageId(null)
+            setStreamingMessages(new Map())
+            setToolExecutions(new Map()) // Clear tool executions after completion
+            setReasoningContent(new Map()) // Clear reasoning after completion
+            pendingUserMessageRef.current = null
+
+            // Refresh messages to get the final state with real IDs
+            refreshMessagesInternal(sid)
+          })
+          .catch((err) => {
+            console.error("[OpenCode] Async send failed:", err)
+            // Reset streaming state on error too
+            setIsStreaming(false)
+            setStreamingMessageId(null)
+            setStreamingMessages(new Map())
+            setToolExecutions(new Map()) // Clear tool executions on error
+            setReasoningContent(new Map()) // Clear reasoning on error
+            pendingUserMessageRef.current = null
+
+            // Remove optimistic message on error
+            setMessages((prev) =>
+              prev.filter((m) => m.info.id !== optimisticUserMessage.info.id)
+            )
+            setError(
+              err instanceof Error ? err.message : "Failed to send message"
+            )
+          })
+
+        // Don't refresh immediately - keep the optimistic message visible
+        // The refresh will happen when the send completes
+      } catch (err) {
+        // Remove optimistic message on error
+        setMessages((prev) =>
+          prev.filter((m) => m.info.id !== optimisticUserMessage.info.id)
+        )
+
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to send message"
+        console.error("[OpenCode] Send message failed:", errorMessage)
+        throw err
+      }
+    },
+    [client, workingDir, refreshMessagesInternal]
+  )
+
+  const createSessionInternal = useCallback(async () => {
+    if (!hasApiKey) {
+      setError("Please set your Anthropic API key in Settings")
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      console.log("[OpenCode] Creating session...")
+      const session = await client.createSession(
+        "Debug Session",
+        workingDir,
+        anthropicApiKey || undefined
+      )
+      console.log("[OpenCode] Session created:", session.id)
+      setSessionId(session.id)
+
+      // Send initial message if provided
+      if (initialMessage && session.id) {
+        console.log("[OpenCode] Sending initial message...")
+        await sendMessageInternal(session.id, initialMessage)
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to create session"
+      console.error("[OpenCode] Session creation failed:", errorMessage)
+      setError(errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [
+    hasApiKey,
+    client,
+    workingDir,
+    anthropicApiKey,
+    initialMessage,
+    sendMessageInternal,
+  ])
+
   // Handle streaming message part updates
   const handleMessagePartUpdate = useCallback(
     (messageId: string, partId: string, _delta: string, fullText: string) => {
@@ -181,7 +338,7 @@ export function useOpenCodeSession({
         refreshMessagesInternal(sessionId)
       }
     },
-    [sessionId]
+    [sessionId, refreshMessagesInternal]
   )
 
   // Memoize event callbacks to prevent unnecessary reconnections
@@ -336,7 +493,7 @@ export function useOpenCodeSession({
         }
       })
     }
-  }, [existingSessionId, isHealthy])
+  }, [existingSessionId, isHealthy, refreshMessagesInternal])
 
   // Create session on mount if autoCreate is enabled
   useEffect(() => {
@@ -347,155 +504,18 @@ export function useOpenCodeSession({
     }
 
     createSessionInternal()
-  }, [autoCreate, sessionId, isHealthy, isInitializing, hasApiKey])
-
-  const createSessionInternal = async () => {
-    if (!hasApiKey) {
-      setError("Please set your Anthropic API key in Settings")
-      return
-    }
-
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      console.log("[OpenCode] Creating session...")
-      const session = await client.createSession(
-        "Debug Session",
-        workingDir,
-        anthropicApiKey || undefined
-      )
-      console.log("[OpenCode] Session created:", session.id)
-      setSessionId(session.id)
-
-      // Send initial message if provided
-      if (initialMessage && session.id) {
-        console.log("[OpenCode] Sending initial message...")
-        await sendMessageInternal(session.id, initialMessage)
-      }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to create session"
-      console.error("[OpenCode] Session creation failed:", errorMessage)
-      setError(errorMessage)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const sendMessageInternal = async (sid: string, message: string) => {
-    // Track the user message to avoid showing it as assistant message in streaming
-    pendingUserMessageRef.current = message
-
-    // Clear previous streaming state for new message
-    setToolExecutions(new Map())
-    setReasoningContent(new Map())
-
-    // Optimistic update: Add user message immediately to UI
-    const optimisticUserMessage: OpenCodeMessage = {
-      info: {
-        id: `temp-${Date.now()}`,
-        sessionID: sid,
-        role: "user" as const,
-        time: {
-          created: Date.now(),
-        },
-      },
-      parts: [
-        {
-          type: "text" as const,
-          text: message,
-        },
-      ],
-    }
-
-    // Add to messages list immediately for instant feedback
-    setMessages((prev) => [...prev, optimisticUserMessage])
-
-    try {
-      // Send message asynchronously - don't wait for completion
-      // Real-time updates will come via WebSocket streaming
-      // Pass workingDir so the server knows which directory context to use
-      client
-        .sendMessage(sid, message, workingDir)
-        .then((response) => {
-          console.log("[OpenCode] Message sent, response:", response)
-
-          // The response contains the complete assistant message
-          // This means AI has finished generating - reset streaming state
-          setIsStreaming(false)
-          setStreamingMessageId(null)
-          setStreamingMessages(new Map())
-          setToolExecutions(new Map()) // Clear tool executions after completion
-          setReasoningContent(new Map()) // Clear reasoning after completion
-          pendingUserMessageRef.current = null
-
-          // Refresh messages to get the final state with real IDs
-          refreshMessagesInternal(sid)
-        })
-        .catch((err) => {
-          console.error("[OpenCode] Async send failed:", err)
-          // Reset streaming state on error too
-          setIsStreaming(false)
-          setStreamingMessageId(null)
-          setStreamingMessages(new Map())
-          setToolExecutions(new Map()) // Clear tool executions on error
-          setReasoningContent(new Map()) // Clear reasoning on error
-          pendingUserMessageRef.current = null
-
-          // Remove optimistic message on error
-          setMessages((prev) =>
-            prev.filter((m) => m.info.id !== optimisticUserMessage.info.id)
-          )
-          setError(
-            err instanceof Error ? err.message : "Failed to send message"
-          )
-        })
-
-      // Don't refresh immediately - keep the optimistic message visible
-      // The refresh will happen when the send completes
-    } catch (err) {
-      // Remove optimistic message on error
-      setMessages((prev) =>
-        prev.filter((m) => m.info.id !== optimisticUserMessage.info.id)
-      )
-
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to send message"
-      console.error("[OpenCode] Send message failed:", errorMessage)
-      throw err
-    }
-  }
-
-  const refreshMessagesInternal = async (sid: string) => {
-    try {
-      const msgs = await client.getMessages(sid)
-      console.log("[OpenCode] Messages refreshed:", msgs.length)
-      setMessages(msgs)
-
-      // Clear pending user message after refresh
-      pendingUserMessageRef.current = null
-
-      // Check if we should reset streaming state
-      // If there are no streaming messages left, we're done streaming
-      setStreamingMessages((prev) => {
-        if (prev.size === 0) {
-          setIsStreaming(false)
-          setStreamingMessageId(null)
-        }
-        return prev
-      })
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to refresh messages"
-      console.error("[OpenCode] Refresh messages failed:", errorMessage)
-      throw err
-    }
-  }
+  }, [
+    autoCreate,
+    sessionId,
+    isHealthy,
+    isInitializing,
+    hasApiKey,
+    createSessionInternal,
+  ])
 
   const createSession = useCallback(async () => {
     await createSessionInternal()
-  }, [client, workingDir, initialMessage, anthropicApiKey, hasApiKey])
+  }, [createSessionInternal])
 
   const sendMessage = useCallback(
     async (message: string) => {
@@ -528,7 +548,7 @@ export function useOpenCodeSession({
         setIsLoading(false)
       }
     },
-    [sessionId]
+    [sessionId, sendMessageInternal]
   )
 
   const refreshMessages = useCallback(async () => {
@@ -541,7 +561,7 @@ export function useOpenCodeSession({
         err instanceof Error ? err.message : "Failed to refresh messages"
       setError(errorMessage)
     }
-  }, [sessionId, client])
+  }, [sessionId, refreshMessagesInternal])
 
   const reset = useCallback(() => {
     setSessionId(null)

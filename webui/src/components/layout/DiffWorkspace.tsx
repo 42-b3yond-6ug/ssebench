@@ -1048,12 +1048,15 @@ export function DiffWorkspace() {
   const displayFiles = patchView === "truth" ? parsedGroundTruth : parsedFiles
   const displayDiff = patchView === "truth" ? groundTruthPatch || "" : diff
 
-  // Initialize all files as expanded when displayFiles changes
-  useMemo(() => {
+  // Initialize all files as expanded when the view or its file count changes
+  const expandKey = `${patchView}:${displayFiles.length}`
+  const [expandedForKey, setExpandedForKey] = useState<string | null>(null)
+  if (expandedForKey !== expandKey) {
+    setExpandedForKey(expandKey)
     if (displayFiles.length > 0) {
       setExpandedFiles(new Set(displayFiles.map((_, i) => i)))
     }
-  }, [displayFiles.length, patchView])
+  }
 
   // Export diff as patch file
   const exportDiff = () => {
