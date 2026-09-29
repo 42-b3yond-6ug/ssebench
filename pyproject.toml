@@ -28,9 +28,8 @@ target-version = "py312"
 line-length = 120
 # Directories whose top-level modules count as first-party for import sorting.
 src = ["bench/src", "runtime/evaluator", "runtime/mcp", "runtime/plugins/*", "agents/*/*-sse", "tools/docs"]
-# Task sources are upstream code; docs snippets are formatted for reading;
-# tools/validate and the SDK integration fixtures run as standalone scripts.
-extend-exclude = ["datasets", "docs", "tools/validate", "sdk/tests/integration"]
+# Task sources are upstream code; docs snippets are formatted for reading.
+extend-exclude = ["datasets", "docs"]
 
 [tool.ruff.lint]
 select = [

@@ -54,11 +54,13 @@ jobs:
               - runtime/mcp/**
               - runtime/plugins/**
               - sdk/python/**
+              - sdk/tests/integration/**
               - agents/**
               - images/litellm/**
               - tools/dataset/**
               - tools/docs/**
               - tools/release/**
+              - tools/validate/**
               - tests/**
               - docs/reference/**
             rust:
