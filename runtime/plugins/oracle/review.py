@@ -14,7 +14,7 @@ import logging
 from pathlib import Path
 
 from sse import project as sse_project
-from sse.cheating import get_ground_truth
+from sse.reference import get_reference_patch
 
 from config import opencode_agent
 
@@ -54,16 +54,16 @@ async def run_review(archive_path: str) -> str | None:
         The review text on success, ``None`` on failure or skip.
     """
     try:
-        # Retrieve ground truth patch from the daemon
-        ground_truth = get_ground_truth()
-        if not ground_truth:
-            logger.warning("No ground truth patch available, skipping review")
+        # Retrieve the reference patch from the daemon (post-agent plugin).
+        reference_patch = get_reference_patch()
+        if not reference_patch:
+            logger.warning("No reference patch available, skipping review")
             return None
 
         source_dir = str(sse_project.metadata.source)
         prompt = REVIEW_PROMPT_TEMPLATE.format(
             source_dir=source_dir,
-            ground_truth_patch=ground_truth,
+            ground_truth_patch=reference_patch,
         )
 
         logger.info("Starting AI patch review...")
