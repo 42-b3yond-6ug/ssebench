@@ -95,7 +95,7 @@ func TestBuiltinModes(t *testing.T) {
 }
 
 func TestInitLogFilesKeepsLogsThatAreAlreadyBeingWritten(t *testing.T) {
-	rt := newRuntime(Config{ArchivePath: t.TempDir()}, []string{"true"})
+	rt := newRuntime(Config{ArchivePath: t.TempDir(), ResultsPath: t.TempDir()}, []string{"true"})
 	if err := os.WriteFile(rt.LogPath("daemon"), []byte("daemon started\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -112,6 +112,7 @@ func TestInitLogFilesKeepsLogsThatAreAlreadyBeingWritten(t *testing.T) {
 
 func TestRunRejectsUnknownModeAndMissingInput(t *testing.T) {
 	t.Setenv("SSE_ARCHIVE", t.TempDir())
+	t.Setenv("SSE_RESULTS", t.TempDir())
 	if status := Run([]string{"entrypoint", "--mode", "no-such-mode", "--", "true"}); status != 1 {
 		t.Errorf("unknown mode: status %d, want 1", status)
 	}
@@ -128,7 +129,9 @@ func TestRunRejectsUnknownModeAndMissingInput(t *testing.T) {
 
 func TestRunPreparesRunsAndCleansUp(t *testing.T) {
 	archive := t.TempDir()
+	results := filepath.Join(t.TempDir(), "results")
 	t.Setenv("SSE_ARCHIVE", archive)
+	t.Setenv("SSE_RESULTS", results)
 	t.Setenv("TIMEOUT", "7")
 
 	var got Config
@@ -157,17 +160,24 @@ func TestRunPreparesRunsAndCleansUp(t *testing.T) {
 	if status != 42 {
 		t.Errorf("status %d, want 42", status)
 	}
-	if got.AgentTimeout != 7*time.Second || got.EvaluatorPath != "/elsewhere" || got.ArchivePath != archive {
+	if got.AgentTimeout != 7*time.Second || got.EvaluatorPath != "/elsewhere" || got.ArchivePath != archive ||
+		got.ResultsPath != results {
 		t.Errorf("config = %+v", got)
 	}
 	if !slices.Equal(agentCmd, []string{"echo", "hi"}) {
 		t.Errorf("agent command = %v", agentCmd)
 	}
-	if info, err := os.Stat(archive); err != nil || info.Mode().Perm() != 0o777 {
-		t.Errorf("archive mode = %v, %v; want 0777", info.Mode().Perm(), err)
+	if info, err := os.Stat(archive); err != nil || info.Mode().Perm() != 0o755 {
+		t.Errorf("archive mode = %v, %v; want 0755", info.Mode().Perm(), err)
+	}
+	if info, err := os.Stat(results); err != nil || info.Mode().Perm()&0o022 != 0 {
+		t.Errorf("results mode = %v, %v; want no write access for group or others", info.Mode().Perm(), err)
+	}
+	if os.Getenv("SSE_RESULTS") != results {
+		t.Errorf("SSE_RESULTS = %q, want %q exported to the services", os.Getenv("SSE_RESULTS"), results)
 	}
 	for _, name := range []string{"daemon", "mcp", "agent", "evaluator", "opencode", "svc"} {
-		if _, err := os.Stat(filepath.Join(archive, name+".log")); err != nil {
+		if _, err := os.Stat(filepath.Join(results, name+".log")); err != nil {
 			t.Errorf("log file %s: %v", name, err)
 		}
 	}
@@ -177,7 +187,7 @@ func TestRunPreparesRunsAndCleansUp(t *testing.T) {
 }
 
 func TestStartServiceRejectsBadInput(t *testing.T) {
-	rt := newRuntime(Config{ArchivePath: t.TempDir()}, []string{"true"})
+	rt := newRuntime(Config{ArchivePath: t.TempDir(), ResultsPath: t.TempDir()}, []string{"true"})
 	for _, name := range []string{"", "../escape", "a/b"} {
 		if err := rt.StartService(name, []string{"true"}, "", nil); err == nil {
 			t.Errorf("StartService(%q) succeeded", name)
@@ -266,6 +276,7 @@ func testRuntime(t *testing.T, admin *adminServer, agentTimeout time.Duration, a
 	archive := t.TempDir()
 	cfg := defaultConfig()
 	cfg.ArchivePath = archive
+	cfg.ResultsPath = t.TempDir()
 	cfg.AdminSocketPath = admin.socket
 	cfg.EvaluatorPath = archive
 	cfg.AgentTimeout = agentTimeout

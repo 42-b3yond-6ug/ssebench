@@ -25,6 +25,10 @@ type Runtime struct {
 
 	plugins *pluginRunner
 
+	// archiveOwner is who owned the archive directory before the agent got
+	// it; it gets it back when the agent phase ends.
+	archiveOwner *[2]int
+
 	endPhase sync.Once
 }
 
@@ -111,14 +115,76 @@ func (rt *Runtime) Logger() *slog.Logger {
 	return logger
 }
 
-// LogPath returns the path of the log file for name in the archive directory.
+// LogPath returns the path of the log file for name in the results directory.
 func (rt *Runtime) LogPath(name string) string {
-	return filepath.Join(rt.cfg.ArchivePath, name+".log")
+	return filepath.Join(rt.cfg.ResultsPath, name+".log")
 }
 
-// setupArchive ensures the archive directory is world-writable.
+// setupArchive prepares the output directories and exports SSE_RESULTS to every
+// process started afterwards.
+//
+// The results directory takes root's outputs: the grade, the graded patch and
+// the logs. It is 0755 and its parent becomes root-only, so neither the agent
+// nor the task runner can reach it, whoever owns it on the host. It keeps its
+// host owner, so the host user can clear it for the next run; only root in the
+// container writes into it.
+//
+// The archive directory is made writable by the agent only when the mode says
+// the agent writes there ([Config.AgentWritesArchive]); it is given to the
+// agent's user, not opened to everyone, and handed back to its owner when the
+// agent phase ends (see [Runtime.EndAgentPhase]). A mode whose agent does not
+// write an archive leaves it root-owned.
 func (rt *Runtime) setupArchive() error {
-	return os.Chmod(rt.cfg.ArchivePath, 0o777)
+	results := rt.cfg.ResultsPath
+	if err := os.MkdirAll(results, 0o755); err != nil {
+		return err
+	}
+	if isRoot() {
+		if err := os.Chown(filepath.Dir(results), 0, 0); err != nil {
+			return err
+		}
+		if err := os.Chmod(filepath.Dir(results), 0o700); err != nil {
+			return err
+		}
+	}
+	if err := os.Chmod(results, 0o755); err != nil {
+		return err
+	}
+	os.Setenv("SSE_RESULTS", results)
+
+	if !rt.cfg.AgentWritesArchive {
+		return nil
+	}
+	archive := rt.cfg.ArchivePath
+	info, err := os.Stat(archive)
+	if err != nil {
+		return err
+	}
+	if isRoot() {
+		agent, err := lookupAccount(agentUser)
+		if err != nil {
+			return err
+		}
+		if st, ok := info.Sys().(*syscall.Stat_t); ok {
+			rt.archiveOwner = &[2]int{int(st.Uid), int(st.Gid)}
+		}
+		if err := os.Chown(archive, int(agent.uid), int(agent.gid)); err != nil {
+			return err
+		}
+	}
+	return os.Chmod(archive, 0o755)
+}
+
+// returnArchive gives the archive directory, and what the agent wrote in it,
+// back to its owner, so the host user can clear it for the next run. The
+// agent's processes must be gone.
+func (rt *Runtime) returnArchive() {
+	if rt.archiveOwner == nil {
+		return
+	}
+	if err := chownTree(rt.cfg.ArchivePath, rt.archiveOwner[0], rt.archiveOwner[1]); err != nil {
+		logger.Warn("Failed to return the archive directory to its owner", "err", err)
+	}
 }
 
 // initLogFiles pre-creates all log files so tails can start before the
@@ -238,11 +304,23 @@ func (rt *Runtime) StartOpenCodeServer() {
 		return
 	}
 
-	_, err := rt.sm.startProcess(
+	// It serves every container on the run network, so it runs as the
+	// agent's user, never as root.
+	agent, err := lookupAccount(agentUser)
+	if err != nil {
+		logger.Warn("Failed to start OpenCode server", "err", err)
+		return
+	}
+	var cred *syscall.Credential
+	if isRoot() {
+		cred = agent.credential()
+	}
+	_, err = rt.sm.startProcessAs(
 		"OpenCode server",
 		[]string{"opencode", "serve", "--port", "4096", "--hostname", "0.0.0.0"},
 		rt.logFiles["opencode"],
-		"", nil,
+		"", []string{"HOME=" + agent.home, "USER=" + agentUser},
+		cred,
 	)
 	if err != nil {
 		logger.Warn("Failed to start OpenCode server", "err", err)
@@ -374,18 +452,28 @@ func (rt *Runtime) waitAgent(cmd *exec.Cmd, startTime time.Time) AgentResult {
 	return result
 }
 
-// EndAgentPhase tells the daemon over the admin socket that the agent phase
-// is over, which lets the web UI read the reference patch. Only the first call
-// has an effect. [Runtime.RunAgent] and [Runtime.Evaluate] call it; a mode
-// whose agent does not run through RunAgent calls it once the agent is done.
+// EndAgentPhase ends the agent phase. It kills every process of the agent's
+// user in this container, since an agent can leave processes that outlive its
+// command, then tells the daemon over the admin socket, which closes its
+// tools to the agent-facing listeners and kills the agent user's processes in
+// its own container, and finally returns the archive directory to its owner.
+// Only the first call has an effect. [Runtime.RunAgent] and
+// [Runtime.Evaluate] call it; a mode whose agent does not run through
+// RunAgent calls it once the agent is done.
 func (rt *Runtime) EndAgentPhase() {
-	rt.endPhase.Do(rt.notifyAgentExited)
+	rt.endPhase.Do(func() {
+		if err := stopUserProcesses(agentUser); err != nil {
+			logger.Error("Failed to stop the agent's processes", "err", err)
+		}
+		rt.notifyAgentExited()
+		rt.returnArchive()
+	})
 }
 
 // Evaluate ends the agent phase if it has not ended, then runs the evaluator
 // and waits for it. The evaluator reaches the daemon through the admin socket,
 // so grading runs every check whatever the difficulty level, and it writes the
-// grade to /sse_result.
+// grade to result.json in the results directory.
 func (rt *Runtime) Evaluate(result AgentResult) {
 	rt.EndAgentPhase()
 
