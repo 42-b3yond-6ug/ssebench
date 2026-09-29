@@ -186,14 +186,14 @@ def requested_extensions(argv: Sequence[str]) -> list[Command]:
     return load_commands(reserved=BUILTIN_COMMANDS)
 
 
-def main(argv: Sequence[str] | None = None):
-    argv = sys.argv[1:] if argv is None else list(argv)
-    # The `ssebench` console script enters here, not through __main__; without a handler the
-    # progress messages would be dropped. A no-op when logging is already configured.
-    logging.basicConfig(level=logging.INFO)
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentParser, dict[str, Command]]:
+    """Build the `ssebench` parser with the built-in commands and those of `commands` that configure.
 
+    Returns the parser and the extension commands it includes, by name. The reference page
+    docs/reference/cli.md is generated from this parser, so the help texts are also documentation.
+    """
     parser = argparse.ArgumentParser(
+        prog="ssebench",
         description="SSEBench CLI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -201,17 +201,27 @@ def main(argv: Sequence[str] | None = None):
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # ==================== run subcommand ====================
-    run_parser = subparsers.add_parser("run", help="Run a benchmark")
+    run_parser = subparsers.add_parser(
+        "run",
+        help="Run a benchmark",
+        description="Runs one agent on one task with one model and writes the results to results/.",
+    )
     run_parser.add_argument(
         "--model",
         type=str,
         default=None,
-        help=f"Model name from models/*.yaml; required, except with --agent {REFERENCE_AGENT}, which uses none",
+        metavar="NAME",
+        help=f"Model name, as defined in models/*.yaml; required for every agent but {REFERENCE_AGENT}, which uses none",
     )
-    run_parser.add_argument("--agent", type=str, required=True)
-    run_parser.add_argument("--task", type=str, required=True)
+    run_parser.add_argument("--agent", required=True, metavar="NAME", help="Agent name, a directory under agents/")
+    run_parser.add_argument("--task", required=True, metavar="ID", help="Task ID, the name of the task's folder")
     run_parser.add_argument(
-        "--local", type=str, default="", metavar="DIR", help="Dataset directory to build the task from"
+        "--local",
+        type=str,
+        default="",
+        metavar="DIR",
+        help="Dataset directory that contains the task folder, for example datasets/pilot; "
+        "the case image is built from the folder",
     )
     run_parser.add_argument(
         "--catalog",
@@ -220,7 +230,13 @@ def main(argv: Sequence[str] | None = None):
         metavar="PATH|URL",
         help=f"{tasks.CATALOG_HELP}; used when --local is not given",
     )
-    run_parser.add_argument("--mode", choices=["sidecar", "sandbox"], default="sandbox")
+    run_parser.add_argument(
+        "--mode",
+        choices=["sandbox", "sidecar"],
+        default="sandbox",
+        metavar="MODE",
+        help="Execution mode: sandbox, or sidecar (experimental)",
+    )
     run_parser.add_argument(
         "--tool-layer",
         type=str,
@@ -228,47 +244,54 @@ def main(argv: Sequence[str] | None = None):
         metavar="NAME",
         help=f"Tool layer to build in sandbox mode (default: {DEFAULT_TOOL_LAYER}); installed extensions can add more",
     )
-    run_parser.add_argument("--timeout", type=int, default=3600)
+    run_parser.add_argument("--timeout", type=int, default=3600, metavar="SECONDS", help="How long the agent may run")
     run_parser.add_argument(
         "--difficulty",
         type=int,
         default=2,
-        help="Difficulty level (default: 2 = NO_FUTURE_TEST)",
+        metavar="LEVEL",
+        help="Which checks the agent's test_patch tool may run, from 0 (all) to 4 (none) (default: 2 = NO_FUTURE_TEST)",
     )
     run_parser.add_argument(
         "--keep-container",
         action="store_true",
-        help="Keep container after completion (useful with WebUI)",
+        help="Keep the container after the run, for example to inspect it from the web UI",
     )
     run_parser.add_argument(
         "--egress",
         choices=["restricted", "open"],
         default="restricted",
+        metavar="POLICY",
         help=(
-            "Agent network egress policy (default: restricted = LiteLLM proxy "
-            "only, no internet). Use 'open' for tasks that need network at test "
-            "time."
+            "Network egress of the run container: restricted reaches the LiteLLM proxy but not the internet; "
+            "open also has internet access, for tasks that need network at test time (default: restricted)"
         ),
     )
 
     # ==================== build-case subcommand ====================
-    build_case_parser = subparsers.add_parser("build-case", help="Build case images")
+    build_case_parser = subparsers.add_parser(
+        "build-case",
+        help="Build case images",
+        description="Builds the case images of a dataset without running anything.",
+    )
     build_case_parser.add_argument(
         "--benchmarks",
         type=str,
         default=None,
-        help="Path to benchmarks directory (default: datasets/pilot in the SSEBench home)",
+        metavar="DIR",
+        help="Dataset directory (default: datasets/pilot in the SSEBench home)",
     )
     build_case_parser.add_argument(
         "--tasks",
         type=str,
         default=None,
-        help="Comma-separated list of task names to build",
+        metavar="IDS",
+        help="Comma-separated task IDs (default: every task)",
     )
     build_case_parser.add_argument(
         "--force",
         action="store_true",
-        help="Force rebuild existing images",
+        help="Rebuild images that already exist",
     )
 
     # ==================== dataset subcommand ====================
@@ -283,8 +306,19 @@ def main(argv: Sequence[str] | None = None):
         help="Start, rebuild or stop the local LiteLLM proxy",
         description="`up` rebuilds the proxy image first when models/ changed; `down` keeps the database volume.",
     )
-    proxy_parser.add_argument("action", choices=["up", "build", "down"])
-    proxy_parser.add_argument("--rebuild", action="store_true", help="Rebuild the proxy image even if it is current")
+    proxy_parser.add_argument(
+        "action",
+        choices=["up", "build", "down"],
+        metavar="ACTION",
+        help="up: build the proxy image if it is missing or older than models/, start the stack and wait until "
+        "the proxy is healthy; build: only build the image, if it is missing or older than models/; down: stop "
+        "the stack and keep its database volume",
+    )
+    proxy_parser.add_argument(
+        "--rebuild",
+        action="store_true",
+        help="With up or build, rebuild the proxy image even if it is current",
+    )
 
     # ==================== doctor subcommand ====================
     _ = subparsers.add_parser(
@@ -295,7 +329,7 @@ def main(argv: Sequence[str] | None = None):
     )
 
     extensions: dict[str, Command] = {}
-    for command in requested_extensions(argv):
+    for command in commands:
         try:
             # argparse cannot remove a subcommand once added, so try the arguments on a scratch parser first.
             command.configure(argparse.ArgumentParser())
@@ -304,6 +338,17 @@ def main(argv: Sequence[str] | None = None):
             continue
         command.configure(subparsers.add_parser(command.name, help=command.help, description=command.help))
         extensions[command.name] = command
+    return parser, extensions
+
+
+def main(argv: Sequence[str] | None = None):
+    argv = sys.argv[1:] if argv is None else list(argv)
+    # The `ssebench` console script enters here, not through __main__; without a handler the
+    # progress messages would be dropped. A no-op when logging is already configured.
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+
+    parser, extensions = build_parser(requested_extensions(argv))
 
     args = parser.parse_args(argv)
 
