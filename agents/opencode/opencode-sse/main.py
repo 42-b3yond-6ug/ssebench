@@ -192,6 +192,16 @@ def build_opencode_config(
     }
 
 
+# OpenCode's update checks, models.dev fetch, default plugin installs and
+# language server downloads need the internet.
+OFFLINE_SWITCHES = (
+    "OPENCODE_DISABLE_AUTOUPDATE",
+    "OPENCODE_DISABLE_MODELS_FETCH",
+    "OPENCODE_DISABLE_DEFAULT_PLUGINS",
+    "OPENCODE_DISABLE_LSP_DOWNLOAD",
+)
+
+
 async def start_opencode_server(
     cwd: str, config: dict[str, Any]
 ) -> asyncio.subprocess.Process:
@@ -203,7 +213,12 @@ async def start_opencode_server(
     immediately after startup. This keeps the agent isolated from
     the entrypoint's WebUI server on port 4096.
     """
-    env = {**os.environ, "OPENCODE_CONFIG_CONTENT": json.dumps(config)}
+    env = {
+        **os.environ,
+        "OPENCODE_CONFIG_CONTENT": json.dumps(config),
+        # The run container reaches the LiteLLM proxy only.
+        **dict.fromkeys(OFFLINE_SWITCHES, "1"),
+    }
     proc = await asyncio.create_subprocess_exec(
         "opencode",
         "serve",

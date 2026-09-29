@@ -6,6 +6,10 @@ CONFIG_TEMPLATE = {
     "model_provider": "ssebench",
     "approval_policy": "never",
     "sandbox_mode": "workspace-write",
+    # The run container reaches the LiteLLM proxy only.
+    "check_for_update_on_startup": False,
+    "analytics": {"enabled": False},
+    "otel": {"metrics_exporter": "none"},
     "mcp_servers": {
         "ssebench": {
             "url": "",
