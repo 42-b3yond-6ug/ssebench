@@ -23,12 +23,19 @@ class PatchResult:
     """
 
     build_success: bool | None = None
+    """Whether the patched project builds."""
     pov_passed: int | None = None
+    """Number of proofs of concept that no longer trigger the vulnerability."""
     pov_total: int | None = None
+    """Number of proofs of concept run."""
     func_test_success: bool | None = None
+    """Whether the project's tests pass."""
     intent_test_success: bool | None = None
+    """Whether the tests pass with the hidden tests of the fix applied."""
     error_msg: str | None = None
+    """The first failure, such as ``Build failed``."""
     error_log: str | None = None
+    """Output of the step that failed first."""
 
     def is_fully_successful(self) -> bool:
         """Return True when every *executed* step passed."""
@@ -66,9 +73,12 @@ def grade() -> PatchResult:
     The pipeline is driven entirely by the case's capabilities:
 
     1. **Build** -- early-return on failure (everything else depends on it).
-    2. **Function test** -- runs the project's own test suite.
-    3. **Security test** -- runs *all* PoCs, records how many passed.
+    2. **Security test** -- runs *all* PoCs, records how many passed.
+    3. **Function test** -- runs the project's own test suite.
     4. **Intent test** -- runs the test suite with the intent patch applied.
+
+    Call it over the daemon's admin socket, after the agent has finished: it applies the agent's
+    diff to the copy of the repository that is graded, and the agent-facing socket refuses that.
 
     Raises :class:`~sse.error.SDKError` on infrastructure failures
     (daemon unreachable, etc.) -- those are *not* test failures.

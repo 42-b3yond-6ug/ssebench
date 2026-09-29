@@ -1,3 +1,5 @@
+"""The result type of the daemon's script actions, and the decorator that converts to it."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -47,8 +49,11 @@ class ScriptResult:
     """
 
     code: int
+    """Exit code of the script."""
     stdout: str
+    """Standard output of the script."""
     stderr: str
+    """Standard error of the script."""
 
     def __str__(self) -> str:
         return (
