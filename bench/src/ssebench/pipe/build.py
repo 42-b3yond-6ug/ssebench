@@ -1,4 +1,4 @@
-from pipe.interface import DockerLayerMixin
+from ssebench.pipe.interface import DockerLayerMixin
 
 
 def build_pipe(pipeline: list[DockerLayerMixin]) -> str:

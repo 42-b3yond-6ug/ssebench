@@ -11,10 +11,10 @@ from typing import Literal
 
 import requests
 
-from agents import Agent
-from models import Model
-from runner import BenchmarkSandboxRunner, BenchmarkSidecarRuner
-from tasks import LocalTask, RemoteTask
+from ssebench.agents import Agent
+from ssebench.models import Model
+from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRuner
+from ssebench.tasks import LocalTask, RemoteTask
 
 from .build import build_case_image, get_tasks
 
@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 # Default paths (relative to the repository root)
 DEFAULT_BENCHMARKS_DIR = Path("datasets/pilot")
 
-# bench/ is installed in editable mode, so the repository root is two levels above this package.
-REPO_ROOT = Path(__file__).resolve().parents[2]
+# bench/ is installed in editable mode, so the repository root is four levels above this module.
+REPO_ROOT = Path(__file__).resolve().parents[4]
 COMPOSE_FILE = REPO_ROOT / "deploy" / "compose" / "docker-compose.yaml"
 
 

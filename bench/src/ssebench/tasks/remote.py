@@ -5,7 +5,7 @@ from typing import cast, final, override
 import requests
 from pydantic import BaseModel
 
-from tasks.metadata import TaskMetadata
+from ssebench.tasks.metadata import TaskMetadata
 
 from .task import Task
 

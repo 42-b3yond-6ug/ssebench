@@ -6,8 +6,8 @@ from typing import final, override
 
 import yaml
 
-from pipe import REGISTRY
-from tasks.metadata import TaskMetadata
+from ssebench.pipe import REGISTRY
+from ssebench.tasks.metadata import TaskMetadata
 
 from .task import Task
 

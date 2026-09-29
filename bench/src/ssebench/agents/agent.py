@@ -6,7 +6,7 @@ from typing import ClassVar, final, override
 import yaml
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from pipe import REGISTRY, DockerLayerMixin
+from ssebench.pipe import REGISTRY, DockerLayerMixin
 
 
 class AgentConfig(BaseModel):

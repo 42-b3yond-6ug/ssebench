@@ -9,4 +9,4 @@ dependencies = ["ssebench"]
 ssebench = { path = "bench", editable = true }
 
 [project.scripts]
-ssebench = "cli:main"
+ssebench = "ssebench.cli:main"

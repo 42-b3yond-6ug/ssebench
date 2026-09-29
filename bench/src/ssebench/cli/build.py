@@ -4,9 +4,9 @@ import logging
 import subprocess
 from pathlib import Path
 
-from pipe import build_pipe
-from tasks import LocalTask
-from tasks.task import Task
+from ssebench.pipe import build_pipe
+from ssebench.tasks import LocalTask
+from ssebench.tasks.task import Task
 
 logger = logging.getLogger(__name__)
 

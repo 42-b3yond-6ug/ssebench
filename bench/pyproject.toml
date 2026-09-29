@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-ssebench = "cli:main"
+ssebench = "ssebench.cli:main"
 
 [dependency-groups]
 dev = ["ruff>=0.11.0", "basedpyright>=1.29.0"]
@@ -22,4 +22,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["cli", "agents", "middleware", "models", "pipe", "runner", "tasks"]
+packages = ["src/ssebench"]
