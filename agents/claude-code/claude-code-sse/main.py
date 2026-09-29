@@ -5,7 +5,7 @@ import subprocess
 import sys
 import time
 from asyncio.streams import StreamReader
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from io import TextIOWrapper
 from pathlib import Path
 from typing import Any
@@ -54,7 +54,7 @@ class DialogWriter:
 
     def _now(self) -> str:
         """Get current timestamp in ISO format."""
-        return datetime.now(timezone.utc).isoformat()
+        return datetime.now(UTC).isoformat()
 
     def _next_seq(self) -> int:
         """Get next sequence number."""
