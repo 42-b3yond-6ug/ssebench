@@ -1,8 +1,12 @@
 import 'just/config.just'
-import 'just/dev.just'
+import 'just/setup.just'
 import 'just/bench.just'
+import 'just/dev.just'
 import 'just/infra.just'
+import 'just/dataset.just'
 import 'just/release.just'
 
+# List the recipes by group
+[private]
 default:
-  just --list
+    @just --list --unsorted

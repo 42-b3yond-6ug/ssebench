@@ -1,16 +1,29 @@
-# Build base images
-base-images: _check-main-ahead
-    echo "==> Invoking images/base-images/Makefile"
-    make -C images/base-images all
+# Build the base images and the task-independent runtime images
+[group('images')]
+images: base-images runtime-images
 
-# Build case images (all tasks by default, or specify tasks as comma-separated list)
-# Options: --force to rebuild
-case-build *args: _check-main-ahead
+# Build the base images that case images start from
+[group('images')]
+base-images:
+    make -C images/base-images all SSEBENCH_REGISTRY="{{registry}}"
+
+# Build the sidecar runtime, LiteLLM proxy and catalog images
+[group('images')]
+runtime-images:
+    docker buildx build --load -f images/sidecar-agent/Dockerfile --build-arg VERSION="{{version}}" \
+        -t "{{registry}}/runtime:{{version}}" .
+    uv run ssebench proxy build
+    docker buildx build --load -f catalog/Dockerfile --build-arg VERSION="{{version}}" \
+        -t "{{registry}}/catalog:{{version}}" .
+
+# Build case images of all pilot tasks or the named ones (comma-separated); --force rebuilds
+[group('images')]
+case-build *args:
     #!/usr/bin/env bash
     set -euo pipefail
     force=""
     tasks=""
-    for arg in {{args}}; do
+    for arg in "$@"; do
         case "$arg" in
             --force) force="--force" ;;
             *) tasks="$arg" ;;
@@ -24,7 +37,8 @@ case-build *args: _check-main-ahead
         uv run ssebench build-case $force
     fi
 
-# Clean all case images
+# Remove all case images
+[group('images')]
 case-clean:
     @echo "Removing all case images..."
-    @docker images --format '{{ "{{.Repository}}:{{.Tag}}" }}' | grep -F "${SSEBENCH_REGISTRY:-ghcr.io/42-b3yond-6ug/ssebench}/case/" | xargs -r docker rmi || echo "No case images to remove"
+    @docker images --format '{{ "{{.Repository}}:{{.Tag}}" }}' | grep -F "{{registry}}/case/" | xargs -r docker rmi || echo "No case images to remove"

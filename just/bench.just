@@ -1,98 +1,82 @@
-# Launch LiteLLM Proxy
-launch:
-    docker compose -f deploy/compose/docker-compose.yaml build
-    docker compose -f deploy/compose/docker-compose.yaml up -d
+# Run one agent x model x task: `just run --task <id> --agent <agent> --model <model>`
+[group('run')]
+run *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ $# -eq 0 ]; then
+        if [ -t 0 ] && command -v fzf >/dev/null; then exec just pick; fi
+        echo "usage: just run --task <task-id> --agent <agent> --model <model> [ssebench run options]" >&2
+        exit 2
+    fi
+    # The pilot dataset is the task source unless the arguments or SSEBENCH_CATALOG name another.
+    case " $* " in
+        *" --local"* | *" --catalog"*) ;;
+        *) [ -n "${SSEBENCH_CATALOG:-}" ] || set -- --local datasets/pilot "$@" ;;
+    esac
+    exec uv run ssebench run "$@"
 
-# Run local CLI benchmark (interactive)
-test:
-    #!/bin/bash
-    task=$(ls datasets/pilot | fzf --prompt="Select Task> ") || exit 1
-    echo "Selected task: $task"
-    echo
-
-    model=$(grep -RhoP 'model_name:\s*\K.+' models | sort -u | \
-        fzf --prompt="Select LLM> ") || exit 1
-    echo "Selected model: $model"
-    echo
-
-    agent=$(ls agents | fzf --prompt="Select Agent> ") || exit 1
-    echo "Selected agent: $agent"
-    echo
-
-    mode=$(printf "sandbox\nsidecar\n" | fzf --prompt="Select Mode> ") || exit 1
-    echo "Selected mode: $mode"
-    echo
-
-    uv run ssebench run \
-        --model "$model" \
-        --agent "$agent" \
-        --task "$task" \
-        --mode "$mode" \
-        --local datasets/pilot
-
-
-# Run remote benchmark (interactive)
-remote:
-    #!/bin/bash
-    catalog="${SSEBENCH_CATALOG:?set SSEBENCH_CATALOG to the catalog server URL}"
-    task=$(curl -fsS "$catalog/tasks" | jq -r '.[].id' | \
-        fzf --prompt="Select Task> ") || exit 1
-    echo "Selected task: $task"
-    echo
-
-    model=$(grep -RhoP 'model_name:\s*\K.+' models | sort -u | \
-        fzf --prompt="Select LLM> ") || exit 1
-    echo "Selected model: $model"
-    echo
-
-    agent=$(ls agents | fzf --prompt="Select Agent> ") || exit 1
-    echo "Selected agent: $agent"
-    echo
-
-    mode=$(printf "sandbox\nsidecar\n" | fzf --prompt="Select Mode> ") || exit 1
-    echo "Selected mode: $mode"
-    echo
-
-    uv run ssebench run \
-        --model "$model" \
-        --agent "$agent" \
-        --task "$task" \
-        --mode "$mode" \
-        --catalog "$catalog"
-
-# Run all tasks
-test-all:
-    #!/bin/bash
-    model=$(grep -RhoP 'model_name:\s*\K.+' models | sort -u | \
-        fzf --prompt="Select LLM> ") || exit 1
-    echo "Selected model: $model"
-    echo
-
-    agent=$(ls agents | fzf --prompt="Select Agent> ") || exit 1
-    echo "Selected agent: $agent"
-    echo
-
-    mode=$(printf "sandbox\nsidecar\n" | fzf --prompt="Select Mode> ") || exit 1
-    echo "Selected mode: $mode"
-    echo
-
-    pushd datasets/pilot || exit
-    TASKS=(*/)
-    popd || exit
-
-    for task in "${TASKS[@]}"; do
-      task="${task%/}"
-      echo ">>> Processing ${task}"
-      uv run ssebench run \
-        --model "$model" \
-        --agent "$agent" \
-        --task "$task" \
-        --mode "$mode" \
-        --local datasets/pilot
+# Run one agent x model on every pilot task: `just run-all --agent <agent> --model <model>`
+[group('run')]
+run-all *args:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    if [ $# -eq 0 ]; then
+        echo "usage: just run-all --agent <agent> --model <model> [ssebench run options]" >&2
+        exit 2
+    fi
+    failed=()
+    for dir in datasets/pilot/*/; do
+        task=$(basename "$dir")
+        echo ">>> $task"
+        uv run ssebench run --local datasets/pilot --task "$task" "$@" || failed+=("$task")
     done
+    if [ ${#failed[@]} -gt 0 ]; then
+        echo "Failed: ${failed[*]}" >&2
+        exit 1
+    fi
 
-# Generate benchmark report
-# Presets: default (full task ID, single column), anonymous (short hash, double column)
+# Start the LiteLLM proxy; its image is rebuilt first when models/ changed
+[group('run')]
+launch:
+    uv run ssebench proxy up
+
+# Stop the LiteLLM proxy; its database volume is kept
+[group('run')]
+stop:
+    uv run ssebench proxy down
+
+# Build the PDF report from results/ (presets: default, anonymous)
+[group('run')]
 report preset="default":
     jq -s '.' results/*.json > tools/report/result.json
     cd tools/report && typst compile main.typ --input preset={{preset}}
+
+# Choose a task, model, agent and mode with fzf and run them; `just pick remote` uses the catalog
+[group('pickers')]
+pick source="local":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v fzf >/dev/null; then
+        echo "just pick needs fzf; without it, pass the choices to just run" >&2
+        exit 1
+    fi
+    case "$1" in
+        local)
+            task=$(for dir in datasets/pilot/*/; do basename "$dir"; done | fzf --prompt="Select Task> ")
+            source_args=(--local datasets/pilot)
+            ;;
+        remote)
+            catalog="${SSEBENCH_CATALOG:?set SSEBENCH_CATALOG to the catalog server URL}"
+            task=$(curl -fsS "$catalog/tasks" | jq -r '.[].id' | fzf --prompt="Select Task> ")
+            source_args=(--catalog "$catalog")
+            ;;
+        *)
+            echo "unknown task source '$1' (local or remote)" >&2
+            exit 2
+            ;;
+    esac
+    model=$(sed -n 's/^- model_name:[[:space:]]*//p' models/*.yaml | sort -u | fzf --prompt="Select LLM> ")
+    agent=$(for file in agents/*/agent.yaml; do basename "$(dirname "$file")"; done | fzf --prompt="Select Agent> ")
+    mode=$(printf "sandbox\nsidecar\n" | fzf --prompt="Select Mode> ")
+    echo "Task: $task, model: $model, agent: $agent, mode: $mode"
+    uv run ssebench run "${source_args[@]}" --task "$task" --model "$model" --agent "$agent" --mode "$mode"
