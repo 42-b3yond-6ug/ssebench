@@ -1,0 +1,254 @@
+name: Release
+
+# A v* tag builds the Python packages, the binaries and the dataset manifest,
+# publishes the packages to PyPI, creates the GitHub release with the binaries
+# and the manifest attached, and deploys the docs. The images are published by
+# the Images workflow on the same tag.
+#
+# Every publishing job is skipped while the repository is private, so a tag
+# then only produces the workflow artifacts. A manual run does the same on any
+# branch and never publishes. See docs/contributing/releasing.md.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      prerelease: ${{ steps.plan.outputs.prerelease }}
+      release: ${{ steps.plan.outputs.release }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The tagged commit must be reachable from main.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup-python
+        with:
+          sync: "false"
+      - name: Every component carries VERSION
+        run: uv run tools/release/bump.py --check
+      - name: Check the tag
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          PRIVATE: ${{ github.event.repository.private }}
+        run: |
+          version=$(cat VERSION)
+          prerelease=false
+          case "$version" in
+            *-*) prerelease=true ;;
+          esac
+          # Only a pushed tag releases; a manual run on any ref only builds.
+          release=false
+          if [ "$EVENT" = push ] && [ "$REF_TYPE" = tag ]; then
+            release=true
+          fi
+
+          if [ "$REF_TYPE" = tag ]; then
+            tag=${REF#refs/tags/}
+            if [ "$tag" != "v$version" ]; then
+              echo "::error::Tag $tag does not match VERSION (v$version)."
+              exit 1
+            fi
+            if [[ "$version" == *-dev ]]; then
+              echo "::error::VERSION $version is a development version and cannot be released."
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "$SHA" origin/main; then
+              echo "::error::Tag $tag is not on main."
+              exit 1
+            fi
+          fi
+
+          if [ "$release" != true ]; then
+            action="build $version only: this is not a release tag push"
+          elif [ "$PRIVATE" != false ]; then
+            action="build $version only: the repository is private"
+          else
+            action="publish $version to PyPI and GitHub"
+          fi
+          {
+            echo "version=$version"
+            echo "prerelease=$prerelease"
+            echo "release=$release"
+          } >> "$GITHUB_OUTPUT"
+          echo "Release plan: $action (pre-release: $prerelease)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  python:
+    name: Build the Python packages
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+      TWINE_VERSION: 7.0.0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-python
+        with:
+          sync: "false"
+      - name: Build the sdists and wheels
+        run: |
+          uv build --package ssebench --out-dir dist
+          uv build --package ssebench-sdk --out-dir dist
+          ls -l dist
+      - name: Check the package metadata
+        run: uv tool run --from "twine==$TWINE_VERSION" twine check --strict dist/*
+      - name: Install the wheels in a clean environment
+        run: |
+          uv venv "$RUNNER_TEMP/wheels"
+          uv pip install --python "$RUNNER_TEMP/wheels" --find-links dist dist/*.whl
+          # Away from the checkout, so that only the installed packages can be imported.
+          cd "$RUNNER_TEMP"
+          out=$(wheels/bin/ssebench --version)
+          echo "$out"
+          if [ "$out" != "ssebench $VERSION" ]; then
+            echo "::error::ssebench reports '$out', not 'ssebench $VERSION'."
+            exit 1
+          fi
+          wheels/bin/python -c "import sse; print('sse', sse.__version__)"
+          # The wheels carry the PEP 440 form of VERSION.
+          wheels/bin/python - "$VERSION" <<'PY'
+          import sys
+          from importlib.metadata import version
+          from packaging.version import Version
+
+          expected = Version(sys.argv[1])
+          for name in ("ssebench", "ssebench-sdk"):
+              found = Version(version(name))
+              print(f"{name} {found}")
+              assert found == expected, f"{name} is {found}, VERSION is {expected}"
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: python-dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+  binaries:
+    name: Binaries
+    needs: plan
+    uses: ./.github/workflows/binaries.yml
+    permissions:
+      contents: read
+
+  manifest:
+    name: Build the dataset manifest
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-python
+        with:
+          sync: "false"
+      - name: Generate the pilot manifest
+        run: |
+          mkdir manifest
+          uv run --locked --no-dev --package ssebench ssebench dataset manifest datasets/pilot \
+            -o manifest/pilot-manifest.json --generated-from "$GITHUB_SHA"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pilot-manifest
+          path: manifest/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [plan, python, binaries, manifest]
+    if: ${{ !github.event.repository.private && needs.plan.outputs.release == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      id-token: write # PyPI trusted publishing
+    environment:
+      name: pypi
+      url: https://pypi.org/project/ssebench/
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: python-dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        if: ${{ !github.event.repository.private }}
+        with:
+          packages-dir: dist/
+          # A re-run after a partial upload skips the files PyPI already has.
+          skip-existing: true
+
+  github-release:
+    name: Create the GitHub release
+    needs: [plan, binaries, manifest, publish-pypi]
+    if: ${{ !github.event.repository.private && needs.plan.outputs.release == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write # create the release and upload its assets
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+      PRERELEASE: ${{ needs.plan.outputs.prerelease }}
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.binaries.outputs.artifact }}
+          path: assets
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: pilot-manifest
+          path: assets
+      - name: Attach the assets to the release
+        if: ${{ !github.event.repository.private }}
+        run: |
+          ls -l assets
+          (cd assets && sha256sum --check SHA256SUMS)
+
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            # A re-run after a partial failure completes the release that exists.
+            gh release upload "$TAG" assets/* --clobber
+          else
+            flags=(--verify-tag --title "$TAG" --generate-notes)
+            # A pre-release is never the latest release.
+            if [ "$PRERELEASE" = true ]; then
+              flags+=(--prerelease --latest=false)
+            fi
+            gh release create "$TAG" "${flags[@]}" assets/*
+          fi
+
+  docs:
+    name: Docs
+    needs: [plan, python, binaries, manifest, publish-pypi, github-release]
+    # The docs follow a release that went out; skipped publishing jobs (a
+    # private repository, a manual run) still leave the site to be built.
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+    uses: ./.github/workflows/docs.yml
+    permissions:
+      contents: read
+      pages: write # the deploy job in docs.yml publishes the site
+      id-token: write # and proves the deployment comes from this workflow
+    with:
+      dry_run: ${{ needs.plan.outputs.release != 'true' }}
