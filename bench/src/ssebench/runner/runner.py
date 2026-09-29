@@ -47,7 +47,14 @@ def clear_directory(path: Path) -> None:
 class BenchmarkRunner(ABC):
     @abstractmethod
     def __init__(
-        self, model: Model, agent: Agent, task: Task, timeout: int, difficulty: int, keep_container: bool = False
+        self,
+        model: Model,
+        agent: Agent,
+        task: Task,
+        timeout: int,
+        difficulty: int,
+        keep_container: bool = False,
+        egress: str = "restricted",
     ): ...
 
     @abstractmethod
@@ -68,6 +75,7 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
         difficulty: int,
         keep_container: bool = False,
         tool_layer: str = DEFAULT_TOOL_LAYER,
+        egress: str = "restricted",
     ):
         self.model = model
         self.agent = agent
@@ -77,6 +85,7 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
         self.keep_container = keep_container
         self.tool_layer_name = tool_layer
         self.tool_layer = get_tool_layer(tool_layer)
+        self.egress = egress
 
         self.sandbox_image = None
 
@@ -106,7 +115,7 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
             docker_cmd.extend(
                 [
                     "--network",
-                    stack.network(),
+                    stack.run_network(self.egress),
                     "-e",
                     f"SSE_API_KEY={self.model.api_key}",
                     "-e",
@@ -159,6 +168,7 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
             timeout=self.timeout,
             difficulty=self.difficulty,
             tool_layer=self.tool_layer_name,
+            egress="open" if self.egress == "open" else "restricted",
         )
 
         per_task_result = PerTaskEvaluationResult.build(
@@ -187,6 +197,7 @@ class BenchmarkSidecarRuner(BenchmarkRunner):
         timeout: int,
         difficulty: int,
         keep_container: bool = False,
+        egress: str = "restricted",
     ):
         self.model = model
         self.agent = agent
@@ -194,6 +205,7 @@ class BenchmarkSidecarRuner(BenchmarkRunner):
         self.timeout = timeout
         self.difficulty = difficulty
         self.keep_container = keep_container
+        self.egress = egress
 
         self.sidecar_agentrt_image: str | None = None
         self.sidecar_environ_image: str | None = None
@@ -302,7 +314,7 @@ class BenchmarkSidecarRuner(BenchmarkRunner):
             docker_cmd.extend(
                 [
                     "--network",
-                    stack.network(),
+                    stack.run_network(self.egress),
                     "-e",
                     f"SSE_API_KEY={self.model.api_key}",
                     "-e",
@@ -361,6 +373,7 @@ class BenchmarkSidecarRuner(BenchmarkRunner):
             mode="sidecar",
             timeout=self.timeout,
             difficulty=self.difficulty,
+            egress="open" if self.egress == "open" else "restricted",
         )
 
         per_task_result = PerTaskEvaluationResult.build(

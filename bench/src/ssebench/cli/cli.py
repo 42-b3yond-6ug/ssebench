@@ -45,6 +45,7 @@ class RunArgs(argparse.Namespace):
         self.timeout: int
         self.difficulty: int
         self.keep_container: bool
+        self.egress: Literal["restricted", "open"]
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -85,12 +86,13 @@ def cmd_run(args: argparse.Namespace) -> int:
     timeout = args.timeout
     difficulty = args.difficulty
     keep_container = args.keep_container
+    egress = args.egress
     runner: BenchmarkSandboxRunner | BenchmarkSidecarRuner
     match args.mode:
         case "sandbox":
-            runner = BenchmarkSandboxRunner(model, agent, task, timeout, difficulty, keep_container, tool_layer)
+            runner = BenchmarkSandboxRunner(model, agent, task, timeout, difficulty, keep_container, tool_layer, egress)
         case "sidecar":
-            runner = BenchmarkSidecarRuner(model, agent, task, timeout, difficulty, keep_container)
+            runner = BenchmarkSidecarRuner(model, agent, task, timeout, difficulty, keep_container, egress)
         case _:
             logger.error(f"Unknown mode: {args.mode}")
             return 1
@@ -212,6 +214,16 @@ def main(argv: Sequence[str] | None = None):
         "--keep-container",
         action="store_true",
         help="Keep container after completion (useful with WebUI)",
+    )
+    run_parser.add_argument(
+        "--egress",
+        choices=["restricted", "open"],
+        default="restricted",
+        help=(
+            "Agent network egress policy (default: restricted = LiteLLM proxy "
+            "only, no internet). Use 'open' for tasks that need network at test "
+            "time."
+        ),
     )
 
     # ==================== build-case subcommand ====================

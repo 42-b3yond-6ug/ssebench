@@ -121,6 +121,25 @@ def test_names_follow_the_project_and_port(home: Path, monkeypatch: pytest.Monke
     assert stack.service_url() == "http://litellm:4000"
 
 
+def test_run_network_follows_the_egress_policy(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert stack.run_network() == "ssebench_agents"
+    assert stack.run_network("restricted") == "ssebench_agents"
+    assert stack.run_network("open") == "ssebench_default"
+
+    monkeypatch.setenv("COMPOSE_PROJECT_NAME", "other")
+    assert stack.run_network() == "other_agents"
+
+    with pytest.raises(ValueError, match="egress"):
+        _ = stack.run_network("anything")
+
+
+def test_compose_keeps_agents_off_the_internet() -> None:
+    compose = yaml.safe_load(paths.compose_file().read_text())
+    assert compose["networks"]["agents"]["internal"] is True
+    # The proxy must be on both: the internal network for agents, the default one for providers.
+    assert set(compose["services"]["litellm"]["networks"]) == {"default", "agents"}
+
+
 def test_compose_env_carries_dotenv_and_settings(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _ = (home / ".env").write_text("POSTGRES_PASSWORD=from-file\nLITELLM_PORT=4200\n")
     monkeypatch.setenv("POSTGRES_PASSWORD", "from-env")
@@ -137,8 +156,8 @@ def test_compose_file_is_project_scoped() -> None:
 
     for service in compose["services"].values():
         assert "container_name" not in service
-    assert all(not isinstance(v, dict) or "name" not in v for v in (compose.get("volumes") or {}).values())
-    assert "networks" not in compose
+    for section in ("volumes", "networks"):
+        assert all(not isinstance(v, dict) or "name" not in v for v in (compose.get(section) or {}).values())
 
 
 def test_image_matches_the_compose_file() -> None:

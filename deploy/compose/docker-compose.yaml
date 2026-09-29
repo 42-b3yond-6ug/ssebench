@@ -21,6 +21,12 @@ services:
     env_file:
       - path: ../../.env
         required: false
+    networks:
+      # `default` is a normal bridge, so the proxy can reach model providers.
+      # `agents` is internal: run containers on it reach the proxy but not the
+      # internet (the default egress policy).
+      - default
+      - agents
     depends_on:
       - litellm_db
     healthcheck:
@@ -52,3 +58,8 @@ services:
 
 volumes:
   postgres_data:
+
+networks:
+  # Project-scoped (<project>_agents), like the default network.
+  agents:
+    internal: true

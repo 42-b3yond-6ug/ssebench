@@ -37,6 +37,7 @@ class RunConfig(BaseModel):
     timeout: int
     difficulty: int
     tool_layer: str | None = None  # set in sandbox mode; sidecar mode has fixed layers
+    egress: Literal["restricted", "open"] = "restricted"
 
 
 class PerTaskEvaluationResult(BaseModel):
