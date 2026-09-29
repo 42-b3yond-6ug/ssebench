@@ -58,6 +58,7 @@ jobs:
               - images/litellm/**
               - tools/dataset/**
               - tools/release/**
+              - tests/**
             rust:
               - *workflow
               - Cargo.toml
@@ -111,6 +112,7 @@ jobs:
               - models/**
               - deploy/compose/**
               - datasets/pilot/gjson-196-bf4efcb/**
+              - tests/integrity/**
             versions:
               - *workflow
               - VERSION
@@ -408,6 +410,10 @@ jobs:
           jq . "$result"
           # The unpatched project must build and its PoC must still fail.
           jq -e '.patch_result.build_success and .patch_result.pov_total > 0 and .patch_result.pov_passed == 0' "$result"
+      - name: Integrity bypass tests
+        # Against the tool image the run built. Script mode fails when that
+        # image is missing, where pytest would skip.
+        run: uv run python tests/integrity/test_bypass.py
       - name: Check the host
         if: always()
         continue-on-error: true
