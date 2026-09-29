@@ -299,9 +299,14 @@ def load(dataset: Path) -> tuple[list[Task], dict[str, Any], list[str]]:
             errors.append(f"{name}: Dockerfile clones nothing and nothing is vendored")
             continue
 
-        fixes: list[str] = entry.get("fix_commits") or [
-            c.strip() for c in str(config.get("patch_commit") or "").split(",")
-        ]
+        trigger = config.get("trigger_commit")
+        built = pinned or (vendored or {}).get("revision")
+        if trigger and trigger != built:
+            errors.append(f"{name}: trigger_commit {trigger} is not the commit the task builds, {built}")
+        configured_fixes = [c.strip() for c in str(config.get("patch_commit") or "").split(",") if c.strip()]
+        fixes: list[str] = entry.get("fix_commits") or configured_fixes
+        if configured_fixes and set(configured_fixes) != set(fixes):
+            errors.append(f"{name}: patch_commit {configured_fixes} differs from fix_commits {fixes}")
         if not all(SHA_RE.fullmatch(c) for c in fixes):
             errors.append(f"{name}: fix commits {fixes!r} are not full SHAs")
         elif pinned in fixes:

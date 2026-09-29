@@ -19,7 +19,7 @@ files:
 sanitizer: address
 type: "UAF"
 binary: RUSTSEC-2021-0003
-trigger_commit: 78522049b3ce129d02eea4e802747ba1090a5586
+trigger_commit: 0b2b4e53a5cf86740b2515907dd53252b3b59401
 patch_commit: 9998ba0694a6b51aa6604748b00b6a98f0a0039e
 reference:
   - https://rustsec.org/advisories/RUSTSEC-2021-0003.html

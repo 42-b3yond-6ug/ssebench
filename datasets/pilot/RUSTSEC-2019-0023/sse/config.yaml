@@ -19,7 +19,7 @@ files:
 sanitizer: address
 type: "UAF"
 binary: RUSTSEC-2019-0023
-trigger_commit: 6a9246d283ddbd789c98ba74fbdd9c7f3d8cc4f2
+trigger_commit: 313a32019363b1eed87988ea5051311afca40889
 patch_commit: 04731e101fed08a32942d52790e1c8c6ede61889, ef7a6454baabe7cd3d32b56aefb2768b4be02079
 reference:
   - https://rustsec.org/advisories/RUSTSEC-2019-0023.html

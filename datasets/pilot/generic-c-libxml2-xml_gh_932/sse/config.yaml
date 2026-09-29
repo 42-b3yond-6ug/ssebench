@@ -24,6 +24,6 @@ trigger_commit: 069bcda17d8194e9582c64dd4bc9dac99b015810
 patch_commit: 499bcb78ab389f60c2fd634ce410d4bb85c18765
 reference:
 - https://gitlab.gnome.org/GNOME/libxml2
-- https://gitlab.gnome.org/GNOME/libxml2/-/merge_requests/932
+- https://gitlab.gnome.org/GNOME/libxml2/-/issues/932
 - https://gitlab.gnome.org/GNOME/libxml2/-/commit/069bcda17d8194e9582c64dd4bc9dac99b015810
 - https://gitlab.gnome.org/GNOME/libxml2/-/commit/499bcb78ab389f60c2fd634ce410d4bb85c18765

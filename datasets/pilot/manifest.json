@@ -104,7 +104,7 @@
         "harness/Cargo.toml": "8026c2b40ed79bb3e4110a2ad116b34a2c6cdf269a704041a4ca7ee75f5b0aa8",
         "harness/src/main.rs": "02c144ee5fa60f97e917658c36ba374e97d0320ef20ebe54325a95b56dda5518",
         "sse/build.sh": "4ad0e3a9a28b07f41a95f5cae9bc57805de17449eed408e05c90b332d03cbd19",
-        "sse/config.yaml": "06c27cd387dbb8196b8058fbdee706f9801c6991a55cedf2514a75f0c25bf699",
+        "sse/config.yaml": "0929aa03dfcdaceb33878905bc63b949f5888c4d496eca3a7c6dff019f5963ff",
         "sse/diffs/patch.diff": "b441a2ea5f037aeecb6e5d32543fabd01a1b1b22ce0e89e5a1d56f84383863c1",
         "sse/diffs/test.diff": "f50091f4487d32ee91902e6623211f3c6d2078270ee9ac95c010186638a39a27",
         "sse/pocs/Cargo.toml": "8026c2b40ed79bb3e4110a2ad116b34a2c6cdf269a704041a4ca7ee75f5b0aa8",
@@ -158,7 +158,7 @@
         "sanitizer": "address",
         "type": "UAF",
         "binary": "RUSTSEC-2019-0023",
-        "trigger_commit": "6a9246d283ddbd789c98ba74fbdd9c7f3d8cc4f2",
+        "trigger_commit": "313a32019363b1eed87988ea5051311afca40889",
         "patch_commit": "04731e101fed08a32942d52790e1c8c6ede61889, ef7a6454baabe7cd3d32b56aefb2768b4be02079",
         "reference": [
           "https://rustsec.org/advisories/RUSTSEC-2019-0023.html",
@@ -319,7 +319,7 @@
         "rust-smallvec/src/tests.rs": "1c4763444139813d335d33f9eda8b8b719da60a2b13ddcb44e1a6cc278c319cc",
         "rust-smallvec/tests/macro.rs": "22ad4f6f104a599fdcba19cad8834105b8656b212fb6c7573a427d447f5db14f",
         "sse/build.sh": "c47e101f584d7d56959fc0d4fdcd35f32c5833dbfe54a4bf098ad3ba562421bb",
-        "sse/config.yaml": "316c00dede35ea64d03304da710bf608e18890a97255bb99e0101b46eb4b946c",
+        "sse/config.yaml": "fa987bb20d52d3a4c958c66052f584a23432d9ee4c58c10c8abd02467e9a1e1b",
         "sse/diffs/patch.diff": "4347735ba0e5b046e853cea2e8178073bb5e339d37b4c24a953be50786e3fac2",
         "sse/diffs/test.diff": "103d9adbe1aa76533de33733b653d3366de4d4290bc8617abaf37558b5d785f3",
         "sse/pocs/Cargo.toml": "e631012427f5b4a2dd792777b1134a5c5b8386d8228006c1b1dbcc698366d42f",
@@ -360,7 +360,7 @@
         "sanitizer": "address",
         "type": "UAF",
         "binary": "RUSTSEC-2021-0003",
-        "trigger_commit": "78522049b3ce129d02eea4e802747ba1090a5586",
+        "trigger_commit": "0b2b4e53a5cf86740b2515907dd53252b3b59401",
         "patch_commit": "9998ba0694a6b51aa6604748b00b6a98f0a0039e",
         "reference": [
           "https://rustsec.org/advisories/RUSTSEC-2021-0003.html",
@@ -395,7 +395,7 @@
         "nano-arena/src/lib.rs": "5cb563489f383294ef1b24c129b17c65ae64483b389789a2643d4196ce71d113",
         "nano-arena/src/split.rs": "25ebf41fecea8a77bb7b8391bd2e45f28d5090d1795fa7b22307c5df6b77ec21",
         "sse/build.sh": "72213cd99b7533fda27222edb1eeb62ab0526167eb9ef8998cf18635f3de2003",
-        "sse/config.yaml": "ca7c03a6570b58882516a303d2cd63ef9757286309c9efee3ebb3b4df1190989",
+        "sse/config.yaml": "a4485544b8eee82ca80e6baa37dbfda673cb2f5b045ed77a92350ad78a58c4b4",
         "sse/diffs/patch.diff": "d58639ed2bb48c8b5ddb540cad0c65bd3d39fb05f4d7fff96e73872dae49c07f",
         "sse/diffs/test.diff": "16f85d7ee23c556caf72859853a015bdc507881c729e6fbb09a6c294d66fa962",
         "sse/pocs/Cargo.toml": "8237c511933ff2df2c5d83898a606504f5978574d80ee2811fb7b5c5755dd994",
@@ -434,7 +434,7 @@
         "sanitizer": "address",
         "type": "UAF",
         "binary": "RUSTSEC-2021-0031",
-        "trigger_commit": "f5306c73a0f8f260eb49f9f0a8509ef85f038244",
+        "trigger_commit": "1ba84c2a1b2b38653fe9a28de4a5c3d6ad6483f7",
         "patch_commit": "6b83f9d0708337a9f8b709c1624a8587021ceba2",
         "reference": [
           "https://rustsec.org/advisories/RUSTSEC-2021-0031.html",
@@ -957,7 +957,7 @@
       "files": {
         "Dockerfile": "4454cd53078722f2261e6b28f36372d68adcde85a8a0bc8e73d4625ecdf888be",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
-        "sse/config.yaml": "0365d7a8b5556102c370a4f380ee5bf9c4b43733b748c04f3151a123336fa3dc",
+        "sse/config.yaml": "3889da63b54f44e91ffbaba0a4179be746e3b372bf050d41f5f738bc5b2e3101",
         "sse/diffs/patch.diff": "19d6c95d29f4620f6b9776840bdc6f24476188b16f2198d6d409724b1e4238fb",
         "sse/diffs/test.diff": "c646e3514166c8874b3e21b67ed138c0116b8f017c2ab0d0fa9b5265ddcacf21",
         "sse/pocs/poc.go": "7ccbdc5cc528e1826bb2b6c17ac25dd210675c6bff76c37643a5fc9e302792c9",
@@ -995,7 +995,7 @@
         "sanitizer": "none",
         "type": "Authentication Bypass by Spoofing",
         "binary": "none",
-        "trigger_commit": "b8c9ede6efa231116c4bd8bb9d5e03eac1cb76dc~1",
+        "trigger_commit": "d570d95e844252d390a7209c5e7a67dddb85e016",
         "patch_commit": "b8c9ede6efa231116c4bd8bb9d5e03eac1cb76dc",
         "reference": [
           "https://github.com/gofiber/fiber.git",
@@ -1785,7 +1785,7 @@
       "files": {
         "Dockerfile": "70fe3b4d7b34d46d8d519ed5d5a8c5efb91ec65a996ded3a6d0cddf9fb624358",
         "sse/build.sh": "dc1c7861d33a7cc395283a1583c53f05f9fae124174291c6e85d773d367d4e89",
-        "sse/config.yaml": "2845dfd6f84d94b477bae76bfe6b2170d03415a3e43927599b68e12aa1c2e94f",
+        "sse/config.yaml": "8fae59f9be72df0241bb7b04b0a7882ad6c70bb610cc1d6134d972dfcdf76d17",
         "sse/diffs/patch.diff": "93c3fd725e7e65503ea28875bba41095e187a7e83d5a0fd8c65935a1c3c9d4a7",
         "sse/diffs/test.diff": "623f2eeb5c73f9278f23cd93c729b2de9e4efba8ccab2b25f72a35dfc7f60705",
         "sse/pocs/poc": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -1827,7 +1827,7 @@
         "patch_commit": "71e1e8af5ee46dad1b57bb96cfbf1c3ad21fbd7b",
         "reference": [
           "https://gitlab.gnome.org/GNOME/libxml2",
-          "https://gitlab.gnome.org/GNOME/libxml2/-/merge_requests/931",
+          "https://gitlab.gnome.org/GNOME/libxml2/-/issues/931",
           "https://gitlab.gnome.org/GNOME/libxml2/-/commit/24d7e15914588cb45e7fb41cbe4fcf785e1a4861",
           "https://gitlab.gnome.org/GNOME/libxml2/-/commit/71e1e8af5ee46dad1b57bb96cfbf1c3ad21fbd7b"
         ],
@@ -1853,7 +1853,7 @@
       "files": {
         "Dockerfile": "77d573faced3d10a23f174ed09e6a802daabc1193bb5904e4fca0106ff8bd9a7",
         "sse/build.sh": "dc1c7861d33a7cc395283a1583c53f05f9fae124174291c6e85d773d367d4e89",
-        "sse/config.yaml": "e46823f72428c7aa0593e3fd8e06ce17addfcf66ca020e81648c2ae2e8958de6",
+        "sse/config.yaml": "b626a6d369b8ede0281b6c55477dd2ac5aefe5546dce920d28a4ebc670f6dc0f",
         "sse/diffs/patch.diff": "935214e7cf96448e75f6c1230c4295bcfbc994b8d0230efd77150b4116008e5b",
         "sse/diffs/test.diff": "c41c150715db7b045410af5f3bdca1eb2fe682b5f31883514ad992f7e7ce79e7",
         "sse/pocs/poc": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -1895,7 +1895,7 @@
         "patch_commit": "499bcb78ab389f60c2fd634ce410d4bb85c18765",
         "reference": [
           "https://gitlab.gnome.org/GNOME/libxml2",
-          "https://gitlab.gnome.org/GNOME/libxml2/-/merge_requests/932",
+          "https://gitlab.gnome.org/GNOME/libxml2/-/issues/932",
           "https://gitlab.gnome.org/GNOME/libxml2/-/commit/069bcda17d8194e9582c64dd4bc9dac99b015810",
           "https://gitlab.gnome.org/GNOME/libxml2/-/commit/499bcb78ab389f60c2fd634ce410d4bb85c18765"
         ],
@@ -1921,7 +1921,7 @@
       "files": {
         "Dockerfile": "70fe3b4d7b34d46d8d519ed5d5a8c5efb91ec65a996ded3a6d0cddf9fb624358",
         "sse/build.sh": "d2e9e8e3186491eda86204003621f1001cadfbc662bc8212f880b7aa9f800a78",
-        "sse/config.yaml": "ff8793bfdd22f11fe863425270571a88ed9fb46490dd588a0c5305f99bdb45fb",
+        "sse/config.yaml": "962e4667d189d44445b8343c6a9782ec298ec17afbcb663f841e827f94b88173",
         "sse/diffs/patch.diff": "93c3fd725e7e65503ea28875bba41095e187a7e83d5a0fd8c65935a1c3c9d4a7",
         "sse/diffs/test.diff": "a5a234abe453d1355f58f16999e55fd8ca008ecdb13b1b4d624d08fe980fc09f",
         "sse/pocs/poc": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -1963,7 +1963,7 @@
         "patch_commit": "71e1e8af5ee46dad1b57bb96cfbf1c3ad21fbd7b",
         "reference": [
           "https://gitlab.gnome.org/GNOME/libxml2",
-          "https://gitlab.gnome.org/GNOME/libxml2/-/merge_requests/933",
+          "https://gitlab.gnome.org/GNOME/libxml2/-/issues/933",
           "https://gitlab.gnome.org/GNOME/libxml2/-/commit/24d7e15914588cb45e7fb41cbe4fcf785e1a4861",
           "https://gitlab.gnome.org/GNOME/libxml2/-/commit/71e1e8af5ee46dad1b57bb96cfbf1c3ad21fbd7b"
         ],
@@ -2540,7 +2540,7 @@
         "Dockerfile": "da80ca8abd9a738b4163028387580baf44c55103446d148b284b2c16dba4fb69",
         "README.md": "c258aaf33fa6070e7582a1d2a4131c47f27a7a26d45fddb2d15957d3228a3453",
         "sse/build.sh": "b5788b2802f0870b807f5f3ed8459925dce67a2a8367d07365c615c8db3c2983",
-        "sse/config.yaml": "caefa88b6afc36c2e8348cb012cee08a049e677f5a87906bd474c028e1e5ff41",
+        "sse/config.yaml": "2ed143b7e7e55d2da9ae784c79680f423eda92959fe999ed8278ae3431cfe79c",
         "sse/diffs/patch.diff": "0a7a753cc8c7af2ab78b81758ca23a23f1f97c1ebc42e04d5917c349df1928c6",
         "sse/diffs/security_test.diff": "ff5d22ee2570da90e1415dde8b4419e670e040836aa417bc088b09279d457019",
         "sse/diffs/test.diff": "ff5d22ee2570da90e1415dde8b4419e670e040836aa417bc088b09279d457019",
@@ -2572,7 +2572,7 @@
         "files": {
           "patch": "diffs/patch.diff",
           "future_test": "diffs/test.diff",
-          "security_test": "diffs/security_test.diff",
+          "security_test": null,
           "intent_test": null,
           "poc": [
             "pocs/poc.go"
@@ -2581,7 +2581,7 @@
         "sanitizer": null,
         "type": "Slice bounds out of range",
         "binary": null,
-        "trigger_commit": "9f58baa7a613f89dfdc764c39e47fd3a15606153",
+        "trigger_commit": "5100d6926a4bea3753fc72352fca70654f04cedc",
         "patch_commit": "f0ee9ebde4b619767ae4ac03e8e42addb530f6bc",
         "reference": [
           "https://github.com/tidwall/gjson",
@@ -3779,7 +3779,7 @@
       "files": {
         "Dockerfile": "d775d8dac6adc9a7f5572c0ff45564f0db74f998b7e28c4ed150d32849aaa259",
         "sse/build.sh": "e85e3a740e3873a48f63962959273c8f2f1b3dad093ac43497b8e29b1c63d418",
-        "sse/config.yaml": "3d5cb21870b6ca927b5b994b2c89d48821ce959eba1c66e6f54d10b2f86ecea0",
+        "sse/config.yaml": "6f0cd2f10b918f0c89e15442082e24ea4b25b3d6229722d3f53e096d874c3fce",
         "sse/diffs/patch.diff": "2868ed68f769b7933c41df9f23378f493de16edd09132c643c640a245c2c1dbd",
         "sse/diffs/security_test.diff": "552dac34fbce5b1944e6ffb17f0c8367f96f35e1da7f3ec735efd87c8fc5cfe8",
         "sse/diffs/test.diff": "552dac34fbce5b1944e6ffb17f0c8367f96f35e1da7f3ec735efd87c8fc5cfe8",
@@ -3820,8 +3820,8 @@
         "sanitizer": null,
         "type": "internal error",
         "binary": null,
-        "trigger_commit": "8f96da9f5d5eff988554c1aae1784627c4bf6754",
-        "patch_commit": "539c8e751b99281a79dc659ba8dc44d91e444723",
+        "trigger_commit": "539c8e751b99281a79dc659ba8dc44d91e444723",
+        "patch_commit": "8f96da9f5d5eff988554c1aae1784627c4bf6754",
         "reference": [
           "https://github.com/go-yaml/yaml.git",
           "https://github.com/go-yaml/yaml/commit/8f96da9f5d5eff988554c1aae1784627c4bf6754",
