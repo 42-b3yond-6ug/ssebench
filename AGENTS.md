@@ -152,7 +152,8 @@ contains the working directory, otherwise the checkout it was installed from.
   not alter the evaluation result.
 - **The container contract is stable.** Agents, plugins and third-party
   extensions rely on it. Change it only together with the runtime, the SDK,
-  the agents and the docs:
+  the agents and the docs (`docs/guides/extension-points.md` has the full
+  list):
 
   | Item | Value |
   |---|---|
@@ -167,6 +168,10 @@ contains the working directory, otherwise the checkout it was installed from.
   | OpenCode server | port 4096, when the agent image includes OpenCode |
   | `dialog.jsonl` | the agent dialog in the results directory, read by the web UI |
 
+- **The extension API is stable.** Other packages register tool layers and
+  CLI commands under the `ssebench.tool_layers` and `ssebench.commands`
+  entry-point groups and import from `ssebench.extensions`; keep both
+  backward compatible.
 - **Dataset licensing.** Task material is CC BY 4.0; upstream code in a task
   keeps its own license and license files. Only add publicly disclosed
   vulnerabilities with an upstream fix, and record them in

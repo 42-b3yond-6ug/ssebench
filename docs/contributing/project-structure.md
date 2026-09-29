@@ -46,7 +46,7 @@ Run results are written to `results/`, which is not committed.
 
 The `ssebench` CLI. It loads the task, the agent and the model, builds the image layers for the task, runs the container and collects the results. See the [CLI reference](/reference/cli).
 
-The code is the `ssebench` package in `bench/src/ssebench/`, with one subpackage per concern: `ssebench.cli`, `ssebench.tasks`, `ssebench.agents`, `ssebench.models`, `ssebench.pipe` (the image build pipeline), `ssebench.middleware` (the tool layers) and `ssebench.runner`. `ssebench.paths` locates the SSEBench home that holds `agents/`, `images/`, `datasets/` and the other assets. Tests are in `bench/tests/`.
+The code is the `ssebench` package in `bench/src/ssebench/`, with one subpackage per concern: `ssebench.cli`, `ssebench.tasks`, `ssebench.agents`, `ssebench.models`, `ssebench.pipe` (the image build pipeline), `ssebench.middleware` (the tool layers), `ssebench.runner` and `ssebench.extensions` (the [extension points](/guides/extension-points) for other packages). `ssebench.paths` locates the SSEBench home that holds `agents/`, `images/`, `datasets/` and the other assets. Tests are in `bench/tests/`.
 
 ## Python workspace
 
