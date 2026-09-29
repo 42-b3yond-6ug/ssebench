@@ -1,6 +1,6 @@
 [project]
 name = "ssebench-sdk"
-version = "0.1.0"
+version = "1.0.0.dev0"
 description = "Python SDK for the SSEBench framework"
 requires-python = ">=3.12"
 authors = [{ name = "SSEBench Team" }]
@@ -15,7 +15,6 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
   "Programming Language :: Rust",
 ]
-# dynamic = ["version"]
 dependencies = [
   "dacite>=1.8.0",
   "pytest>=8.3.5",
