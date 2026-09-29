@@ -98,18 +98,19 @@ uv run ruff format && uv run ruff check
 uv run basedpyright
 uv run pytest
 
-# Rust (sdk/daemon)
+# Rust: Cargo workspace at the root (sdk/daemon), toolchain in rust-toolchain.toml
 cargo fmt --check
 cargo clippy --all-targets -- -D warnings
 cargo test
 
-# Go (runtime/entrypoint, catalog, webui/pty-proxy)
-gofmt -l . && go vet ./... && go test ./...
+# Go: go.work at the root (runtime/entrypoint, catalog, webui/pty-proxy)
+gofmt -l runtime/entrypoint catalog webui/pty-proxy
+go vet work && go test work
 
-# Web UI (webui) and docs (docs)
+# Web UI and docs: Bun workspace at the root (webui, docs)
 bun install
-bun run lint && bun run typecheck && bun run build    # webui
-bun run build                                          # docs
+bun run build                                          # webui and docs
+bun run --cwd webui lint && bun run --cwd webui typecheck
 
 # One run end to end; the dummy agent makes no model calls
 uv run ssebench run --local datasets/pilot --task <task-id> --agent dummy --model <model-name>
@@ -125,8 +126,8 @@ contains the working directory, otherwise the checkout it was installed from.
 - **Python:** 3.12 or newer, managed with uv. Format and lint with ruff; type
   check with basedpyright (pyright). Use modern typing (`X | None`,
   `list[str]`) and dataclasses or pydantic models for structured data.
-- **Rust:** stable toolchain; `cargo fmt` and `cargo clippy -D warnings` must
-  be clean. Use `anyhow` for error handling in the daemon.
+- **Rust:** the stable toolchain pinned in `rust-toolchain.toml`; `cargo fmt`
+  and `cargo clippy -D warnings` must be clean. Use `anyhow` for error handling in the daemon.
 - **Go:** `gofmt` and `go vet` clean.
 - **TypeScript:** Bun for installs and scripts; eslint, prettier and `tsc`
   clean.
