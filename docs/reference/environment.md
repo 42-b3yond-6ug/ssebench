@@ -100,7 +100,7 @@ image.
 
 ### SSEBench settings
 
-`just setup` writes `.env` from `.env.example`, which lists the first five. The
+`just setup` writes `.env` from `.env.example`, which lists the first six. The
 CLI reads them from the environment or from `.env` in the SSEBench home, with
 the environment taking precedence, and the `just` recipes load `.env` too.
 
@@ -111,7 +111,7 @@ the environment taking precedence, and the `just` recipes load `.env` too.
 | `LITELLM_PORT` | `4000` | Host port of the LiteLLM proxy |
 | `COMPOSE_PROJECT_NAME` | `ssebench` | Compose project of the proxy stack. Its containers, networks (`<project>_default`, and the internal `<project>_agents` that run containers join by default) and database volume (`<project>_postgres_data`) carry this name, so stacks with different names and ports run side by side |
 | `SSEBENCH_REGISTRY` | `ghcr.io/42-b3yond-6ug/ssebench` | Registry prefix for every image SSEBench builds or uses |
-| `SSEBENCH_CATALOG` | unset | Catalog server that `ssebench run` gets tasks from when `--local` is not given |
+| `SSEBENCH_CATALOG` | the bundled pilot manifest | [Task catalog](/reference/cli#task-catalog) that `ssebench run`, `ssebench tasks list` and the web UI get tasks from: the path or URL of a `manifest.json`, a dataset directory, or the URL of a catalog service. `--catalog` overrides it |
 | `SSEBENCH_HOME` | see [CLI](/reference/cli#working-directory) | Directory that holds `agents/`, `images/`, `runtime/`, `models/`, `deploy/` and `datasets/`, normally the repository root |
 
 ## Using the variables in an agent
