@@ -69,6 +69,7 @@ Everything that runs inside the task container besides the agent. The entrypoint
 |-----------|---------|
 | `base-images/` | Toolchain images: `generic-c`, `generic-go`, `generic-rust` |
 | `litellm/` | LiteLLM proxy image, configured from `models/` |
+| `runtime/` | The daemon and the entrypoint, in an image that other images copy them from |
 | `sandbox/` | Tool layer for sandbox mode (agent and project in one container) |
 | `sidecar-agent/` | Tool layer for the agent container in sidecar mode |
 | `sidecar-case/` | Tool layer for the task container in sidecar mode |

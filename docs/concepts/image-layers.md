@@ -96,6 +96,12 @@ on top of the case image:
 Steps 1 to 3 are what keep the answer away from the agent; see the
 [integrity model](/concepts/integrity).
 
+The daemon and the entrypoint are compiled from source into a stage named
+`runtime`, laid out like the published `runtime` image. To take them from that
+image instead of compiling them, build with
+`--build-context runtime=docker-image://$SSEBENCH_REGISTRY/runtime:<version>`;
+see [Releasing](/contributing/releasing#images).
+
 An installed extension can provide another tool layer, selected with
 `ssebench run --tool-layer NAME`; see
 [Extension points](/guides/extension-points#tool-layers). The run summary
