@@ -85,7 +85,7 @@ While iterating on one component, you can run its tools directly:
 | Rust | `sdk/daemon/` | `cargo fmt`, `cargo clippy --all-targets -- -D warnings`, `cargo test` |
 | Go | `runtime/entrypoint/`, `catalog/`, `webui/pty-proxy/` | `gofmt -l .`, `go vet ./...`, `go test ./...` |
 | TypeScript | `webui/` | `bun run lint`, `bun run typecheck`, `bun run build` |
-| Docs | `docs/` | `bun run build` |
+| Docs | `docs/` | `bun run build`; `just docs-check` checks the generated reference pages and `just docs-gen` rewrites them |
 | Dataset | `datasets/` | `uv run ssebench dataset validate`, `uv run ssebench dataset manifest --check` |
 
 Changes to the runtime, the images or a task should also be tried end to end.
@@ -120,7 +120,7 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent reference
 | `catalog/` | Go | Task catalog service. |
 | `webui/` | TypeScript, Go | Web UI and its terminal proxy. |
 | `datasets/pilot/` | mixed | The pilot tasks. |
-| `tools/` | shell, Python, Typst | Task preprocessing (`bear`), reports (`report`), task validation (`validate`). |
+| `tools/` | shell, Python, Typst | Task preprocessing (`bear`), reference docs generation (`docs`), reports (`report`), task validation (`validate`). |
 | `docs/` | Markdown | Documentation site (VitePress). |
 | `deploy/` | YAML | Deployment configurations (Docker Compose). |
 

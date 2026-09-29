@@ -29,6 +29,7 @@ ssebench/
 │   └── schema/          # JSON Schemas of the task config and the dataset manifest
 ├── tools/
 │   ├── bear/            # compile_commands.json generation for C tasks
+│   ├── docs/            # Generators of the reference pages, and their drift check
 │   ├── release/         # Version bump and drift check (bump.py)
 │   ├── report/          # Typst report built from results/
 │   └── validate/        # Task validator

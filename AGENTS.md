@@ -56,6 +56,7 @@ webui/                 web UI: Vite + React client, Bun/Hono server, pty-proxy (
 datasets/pilot/        the pilot dataset, one folder per task, with dataset.yaml and the generated manifest.json
 datasets/schema/       JSON Schemas of the task config and the manifest, exported from bench/src/ssebench/tasks/
 tools/bear/            compile_commands.json generation for C tasks
+tools/docs/            reference.py: regenerates the generated parts of docs/reference/, or checks them with --check
 tools/release/         bump.py: sets the version everywhere, or checks for drift with --check
 tools/report/          Typst report from results/
 tools/validate/        task validator
@@ -94,6 +95,7 @@ Justfile yet.
 | `just images` | Build the base images and the runtime, LiteLLM and catalog images. |
 | `just dataset-validate [tasks]` | Check that tasks build, their PoCs reproduce and their tests behave. |
 | `just docs [build]` | Serve or build the documentation site. |
+| `just docs-gen` / `just docs-check` | Regenerate, or check, the reference pages generated from the code (CLI, Python SDK, daemon API, environment variables, config files). |
 | `just release <version>` | Set the version of every component and update the lockfiles. |
 
 Components are `python`, `rust`, `go` and `webui`; without arguments a recipe
@@ -122,6 +124,11 @@ go vet work && go test work
 bun install
 bun run build                                          # webui and docs
 bun run --cwd webui lint && bun run --cwd webui typecheck
+
+# Reference docs: regions of docs/reference/*.md are generated from the code;
+# pytest and cargo test fail when they drift. Regenerate after changing the CLI's
+# options, the SDK's docstrings, sdk/daemon/openapi.yaml or docs/reference/env.yaml
+uv run tools/docs/reference.py            # or --check
 
 # Dataset: check the task folders, the committed manifest and the JSON Schemas;
 # `uv run ssebench dataset manifest` (or `schema`) rewrites a stale file
@@ -166,6 +173,12 @@ contains the working directory, otherwise the checkout it was installed from.
   `uv run tools/release/bump.py --check` to find drift. Datasets are
   versioned separately (for example `pilot-v1`); see
   `docs/contributing/releasing.md`.
+- **Reference docs** are generated where they can drift: the CLI's help
+  strings, the SDK's docstrings, the daemon's routes (`sdk/daemon/openapi.yaml`,
+  checked by `sdk/daemon/tests/openapi.rs`) and every environment variable
+  (`docs/reference/env.yaml`). When you add an option, a public SDK name, a
+  daemon route or an environment variable, update its source of truth and run
+  `just docs-gen`.
 - Never commit `.env`, API keys or `results/`.
 
 ## Invariants to preserve
