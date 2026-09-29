@@ -1,6 +1,6 @@
 module github.com/42-b3yond-6ug/ssebench/runtime/entrypoint
 
-go 1.21
+go 1.26.0
 
 require github.com/urfave/cli/v2 v2.27.7
 
