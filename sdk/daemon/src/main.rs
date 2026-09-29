@@ -6,7 +6,7 @@ use actix_web::{App, HttpServer, middleware::Logger, web};
 use env_logger::Env;
 use log::info;
 
-use ssebench::api::{AppState, configure_routes};
+use ssebench::api::{Access, AppState, configure_routes};
 use ssebench::bench::BenchCore;
 
 /// Default HTTP port for WebUI access
@@ -27,12 +27,44 @@ async fn main() -> std::io::Result<()> {
     let bench_path = env::var("SSE_BENCH_PATH").unwrap_or_else(|_| "/ssebench".to_string());
     let bench = BenchCore::new(&bench_path).expect("failed to load project");
     let state = AppState::new(bench);
+    info!("Difficulty gate: {:?}", state.difficulty);
 
     // Get HTTP port from environment or use default
     let http_port: u16 = env::var("SSE_HTTP_PORT")
         .ok()
         .and_then(|p| p.parse().ok())
         .unwrap_or(DEFAULT_HTTP_PORT);
+
+    // Optional root-only admin socket for privileged callers (entrypoint and
+    // evaluator): full grading, the reference patch, and phase changes.
+    if let Ok(admin_socket) = env::var("SSE_ADMIN_SOCKET") {
+        let admin_state = state.clone();
+        tokio::spawn(async move {
+            let admin_server = HttpServer::new(move || {
+                App::new()
+                    .wrap(Logger::default())
+                    .app_data(web::Data::new(admin_state.clone()))
+                    .app_data(web::Data::new(Access { privileged: true }))
+                    .configure(configure_routes)
+            })
+            .bind_uds(&admin_socket)
+            .expect("Failed to bind admin socket");
+
+            // Root-only: the unprivileged `model` user must not reach this socket.
+            let perms = fs::Permissions::from_mode(0o600);
+            fs::set_permissions(&admin_socket, perms).expect("Failed to chmod admin socket");
+            info!(
+                "Admin socket (privileged, 0600) started at {}",
+                admin_socket
+            );
+
+            if let Err(e) = admin_server.run().await {
+                log::error!("Admin socket server error: {}", e);
+            }
+        });
+    } else {
+        info!("SSE_ADMIN_SOCKET not set; no privileged admin socket");
+    }
 
     // Check if Unix socket mode is requested (for Python client compatibility)
     if let Ok(socket_path) = env::var("SSE_DAEMON_SOCKET") {
@@ -50,6 +82,7 @@ async fn main() -> std::io::Result<()> {
                 App::new()
                     .wrap(Logger::default())
                     .app_data(web::Data::new(http_state.clone()))
+                    .app_data(web::Data::new(Access { privileged: false }))
                     .configure(configure_routes)
             })
             .bind(("0.0.0.0", http_port))
@@ -67,6 +100,7 @@ async fn main() -> std::io::Result<()> {
             App::new()
                 .wrap(Logger::default())
                 .app_data(web::Data::new(state.clone()))
+                .app_data(web::Data::new(Access { privileged: false }))
                 .configure(configure_routes)
         })
         .bind_uds(&socket_path)?;
@@ -87,6 +121,7 @@ async fn main() -> std::io::Result<()> {
             App::new()
                 .wrap(Logger::default())
                 .app_data(web::Data::new(state.clone()))
+                .app_data(web::Data::new(Access { privileged: false }))
                 .configure(configure_routes)
         })
         .bind(("0.0.0.0", http_port))?;

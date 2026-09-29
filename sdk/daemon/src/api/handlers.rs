@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use super::diff::get_full_diff;
 use super::error::AppError;
 use super::grading::prepare_grading;
-use super::state::AppState;
+use super::state::{Access, AppState};
 
 #[derive(Serialize)]
 struct AppVersion {
@@ -42,8 +42,14 @@ struct ToolQuery {
 }
 
 /// POST /tool/{name} - Route request to the specified tool.
+///
+/// On the agent-facing listeners the `bencher` actions are gated by the
+/// difficulty level: a level that withholds a check (e.g. the PoC at the
+/// default `NO_FUTURE_TEST`) makes the corresponding action return 403. The
+/// admin socket is privileged and never gated, so grading runs every check.
 async fn tool(
     state: web::Data<AppState>,
+    access: web::Data<Access>,
     path: web::Path<String>,
     query: web::Query<ToolQuery>,
     body: web::Json<Value>,
@@ -53,6 +59,15 @@ async fn tool(
     let arg = body.into_inner();
 
     debug!("Received request: POST /tool/{} action={}", name, action);
+
+    if !access.privileged && name == "bencher" && !state.difficulty.allows_bencher_action(&action) {
+        return Ok(HttpResponse::Forbidden().json(json!({
+            "error": format!(
+                "action '{}' is not available at the current difficulty level",
+                action
+            )
+        })));
+    }
 
     let mut tool_router = state.tool_router.lock().unwrap();
 
@@ -363,9 +378,17 @@ fn archive_dir() -> std::path::PathBuf {
 /// retrieved later via GET /final_diff.
 ///
 /// IMPORTANT: This is an intrusive, destructive operation. It should only
-/// be called by the evaluator after the agent has finished working.
-async fn prepare_grading_handler(state: web::Data<AppState>) -> Result<HttpResponse, AppError> {
+/// be called by the evaluator after the agent has finished working, and so is
+/// restricted to the privileged admin socket.
+async fn prepare_grading_handler(
+    state: web::Data<AppState>,
+    access: web::Data<Access>,
+) -> Result<HttpResponse, AppError> {
     debug!("Received request: POST /prepare_grading");
+
+    if !access.privileged {
+        return Ok(forbidden_privileged());
+    }
 
     let source_folder = state.project.source_folder();
     let archive = archive_dir();
@@ -394,43 +417,71 @@ async fn final_diff() -> Result<HttpResponse, AppError> {
 }
 
 // =============================================================================
-// Ground Truth Endpoint - WebUI ONLY (not for agents!)
+// Reference Patch & Phase Endpoints - privileged / post-agent only
 // =============================================================================
 
-/// GET /cheating/ground_truth - Returns the ground truth patch (WebUI only)
+/// Build the standard 403 body for a request that reached a privileged-only
+/// route on an agent-facing listener.
+fn forbidden_privileged() -> HttpResponse {
+    HttpResponse::Forbidden().json(json!({
+        "error": "endpoint is only available on the admin socket"
+    }))
+}
+
+/// GET /reference/patch - Returns the reference (ground truth) patch.
 ///
-/// This endpoint provides the expected solution for UI comparison purposes.
-/// IMPORTANT: This is intentionally NOT available via the tool interface to maintain
-/// benchmark integrity - agents must NEVER have access to the answer.
+/// This is the answer to the task and must never reach the agent while it
+/// works. It is served in two cases only:
+///   - on the privileged admin socket (used by post-agent tooling), or
+///   - on an agent-facing listener *after* the agent phase has ended, so the
+///     web UI can fetch it from the host once the run is over.
 ///
-/// Returns the same format as /diff endpoint: { "diff": "..." }
-async fn ground_truth(state: web::Data<AppState>) -> Result<HttpResponse, AppError> {
-    debug!("Received request: GET /cheating/ground_truth (WebUI only)");
+/// Returns the same format as /diff: { "diff": "..." }
+async fn reference_patch(
+    state: web::Data<AppState>,
+    access: web::Data<Access>,
+) -> Result<HttpResponse, AppError> {
+    debug!("Received request: GET /reference/patch");
+
+    if !access.privileged && !state.agent_phase_ended() {
+        return Ok(HttpResponse::Forbidden().json(json!({
+            "error": "reference patch is unavailable while the agent is running"
+        })));
+    }
 
     let patch_path = match state.project.ground_truth_patch_file() {
         Some(path) => path,
         None => {
-            return Ok(HttpResponse::Ok().json(json!({
-                "diff": ""
-            })));
+            return Ok(HttpResponse::Ok().json(json!({ "diff": "" })));
         }
     };
 
     match std::fs::read_to_string(patch_path) {
-        Ok(content) => Ok(HttpResponse::Ok().json(json!({
-            "diff": content
-        }))),
+        Ok(content) => Ok(HttpResponse::Ok().json(json!({ "diff": content }))),
         Err(e) => {
-            log::warn!(
-                "Failed to read ground truth patch at {:?}: {}",
-                patch_path,
-                e
-            );
-            Ok(HttpResponse::Ok().json(json!({
-                "diff": ""
-            })))
+            log::warn!("Failed to read reference patch at {:?}: {}", patch_path, e);
+            Ok(HttpResponse::Ok().json(json!({ "diff": "" })))
         }
     }
+}
+
+/// POST /admin/agent_exited - Mark the agent phase as ended.
+///
+/// The entrypoint calls this over the admin socket once the agent process
+/// exits, which unlocks the reference patch on the agent-facing listeners for
+/// the web UI. Privileged-only.
+async fn agent_exited(
+    state: web::Data<AppState>,
+    access: web::Data<Access>,
+) -> Result<HttpResponse, AppError> {
+    debug!("Received request: POST /admin/agent_exited");
+
+    if !access.privileged {
+        return Ok(forbidden_privileged());
+    }
+
+    state.end_agent_phase();
+    Ok(HttpResponse::Ok().json(json!({ "success": true })))
 }
 
 /// Configure all routes for the application.
@@ -446,9 +497,11 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .route("/agent/dialog", web::get().to(agent_dialog))
         // Evaluation result endpoint
         .route("/result", web::get().to(result))
-        // Grading endpoints (evaluator only - NOT for agents!)
+        // Grading endpoints (privileged admin socket only - NOT for agents!)
         .route("/prepare_grading", web::post().to(prepare_grading_handler))
         .route("/final_diff", web::get().to(final_diff))
-        // Ground truth patch (WebUI only - NOT for agents!)
-        .route("/cheating/ground_truth", web::get().to(ground_truth));
+        // Phase control (privileged admin socket only)
+        .route("/admin/agent_exited", web::post().to(agent_exited))
+        // Reference patch: privileged, or agent-facing only after the agent phase
+        .route("/reference/patch", web::get().to(reference_patch));
 }
