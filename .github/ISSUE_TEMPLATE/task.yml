@@ -1,0 +1,62 @@
+name: New task proposal
+description: Propose a vulnerability to add to the dataset.
+labels: [dataset]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tasks must be publicly disclosed vulnerabilities with an upstream fix. See the [add-a-task guide](https://github.com/42-b3yond-6ug/ssebench/blob/main/docs/guides/add-a-task.md). If the vulnerability is not public yet, do not propose it here.
+  - type: input
+    id: project
+    attributes:
+      label: Upstream project
+      description: Repository URL of the affected project.
+    validations:
+      required: true
+  - type: input
+    id: advisory
+    attributes:
+      label: Advisory
+      description: CVE, GHSA, GO or RUSTSEC identifier, or a link to the public report.
+    validations:
+      required: true
+  - type: input
+    id: fix
+    attributes:
+      label: Upstream fix
+      description: Link to the fixing commit or pull request.
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - C
+        - Go
+        - Rust
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: license
+    attributes:
+      label: License
+      description: The project's license (SPDX identifier).
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Is there a public proof of concept? Does it crash reliably, for example under a sanitizer or with a panic? Which tests show the fix works?
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: The vulnerability is publicly disclosed and fixed upstream.
+          required: true
+        - label: I can contribute the task folder (Dockerfile, scripts, PoC, report and reference patch).
