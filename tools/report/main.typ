@@ -11,7 +11,11 @@
   default: "default",
 )
 
-#let results = json(case_result_json_file)
+// Reference runs apply each task's known fix, so their grades rate the tasks,
+// not a model; they are never scored.
+#let all-results = json(case_result_json_file)
+#let results = all-results.filter(r => not r.config.at("reference_run", default: false))
+#let reference-runs = all-results.len() - results.len()
 
 #grid(
   columns: (auto, 1fr, auto),
@@ -34,7 +38,7 @@
 #let models = results.map(r => r.config.model).dedup()
 #let agents = results.map(r => r.config.agent).dedup()
 #let tasks = results.map(r => r.task.id).dedup()
-#let models_agents = models.map(x => agents.map(y => (x, y))).sum()
+#let models_agents = models.map(x => agents.map(y => (x, y))).sum(default: ())
 
 SSEBench is a comprehensive benchmark for evaluating the security capabilities
 of language models and agents.
@@ -45,6 +49,10 @@ This report is automatically generated
 by evaluating #(agents.len()) agents (#agents.join(", "))
 using #models.len() large language models (#models.join(", "))
 over #tasks.len() testcases.
+#if reference-runs > 0 [
+  #reference-runs reference runs, which apply the known fix of each task
+  instead of a model's patch, are left out.
+]
 
 #line(length: 100%)
 
