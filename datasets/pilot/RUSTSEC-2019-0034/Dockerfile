@@ -19,13 +19,16 @@ RUN cd /src/http && \
 
 # Copy harness
 COPY ./harness /ssebench/harness
+# Upstream commits no lockfile, so the crate versions are pinned here, to
+# releases that nightly-2022-07-11 can still build
+COPY Cargo.lock /src/http/Cargo.lock
 # can only build in nightly-2022-07-11
 # can only test in nightly-2023-11-24
 # so we download both their deps because each toolchain has different cache
 RUN cd /src/http \
-    && cargo fetch \
+    && cargo fetch --locked \
     && cp Cargo.lock /ssebench/harness/Cargo.lock \
-    && rustup run nightly-2023-11-24 cargo fetch
+    && rustup run nightly-2023-11-24 cargo fetch --locked
 
 # Copy config file
 COPY sse/config.yaml /ssebench/config.yaml

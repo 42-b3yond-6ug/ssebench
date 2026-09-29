@@ -15,7 +15,9 @@ RUN git clone https://github.com/viz-rs/nano-id.git /src/nano-id &&\
 # Copy harness
 COPY ./harness /ssebench/harness
 
-RUN cd /src/nano-id && cargo fetch && cp Cargo.lock /ssebench/harness/Cargo.lock
+# Upstream commits no lockfile, so the crate versions are pinned here
+COPY Cargo.lock /src/nano-id/Cargo.lock
+RUN cd /src/nano-id && cargo fetch --locked && cp Cargo.lock /ssebench/harness/Cargo.lock
 
 # Copy config file
 COPY sse/config.yaml /ssebench/config.yaml

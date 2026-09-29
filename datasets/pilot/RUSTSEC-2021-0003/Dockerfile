@@ -15,7 +15,9 @@ RUN cd /src/rust-smallvec && \
 
 # Copy harness
 COPY ./harness /ssebench/harness
-RUN cd /src/rust-smallvec && cargo fetch && cp Cargo.lock /ssebench/harness/Cargo.lock
+# Upstream commits no lockfile, so the crate versions are pinned here
+COPY Cargo.lock /src/rust-smallvec/Cargo.lock
+RUN cd /src/rust-smallvec && cargo fetch --locked && cp Cargo.lock /ssebench/harness/Cargo.lock
 
 # Copy config file
 COPY sse/config.yaml /ssebench/config.yaml
