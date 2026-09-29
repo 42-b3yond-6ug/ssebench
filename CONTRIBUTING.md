@@ -40,8 +40,9 @@ just lint    # all linters and type checkers
 just test    # unit tests for every component
 ```
 
-Run `just lint` and `just test` before you open a pull request. CI runs the
-same checks.
+Each takes component names to narrow it down, for example `just test python`
+or `just lint rust go`. Run `just lint` and `just test` before you open a pull
+request. CI runs the same checks.
 
 While iterating on one component, you can run its tools directly:
 

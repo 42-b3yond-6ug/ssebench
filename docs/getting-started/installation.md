@@ -18,6 +18,7 @@ needs; the [Quickstart](/getting-started/quickstart) then runs your first task.
 | fzf (optional) | The interactive task, model and agent pickers in `just` recipes |
 | jq and [Typst](https://typst.app/) (optional) | Building a report from results |
 | [Bun](https://bun.sh/) (optional) | The web UI and these docs |
+| Rust and Go (optional) | `just test` and `just lint` for the daemon and the Go components; `rust-toolchain.toml` pins the Rust version |
 
 An x86-64 host is recommended: many C tasks build with AddressSanitizer for
 x86-64 only. Leave room for the images too: the three base images take about
@@ -74,10 +75,18 @@ cd ssebench
 Run every command in these docs from the repository root unless it says
 otherwise.
 
-## Add your API keys
+## Set up
 
-Create a file named `.env` in the repository root with the key of each model
-provider you want to use:
+```sh
+just setup
+```
+
+This installs the Python dependencies (and, if Bun is installed, those of the
+web UI and the docs), then writes `.env` from `.env.example`. `.env` holds a
+generated master key for the LiteLLM proxy and a generated password for its
+database; `just setup` leaves an existing `.env` unchanged.
+
+Then add the key of each model provider you want to use to `.env`:
 
 ```sh
 ANTHROPIC_API_KEY=sk-ant-...
@@ -85,31 +94,23 @@ OPENAI_API_KEY=sk-...
 GOOGLE_API_KEY=...
 ```
 
-Leave out the providers you don't use. The LiteLLM proxy reads this file when
-it starts, so it must exist even if it is empty, for example when you only run
-the `dummy` agent, which makes no model calls.
+Leave the others empty. The `dummy` agent makes no model calls and needs no
+key.
 
 ::: warning
 Never commit `.env`. It is listed in `.gitignore`.
 :::
 
-::: warning Coming soon
-`just setup` will install the dependencies and write `.env` for you, including
-generated local secrets for the proxy. Until it is available, create `.env` by
-hand as shown above.
-:::
-
 ## Check your setup
 
 ```sh
-docker --version
-docker buildx version
-uv --version
-just --version
-
-# List the available recipes
-just
+just doctor
 ```
+
+`just doctor` (`uv run ssebench doctor`) checks Docker and buildx, free disk
+space, the CPU architecture, `.env`, the LiteLLM proxy and the provider keys,
+and prints a fix for each problem. It exits non-zero when a required check
+fails. Run `just` to list the other recipes.
 
 ## Next steps
 

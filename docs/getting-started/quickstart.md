@@ -30,16 +30,24 @@ just launch
 This builds the proxy image with the models defined in `models/` and starts it,
 together with its Postgres database, as the
 [local Docker Compose stack](/deployment/compose). The proxy listens on port
-4000:
+4000, or on `LITELLM_PORT` if you set it in `.env`:
 
 ```sh
 curl http://localhost:4000/health/liveliness
 ```
 
-`ssebench run` also starts the proxy when it is not running, but it does not
-rebuild it. Run `just launch` again after you change anything in `models/`.
+`ssebench run` also starts the proxy when it is not running. Both rebuild the
+proxy image first when `models/` changed since it was built. `just stop` stops
+the proxy and keeps its database.
 
 ## 3. Run a task
+
+```sh
+just run --task gjson-196-bf4efcb --agent claude-code --model claude-sonnet-4-6
+```
+
+`just run` passes its arguments to `ssebench run` and adds
+`--local datasets/pilot`; this is the same as:
 
 ```sh
 uv run ssebench run \
@@ -48,6 +56,9 @@ uv run ssebench run \
     --agent claude-code \
     --model claude-sonnet-4-6
 ```
+
+Without arguments, `just run` lets you pick the task, model, agent and mode
+with fzf.
 
 `gjson-196-bf4efcb` is a Go task, so it needs only the Go base image. The first
 run of a task builds its case, tool and agent images, which takes a while. The

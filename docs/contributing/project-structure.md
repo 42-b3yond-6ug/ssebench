@@ -40,7 +40,8 @@ ssebench/
 ├── VERSION              # The version of every component
 ├── pyproject.toml       # uv workspace root for every Python project
 ├── uv.lock              # The workspace's single lockfile
-└── .env                 # Your API keys (not committed)
+├── .env.example         # Template of .env; `just setup` copies it
+└── .env                 # Local secrets and API keys (not committed)
 ```
 
 Run results are written to `results/`, which is not committed.

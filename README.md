@@ -121,6 +121,7 @@ it works. Final grading always runs every check the task has.
 git clone https://github.com/42-b3yond-6ug/ssebench.git
 cd ssebench
 just setup    # install dependencies and write .env with generated local secrets
+just doctor   # check Docker, disk space, .env and the LiteLLM proxy
 ```
 
 **See it work** (coming soon)
