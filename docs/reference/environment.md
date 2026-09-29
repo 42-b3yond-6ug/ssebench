@@ -22,7 +22,7 @@ These variables are automatically set inside task containers:
 
 ## Difficulty Levels
 
-The `SSE_DIFFICULTY` variable controls which checks the agent's `test_patch` tool runs. Final grading always runs every check the task has. See [Difficulty Levels](/guide/mcp-server#difficulty-levels).
+The `SSE_DIFFICULTY` variable controls which checks the agent's `test_patch` tool runs. Final grading always runs every check the task has. See [Difficulty Levels](/reference/mcp-server#difficulty-levels).
 
 | Level | Name | `test_patch` runs |
 |-------|------|-------------------|
@@ -150,6 +150,6 @@ Error: SSE_API_KEY not set
 
 ## Next Steps
 
-- [Adding Models](/guide/models) - Configure model providers
-- [MCP Server](/guide/mcp-server) - The `test_patch` tool
-- [Getting Started](/guide/getting-started) - The `ssebench run` command
+- [Adding Models](/guides/add-a-model) - Configure model providers
+- [MCP Server](/reference/mcp-server) - The `test_patch` tool
+- [Getting Started](/getting-started/quickstart) - The `ssebench run` command

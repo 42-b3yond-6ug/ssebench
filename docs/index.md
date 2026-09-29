@@ -9,10 +9,10 @@ hero:
   actions:
     - theme: brand
       text: Get Started
-      link: /guide/getting-started
+      link: /getting-started/quickstart
     - theme: alt
       text: What is SSEBench?
-      link: /guide/introduction
+      link: /getting-started/introduction
     - theme: alt
       text: View on GitHub
       link: https://github.com/42-b3yond-6ug/ssebench

@@ -106,6 +106,6 @@ An internal testing failure occurred. Your patch is not responsible for this fai
 
 ## Next Steps
 
-- [Architecture](/guide/architecture) - How the MCP server fits into the task container
-- [Environment Variables](/guide/environment) - Variables available inside the container
-- [Dialog Protocol](/guide/dialog-protocol) - Integrate your agent with the Web UI
+- [Architecture](/concepts/architecture) - How the MCP server fits into the task container
+- [Environment Variables](/reference/environment) - Variables available inside the container
+- [Dialog Protocol](/reference/dialog-protocol) - Integrate your agent with the Web UI

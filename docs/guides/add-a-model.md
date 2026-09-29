@@ -254,6 +254,6 @@ Error: Rate limit exceeded
 
 ## Next Steps
 
-- [Getting Started](/guide/getting-started) - Run a task with your model
-- [Environment Variables](/guide/environment) - API keys and container variables
+- [Getting Started](/getting-started/quickstart) - Run a task with your model
+- [Environment Variables](/reference/environment) - API keys and container variables
 - [LiteLLM Docs](https://docs.litellm.ai/) - Full provider list

@@ -70,7 +70,7 @@ Case images are built from the `Dockerfile` in each task folder of a dataset, su
 Provides the SSEBench SDK and MCP server:
 
 - **Python SDK (`sse`)**: APIs for build, test, and metadata access
-- **MCP Server**: Model Context Protocol server exposing the [`test_patch`](/guide/mcp-server) tool
+- **MCP Server**: Model Context Protocol server exposing the [`test_patch`](/reference/mcp-server) tool
 - **Rust Daemon**: Handles build/test operations via Unix socket
 
 ### Agent Image
@@ -144,7 +144,7 @@ Sidecar mode is experimental; sandbox mode is the default.
 
 ## Project Structure
 
-See [Project Structure](/reference/project-structure) for the repository layout.
+See [Project Structure](/contributing/project-structure) for the repository layout.
 
 ## Data Flow
 
@@ -223,7 +223,7 @@ The SDK daemon only exposes safe metadata to agents. Protected information inclu
 
 ### Difficulty Levels
 
-The `SSE_DIFFICULTY` environment variable controls which checks the agent's [`test_patch`](/guide/mcp-server) tool runs. Final grading always runs every check the task has.
+The `SSE_DIFFICULTY` environment variable controls which checks the agent's [`test_patch`](/reference/mcp-server) tool runs. Final grading always runs every check the task has.
 
 | Level | Build | Regression | PoC | Intent |
 |-------|-------|------------|-----|--------|
@@ -237,6 +237,6 @@ At difficulty level 2 (default), PoC validation and intent tests are hidden to p
 
 ## Next Steps
 
-- [Adding Models](/guide/models) - Configure LLM providers
-- [MCP Server](/guide/mcp-server) - The `test_patch` tool
-- [Dialog Protocol](/guide/dialog-protocol) - Integrate your agent with the Web UI
+- [Adding Models](/guides/add-a-model) - Configure LLM providers
+- [MCP Server](/reference/mcp-server) - The `test_patch` tool
+- [Dialog Protocol](/reference/dialog-protocol) - Integrate your agent with the Web UI
