@@ -14,9 +14,13 @@ import sys
 import time
 from dataclasses import dataclass
 
-# Set up the socket path before importing SDK
+# The daemon serves agents on SOCKET_PATH, gated by difficulty, and privileged
+# callers on ADMIN_SOCKET_PATH. These tests drive every action and the grading
+# endpoints as the evaluator does, so the SDK talks to the admin socket. Set
+# before importing the SDK.
 SOCKET_PATH = "/tmp/ssebench-test.sock"
-os.environ["SSE_DAEMON_SOCKET"] = SOCKET_PATH
+ADMIN_SOCKET_PATH = "/tmp/ssebench-test-admin.sock"
+os.environ["SSE_DAEMON_SOCKET"] = ADMIN_SOCKET_PATH
 
 
 @dataclass
@@ -31,7 +35,7 @@ def start_daemon() -> subprocess.Popen:
     print("Starting daemon...")
     proc = subprocess.Popen(
         ["ssebench-daemon"],
-        env={**os.environ, "SSE_DAEMON_SOCKET": SOCKET_PATH},
+        env={**os.environ, "SSE_DAEMON_SOCKET": SOCKET_PATH, "SSE_ADMIN_SOCKET": ADMIN_SOCKET_PATH},
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
