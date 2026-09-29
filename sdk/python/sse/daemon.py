@@ -39,12 +39,13 @@ class Daemon:
     """A connection to the daemon.
 
     Creating one asks the daemon for its version and logs a warning when it differs from the
-    SDK's. Raises ``Exception`` when neither ``SSE_DAEMON_SOCKET`` nor ``SSE_AGENT_DOCKER`` is
-    set, and ``RuntimeError`` when the daemon does not answer.
+    SDK's. It connects to ``socket`` when given, else to ``SSE_DAEMON_SOCKET``, else to the
+    daemon at ``SSE_AGENT_DOCKER``. Raises ``Exception`` when there is none of them, and
+    ``RuntimeError`` when the daemon does not answer.
     """
 
-    def __init__(self):
-        if (sock := os.getenv("SSE_DAEMON_SOCKET")) is not None:
+    def __init__(self, socket: str | None = None):
+        if (sock := socket or os.getenv("SSE_DAEMON_SOCKET")) is not None:
             self.conn = requests_unixsocket.Session()
             self.base_url = "http+unix://" + urllib.parse.quote_plus(sock)
         elif os.getenv("SSE_AGENT_DOCKER") is not None:
