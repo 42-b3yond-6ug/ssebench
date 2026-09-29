@@ -49,7 +49,7 @@ The server reads `SSE_DIFFICULTY` once, at startup. `ssebench run --difficulty` 
 
 At level 4, `test_patch` runs nothing and always reports success.
 
-The difficulty level only limits what the agent can check while it works. Final grading by the evaluator always runs every check the task has.
+The difficulty level only limits what the agent can check while it works. Final grading by the evaluator always runs every check the task has. The daemon enforces the same limits on its own, so an agent that calls it directly gets no more than `test_patch` gives; see [Difficulty levels](/concepts/difficulty-levels).
 
 ## Return Value
 
@@ -107,5 +107,6 @@ An internal testing failure occurred. Your patch is not responsible for this fai
 ## Next steps
 
 - [Architecture](/concepts/architecture): how the MCP server fits into the task container
+- [Grading pipeline](/concepts/grading): how final grading differs from `test_patch`
 - [Environment variables](/reference/environment): variables available inside the container
 - [Dialog protocol](/reference/dialog-protocol): show your agent's session in the web UI

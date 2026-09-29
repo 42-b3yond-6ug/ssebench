@@ -52,8 +52,8 @@ grading always runs every check the task has.
 | 3 | `BUILD_ONLY` |
 | 4 | `NO_BUILD` |
 
-See [MCP server](/reference/mcp-server#difficulty-levels) for what each level
-runs.
+See [Difficulty levels](/concepts/difficulty-levels) for what each level
+allows and how it is enforced.
 
 ## On the host
 

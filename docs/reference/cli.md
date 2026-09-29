@@ -32,9 +32,9 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent <agent> --mo
 | `--mode MODE` | `sandbox` | Execution mode: `sandbox`, or `sidecar` (experimental); see [Sandbox and sidecar](/concepts/sandbox-and-sidecar) |
 | `--tool-layer NAME` | `sandbox` | The [tool layer](/guides/extension-points#tool-layers) to build, in sandbox mode; installed extensions can add more |
 | `--timeout SECONDS` | `3600` | How long the agent may run |
-| `--difficulty LEVEL` | `2` | Which checks the agent's `test_patch` tool may run, from 0 to 4; see [Difficulty levels](/reference/mcp-server#difficulty-levels) |
+| `--difficulty LEVEL` | `2` | Which checks the agent's `test_patch` tool may run, from 0 to 4; see [Difficulty levels](/concepts/difficulty-levels) |
 | `--keep-container` | off | Keep the container after the run, for example to inspect it from the [web UI](/webui/) |
-| `--egress POLICY` | `restricted` | `restricted`: the run container reaches the LiteLLM proxy but not the internet. `open`: it also has internet access, for tasks that need network at test time. Recorded as `config.egress` in the run summary |
+| `--egress POLICY` | `restricted` | `restricted`: the run container reaches the LiteLLM proxy but not the internet. `open`: it also has internet access, for tasks that need network at test time. Recorded as `config.egress` in the run summary; see [Integrity and egress](/deployment/integrity-and-egress) |
 
 Without `--local`, the task comes from the [task catalog](#task-catalog), and
 its case image is pulled from `$SSEBENCH_REGISTRY`. When the pull fails, the CLI

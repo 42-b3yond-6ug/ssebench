@@ -188,5 +188,6 @@ the proxy doesn't know the name:
 
 - [Quickstart](/getting-started/quickstart): run a task with your model
 - [Environment variables](/reference/environment): keys and container variables
+- [LiteLLM proxy](/concepts/litellm-proxy): how runs get their key and how spend is recorded
 - [LiteLLM providers](https://docs.litellm.ai/docs/providers): every provider
   LiteLLM supports
