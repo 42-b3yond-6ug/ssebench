@@ -16,7 +16,7 @@
       "name": "ssebench-webui",
       "version": "1.0.0-dev",
       "dependencies": {
-        "@hono/node-server": "^1.19.9",
+        "@hono/node-server": "^2.1.1",
         "@opencode-ai/sdk": "^1.1.40",
         "@xterm/addon-fit": "^0.10.0",
         "@xterm/addon-search": "^0.15.0",
@@ -212,7 +212,7 @@
 
     "@eslint/plugin-kit": ["@eslint/plugin-kit@0.4.1", "", { "dependencies": { "@eslint/core": "^0.17.0", "levn": "^0.4.1" } }, ""],
 
-    "@hono/node-server": ["@hono/node-server@1.19.9", "", { "peerDependencies": { "hono": "^4" } }, "sha512-vHL6w3ecZsky+8P5MD+eFfaGTyCeOHUIFYMGpQGbrBTSmNNoxv0if69rEZ5giu36weC5saFuznL411gRX7bJDw=="],
+    "@hono/node-server": ["@hono/node-server@2.1.1", "", { "peerDependencies": { "hono": "^4" } }, "sha512-ELuehkj5VCBdgEw9zs+ivkKwyzzUCSQuE96YmiPvn1ECBoZCczbFXJLeEGMTYjphP6gydh4pHMqEYPVMYUVgQg=="],
 
     "@humanfs/core": ["@humanfs/core@0.19.1", "", {}, ""],
 
