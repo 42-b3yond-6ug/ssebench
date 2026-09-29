@@ -31,7 +31,7 @@ Issues = "https://github.com/42-b3yond-6ug/ssebench/issues"
 Repository = "https://github.com/42-b3yond-6ug/ssebench"
 
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=84.0.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
