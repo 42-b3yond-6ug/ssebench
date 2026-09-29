@@ -34,6 +34,7 @@ const SSEBENCH_LABEL = "ssebench.webui"
 const TASK_ID_LABEL = "ssebench.task-id"
 const MODEL_LABEL = "ssebench.model"
 const AGENT_LABEL = "ssebench.agent"
+const REFERENCE_RUN_LABEL = "ssebench.reference-run"
 
 /**
  * Parse Docker status string to normalized status
@@ -116,6 +117,7 @@ function transformContainer(raw: DockerPsJson): DockerContainer {
     taskId: labels[TASK_ID_LABEL] || "unknown",
     model: labels[MODEL_LABEL] || "unknown",
     agent: labels[AGENT_LABEL] || "unknown",
+    referenceRun: labels[REFERENCE_RUN_LABEL] === "true",
     status: parseStatus(raw.Status),
     image: raw.Image,
     ports: parsePorts(raw.Ports),
