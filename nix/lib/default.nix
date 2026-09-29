@@ -10,15 +10,55 @@ rec {
   # The uv workspace; uv.lock is the only place Python dependencies are pinned.
   workspace = inputs.uv2nix.lib.workspace.loadWorkspace { workspaceRoot = root; };
 
+  # Every member with its dependency groups, plus the root `dev` group (ruff,
+  # basedpyright, pytest), which uv2nix does not resolve on its own.
+  pythonDeps =
+    let
+      devGroup = (lib.importTOML (root + "/pyproject.toml")).dependency-groups.dev;
+      name = spec: (inputs.pyproject-nix.lib.pep508.parseString spec).name;
+    in
+    workspace.deps.all // lib.genAttrs (map name devGroup) (_: [ ]);
+
   # Python package set for the workspace, built from the locked wheels.
   mkPythonSet =
     pkgs:
     (pkgs.callPackage inputs.pyproject-nix.build.packages { python = pkgs.python312; }).overrideScope (
       lib.composeManyExtensions [
         inputs.pyproject-build-systems.overlays.wheel
-        (workspace.mkPyprojectOverlay { sourcePreference = "wheel"; })
+        (workspace.mkPyprojectOverlay {
+          sourcePreference = "wheel";
+          dependencies = pythonDeps;
+        })
       ]
     );
+
+  # `nix fmt` and the formatting check. The web UI keeps its own Prettier setup
+  # (`bun run --cwd webui format`): its Tailwind plugin sorts classes by the
+  # tailwindcss it finds in the workspace node_modules.
+  mkTreefmt =
+    pkgs:
+    inputs.treefmt-nix.lib.evalModule pkgs {
+      projectRootFile = "flake.nix";
+      # Task sources are upstream code and keep their own style.
+      settings.global.excludes = [ "datasets/**" ];
+
+      programs.nixfmt.enable = true;
+      programs.ruff-format = {
+        enable = true;
+        package = lib.addMetaAttrs { mainProgram = "ruff"; } (mkPythonSet pkgs).ruff;
+      };
+      # Apply extend-exclude from pyproject.toml to the paths treefmt passes.
+      settings.formatter.ruff-format.options = [ "--force-exclude" ];
+      programs.rustfmt = {
+        enable = true;
+        # cargo fmt passes the crates' edition; rustfmt.toml sets the style.
+        edition = (lib.importTOML (root + "/Cargo.toml")).workspace.package.edition;
+      };
+      programs.gofmt = {
+        enable = true;
+        package = pkgs.go_1_26;
+      };
+    };
 
   # node_modules of the Bun workspace (webui and docs), fetched from bun.lock,
   # with package bins set to run on Bun instead of `/usr/bin/env node`.
