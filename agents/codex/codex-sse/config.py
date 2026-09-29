@@ -2,14 +2,14 @@
 # for the full config template
 CONFIG_TEMPLATE = {
     "model": "",
-    "review-model": "",
+    "review_model": "",
     "model_provider": "ssebench",
     "approval_policy": "never",
     "sandbox_mode": "workspace-write",
     "mcp_servers": {
         "ssebench": {
             "url": "",
-            "startup_timeout_sec ": 300.0,
+            "startup_timeout_sec": 300.0,
             "tool_timeout_sec": 3600.0,
         }
     },

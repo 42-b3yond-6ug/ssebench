@@ -18,9 +18,8 @@ def generate_config(api_key: str, base_url: str, model: str, mcp_url: str):
     CONFIG_TEMPLATE["model_providers"]["ssebench"]["base_url"] = base_url
     CONFIG_TEMPLATE["mcp_servers"]["ssebench"]["url"] = mcp_url
 
-    home = os.getenv("HOME", "/root")
-    codex_config_folder = Path(home) / ".codex"
-    codex_config_folder.mkdir()
+    codex_config_folder = Path.home() / ".codex"
+    codex_config_folder.mkdir(parents=True, exist_ok=True)
     with open(codex_config_folder / "config.toml", "w") as f:
         toml.dump(CONFIG_TEMPLATE, f)
 
@@ -78,9 +77,10 @@ async def run_codex():
     stdout_task = asyncio.create_task(stream_output(process.stdout, prefix="[STDOUT]"))
     stderr_task = asyncio.create_task(stream_output(process.stderr, prefix="[STDERR]"))
 
-    _ = await process.wait()
+    return_code = await process.wait()
     _ = await asyncio.gather(stdout_task, stderr_task)
-    print("[codex] exited")
+    print(f"[codex] exited with code {return_code}")
+    return return_code
 
 
 async def main():
@@ -92,18 +92,17 @@ async def main():
         model_name = os.environ["SSE_MODEL_NAME"]
         base_url = os.environ["SSE_BASE_URL"]
         api_key = os.environ["SSE_API_KEY"]
-    except KeyError as _:
-        return
+    except KeyError as e:
+        print(f"[codex] missing environment variable {e}", file=sys.stderr)
+        return 1
 
     generate_config(api_key, base_url, model_name, "http://localhost:3000/mcp")
 
-    # Launch Codex agent
-    process_task = asyncio.create_task(run_codex())
-    await process_task
+    return await run_codex()
 
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        sys.exit(asyncio.run(main()))
     except KeyboardInterrupt:
         print("killed")
