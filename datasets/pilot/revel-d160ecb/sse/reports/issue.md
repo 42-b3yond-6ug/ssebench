@@ -1,5 +1,3 @@
-Here is the vulnerability report formatted in Markdown:
-
 # Denial of Service (DoS) via Slice Parameter Manipulation in Revel
 
 Once the [slices parameter](https://revel.github.io/manual/parameters.html#slices) feature is used, the website will be suffering from DoS attack.
