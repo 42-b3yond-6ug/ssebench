@@ -1,6 +1,6 @@
 module github.com/42-b3yond-6ug/ssebench/catalog
 
-go 1.25.2
+go 1.26.0
 
 require (
 	github.com/urfave/cli-docs/v3 v3.1.0

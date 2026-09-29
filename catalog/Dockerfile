@@ -2,7 +2,7 @@
 # catalog is generated into the image:
 #   docker build -f catalog/Dockerfile .
 # catalog/Dockerfile.dockerignore trims the context to the files read here.
-FROM golang:1.25-alpine AS build
+FROM golang:1.26-alpine AS build
 
 WORKDIR /src/catalog
 COPY catalog/go.mod catalog/go.sum ./

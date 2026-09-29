@@ -1,7 +1,7 @@
 # =============================================================================
 # Stage 1: Build entrypoint binary (static Go binary, no runtime deps)
 # =============================================================================
-FROM golang:1.22-bookworm AS entrypoint-builder
+FROM golang:1.26-bookworm AS entrypoint-builder
 
 COPY runtime/entrypoint/ /build/
 WORKDIR /build
