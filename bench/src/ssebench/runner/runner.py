@@ -7,15 +7,15 @@ from pathlib import Path
 from typing import final, override
 from uuid import uuid4
 
-from agents import Agent
-from middleware import (
+from ssebench.agents import Agent
+from ssebench.middleware import (
     SandboxToolLayer,
     SidecarToolLayerAgentRuntime,
     SidecarToolLayerEnvironment,
 )
-from models import Model
-from pipe import build_pipe
-from runner.result import (
+from ssebench.models import Model
+from ssebench.pipe import build_pipe
+from ssebench.runner.result import (
     EvaluationResult,
     FrameworkResult,
     PatchResult,
@@ -23,7 +23,7 @@ from runner.result import (
     RunConfig,
     RuntimeResult,
 )
-from tasks import Task
+from ssebench.tasks import Task
 
 logger = logging.getLogger(__name__)
 

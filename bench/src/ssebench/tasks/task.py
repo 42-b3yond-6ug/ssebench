@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-from pipe import DockerLayerMixin
-from tasks.metadata import TaskMetadata
+from ssebench.pipe import DockerLayerMixin
+from ssebench.tasks.metadata import TaskMetadata
 
 
 class Task(DockerLayerMixin, ABC):

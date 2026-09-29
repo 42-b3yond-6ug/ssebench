@@ -2,7 +2,7 @@ from typing import Literal, Self
 
 from pydantic import BaseModel
 
-from tasks.metadata import TaskMetadata
+from ssebench.tasks.metadata import TaskMetadata
 
 
 class PatchResult(BaseModel):

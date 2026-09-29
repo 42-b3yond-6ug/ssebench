@@ -4,7 +4,7 @@ from abc import ABC
 from pathlib import Path
 from typing import final, override
 
-from pipe import REGISTRY, DockerLayerMixin
+from ssebench.pipe import REGISTRY, DockerLayerMixin
 
 DOCKER_IMAGE_PREFIX_SANDBOX = f"{REGISTRY}/tool"
 DOCKER_IMAGE_PREFIX_SIDECAR_AGENTRT = f"{REGISTRY}/runtime"
