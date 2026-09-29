@@ -27,6 +27,27 @@ For development, `bun run dev` starts the API server and the Vite dev server
 
 Tests: `bun test` for the server, `go test ./...` in `pty-proxy/`.
 
+### In a container
+
+[`Dockerfile`](Dockerfile) builds an image with the client, the server, the
+terminal helper and the `docker` CLI. From the repository root:
+
+```bash
+docker buildx build -f webui/Dockerfile --build-arg VERSION="$(cat VERSION)" -t ssebench-webui .
+docker run --rm --network host -v /var/run/docker.sock:/var/run/docker.sock ssebench-webui
+```
+
+The server needs the Docker socket to list, inspect and open terminals in the
+run containers, and the host network to reach the SSEBench daemon in each of
+them by its container IP address. It listens on `http://127.0.0.1:3001` as it
+does outside a container, and the variables below apply (pass them with
+`-e`). Whoever controls the container controls the host's Docker daemon, so
+the security notes below apply twice over.
+
+The image watches runs but cannot launch them: it has no SSEBench checkout
+and no `uv`. Start runs with `ssebench run --keep-container`, or run the web
+UI from a checkout as above to launch them from the browser.
+
 ## Configuration
 
 | Variable | Default | Meaning |
