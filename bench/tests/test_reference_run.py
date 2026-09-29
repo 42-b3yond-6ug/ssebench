@@ -10,7 +10,7 @@ from ssebench import paths, stack
 from ssebench.agents import Agent
 from ssebench.cli import cli
 from ssebench.models import NoModel
-from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRuner
+from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
 from ssebench.runner.reference import (
     REFERENCE_AGENT,
     REFERENCE_PATCH_PATH,
@@ -68,8 +68,8 @@ def sandbox_runner(agent: str, task: LocalTask) -> BenchmarkSandboxRunner:
     return runner
 
 
-def sidecar_runner(agent: str, task: LocalTask) -> BenchmarkSidecarRuner:
-    runner = BenchmarkSidecarRuner(NoModel(), Agent(agent, task_name=task.name), task, 60, 2)
+def sidecar_runner(agent: str, task: LocalTask) -> BenchmarkSidecarRunner:
+    runner = BenchmarkSidecarRunner(NoModel(), Agent(agent, task_name=task.name), task, 60, 2)
     runner.sidecar_agentrt_image = "registry.test/agent-image"
     runner.sidecar_environ_image = "registry.test/environment-image"
     return runner
@@ -107,7 +107,7 @@ def test_sandbox_command_withholds_a_patch_from_other_agents(agent: str, task: L
 @pytest.mark.parametrize("agent", OTHER_AGENTS)
 def test_other_agents_run_without_the_reference_patch(
     agent: str,
-    make_runner: Callable[..., BenchmarkSandboxRunner | BenchmarkSidecarRuner],
+    make_runner: Callable[..., BenchmarkSandboxRunner | BenchmarkSidecarRunner],
     task: LocalTask,
     docker: Docker,
 ) -> None:
@@ -124,7 +124,7 @@ def test_other_agents_run_without_the_reference_patch(
 
 @pytest.mark.parametrize("make_runner", [sandbox_runner, sidecar_runner])
 def test_reference_run_mounts_the_patch_from_the_case_image(
-    make_runner: Callable[..., BenchmarkSandboxRunner | BenchmarkSidecarRuner], task: LocalTask, docker: Docker
+    make_runner: Callable[..., BenchmarkSandboxRunner | BenchmarkSidecarRunner], task: LocalTask, docker: Docker
 ) -> None:
     make_runner(REFERENCE_AGENT, task).run()
 
@@ -145,7 +145,7 @@ def test_reference_run_mounts_the_patch_from_the_case_image(
 
 @pytest.mark.parametrize("make_runner", [sandbox_runner, sidecar_runner])
 def test_reference_run_results_are_labelled(
-    make_runner: Callable[..., BenchmarkSandboxRunner | BenchmarkSidecarRuner], task: LocalTask, docker: Docker
+    make_runner: Callable[..., BenchmarkSandboxRunner | BenchmarkSidecarRunner], task: LocalTask, docker: Docker
 ) -> None:
     make_runner(REFERENCE_AGENT, task).run()
 

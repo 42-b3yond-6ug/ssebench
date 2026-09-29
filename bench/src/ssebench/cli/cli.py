@@ -19,7 +19,7 @@ from ssebench.extensions import (
     load_commands,
 )
 from ssebench.models import NO_MODEL, Model, NoModel
-from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRuner
+from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
 from ssebench.runner.reference import REFERENCE_AGENT, is_reference_run, reference_patch_path
 from ssebench.tasks import CatalogError, CatalogTask, LocalTask, Task, load_catalog
 from ssebench.version import VERSION
@@ -95,17 +95,18 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     # Run the experiment
     model = NoModel() if reference_run or args.model is None else Model(args.model)
-    agent = Agent(args.agent, task_name=task.name)
+    # A sidecar agent image is built on the task-independent runtime image, so every task shares it.
+    agent = Agent(args.agent, task_name=task.name if args.mode == "sandbox" else "sidecar")
     timeout = args.timeout
     difficulty = args.difficulty
     keep_container = args.keep_container
     egress = args.egress
-    runner: BenchmarkSandboxRunner | BenchmarkSidecarRuner
+    runner: BenchmarkSandboxRunner | BenchmarkSidecarRunner
     match args.mode:
         case "sandbox":
             runner = BenchmarkSandboxRunner(model, agent, task, timeout, difficulty, keep_container, tool_layer, egress)
         case "sidecar":
-            runner = BenchmarkSidecarRuner(model, agent, task, timeout, difficulty, keep_container, egress)
+            runner = BenchmarkSidecarRunner(model, agent, task, timeout, difficulty, keep_container, egress)
         case _:
             logger.error(f"Unknown mode: {args.mode}")
             return 1

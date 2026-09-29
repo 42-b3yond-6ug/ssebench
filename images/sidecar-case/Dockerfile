@@ -13,8 +13,7 @@ FROM case-image
 ARG SOURCE_DIR
 
 # Stash original source as a root-only snapshot, re-populate owned by model (uid 1000).
-# /ssebench holds the reference patch and hidden tests, so it is root-only too;
-# the sidecar runner mounts it into the agent container.
+# /ssebench holds the reference patch and hidden tests, so it is root-only too.
 RUN mv "${SOURCE_DIR}" /ssebench-repo && chmod 700 /ssebench-repo && chmod 700 /ssebench
 COPY --from=case-image-builder --chown=1000:1000 ${SOURCE_DIR}/ ${SOURCE_DIR}/
 
