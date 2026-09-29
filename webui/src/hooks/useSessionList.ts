@@ -97,7 +97,7 @@ export function useSessionList({
         }
       }
     },
-    [client, enabled]
+    [client, directory, enabled]
   )
 
   // Initial load
