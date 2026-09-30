@@ -180,7 +180,9 @@ async def main() -> int:
     async with Client(MCP_URL) as client:
         checked = await client.call_tool("test_patch", {})
     report = str(checked.data)
-    dialog.tool("test_patch", "test_patch", report.startswith("Test succeeded"), report)
+    # A failed check starts the result with "test_patch result: FAILED".
+    passed = report.startswith("test_patch result:") and not report.startswith("test_patch result: FAILED")
+    dialog.tool("test_patch", "test_patch", passed, report)
 
     dialog.write(
         "message",
@@ -274,7 +276,7 @@ see [Results format](/concepts/results). Three files matter for an agent:
   {"seq": 0, "type": "init", "data": {"task": "gjson-196-bf4efcb", "cwd": "/src/gjson", "model": "claude-sonnet-4-6", "agent": "example-shell"}, ...}
   {"seq": 2, "type": "tool", "tool_id": "build", "name": "build", "status": "running", ...}
   {"seq": 3, "type": "tool", "tool_id": "build", "name": "build", "status": "success", "result": "", ...}
-  {"seq": 5, "type": "tool", "tool_id": "test_patch", "name": "test_patch", "status": "success", "result": "Test succeeded: All checks passed. Your patch is valid. You may stop now.", ...}
+  {"seq": 5, "type": "tool", "tool_id": "test_patch", "name": "test_patch", "status": "success", "result": "test_patch result: every check that ran passed.\n\nChecks:\n- build: passed\n- functional tests: passed\n\nNot available at difficulty level 2 (NO_FUTURE_TEST): PoCs, intent tests. ...", ...}
   {"seq": 7, "type": "complete", "status": "success", "turns": 1, "duration_ms": 14080, ...}
   ```
 
@@ -496,7 +498,7 @@ from fastmcp import Client
 
 async with Client("http://localhost:3000/mcp") as client:
     checked = await client.call_tool("test_patch", {})
-print(checked.data)   # "Test succeeded: ..." or "Test failed: <reason> ..."
+print(checked.data)   # "test_patch result: every check that ran passed. ..." or "test_patch result: FAILED. <reason> ..."
 ```
 
 A call runs a full build and test cycle, so give the tool call a generous
