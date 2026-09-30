@@ -17,11 +17,13 @@ import (
 type pluginResult struct {
 	Name     string  `json:"name"`
 	Hook     string  `json:"hook"`
-	Status   string  `json:"status"` // "ok", "failed", "timeout" or "error"
+	Status   string  `json:"status"` // "ok", "skipped", "failed", "timeout" or "error"
 	ExitCode int     `json:"exit_code"`
 	Duration float64 `json:"duration_seconds"`
 	Started  bool    `json:"started"`
 	Error    string  `json:"error,omitempty"`
+	// Reason is why a plugin that chose not to run ended "skipped".
+	Reason string `json:"reason,omitempty"`
 }
 
 // pluginRunner runs the enabled plugins at their hooks. A plugin never affects
@@ -216,11 +218,20 @@ func (r *pluginRunner) run(p Plugin, h Hook) pluginResult {
 	}
 	defer logFile.Close()
 
+	skipDir, skipFile, err := newSkipDir()
+	if err != nil {
+		logger.Warn("Failed to create plugin skip directory", "plugin", p.Name, "err", err)
+		res.Status = "error"
+		res.Error = err.Error()
+		return res
+	}
+	defer os.RemoveAll(skipDir)
+
 	asModel := h.Phase == PhaseAgent
 	cmd := pluginCommand(asModel, filepath.Join(r.dir, p.Name), script)
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
-	cmd.Env = r.pluginEnv(p)
+	cmd.Env = append(r.pluginEnv(p), "SSE_PLUGIN_SKIP_FILE="+skipFile)
 	if asModel {
 		cmd.Env = agentEnvironment(cmd.Env)
 	}
@@ -243,8 +254,14 @@ func (r *pluginRunner) run(p Plugin, h Hook) pluginResult {
 	case err := <-done:
 		res.Duration = time.Since(start).Seconds()
 		if err == nil {
-			res.Status = "ok"
-			logger.Info("Plugin finished", "plugin", p.Name, "seconds", int(res.Duration))
+			if reason := skipReason(skipFile); reason != "" {
+				res.Status = "skipped"
+				res.Reason = reason
+				logger.Warn("Plugin skipped", "plugin", p.Name, "reason", reason)
+			} else {
+				res.Status = "ok"
+				logger.Info("Plugin finished", "plugin", p.Name, "seconds", int(res.Duration))
+			}
 		} else {
 			res.Status = "failed"
 			res.ExitCode = exitCode(err)
@@ -260,6 +277,38 @@ func (r *pluginRunner) run(p Plugin, h Hook) pluginResult {
 		logger.Warn("Plugin timed out", "plugin", p.Name, "timeout_min", p.Timeout)
 	}
 	return res
+}
+
+// newSkipDir creates the directory of the file through which a plugin reports
+// that it chose not to run, and returns it with the file's path. The directory
+// is outside the results directory, which a plugin that runs as model cannot
+// write to, and is not sticky, so the plugin can create the file whichever user
+// it runs as.
+func newSkipDir() (dir, file string, err error) {
+	dir, err = os.MkdirTemp("", "sse-plugin-skip-")
+	if err != nil {
+		return "", "", err
+	}
+	if err := os.Chmod(dir, 0o777); err != nil {
+		os.RemoveAll(dir)
+		return "", "", err
+	}
+	return dir, filepath.Join(dir, "skip"), nil
+}
+
+// skipReason returns what a plugin wrote to its skip file, without surrounding
+// whitespace, or "" when it wrote nothing. A plugin that runs as model can
+// replace the file, so anything but a regular file is ignored.
+func skipReason(path string) string {
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() {
+		return ""
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
 }
 
 // pluginEnv builds a plugin's environment. It starts from the entrypoint's own

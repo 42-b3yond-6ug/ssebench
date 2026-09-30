@@ -492,6 +492,7 @@ generated from the [environment variable registry](/reference/environment).
 | `SSE_DEBUG` | unset | entrypoint | Any non-empty value turns on debug logs. |
 | `SSE_PLUGIN_NAME` | unset | plugins | Set by the entrypoint for a plugin it runs; the plugin's name. |
 | `SSE_PLUGIN_HOOK` | unset | plugins | Set by the entrypoint for a plugin it runs; the hook it runs at, such as `after-grading`. |
+| `SSE_PLUGIN_SKIP_FILE` | unset | plugins | Set by the entrypoint for a plugin it runs; the path of a file the plugin writes a reason to when it chooses not to run. The entrypoint then records the plugin as `skipped` and logs the reason. |
 | `SSE_ORACLE_FUZZ` | unset | oracle plugin | `1` makes the oracle plugin fuzz the patched project after its review; it installs AFL++, so the run needs `--egress open`. |
 | `SSE_BENCH_PATH` | `/ssebench` | daemon | Directory with the task's `config.yaml`, scripts and files. |
 | `SSE_HTTP_PORT` | `4263` | daemon | The daemon's agent-facing HTTP port. |

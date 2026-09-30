@@ -22,9 +22,9 @@ results/
         ├── agent.log  daemon.log  mcp.log  evaluator.log  opencode.log
         ├── scriptrunner-<ms>.log        one per script the daemon ran
         ├── patch-<ms>.log               one per test diff the daemon applied
-        ├── plugins/                     plugin logs and outcomes, when plugins ran
         └── archive/                     the agent's own directory (SSE_ARCHIVE)
-            └── dialog.jsonl             the agent's session
+            ├── dialog.jsonl             the agent's session
+            └── plugins/                 plugin logs and outcomes, when plugins ran
 ```
 
 A run of the `dummy` agent on `gjson-196-bf4efcb` with `claude-sonnet-4-6`
@@ -95,7 +95,7 @@ a root write. The CLI writes `summary.json` when the container exits, so the
 | `opencode.log` | entrypoint | The OpenCode server's log; empty unless the image has OpenCode. |
 | `scriptrunner-<ms>.log` | daemon | The command line, exit code, standard output and standard error of one task script, named by the time it started in milliseconds. There is one for each check `test_patch` ran during the run, followed by those of grading. |
 | `patch-<ms>.log` | daemon | The result of applying the hidden tests before an intent test. |
-| `plugins/<name>.log`, `plugins/results.json` | entrypoint | The output of each [plugin](/concepts/plugins-and-hooks) and how it ended; only when plugins ran. Each plugin writes its own output in a folder named after it, such as `artifact/manifest.json`. |
+| `archive/plugins/<name>.log`, `archive/plugins/results.json` | entrypoint | The output of each [plugin](/concepts/plugins-and-hooks) and how it ended; only when plugins ran. Each plugin writes its own output in a folder named after it, such as `artifact/manifest.json`. |
 
 The MCP server also writes the full log of a long check result to
 `/tmp/mcp/logs` inside the container; that directory is not part of the
@@ -188,7 +188,8 @@ comes from the CLI. For the dummy run (the task config shortened):
   "runtime_result": { "agent_duration": 0, "agent_timeout": false, "evaluator_timeout": false },
   "spend": 0.0,
   "run_id": "20260929-153012-a1b2c3",
-  "started_at": "2026-09-29T15:30:12.418613Z"
+  "started_at": "2026-09-29T15:30:12.418613Z",
+  "plugin_results": []
 }
 ```
 
@@ -208,6 +209,7 @@ comes from the CLI. For the dummy run (the task config shortened):
 | `spend` | What the run's model calls cost, in US dollars, as the [LiteLLM proxy](/concepts/litellm-proxy#one-key-per-run) recorded it. |
 | `run_id` | The run's ID, the name of its directory. |
 | `started_at` | When the run's container was started, in UTC. It orders the runs of one task, model and agent; [the report](#reports) takes the latest. |
+| `plugin_results` | How each [plugin](/concepts/plugins-and-hooks#outcomes) that ran ended: `name`, `hook`, `status` (`ok`, `skipped`, `failed`, `timeout` or `error`), and `reason` for a skipped one. Empty when none ran. |
 
 When the container leaves `result.json` empty, for example because it failed to
 start, the CLI still writes it and the summary, with `status` `error`, every

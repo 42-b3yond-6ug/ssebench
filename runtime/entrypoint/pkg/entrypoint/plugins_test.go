@@ -181,6 +181,73 @@ func TestBlockingHooksRunAndRecord(t *testing.T) {
 	}
 }
 
+func TestPluginReportsItselfSkipped(t *testing.T) {
+	r, pdir, archive := newTestRunner(t)
+	writePlugin(t, pdir, "idle", `echo "no model configured" > "$SSE_PLUGIN_SKIP_FILE"`)
+	writePlugin(t, pdir, "quiet", `: > "$SSE_PLUGIN_SKIP_FILE"`)
+	writePlugin(t, pdir, "broken", `echo "gave up" > "$SSE_PLUGIN_SKIP_FILE"; exit 3`)
+	r.byHook[Hook{After, PhaseGrading}] = []Plugin{
+		{Name: "idle", Hook: "after-grading", Timeout: 1},
+		{Name: "quiet", Hook: "after-grading", Timeout: 1},
+		{Name: "broken", Hook: "after-grading", Timeout: 1},
+	}
+
+	var console strings.Builder
+	initLogger("ssebench", &console, false)
+	t.Cleanup(func() { initLogger("ssebench", os.Stdout, false) })
+
+	r.runBlocking(Hook{After, PhaseGrading})
+	r.finish()
+
+	report := readReport(t, archive)
+	if got := report["idle"]; got.Status != "skipped" || got.Reason != "no model configured" || got.ExitCode != 0 {
+		t.Errorf("idle = %+v", got)
+	}
+	// Writing nothing is not skipping, and a failure is a failure whatever the file says.
+	if got := report["quiet"]; got.Status != "ok" || got.Reason != "" {
+		t.Errorf("quiet = %+v", got)
+	}
+	if got := report["broken"]; got.Status != "failed" || got.Reason != "" {
+		t.Errorf("broken = %+v", got)
+	}
+	if out := console.String(); !strings.Contains(out, "Plugin skipped") || !strings.Contains(out, "no model configured") {
+		t.Errorf("console does not say the plugin was skipped and why:\n%s", out)
+	}
+}
+
+func TestSkipReasonIgnoresASymlink(t *testing.T) {
+	dir := t.TempDir()
+	target := filepath.Join(dir, "target")
+	if err := os.WriteFile(target, []byte("secret"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(dir, "skip")
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+	if got := skipReason(link); got != "" {
+		t.Errorf("skipReason followed a symlink: %q", got)
+	}
+}
+
+func TestSkipFileIsRemovedAfterTheRun(t *testing.T) {
+	r, pdir, archive := newTestRunner(t)
+	writePlugin(t, pdir, "where", `echo "$SSE_PLUGIN_SKIP_FILE" > `+filepath.Join(archive, "where"))
+	r.byHook[Hook{After, PhaseGrading}] = []Plugin{{Name: "where", Hook: "after-grading", Timeout: 1}}
+
+	r.runBlocking(Hook{After, PhaseGrading})
+	r.finish()
+
+	data, err := os.ReadFile(filepath.Join(archive, "where"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := strings.TrimSpace(string(data))
+	if _, err := os.Stat(filepath.Dir(path)); !os.IsNotExist(err) {
+		t.Errorf("skip directory left behind: %v", err)
+	}
+}
+
 func TestPluginLogIsAppendedWhenThePluginRunsAgain(t *testing.T) {
 	r, pdir, archive := newTestRunner(t)
 	writePlugin(t, pdir, "a", "echo ran")

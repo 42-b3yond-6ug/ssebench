@@ -103,9 +103,9 @@ When its hook comes, the entrypoint runs the plugin's `run.sh` with Bash:
 |---|---|
 | Working directory | The plugin's folder, `/plugins/<name>` in the tool image |
 | User | See [above](#which-user-a-plugin-runs-as) |
-| Standard output and error | `plugins/<name>.log` in the results directory |
+| Standard output and error | `plugins/<name>.log` in the archive directory |
 | Time limit | `timeout` minutes, after which its whole process group is killed |
-| Environment | The entrypoint's own environment, plus `SSE_PLUGIN_NAME` and `SSE_PLUGIN_HOOK` (such as `after-grading`); a plugin that runs as `model` has `HOME=/home/model`, `USER` and `LOGNAME` set to `model` |
+| Environment | The entrypoint's own environment, plus `SSE_PLUGIN_NAME`, `SSE_PLUGIN_HOOK` (such as `after-grading`) and `SSE_PLUGIN_SKIP_FILE` (see [Skipping](#skipping)); a plugin that runs as `model` has `HOME=/home/model`, `USER` and `LOGNAME` set to `model` |
 
 The environment includes `SSE_ARCHIVE` (the results directory),
 `SSE_DIFFICULTY`, `TIMEOUT` and `SSE_DAEMON_SOCKET`, the daemon's agent-facing
@@ -121,10 +121,34 @@ named after the plugin; the shipped plugins write to `artifact/` and
 results directory everything in it, so the files plugins wrote as root or
 `model` can be removed on the host.
 
+## Skipping
+
+A plugin that cannot do its job, for example because it needs a model and the
+run has none, says so instead of exiting silently: it writes the reason to the
+file named by `SSE_PLUGIN_SKIP_FILE` and exits with 0. The entrypoint then
+records the plugin as `skipped` with that reason, and logs it as a warning in
+the container's output, which `ssebench run` shows:
+
+```
+level=WARN msg="Plugin skipped" plugin=oracle reason="No LLM configured (SSE_API_KEY, SSE_BASE_URL unset)"
+```
+
+From a shell plugin:
+
+```bash
+echo "no compiler in the image" > "$SSE_PLUGIN_SKIP_FILE"
+exit 0
+```
+
+The file works for a plugin that runs as `model` too. It counts only when the
+plugin exits with 0 and wrote some text; a plugin that exits with another status
+is `failed` whatever the file holds.
+
 ## Outcomes
 
-The entrypoint records every plugin run in `plugins/results.json` in the results
-directory:
+The entrypoint records every plugin run in `plugins/results.json` in the run's
+`archive/` directory, and `ssebench run` copies the outcomes into
+`plugin_results` of the [run summary](/concepts/results#the-summary):
 
 ```json
 [
@@ -142,6 +166,7 @@ directory:
 | `status` | Meaning |
 |---|---|
 | `ok` | `run.sh` exited with 0 |
+| `skipped` | `run.sh` exited with 0 after [saying it skipped itself](#skipping); `reason` has why |
 | `failed` | It exited with another status; `exit_code` has it and `error` the reason |
 | `timeout` | It ran longer than `timeout` minutes and was killed; `exit_code` is 124 |
 | `error` | It could not start, for example because its folder or `run.sh` is missing from the image |

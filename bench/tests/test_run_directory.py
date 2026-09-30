@@ -101,6 +101,53 @@ def test_the_result_is_replaced_not_rewritten(task: LocalTask, tmp_path: Path, m
     assert (tmp_path / "summary.json").is_file()
 
 
+def record_with_plugin_report(task: LocalTask, run_dir: Path, report: str | None) -> dict[str, Any]:
+    result = run_dir / "result.json"
+    _ = result.write_text(
+        '{"patch_result": {"build_success": true}, '
+        '"runtime_result": {"agent_duration": 1, "agent_timeout": false, "evaluator_timeout": false}}'
+    )
+    if report is not None:
+        (run_dir / "archive" / "plugins").mkdir(parents=True)
+        _ = (run_dir / "archive" / "plugins" / "results.json").write_text(report)
+    config = RunConfig(agent="dummy", model="none", mode="sandbox", timeout=60, difficulty=2)
+    record_results(task, config, 0.0, result)
+    return json.loads((run_dir / "summary.json").read_text())
+
+
+def test_the_summary_records_a_skipped_plugin_with_its_reason(task: LocalTask, tmp_path: Path) -> None:
+    report = json.dumps(
+        [
+            {
+                "name": "oracle",
+                "hook": "after-grading",
+                "status": "skipped",
+                "exit_code": 0,
+                "duration_seconds": 0.05,
+                "started": True,
+                "reason": "No LLM configured (SSE_API_KEY, SSE_BASE_URL unset)",
+            }
+        ]
+    )
+    (tmp_path / "archive").mkdir()
+
+    summary = record_with_plugin_report(task, tmp_path, report)
+
+    [plugin] = summary["plugin_results"]
+    assert plugin["name"] == "oracle"
+    assert plugin["status"] == "skipped"
+    assert plugin["reason"] == "No LLM configured (SSE_API_KEY, SSE_BASE_URL unset)"
+
+
+@pytest.mark.parametrize("report", [None, "not json", '{"name": "oracle"}'])
+def test_a_missing_or_unreadable_plugin_report_leaves_the_summary_without_plugin_results(
+    task: LocalTask, tmp_path: Path, report: str | None
+) -> None:
+    (tmp_path / "archive").mkdir()
+
+    assert record_with_plugin_report(task, tmp_path, report)["plugin_results"] == []
+
+
 def test_both_sidecar_containers_mount_the_results(
     task: LocalTask, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, docker: FakeDocker
 ) -> None:
