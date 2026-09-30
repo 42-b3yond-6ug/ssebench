@@ -1,5 +1,12 @@
 name: CI
 
+# The light gate of a pull request: lint, unit tests, the docs build and the
+# dataset, version and chart checks, aggregated by ci-ok. The heavy checks (the
+# end-to-end runs, the SDK integration test, the kind install, the Nix flake
+# check, the image and binary builds and the dataset verification) run from
+# verify.yml, helm.yml, images.yml, binaries.yml and dataset.yml on release
+# tags, weekly and on demand, and before review with `just verify`.
+
 on:
   pull_request:
   push:
@@ -28,10 +35,8 @@ jobs:
       webui: ${{ steps.filter.outputs.webui }}
       docs: ${{ steps.filter.outputs.docs }}
       dataset: ${{ steps.filter.outputs.dataset }}
-      sdk: ${{ steps.filter.outputs.sdk }}
-      e2e: ${{ steps.filter.outputs.e2e }}
+      helm: ${{ steps.filter.outputs.helm }}
       versions: ${{ steps.filter.outputs.versions }}
-      nix: ${{ steps.filter.outputs.nix }}
     steps:
       # Pull requests are diffed through the API; pushes to main need the checkout.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -99,29 +104,10 @@ jobs:
               - datasets/**
               - tools/dataset/**
               - bench/src/ssebench/tasks/**
-            sdk:
-              - *workflow
-              - Cargo.toml
-              - Cargo.lock
-              - rust-toolchain.toml
-              - sdk/**
-            e2e:
+            helm:
               - *workflow
               - VERSION
-              - pyproject.toml
-              - uv.lock
-              - Cargo.toml
-              - Cargo.lock
-              - bench/**
-              - runtime/**
-              - images/**
-              - sdk/**
-              - agents/**
-              - models/**
-              - deploy/compose/**
-              - datasets/pilot/gjson-196-bf4efcb/**
-              - tests/e2e/**
-              - tests/integrity/**
+              - deploy/helm/**
             versions:
               - *workflow
               - VERSION
@@ -137,12 +123,6 @@ jobs:
               - deploy/compose/**
               - deploy/helm/**
               - '!datasets/**'
-            # Only the flake itself: the other jobs cover the sources, and a
-            # full flake check costs about 20 runner minutes.
-            nix:
-              - flake.nix
-              - flake.lock
-              - nix/**
 
   secrets:
     name: Secret scan
@@ -351,131 +331,54 @@ jobs:
       - name: THIRD_PARTY.md is up to date
         run: uv run python tools/dataset/third_party.py --check
 
-  sdk-integration:
-    name: SDK integration
+  helm:
+    name: Helm chart
     needs: changes
-    if: needs.changes.outputs.sdk == 'true'
+    if: needs.changes.outputs.helm == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - name: Build the test image
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
-        with:
-          context: .
-          file: sdk/tests/integration/Dockerfile
-          tags: ssebench-sdk-integration
-          load: true
-          cache-from: type=gha,scope=sdk-integration
-          cache-to: type=gha,mode=max,scope=sdk-integration
-      - name: Run the SDK against the daemon
-        run: docker run --rm ssebench-sdk-integration
-
-  e2e:
-    name: End-to-end smoke run
-    needs: changes
-    if: github.event_name == 'push' || needs.changes.outputs.e2e == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 10
     env:
-      # A prefix that no registry serves, so every image comes from this checkout.
-      SSEBENCH_REGISTRY: ssebench-ci
-      TASK: gjson-196-bf4efcb
-      MODEL: claude-sonnet-4-6
+      KUBECONFORM_VERSION: 0.7.0
+      KUBECONFORM_SHA256: c31518ddd122663b3f3aa874cfe8178cb0988de944f29c74a0b9260920d115d3
+      # The Kubernetes version of the node image of the kind release that helm.yml installs.
+      KUBERNETES_VERSION: 1.35.0
+      CHART: deploy/helm/ssebench
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/setup-python
-      - name: Switch Docker to the containerd image store
-        # With it, the default builder, which the CLI uses and which can see
-        # local images, can import and export the GitHub Actions build cache.
+      - uses: ./.github/actions/setup-helm
+      - name: Install kubeconform
         run: |
-          config=/etc/docker/daemon.json
-          current=$(sudo cat "$config" 2>/dev/null || echo '{}')
-          echo "$current" | jq '.features["containerd-snapshotter"] = true' | sudo tee "$config"
-          sudo systemctl restart docker
-          docker info -f '{{ .DriverStatus }}'
-      - name: Build the daemon stage from the cache
-        # The release build of the daemon dominates the run; building this
-        # stage first leaves it in the local cache for the CLI's sandbox build.
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
-        with:
-          context: .
-          file: images/sandbox/Dockerfile
-          target: daemon-builder
-          builder: default
-          load: true
-          tags: ${{ env.SSEBENCH_REGISTRY }}/cache/daemon-builder
-          cache-from: type=gha,scope=sandbox-daemon
-          cache-to: type=gha,mode=max,scope=sandbox-daemon
-      - name: Build the Go base image
-        run: make -C images/base-images generic-go
-      - name: Write .env with generated secrets
-        # As `just setup` does; the dummy agent never calls a model, so no provider key is needed.
+          curl -fsSL -o "$RUNNER_TEMP/kubeconform.tar.gz" \
+            "https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
+          echo "${KUBECONFORM_SHA256}  $RUNNER_TEMP/kubeconform.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/kubeconform.tar.gz" -C "$RUNNER_TEMP" kubeconform
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: helm lint
         run: |
-          secret() { head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n'; }
-          sed -e "s|^LITELLM_MASTER_KEY=.*|LITELLM_MASTER_KEY=sk-$(secret)|" \
-              -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(secret)|" \
-              .env.example > .env
-      - name: Run the dummy agent in the sandbox
-        run: uv run ssebench run --model "$MODEL" --agent dummy --task "$TASK" --mode sandbox --local datasets/pilot --run-id e2e-sandbox
-      - name: Check the graded result
+          helm lint "$CHART" --strict
+          for values in "$CHART"/ci/*.yaml; do
+            helm lint "$CHART" --strict --values "$values"
+          done
+      - name: kubeconform
+        # Every variant renders to manifests that the Kubernetes schemas accept.
         run: |
-          result="results/$TASK/$MODEL/dummy/e2e-sandbox/result.json"
-          jq . "$result"
-          # The unpatched project must build and its PoC must still fail.
-          jq -e '.patch_result.build_success and .patch_result.pov_total > 0 and .patch_result.pov_passed == 0' "$result"
-      - name: Integrity bypass tests
-        # Against the tool image the run built. Script mode fails when that
-        # image is missing, where pytest would skip.
-        run: uv run python tests/integrity/test_bypass.py
-      - name: Run the dummy agent in sidecar mode
-        env:
-          SSEBENCH_SMOKE_TASK: ${{ env.TASK }}
-          SSEBENCH_SMOKE_MODEL: ${{ env.MODEL }}
-        run: tests/e2e/smoke.sh sidecar
-      - name: Integrity bypass tests in sidecar mode
-        # Against the images the sidecar run built.
-        run: uv run python tests/integrity/test_bypass.py --mode sidecar
-      - name: Check the host
-        if: always()
-        continue-on-error: true
-        run: uv run ssebench doctor
-      - name: Show the LiteLLM logs
-        if: failure()
-        run: docker compose --env-file .env -f deploy/compose/docker-compose.yaml logs --no-color --tail 200
-      - name: Upload the run directory
-        if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: e2e-results
-          path: results/
-          retention-days: 7
-
-  nix:
-    # Not part of ci-ok: a lockfile update can need its Nix hashes refreshed,
-    # which should not block the update itself.
-    name: Nix flake check (informational)
-    needs: changes
-    if: needs.changes.outputs.nix == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
-      - name: nix flake check
-        run: nix flake check -L
+          render() { helm template ssebench "$CHART" --namespace ssebench "$@" | kubeconform -strict -summary -kubernetes-version "$KUBERNETES_VERSION"; }
+          render
+          for values in "$CHART"/ci/*.yaml; do
+            echo "== $values"
+            render --values "$values"
+          done
+      - name: The chart packages at the repository version
+        run: |
+          helm package "$CHART" --destination "$RUNNER_TEMP/chart" --version "$(cat VERSION)" --app-version "$(cat VERSION)"
+          ls "$RUNNER_TEMP/chart"
 
   ci-ok:
     name: ci-ok
     if: always()
-    needs: [changes, secrets, versions, python, rust, go, webui, docs, dataset, sdk-integration, e2e]
+    needs: [changes, secrets, versions, python, rust, go, webui, docs, dataset, helm]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

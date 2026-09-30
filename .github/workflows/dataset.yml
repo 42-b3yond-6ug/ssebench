@@ -4,12 +4,12 @@ name: Dataset
 # upstream fix must pass every check, and the dummy agent's unmodified project
 # must build and pass its tests while every PoC still triggers the bug.
 #
-# Pull requests verify the tasks whose files they change, every task of a base
-# image they change, and one canary task when only this workflow or the
-# verifier changes. The weekly run, a manual run and a release tag verify every
-# task; the weekly run and a release tag are skipped while the repository is
-# private, to save minutes. The config, manifest and schema checks run in the
-# CI workflow.
+# A release tag, the weekly run and a manual run verify every task, or the
+# tasks named by a manual run; the weekly run and a release tag are skipped
+# while the repository is private, to save minutes. Pull requests do not run
+# this workflow: verify the tasks a change touches before review with
+# `just dataset-verify --changed-since origin/main` (`just verify dataset`).
+# The config, manifest and schema checks run in the CI workflow.
 #
 # A release tag (v*) and a manual run with `publish` also push the case image of
 # each task that passes to ghcr.io/<owner>/<repo>/case/<dataset>/<task>, tagged
@@ -22,13 +22,6 @@ name: Dataset
 # request.
 
 on:
-  pull_request:
-    paths:
-      - datasets/**
-      - images/base-images/**
-      - bench/src/ssebench/dataset/verify.py
-      - bench/src/ssebench/dataset/publish.py
-      - .github/workflows/dataset.yml
   push:
     tags: ["v*"]
   schedule:
@@ -47,15 +40,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   # A prefix that no registry serves, so every image comes from this checkout.
   SSEBENCH_REGISTRY: ssebench-ci
   DATASET: datasets/pilot
   OUTPUT: results/dataset-verify
-  CANARY_TASK: gjson-196-bf4efcb
 
 jobs:
   plan:
@@ -72,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # The base of a pull request, to compare its tasks with.
+          # The tag check looks for the tagged commit in main.
           fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/setup-python
@@ -84,19 +76,12 @@ jobs:
           SHA: ${{ github.sha }}
           PRIVATE: ${{ github.event.repository.private }}
           REPOSITORY: ${{ github.repository }}
-          BASE: ${{ github.event.pull_request.base.sha }}
           TASKS: ${{ inputs.tasks }}
           PUBLISH_INPUT: ${{ inputs.publish }}
           GH_TOKEN: ${{ github.token }}
         run: |
           verify() { uv run ssebench dataset verify --dir "$DATASET" --list "$@"; }
           case "$EVENT" in
-            pull_request)
-              tasks=$(verify --changed-since "$BASE")
-              if [ "$tasks" = "[]" ] && ! git diff --quiet "$BASE" HEAD -- \
-                  .github/workflows/dataset.yml bench/src/ssebench/dataset/verify.py; then
-                tasks=$(verify "$CANARY_TASK")
-              fi ;;
             schedule)
               # The payload of a scheduled run need not describe the
               # repository, so the job condition alone may not see that it is

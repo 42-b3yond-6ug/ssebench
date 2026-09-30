@@ -1,17 +1,22 @@
 name: Images
 
-# Pull requests build the images whose inputs changed, for linux/amd64, and
-# push nothing. main and v* tags build every image for linux/amd64 and
-# linux/arm64 and push it to ghcr.io/<owner>/<repo>/<name>, tagged with VERSION
-# and sha-<commit>; release tags (v* without a pre-release suffix) also move
-# latest. While the repository is private, main builds like a pull request and
-# nothing is pushed.
+# Pull requests do not build images: `just verify images` builds them on your
+# machine. A push to main builds and publishes the images whose inputs it
+# changed, for linux/amd64 and linux/arm64, to ghcr.io/<owner>/<repo>/<name>,
+# tagged with VERSION and sha-<commit>: the Compose files and the Helm chart
+# name the images of the version on main, so they must exist for a checkout of
+# main to start. A v* tag builds and publishes every image; release tags (v*
+# without a pre-release suffix) also move latest. The weekly run and a manual
+# run build every image without pushing anything. While the repository is
+# private, a push to main builds the changed images for linux/amd64 and pushes
+# nothing.
 
 on:
-  pull_request:
   push:
     branches: [main]
     tags: ["v*"]
+  schedule:
+    - cron: "37 4 * * 1"
   workflow_dispatch:
     inputs:
       platforms:
@@ -27,8 +32,8 @@ permissions:
 
 concurrency:
   # Pushes to one ref queue rather than cancel, so the last push wins the tags.
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   plan:
@@ -37,7 +42,6 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      pull-requests: read
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
       publish: ${{ steps.plan.outputs.publish }}
@@ -57,8 +61,8 @@ jobs:
         run: echo "config=$(uv run --locked python -c 'from ssebench import stack; print(stack.config_hash())')" >> "$GITHUB_OUTPUT"
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
-        # Only pull requests and pushes to a private main build a subset.
-        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+        # Only a push to main builds a subset.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           filters: |
             shared: &shared
@@ -66,12 +70,15 @@ jobs:
               - .github/actions/build-image/**
             base-generic-c:
               - *shared
+              - VERSION
               - images/base-images/generic-c/**
             base-generic-go:
               - *shared
+              - VERSION
               - images/base-images/generic-go/**
             base-generic-rust:
               - *shared
+              - VERSION
               - images/base-images/generic-rust/**
             runtime:
               - *shared
@@ -83,6 +90,7 @@ jobs:
               - images/runtime/**
             litellm:
               - *shared
+              - VERSION
               - models/**
               - images/litellm/**
             catalog:
@@ -145,13 +153,18 @@ jobs:
             publish=true
           fi
 
-          if [ "$EVENT" = workflow_dispatch ]; then
-            names=all platforms=$DISPATCH_PLATFORMS
-          elif [ "$publish" = true ] || [[ "$REF" == refs/tags/* ]]; then
-            names=all platforms=linux/amd64,linux/arm64
-          else
-            names=$CHANGES platforms=linux/amd64
-          fi
+          case "$EVENT" in
+            workflow_dispatch) names=all platforms=$DISPATCH_PLATFORMS ;;
+            schedule) names=all platforms=linux/amd64,linux/arm64 ;;
+            *)
+              if [[ "$REF" == refs/tags/* ]]; then
+                names=all platforms=linux/amd64,linux/arm64
+              elif [ "$publish" = true ]; then
+                names=$CHANGES platforms=linux/amd64,linux/arm64
+              else
+                names=$CHANGES platforms=linux/amd64
+              fi ;;
+          esac
 
           matrix=$(jq -c --arg names "$names" --arg platforms "$platforms" --arg litellm "$PROXY_CONFIG_HASH" '
             map(select($names == "all" or (.name as $n | $names | fromjson | index($n))) | .platforms = $platforms
@@ -198,7 +211,7 @@ jobs:
   publish:
     name: Publish ${{ matrix.image.name }}
     needs: plan
-    if: needs.plan.outputs.publish == 'true' && !github.event.repository.private
+    if: needs.plan.outputs.publish == 'true' && needs.plan.outputs.matrix != '[]' && !github.event.repository.private
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     permissions:
