@@ -234,6 +234,7 @@ is all `ssebench` needs. It cannot read Secrets, or anything outside the namespa
 | `pods` | create, get, list, delete | Following the run, and the short pod that copies the reference patch out of an image |
 | `pods/log` | get | The run's output |
 | `pods/exec` | create, get | Reading the results out, and stopping the task container. `get` is for clusters before 1.30 |
+| `pods/portforward` | create, get | `ssebench runs endpoint` only |
 | `secrets` | create, patch, delete | The run's environment, and its owner reference |
 | `networkpolicies` | create, patch, delete | The run's network policy, and its owner reference |
 
@@ -241,6 +242,28 @@ is all `ssebench` needs. It cannot read Secrets, or anything outside the namespa
 the runs a namespace of their own, and do not bind the role in a namespace that holds
 anything else. A `ssebench` process inside the cluster uses the same role through the
 pod's service account.
+
+## Watching runs
+
+`ssebench runs list`, `inspect`, `logs`, `stop`, `remove`, `endpoint` and `exec`
+(what the [web UI](/webui/) calls) work on Jobs the same way as on containers, with
+`--backend kubernetes`. They find a run by its `ssebench.run-id` label, and report
+the Job's creation time as `created_at`.
+
+- **`endpoint`** prints a URL on `127.0.0.1`. It starts a detached
+  `kubectl port-forward` to the run's pod on a local port of its own, records it in a
+  file in the system's temporary directory, and reuses it on later calls for the same
+  pod and port; it outlives the command and ends with the pod or with
+  `ssebench runs remove`. It is a forward and not a Service because the run's network
+  policy admits no ingress, which a forward, going through the API server and the
+  kubelet, does not pass. Anyone on the machine can connect to the port, as with a
+  Docker container's address. It needs `kubectl` on the PATH and the
+  `pods/portforward` permission.
+- **`exec`** is `kubectl exec` in the task container, with `--user` done by `su` and
+  `--workdir` by `cd`. It cannot pass `--env` variables, since `kubectl exec` has no way
+  to take a value from the environment without showing it in the process list; a
+  command that asks for them fails. The web UI's terminal works; its assistant, which
+  passes its provider configuration that way, does not start on this backend yet.
 
 ## Stopping and cleaning up
 
@@ -264,7 +287,7 @@ pod's service account.
 - The images are pulled for the node's architecture from a multi-arch image; the
   backend does not choose a node by architecture.
 - `emptyDir` volumes are node-local, so a run that outlives its node loses its results.
-- The web UI lists Docker containers; it does not see Kubernetes runs yet.
+- `runs endpoint` and `runs exec` need `kubectl`. The web UI's assistant does not work, since it needs `runs exec --env`.
 
 ## Next steps
 

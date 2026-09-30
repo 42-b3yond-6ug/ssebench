@@ -842,5 +842,9 @@ def test_the_shipped_role_grants_every_call_the_backend_makes_and_nothing_it_doe
         else:
             needed.add((group, resource, NEEDED[action][0]))
     assert needed <= granted
-    # `get` on pods/exec is for clusters that authorize a WebSocket exec that way; all else is used.
-    assert granted - needed == {("", "pods/exec", "get")}
+    # kubectl, not the client, forwards ports; `get` is for clusters that authorize a WebSocket stream that way.
+    assert granted - needed == {
+        ("", "pods/exec", "get"),
+        ("", "pods/portforward", "create"),
+        ("", "pods/portforward", "get"),
+    }

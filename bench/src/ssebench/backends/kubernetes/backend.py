@@ -10,13 +10,14 @@ needs a storage class or a shared file system, and the runner may be outside the
 import base64
 import binascii
 import logging
+import shlex
 import signal
 import sys
 import tempfile
 import threading
 import time
 import uuid
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from importlib.util import find_spec
@@ -38,7 +39,7 @@ from ssebench.backends.base import (
     RunState,
 )
 from ssebench.backends.images import prebuilt_images
-from ssebench.backends.kubernetes import archive, config, manifests
+from ssebench.backends.kubernetes import archive, config, forward, manifests
 from ssebench.backends.kubernetes.api import INSTALL_HINT, Kind, KubeApi, KubeClient, KubeError
 from ssebench.backends.kubernetes.config import KubernetesConfig
 from ssebench.errors import UserError
@@ -137,6 +138,7 @@ class KubernetesBackend(Backend):
 
     name = "kubernetes"
     builds_images = False
+    supports_exec = True
 
     def __init__(self, config: KubernetesConfig | None = None, api: KubeApi | None = None) -> None:
         if api is None and find_spec("kubernetes") is None:
@@ -491,6 +493,69 @@ class KubernetesBackend(Backend):
             )
             return
         self._remove(handle.name)
+        if handle.pod:
+            forward.stop_forwards(self.api.namespace, handle.pod)
+
+    # ==================== reaching a run ====================
+
+    def _running_pod(self, handle: RunHandle) -> str:
+        assert isinstance(handle, KubernetesRun)
+        try:
+            pod = self._pod(handle)
+        except KubeError as e:
+            raise BackendError(f"Could not find the pod of {handle.name}: {e}") from e
+        if pod is None or _state(_status(pod, manifests.TASK_CONTAINER))[0] != "running":
+            raise BackendError(f"The run {handle.run_id} is not running")
+        return handle.pod
+
+    @override
+    def endpoint(self, handle: RunHandle, port: int) -> str:
+        """A `kubectl port-forward` to the pod on a port of 127.0.0.1, which outlives this process and is reused.
+
+        The run's network policy admits no ingress, so a Service or a pod address would not reach the run
+        from anywhere; a forward goes through the API server and the kubelet, which the policy does not
+        cover. It needs `kubectl` and the `pods/portforward` permission. It ends when the pod does, or
+        when the run is removed.
+        """
+        pod = self._running_pod(handle)
+        local = forward.forward(self.api.namespace, self.config.context, pod, port)
+        return f"http://127.0.0.1:{local}"
+
+    @override
+    def exec_argv(
+        self,
+        handle: RunHandle,
+        command: Sequence[str],
+        *,
+        user: str | None = None,
+        workdir: str | None = None,
+        tty: bool = False,
+        stdin: bool = False,
+        env_names: Sequence[str] = (),
+    ) -> list[str]:
+        if env_names:
+            # `kubectl exec` has no option that takes a value from the environment, and putting it in the
+            # vector would show it in the process list.
+            raise BackendError("The kubernetes backend cannot pass environment variables to a command")
+        pod = self._running_pod(handle)
+        inner = list(command)
+        if workdir or user:
+            script = f"cd {shlex.quote(workdir)} && " if workdir else ""
+            script += "exec " + shlex.join(command)
+            inner = ["sh", "-c", script]
+            if user:
+                inner = ["su", "-s", "/bin/sh", user, "-c", shlex.join(inner)]
+        return [
+            *forward.kubectl_base(self.api.namespace, self.config.context),
+            "exec",
+            *(["--stdin"] if stdin or tty else []),
+            *(["--tty"] if tty else []),
+            "--container",
+            manifests.TASK_CONTAINER,
+            pod,
+            "--",
+            *inner,
+        ]
 
     # ==================== finding runs ====================
 
@@ -544,10 +609,10 @@ class KubernetesBackend(Backend):
             run_id=run_id,
             name=meta["name"],
             pod=pod["metadata"]["name"] if pod else "",
-            keep="ttlSecondsAfterFinished" not in job["spec"],
         )
         return RunInfo(
             run_id=run_id,
+            created_at=meta.get("creationTimestamp"),
             name=meta["name"],
             state=state,
             exit_code=exit_code,

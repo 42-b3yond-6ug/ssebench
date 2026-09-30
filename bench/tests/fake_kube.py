@@ -72,7 +72,10 @@ class FakeKube:
         if (kind, name) in self.objects:
             raise KubeError(f'{kind} "{name}" already exists', 409)
         self._uid += 1
-        stored = {**body, "metadata": {**body["metadata"], "uid": f"uid-{self._uid}"}}
+        stored = {
+            **body,
+            "metadata": {**body["metadata"], "uid": f"uid-{self._uid}", "creationTimestamp": "2026-01-01T00:00:00Z"},
+        }
         self.objects[(kind, name)] = stored
         self.calls.append(("create", kind, name))
         if kind == "job":
