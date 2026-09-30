@@ -23,6 +23,7 @@ Difficulty = DifficultyLevel
 class TestConfig:
     """Configuration for test execution in test_patch tool."""
 
+    difficulty: DifficultyLevel
     enable_build: bool
     enable_function_test: bool
     enable_security_test: bool
@@ -32,6 +33,7 @@ class TestConfig:
     def from_difficulty(cls, difficulty: DifficultyLevel) -> "TestConfig":
         """Create a TestConfig from a difficulty level."""
         return cls(
+            difficulty=difficulty,
             enable_build=difficulty <= DifficultyLevel.BUILD_ONLY,
             enable_function_test=difficulty <= DifficultyLevel.NO_FUTURE_TEST,
             enable_security_test=difficulty <= DifficultyLevel.NO_INTENT_TEST,
