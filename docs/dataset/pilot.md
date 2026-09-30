@@ -35,7 +35,7 @@ By class of bug, the 55 tasks are:
 The card lists the classes in more detail, with an example of each.
 
 Many C tasks build with AddressSanitizer for x86-64 only, so an x86-64 host is
-recommended.
+recommended; on an arm64 host the tasks run under emulation.
 
 ## What a task contains
 
@@ -221,8 +221,9 @@ for all of them. See [`ssebench dataset verify`](/reference/cli#ssebench-dataset
 
 ## Known limitations
 
-- **x86-64 only.** Every task is `amd64`; the tool layers and the sanitizer
-  builds target x86-64.
+- **x86-64 only.** Every task is `amd64`, and many C tasks build with
+  AddressSanitizer for x86-64. On an arm64 host, a run executes under amd64
+  emulation; see [Architectures](/getting-started/installation#architectures).
 - **Builds use the network; grading does not.** A case image build downloads the
   upstream project and its dependencies. A run's container reaches only the LiteLLM
   proxy under the default egress policy; see

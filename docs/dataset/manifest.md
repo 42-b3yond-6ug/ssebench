@@ -234,7 +234,7 @@ the task folders and committed next to them:
 | `tasks[].language`, `project`, `repository` | From the task config. |
 | `tasks[].base` | Base image of the case image, relative to the registry, with its version: the last `FROM` of the task's Dockerfile without `${SSEBENCH_REGISTRY}/`, such as `base-generic-go:1.0.0`. |
 | `tasks[].image` | Case image, relative to the registry: `case/<dataset>/<id>`, lowercase. |
-| `tasks[].arch` | Platforms the task runs on. `amd64` for every task today, since the tool layers are built for amd64 only. |
+| `tasks[].arch` | Platforms the task runs on, in order of preference. A run uses the host's architecture if it is listed, else the first; see [Architectures](/getting-started/installation#architectures). `amd64` for every task today, since the case images are built and verified for amd64 only. |
 | `tasks[].checks` | The [checks](#checks) the grader can run for the task. |
 | `tasks[].files` | SHA-256 of every file in the task folder, by path relative to the folder. |
 | `tasks[].metadata` | The task config, validated, with every key present. |

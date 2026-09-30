@@ -75,14 +75,18 @@ plugin (every image is built with `docker buildx build`) and the Compose plugin
 ## CPU architecture
 
 ```text
-  warn  CPU            aarch64: many pilot tasks build amd64-only images
+  warn  CPU            This host is aarch64, so tasks that support only amd64 run under amd64 emulation: their case image, the tool layer and the agent all build and run as linux/amd64. That is slow, and AddressSanitizer may misbehave under QEMU.
+                       fix: Use an x86-64 host. To run here, Docker must be able to run amd64 images: Docker Desktop can, and on Linux `docker run --privileged --rm tonistiigi/binfmt --install amd64` installs QEMU's handlers.
 ```
 
 All 55 pilot tasks build amd64 images, and many C tasks compile with
-AddressSanitizer for x86-64 only. On an ARM64 host, Docker has to run them under
-emulation, which is slower and where some tasks fail. Use an x86-64 host for
-benchmark runs. `docker run --rm --platform linux/amd64 alpine uname -m` prints
-`x86_64` when your Docker can run amd64 images.
+AddressSanitizer for x86-64 only. On an ARM64 host, a run builds and runs the
+whole task under amd64 emulation, which is slower and where some tasks fail.
+Use an x86-64 host for benchmark runs. `docker run --rm --platform linux/amd64
+alpine uname -m` prints `x86_64` when your Docker can run amd64 images; if it
+fails with `exec format error`, install the emulator. `ssebench run` and
+`ssebench build-case` print the same warning once. See
+[Architectures](/getting-started/installation#architectures).
 
 ## Disk space
 

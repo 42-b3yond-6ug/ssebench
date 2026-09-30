@@ -91,7 +91,7 @@ too.
 | `SSEBENCH_DEMO_PROJECT` | `ssebench-demo` | CLI, Compose | Compose project of the [demo](/getting-started/demo). It must differ from `COMPOSE_PROJECT_NAME`: `just demo-down` deletes the project's database volume, and the demo refuses to touch a project whose containers it did not create. |
 | `SSEBENCH_DEMO_WEBUI_PORT` | `3001` | CLI, Compose | Host port of the demo's web UI, on `127.0.0.1`. |
 | `SSEBENCH_DEMO_CATALOG_PORT` | `8090` | CLI, Compose | Host port of the demo's catalog service, on `127.0.0.1`. |
-| `SSEBENCH_RUNTIME_IMAGE` | `<registry>/runtime:<version>` without a checkout, else unset | CLI | Runtime image that the tool layers copy the daemon and the entrypoint from, as `<registry>/runtime:<version>` does. Unset, a checkout compiles both from its sources, and an installation without a checkout uses the published image of its version. Set it to skip the compilation in a checkout. |
+| `SSEBENCH_RUNTIME_IMAGE` | `<registry>/runtime:<version>` without a checkout, else unset | CLI | Runtime image that the tool layers copy the daemon and the entrypoint from, as `<registry>/runtime:<version>` does. Unset, a checkout compiles both from its sources, and an installation without a checkout uses the published image of its version. Set it to skip the compilation in a checkout. The image must exist for the platform of the run, which is `linux/amd64` for a `pilot` task. |
 | `SSEBENCH_VERSION` | set by the CLI | CLI, Compose | SSEBench version that the Compose files pass as the `VERSION` build argument of the images they build. The CLI sets it from `VERSION`; it only matters when you run `docker compose build` yourself. |
 
 <!-- end generated -->
