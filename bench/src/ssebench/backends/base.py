@@ -102,6 +102,23 @@ class Images:
         return self.environment or self.agent
 
 
+# ==================== the model proxy ====================
+
+
+@dataclass(frozen=True, kw_only=True)
+class ProxyEndpoint:
+    """The LiteLLM proxy of a backend that has one of its own, as two URLs.
+
+    The runner creates each run's key through `host_url` and gives the run `service_url`, so the URLs
+    differ when the run's containers reach the proxy by another name than the runner does.
+    """
+
+    host_url: str
+    """Where the runner reaches the proxy, to create and read the run's key."""
+    service_url: str
+    """Where the run's container reaches the proxy: its `SSE_BASE_URL`."""
+
+
 # ==================== run specification ====================
 
 
@@ -267,6 +284,14 @@ class Backend(ABC):
 
     supports_exec: bool = False
     """Whether `exec_argv` works, which is what the web UI's terminal and assistant need."""
+
+    def proxy(self) -> ProxyEndpoint | None:
+        """The backend's own LiteLLM proxy, or None for the local Compose stack, which `ssebench run` starts.
+
+        A backend that returns an endpoint is responsible for the proxy being up; the runner starts nothing.
+        The admin key is still the `LITELLM_MASTER_KEY` setting.
+        """
+        return None
 
     @abstractmethod
     def prepare_images(self, request: ImageRequest) -> Images:

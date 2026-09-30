@@ -188,7 +188,7 @@ def test_reference_run_needs_no_model(
     runners: list[BenchmarkSandboxRunner] = []
     monkeypatch.setattr(stack, "up", lambda: None)
     monkeypatch.setattr(stack, "wait_healthy", lambda: None)
-    monkeypatch.setattr(cli, "Model", lambda name: pytest.fail("no proxy key may be created"))
+    monkeypatch.setattr(cli, "Model", lambda name, proxy=None: pytest.fail("no proxy key may be created"))
     monkeypatch.setattr(BenchmarkSandboxRunner, "build", lambda self: runners.append(self))
     monkeypatch.setattr(BenchmarkSandboxRunner, "run", lambda self: None)
 

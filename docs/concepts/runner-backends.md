@@ -102,6 +102,7 @@ by their labels.
 | `inspect_run(run_id) -> RunInfo \| None` | The run with that `ssebench.run-id` label. It has a default implementation on top of `list_runs`. |
 | `endpoint(handle, port) -> str` | `http://host:port`, at which the machine that calls this reaches `port` of the run's container. Optional; see [Reaching a run](#reaching-a-run). |
 | `exec_argv(handle, command, ...) -> list[str]` | The argument vector of a local command that runs `command` in the run's container. Optional; see [Reaching a run](#reaching-a-run). |
+| `proxy() -> ProxyEndpoint \| None` | Optional. The backend's own LiteLLM proxy, as the two URLs `host_url` (where `ssebench run` reaches it to create the run's key) and `service_url` (the run's `SSE_BASE_URL`). The default, `None`, is the local Compose stack, which `ssebench run` starts. A backend that returns an endpoint owns the proxy, and the runner starts no stack and does not check the provider keys on this host. |
 
 `RunInfo` has the run ID, the name, a `state` (`created`, `running`, `exited` or
 `unknown`), the exit code once it exited, the image, the labels, when the
