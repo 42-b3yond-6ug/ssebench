@@ -405,11 +405,16 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
     demo.add_parser(subparsers)
 
     # ==================== doctor subcommand ====================
-    _ = subparsers.add_parser(
+    doctor_parser = subparsers.add_parser(
         "doctor",
         help="Check that this host can build and run benchmarks",
         description="Checks Docker, buildx, Compose, free disk, the CPU architecture, .env, "
         "the LiteLLM proxy and the provider keys. Exits non-zero when a required check fails.",
+    )
+    doctor_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the checks as JSON, with the provider keys that each model in models/ needs and .env lacks",
     )
 
     extensions: dict[str, Command] = {}
@@ -451,7 +456,7 @@ def main(argv: Sequence[str] | None = None):
         elif args.command == "proxy":
             sys.exit(cmd_proxy(args))
         elif args.command == "doctor":
-            sys.exit(doctor.main())
+            sys.exit(doctor.main(as_json=args.json))
         elif args.command in extensions:
             sys.exit(extensions[args.command].run(args))
         else:

@@ -466,10 +466,12 @@ uv run ssebench doctor
 <!-- generated: cli doctor -->
 
 ```sh
-ssebench doctor [-h]
+ssebench doctor [-h] [--json]
 ```
 
-It takes no options.
+| Option | Default | Description |
+|---|---|---|
+| `--json` | off | Print the checks as JSON, with the provider keys that each model in `models/` needs and .env lacks |
 
 <!-- end generated -->
 

@@ -1,10 +1,11 @@
 """`ssebench doctor`: check that this host can build images and run benchmarks, and say how to fix it."""
 
+import json
 import os
 import platform
 import shutil
 import subprocess
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import Enum
 from pathlib import Path
 
@@ -178,6 +179,29 @@ def provider_keys() -> dict[str, list[str]]:
     return refs
 
 
+def model_keys() -> dict[str, dict[str, list[str]]]:
+    """For each model of `models/*.yaml`: the provider keys it needs (`keys`) and those `.env` does not set
+    (`missing`). A key set only in the shell counts as missing, because the proxy container reads `.env`."""
+    refs = provider_keys()
+    in_file = settings.dotenv()
+    models: dict[str, dict[str, list[str]]] = {}
+    for path in sorted(paths.models_dir().glob("*.y*ml")):
+        try:
+            entries = yaml.safe_load(path.read_text())
+        except yaml.YAMLError:
+            continue
+        for entry in entries if isinstance(entries, list) else []:
+            if isinstance(entry, dict) and "model_name" in entry:
+                models.setdefault(str(entry["model_name"]), {"keys": [], "missing": []})
+    for name, users in refs.items():
+        for model in users:
+            keys = models.setdefault(model, {"keys": [], "missing": []})
+            keys["keys"].append(name)
+            if not in_file.get(name, "").strip():
+                keys["missing"].append(name)
+    return {model: {field: sorted(set(names)) for field, names in keys.items()} for model, keys in models.items()}
+
+
 def check_provider_keys() -> Check:
     refs = provider_keys()
     if not refs:
@@ -288,7 +312,19 @@ def render(checks: list[Check]) -> str:
     return "\n".join(lines)
 
 
-def main() -> int:
+def render_json(checks: list[Check]) -> str:
+    """The checks, and which provider keys each model needs and lacks, for tools that show them."""
+    try:
+        models = model_keys()
+    except paths.HomeNotFoundError:
+        models = {}
+    return json.dumps(
+        {"checks": [{**asdict(check), "status": check.status.value} for check in checks], "models": models},
+        indent=2,
+    )
+
+
+def main(as_json: bool = False) -> int:
     checks = run_checks()
-    print(render(checks))
+    print(render_json(checks) if as_json else render(checks))
     return 1 if any(check.status is Status.FAIL for check in checks) else 0

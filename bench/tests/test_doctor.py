@@ -1,3 +1,4 @@
+import json
 import shutil
 from collections import namedtuple
 from pathlib import Path
@@ -195,3 +196,24 @@ def test_render_prints_fixes_for_problems_only() -> None:
     assert "never shown" not in text
     assert "fix: use x86-64" in text
     assert text.endswith("All required checks passed (1 warning(s)).")
+
+
+def test_model_keys_lists_the_keys_each_model_needs_and_lacks(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _ = (home / ".env").write_text(SECRETS + "ANTHROPIC_API_KEY=a\n")
+    monkeypatch.setenv("OPENAI_API_KEY", "from-shell")
+
+    assert doctor.model_keys() == {
+        "claude": {"keys": ["ANTHROPIC_API_KEY"], "missing": []},
+        "gpt": {"keys": ["OPENAI_API_KEY"], "missing": ["OPENAI_API_KEY"]},
+        "local": {"keys": [], "missing": []},
+    }
+
+
+def test_json_output_has_the_checks_and_the_models(healthy_host: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    _ = (healthy_host / ".env").write_text(SECRETS + "ANTHROPIC_API_KEY=a\n")
+
+    assert doctor.main(as_json=True) == 0
+
+    data = json.loads(capsys.readouterr().out)
+    assert {"name": "Docker", "status": "ok", "detail": "daemon 29.0.0", "fix": ""} in data["checks"]
+    assert data["models"]["gpt"] == {"keys": ["OPENAI_API_KEY"], "missing": ["OPENAI_API_KEY"]}
