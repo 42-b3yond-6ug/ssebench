@@ -357,8 +357,8 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
         type=str,
         default=None,
         metavar="NAME",
-        help=f"Where the run's containers execute (default: {DEFAULT_BACKEND}, or $SSEBENCH_BACKEND); installed "
-        "extensions can add more",
+        help=f"Where the run's containers execute: docker or kubernetes (default: {DEFAULT_BACKEND}, or "
+        "$SSEBENCH_BACKEND); installed extensions can add more. kubernetes needs --prebuilt",
     )
     run_parser.add_argument(
         "--prebuilt",

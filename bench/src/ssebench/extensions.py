@@ -32,6 +32,7 @@ from ssebench.backends import (
     ImageRequest,
     Images,
     ImageUnavailableError,
+    KubernetesBackend,
     Mount,
     NetworkPolicy,
     ProxyEndpoint,
@@ -63,6 +64,7 @@ __all__ = [
     "ImageRequest",
     "ImageUnavailableError",
     "Images",
+    "KubernetesBackend",
     "Mount",
     "NetworkPolicy",
     "ProxyEndpoint",
@@ -94,7 +96,9 @@ BUILTIN_TOOL_LAYERS: Final[Mapping[str, type[ToolLayer]]] = MappingProxyType({DE
 
 DEFAULT_BACKEND: Final = "docker"
 BACKEND_ENV: Final = "SSEBENCH_BACKEND"
-BUILTIN_BACKENDS: Final[Mapping[str, type[Backend]]] = MappingProxyType({DEFAULT_BACKEND: DockerBackend})
+BUILTIN_BACKENDS: Final[Mapping[str, type[Backend]]] = MappingProxyType(
+    {DEFAULT_BACKEND: DockerBackend, KubernetesBackend.name: KubernetesBackend}
+)
 
 
 class ExtensionError(RuntimeError):

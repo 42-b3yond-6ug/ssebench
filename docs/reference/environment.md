@@ -98,6 +98,31 @@ too.
 
 <!-- end generated -->
 
+### Kubernetes backend
+
+`ssebench run --backend kubernetes` reads these settings the same way. See
+[Kubernetes](/deployment/kubernetes) for what they configure.
+
+<!-- generated: env kubernetes -->
+
+| Variable | Default | Used by | Description |
+|---|---|---|---|
+| `SSEBENCH_K8S_NAMESPACE` | the namespace of the kubeconfig context, or of the pod `ssebench` runs in, else `default` | CLI | Namespace where the runs' Jobs, Secrets and NetworkPolicies are created. |
+| `SSEBENCH_K8S_CONTEXT` | the kubeconfig's current context | CLI | Context of the kubeconfig to use. The kubeconfig itself is found the way `kubectl` finds it (`KUBECONFIG`, else `~/.kube/config`); inside a pod the backend uses the pod's service account. |
+| `SSEBENCH_K8S_PROXY_URL` | `http://litellm.<proxy namespace>.svc:4000` | CLI | URL of the LiteLLM proxy as a run's pod reaches it: the run's `SSE_BASE_URL`. Its port must be the port the proxy's pods listen on, since the run's network policy opens that port. |
+| `SSEBENCH_K8S_PROXY_HOST_URL` | the proxy's Service URL inside a cluster, else `http://localhost:$LITELLM_PORT` | CLI | URL of the LiteLLM proxy as the `ssebench` process reaches it, to create and read each run's key. From outside the cluster, forward the proxy's port (`kubectl port-forward svc/litellm 4000`) and set `LITELLM_PORT` or this. |
+| `SSEBENCH_K8S_PROXY_NAMESPACE` | the runs' namespace | CLI | Namespace of the LiteLLM proxy, for its default URL and the run's network policy. |
+| `SSEBENCH_K8S_PROXY_SELECTOR` | `app.kubernetes.io/name=litellm` | CLI | Labels of the LiteLLM proxy's pods, as `key=value,key=value`. A restricted run's network policy lets its pod reach the pods that match, and no others. |
+| `SSEBENCH_K8S_RUNTIME_CLASS` | `unset` | CLI | `runtimeClassName` of the run's pod, for a sandboxed runtime such as gVisor or Kata Containers. |
+| `SSEBENCH_K8S_IMAGE_PULL_POLICY` | `IfNotPresent` | CLI | `imagePullPolicy` of the run's containers. `IfNotPresent` uses an image that is already on the node, such as one loaded into a kind cluster. |
+| `SSEBENCH_K8S_IMAGE_PULL_SECRETS` | `unset` | CLI | Names of image pull Secrets in the runs' namespace, separated by commas. |
+| `SSEBENCH_K8S_RESOURCES` | `requests` of 1 CPU, 2Gi memory and 2Gi ephemeral storage; `limits` of 4 CPUs, 8Gi and 20Gi | CLI | Resource requests and limits of the task container, as JSON or YAML in the shape of a container's `resources`, for example `{"requests": {"cpu": "2"}, "limits": {"memory": "16Gi"}}`. It replaces the defaults as a whole. |
+| `SSEBENCH_K8S_TTL_SECONDS` | `3600` | CLI | How long the cluster keeps a run's finished Job, its pod and its logs (`ttlSecondsAfterFinished`). A run kept with `--keep-container` has none. |
+| `SSEBENCH_K8S_DEADLINE_SLACK` | `1800` | CLI | Seconds added to the run's `--timeout` to make the Job's `activeDeadlineSeconds`: the time for pulling images, starting and grading. When it runs out the cluster deletes the pod and the run's results with it. |
+| `KUBERNETES_SERVICE_HOST` | set by Kubernetes in every pod | CLI | The backend takes its presence to mean that `ssebench` runs inside a cluster, where the proxy is reached through its Service. |
+
+<!-- end generated -->
+
 ## Inside the task container
 
 `ssebench run` and the container's entrypoint set these variables in every

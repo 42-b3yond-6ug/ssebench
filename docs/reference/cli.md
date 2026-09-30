@@ -76,7 +76,7 @@ ssebench run [-h] [--model NAME] --agent NAME --task ID [--local DIR]
 | `--catalog PATH\|URL` | `$SSEBENCH_CATALOG`, else the bundled pilot manifest | Task catalog: a `manifest.json` path or URL, a dataset directory, or the URL of a catalog service; used when `--local` is not given |
 | `--build` | off | Build the task's case image from its folder instead of pulling the published one; needs a checkout or `--catalog` with the task folder next to it. With `--local` the image is always built |
 | `--mode MODE` | `sandbox` | Execution mode: sandbox, or sidecar (experimental) |
-| `--backend NAME` | docker, or `$SSEBENCH_BACKEND` | Where the run's containers execute; installed extensions can add more |
+| `--backend NAME` | docker, or `$SSEBENCH_BACKEND` | Where the run's containers execute: docker or kubernetes; installed extensions can add more. kubernetes needs `--prebuilt` |
 | `--prebuilt` | off | Use the published agent images of the task under `$SSEBENCH_REGISTRY`, pulling them, instead of building the case, tool and agent layers; excludes `--tool-layer`, `--plugin` and `--build`. Also enabled by `SSEBENCH_PREBUILT`=1 |
 | `--tool-layer NAME` | `sandbox` | Tool layer to build in sandbox mode; installed extensions can add more |
 | `--plugin NAME` | `[]` | Run a plugin in this run (repeatable), instead of those `plugins.yaml` enables; sandbox mode only |

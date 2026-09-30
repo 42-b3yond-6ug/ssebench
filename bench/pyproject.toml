@@ -41,6 +41,11 @@ Issues = "https://github.com/42-b3yond-6ug/ssebench/issues"
 [project.scripts]
 ssebench = "ssebench.cli:main"
 
+[project.optional-dependencies]
+kubernetes = [
+    "kubernetes>=31",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
