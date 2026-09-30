@@ -10,6 +10,7 @@ import yaml
 from pydantic import BaseModel
 
 from ssebench import paths, settings, stack
+from ssebench.backends import ProxyEndpoint
 from ssebench.errors import UserError
 
 MAX_BUDGET = 10
@@ -71,10 +72,11 @@ class UserInfoResult(BaseModel):
 
 @final
 class Model:
-    def __init__(self, model: str):
+    def __init__(self, model: str, proxy: ProxyEndpoint | None = None):
+        """`proxy` names the LiteLLM proxy of a backend that has its own; the default is the local Compose stack."""
         self.model_name = model
-        self.host_url = stack.host_url()
-        self.service_url = stack.service_url()
+        self.host_url = proxy.host_url if proxy else stack.host_url()
+        self.service_url = proxy.service_url if proxy else stack.service_url()
 
         self.client = httpx.Client(
             headers={

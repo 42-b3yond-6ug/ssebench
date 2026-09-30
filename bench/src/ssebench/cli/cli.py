@@ -14,6 +14,7 @@ from ssebench.errors import UserError
 from ssebench.extensions import (
     DEFAULT_BACKEND,
     DEFAULT_TOOL_LAYER,
+    BackendError,
     Command,
     ExtensionError,
     command_names,
@@ -94,7 +95,9 @@ def cmd_run(args: argparse.Namespace) -> int:
     try:
         _ = get_tool_layer(tool_layer)
         backend = resolve_backend(getattr(args, "backend", None))
-    except ExtensionError as e:
+        # A backend with a proxy of its own is responsible for it; the local stack is for the others.
+        proxy = backend.proxy()
+    except (ExtensionError, BackendError) as e:
         logger.error(e)
         return 1
 
@@ -140,7 +143,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     agent = Agent(args.agent, task_name=task.name if args.mode == "sandbox" else "sidecar", platform=task.platform)
     if args.model is not None and not reference_run:
         require_defined(args.model)
-        if args.agent not in KEYLESS_AGENTS:
+        if args.agent not in KEYLESS_AGENTS and proxy is None:
             doctor.require_model_key(args.model)
     if arch.is_emulated(task.arch):
         logger.warning(arch.emulation_warning(task.arch))
@@ -152,18 +155,19 @@ def cmd_run(args: argparse.Namespace) -> int:
         logger.error(f"{taken} already has results; give the run another --run-id, or none to get a new ID")
         return 1
 
-    try:
-        stack.up()
-        stack.wait_healthy()
-    except TimeoutError as e:
-        logger.error(e)
-        return 1
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Could not start the LiteLLM proxy: {e}")
-        return 1
+    if proxy is None:
+        try:
+            stack.up()
+            stack.wait_healthy()
+        except TimeoutError as e:
+            logger.error(e)
+            return 1
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Could not start the LiteLLM proxy: {e}")
+            return 1
 
     # Run the experiment
-    model = NoModel() if reference_run or args.model is None else Model(args.model)
+    model = NoModel() if reference_run or args.model is None else Model(args.model, proxy)
     timeout = args.timeout
     difficulty = args.difficulty
     keep_container = args.keep_container

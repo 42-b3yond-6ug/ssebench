@@ -11,9 +11,10 @@ from typing import Any, cast, override
 import httpx
 import pytest
 
-from ssebench import paths, settings, stack
+from ssebench import doctor, paths, settings, stack
 from ssebench.agents import Agent, AgentError
 from ssebench.agents.agent import load_agent_config
+from ssebench.backends import DockerBackend, ImageRequest, Images, ImageUnavailableError, ProxyEndpoint
 from ssebench.cli import cli, demo
 from ssebench.models import Model, ModelError
 from ssebench.pipe import DockerLayerMixin, ImageBuildError, build_pipe
@@ -138,6 +139,55 @@ def test_a_model_that_neither_the_proxy_nor_models_define_is_an_error_with_the_c
 
     with pytest.raises(ModelError, match=r"Unknown model 'gamma'\. Available models: alpha-1, alpha-2, beta\."):
         _ = Model("gamma")
+
+
+def test_a_model_uses_the_urls_of_a_backends_proxy(monkeypatch: pytest.MonkeyPatch, models_dir: Path) -> None:
+    urls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        urls.append(str(request.url))
+        body = {"user_id": "u", "key": "sk-run"} if request.method == "POST" else {}
+        return httpx.Response(200, json=body, request=request)
+
+    model_with_proxy(monkeypatch, handler, models_dir)
+
+    model = Model("beta", ProxyEndpoint(host_url="http://proxy.test:4000", service_url="http://litellm.ns.svc:4000"))
+
+    assert urls == ["http://proxy.test:4000/models/beta", "http://proxy.test:4000/user/new"]
+    assert model.service_url == "http://litellm.ns.svc:4000" and model.api_key == "sk-run"
+
+
+class ProxiedBackend(DockerBackend):
+    """A backend with a proxy of its own; it cannot prepare images, which ends the run after the proxy is chosen."""
+
+    @override
+    def proxy(self) -> ProxyEndpoint:
+        return ProxyEndpoint(host_url="http://proxy.test:4000", service_url="http://litellm.ns.svc:4000")
+
+    @override
+    def prepare_images(self, request: ImageRequest) -> Images:
+        raise ImageUnavailableError("no images here")
+
+
+def test_a_backend_with_its_own_proxy_starts_no_compose_stack(
+    dataset: Path,
+    agents_dir: Path,
+    models_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr("ssebench.cli.cli.resolve_backend", lambda name=None: ProxiedBackend())
+    monkeypatch.chdir(tmp_path)
+    proxies: list[ProxyEndpoint | None] = []
+    monkeypatch.setattr("ssebench.cli.cli.Model", lambda name, proxy=None: proxies.append(proxy) or cast(Any, object()))
+    # The stack must not start (see `no_proxy`), and the provider key is the proxy's business, not this host's.
+    monkeypatch.setattr(doctor, "require_model_key", lambda model: pytest.fail("no provider key is checked here"))
+
+    with pytest.raises(ImageUnavailableError, match="no images here"):
+        _ = cli.cmd_run(cli.build_parser([])[0].parse_args(run_args(dataset, "--agent", "dummy", "--model", "beta")))
+
+    assert proxies == [ProxyEndpoint(host_url="http://proxy.test:4000", service_url="http://litellm.ns.svc:4000")]
 
 
 def test_a_proxy_that_rejects_the_key_is_an_error(monkeypatch: pytest.MonkeyPatch, models_dir: Path) -> None:
@@ -379,7 +429,7 @@ def test_a_failed_agent_image_build_is_one_error_line(
     monkeypatch.setattr(stack, "up", lambda *args, **kwargs: None)
     monkeypatch.setattr(stack, "wait_healthy", lambda *args, **kwargs: None)
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("ssebench.cli.cli.Model", lambda name: cast(Any, object()))
+    monkeypatch.setattr("ssebench.cli.cli.Model", lambda name, proxy=None: cast(Any, object()))
 
     def docker(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
         if kwargs.get("cwd") == agents_dir / "dummy":
@@ -406,7 +456,7 @@ def test_a_failed_case_image_build_names_the_task(
     monkeypatch.setattr(stack, "up", lambda *args, **kwargs: None)
     monkeypatch.setattr(stack, "wait_healthy", lambda *args, **kwargs: None)
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("ssebench.cli.cli.Model", lambda name: cast(Any, object()))
+    monkeypatch.setattr("ssebench.cli.cli.Model", lambda name, proxy=None: cast(Any, object()))
 
     def docker(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
         raise subprocess.CalledProcessError(1, cmd)
