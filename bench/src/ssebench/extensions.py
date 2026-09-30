@@ -1,16 +1,19 @@
 """Extend SSEBench from another package, without forking it.
 
-An installed package registers tool layers and CLI subcommands as entry points, for example in
-its pyproject.toml:
+An installed package registers tool layers, runner backends and CLI subcommands as entry points,
+for example in its pyproject.toml:
 
     [project.entry-points."ssebench.tool_layers"]
     my-layer = "my_package.layers:MyToolLayer"
 
+    [project.entry-points."ssebench.backends"]
+    my-backend = "my_package.backend:MyBackend"
+
     [project.entry-points."ssebench.commands"]
     my-command = "my_package.cli:MyCommand"
 
-The entry-point name is the name users type: `ssebench run --tool-layer my-layer` and
-`ssebench my-command`. This module is the stable import location for everything an extension
+The entry-point name is the name users type: `ssebench run --tool-layer my-layer`,
+`ssebench run --backend my-backend` and `ssebench my-command`. This module is the stable import location for everything an extension
 needs; the contract is documented in docs/guides/extension-points.md.
 """
 
@@ -21,24 +24,57 @@ from importlib.metadata import EntryPoint, entry_points
 from types import MappingProxyType
 from typing import Final, Protocol, runtime_checkable
 
+from ssebench.backends import (
+    Backend,
+    BackendError,
+    DockerBackend,
+    ImageRequest,
+    Images,
+    ImageUnavailableError,
+    Mount,
+    NetworkPolicy,
+    RunHandle,
+    RunInfo,
+    RunSpec,
+    SidecarPair,
+    prebuilt_images,
+)
 from ssebench.middleware import SandboxToolLayer, ToolLayer, ToolLayerContext
 from ssebench.pipe import REGISTRY, TAG
 
 __all__ = [
+    "BACKENDS_GROUP",
+    "BUILTIN_BACKENDS",
     "BUILTIN_TOOL_LAYERS",
     "COMMANDS_GROUP",
+    "DEFAULT_BACKEND",
     "DEFAULT_TOOL_LAYER",
     "REGISTRY",
     "TAG",
     "TOOL_LAYERS_GROUP",
+    "Backend",
+    "BackendError",
     "Command",
+    "DockerBackend",
     "ExtensionError",
+    "ImageRequest",
+    "ImageUnavailableError",
+    "Images",
+    "Mount",
+    "NetworkPolicy",
+    "RunHandle",
+    "RunInfo",
+    "RunSpec",
     "SandboxToolLayer",
+    "SidecarPair",
     "ToolLayer",
     "ToolLayerContext",
+    "backend_names",
     "command_names",
+    "get_backend",
     "get_tool_layer",
     "load_commands",
+    "prebuilt_images",
     "tool_layer_names",
 ]
 
@@ -46,9 +82,13 @@ logger = logging.getLogger(__name__)
 
 TOOL_LAYERS_GROUP: Final = "ssebench.tool_layers"
 COMMANDS_GROUP: Final = "ssebench.commands"
+BACKENDS_GROUP: Final = "ssebench.backends"
 
 DEFAULT_TOOL_LAYER: Final = "sandbox"
 BUILTIN_TOOL_LAYERS: Final[Mapping[str, type[ToolLayer]]] = MappingProxyType({DEFAULT_TOOL_LAYER: SandboxToolLayer})
+
+DEFAULT_BACKEND: Final = "docker"
+BUILTIN_BACKENDS: Final[Mapping[str, type[Backend]]] = MappingProxyType({DEFAULT_BACKEND: DockerBackend})
 
 
 class ExtensionError(RuntimeError):
@@ -126,6 +166,47 @@ def get_tool_layer(name: str) -> type[ToolLayer]:
             f"Tool layer {name!r} ({_origin(entry_point)}) is not a subclass of ssebench.extensions.ToolLayer."
         )
     return layer
+
+
+def backend_names() -> list[str]:
+    """The names `ssebench run --backend` accepts: the built-in backend and the registered ones."""
+    return sorted({*BUILTIN_BACKENDS, *_registered(BACKENDS_GROUP)})
+
+
+def get_backend(name: str) -> Backend:
+    """Return a runner backend called `name`, created without arguments.
+
+    Raises ExtensionError if no backend or more than one backend has that name, or if the registered
+    object cannot be imported, is not a Backend subclass or cannot be created. Only the selected entry
+    point is imported.
+    """
+    registered = _registered(BACKENDS_GROUP).get(name, [])
+    claims = [_origin(entry_point) for entry_point in registered]
+    if name in BUILTIN_BACKENDS:
+        claims.insert(0, "the built-in backend")
+    if len(claims) > 1:
+        raise ExtensionError(
+            f"Backend {name!r} is registered more than once: {'; '.join(claims)}. Uninstall or rename all but one."
+        )
+
+    if name in BUILTIN_BACKENDS:
+        return BUILTIN_BACKENDS[name]()
+    if not registered:
+        raise ExtensionError(f"Unknown backend {name!r}. Available: {', '.join(backend_names())}.")
+
+    entry_point = registered[0]
+    try:
+        backend = entry_point.load()
+    except Exception as e:
+        raise ExtensionError(f"Cannot load backend {name!r} ({_origin(entry_point)}): {e}") from e
+    if not (isinstance(backend, type) and issubclass(backend, Backend)):
+        raise ExtensionError(
+            f"Backend {name!r} ({_origin(entry_point)}) is not a subclass of ssebench.extensions.Backend."
+        )
+    try:
+        return backend()
+    except Exception as e:
+        raise ExtensionError(f"Cannot create backend {name!r} ({_origin(entry_point)}): {e}") from e
 
 
 def command_names() -> list[str]:

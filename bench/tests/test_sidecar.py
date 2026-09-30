@@ -6,25 +6,52 @@ from pathlib import Path
 import pytest
 
 from ssebench import stack
+from ssebench.backends import (
+    ARCHIVE_PATH,
+    RESULTS_PATH,
+    SIDECAR_DAEMON_SOCKET,
+    SIDECAR_SOCKET_DIR,
+    DockerBackend,
+    Mount,
+    NetworkPolicy,
+    RunSpec,
+    SidecarPair,
+)
 from ssebench.cli.cli import main
-from ssebench.runner import SidecarPair
-from ssebench.runner.runner import ARCHIVE_PATH, RESULTS_PATH, SIDECAR_DAEMON_SOCKET, SIDECAR_SOCKET_DIR
 
 PILOT = Path(__file__).resolve().parents[2] / "datasets" / "pilot"
 TASK = "gjson-196-bf4efcb"
 
 
-def make_pair(**kw: object) -> SidecarPair:
+def make_spec(**kw: object) -> RunSpec:
+    pair = SidecarPair(
+        task_name="Demo-1",
+        source_dir="/src/demo",
+        environment_image="registry.test/environment",
+        difficulty=4,
+        run_id="abc123",
+    )
     fields: dict[str, object] = {
+        "run_id": "r1",
+        "mode": "sidecar",
         "task_name": "Demo-1",
-        "source_dir": "/src/demo",
-        "results": "/host/results",
-        "archive": "/host/results/archive",
-        "network": "ssebench_agents",
-        "difficulty": 4,
-        "run_id": "abc123",
+        "image": "registry.test/agent",
+        "env": {},
+        "results": Mount(source="/host/results", target=RESULTS_PATH),
+        "archive": Mount(source="/host/results/archive", target=ARCHIVE_PATH),
+        "network": NetworkPolicy(),
+        "labels": {},
+        "timeout": 60,
+        "sidecar": pair,
     }
-    return SidecarPair(**{**fields, **kw})  # pyright: ignore[reportArgumentType]
+    return RunSpec(**{**fields, **kw})  # pyright: ignore[reportArgumentType]
+
+
+BACKEND = DockerBackend(network="ssebench_agents")
+
+
+def both(spec: RunSpec) -> tuple[list[str], list[str]]:
+    return BACKEND.environment_options(spec), BACKEND.agent_options(spec)
 
 
 def pairs(options: list[str], flag: str) -> list[str]:
@@ -32,9 +59,8 @@ def pairs(options: list[str], flag: str) -> list[str]:
 
 
 def test_both_containers_share_the_source_sockets_and_archive() -> None:
-    pair = make_pair()
-    for options in (pair.environment_options(), pair.agent_options()):
-        assert pairs(options, "-v")[:4] == [
+    for options in both(make_spec()):
+        assert pairs(options, "-v") == [
             f"/host/results/archive:{ARCHIVE_PATH}",
             "ssebench-abc123-source:/src/demo",
             f"ssebench-abc123-sockets:{SIDECAR_SOCKET_DIR}",
@@ -44,7 +70,7 @@ def test_both_containers_share_the_source_sockets_and_archive() -> None:
 
 
 def test_the_agent_container_never_mounts_the_task_files() -> None:
-    options = make_pair().agent_options({"SSE_API_KEY": "sk-x"})
+    options = BACKEND.agent_options(make_spec(env={"SSE_API_KEY": "sk-x"}))
 
     targets = [volume.split(":")[1] for volume in pairs(options, "-v")]
     assert not any(target == "/ssebench" or target.startswith("/ssebench/") for target in targets)
@@ -55,28 +81,34 @@ def test_the_agent_container_never_mounts_the_task_files() -> None:
 
 def test_the_sockets_are_off_the_writable_archive() -> None:
     assert not SIDECAR_DAEMON_SOCKET.startswith(ARCHIVE_PATH)
-    for options in (make_pair().environment_options(), make_pair().agent_options()):
+    for options in both(make_spec()):
         assert f"SSE_DAEMON_SOCKET={SIDECAR_DAEMON_SOCKET}" in pairs(options, "-e")
 
 
 def test_the_daemon_gets_the_difficulty_and_the_network() -> None:
-    pair = make_pair(difficulty=4, network="ssebench_agents")
-    for options in (pair.environment_options(), pair.agent_options()):
+    for options in both(make_spec()):
         assert "SSE_DIFFICULTY=4" in pairs(options, "-e")
         assert pairs(options, "--network") == ["ssebench_agents"]
         assert "ssebench.run=abc123" in pairs(options, "--label")
 
 
+def test_the_environment_container_alone_keeps_the_task_alive_and_carries_the_labels() -> None:
+    spec = make_spec(labels={"ssebench.webui": "true"})
+    environment, agent = both(spec)
+
+    assert "SSE_KEEP_ALIVE=0" in pairs(environment, "-e") and "SSE_KEEP_ALIVE=0" not in pairs(agent, "-e")
+    assert "ssebench.webui=true" in pairs(environment, "--label")
+    assert "ssebench.webui=true" not in pairs(agent, "--label")
+    assert pairs(environment, "--name") == ["ssebench-env-demo-1-abc123"] and not pairs(agent, "--name")
+
+
 def test_each_run_has_its_own_names() -> None:
-    first, second = make_pair(run_id="one"), make_pair(run_id="two")
+    first = SidecarPair(task_name="Demo-1", source_dir="/s", environment_image="e", difficulty=2, run_id="one")
+    second = SidecarPair(task_name="Demo-1", source_dir="/s", environment_image="e", difficulty=2, run_id="two")
 
     assert first.environment_name == "ssebench-env-demo-1-one"
-    assert pairs(first.environment_options(), "--name") == [first.environment_name]
-    assert {first.source_volume, first.socket_volume}.isdisjoint({second.source_volume, second.socket_volume})
-    assert (
-        len(SidecarPair(task_name="t", source_dir="/s", results="r", archive="a", network="n", difficulty=2).run_id)
-        == 12
-    )
+    assert {*first.volumes}.isdisjoint({*second.volumes})
+    assert len(SidecarPair(task_name="t", source_dir="/s", environment_image="e", difficulty=2).run_id) == 12
 
 
 def test_run_warns_that_sidecar_mode_is_experimental(

@@ -148,8 +148,16 @@ def start_sandbox(difficulty: int) -> Deployment:
 
 
 def start_sidecar(difficulty: int) -> Deployment:
-    from ssebench.runner import SidecarPair
-    from ssebench.runner.runner import SIDECAR_DAEMON_SOCKET
+    from ssebench.backends import (
+        ARCHIVE_PATH,
+        RESULTS_PATH,
+        SIDECAR_DAEMON_SOCKET,
+        DockerBackend,
+        Mount,
+        NetworkPolicy,
+        RunSpec,
+        SidecarPair,
+    )
 
     run_id = uuid.uuid4().hex[:12]
     # Volumes rather than host directories, so no root-owned files are left behind.
@@ -158,31 +166,49 @@ def start_sidecar(difficulty: int) -> Deployment:
     pair = SidecarPair(
         task_name=TASK,
         source_dir=SOURCE_DIR,
-        results=results,
-        archive=archive,
-        network=NETWORK,
+        environment_image=SIDECAR_ENV_IMAGE,
         difficulty=difficulty,
         run_id=run_id,
     )
+    spec = RunSpec(
+        run_id=run_id,
+        mode="sidecar",
+        task_name=TASK,
+        image=SIDECAR_AGENT_IMAGE,
+        env={},
+        results=Mount(source=results, target=RESULTS_PATH, kind="volume"),
+        archive=Mount(source=archive, target=ARCHIVE_PATH, kind="volume"),
+        network=NetworkPolicy(),
+        labels={},
+        timeout=1200,
+        sidecar=pair,
+    )
+    backend = DockerBackend(network=NETWORK)
     agent = f"integrity-sidecar-{difficulty}-{run_id}"
 
     def cleanup() -> None:
         stop_container(agent)
-        pair.remove()
+        backend.remove_pair(pair)
         _run(["docker", "volume", "rm", archive, results])
 
     try:
         subprocess.run(["docker", "volume", "create", archive], check=True, stdout=subprocess.DEVNULL)
         subprocess.run(["docker", "volume", "create", results], check=True, stdout=subprocess.DEVNULL)
-        pair.create_volumes()
-        subprocess.run(
-            ["docker", "run", "-d", *pair.environment_options(), SIDECAR_ENV_IMAGE],
-            check=True,
-            stdout=subprocess.DEVNULL,
-        )
+        backend.create_volumes(pair)
+        subprocess.run(backend.environment_command(spec), check=True, stdout=subprocess.DEVNULL)
         subprocess.run(
             # Hold the agent phase open so we can probe as `model`.
-            ["docker", "run", "-d", "--name", agent, *pair.agent_options(), SIDECAR_AGENT_IMAGE, "sleep", "1200"],
+            [
+                "docker",
+                "run",
+                "-d",
+                "--name",
+                agent,
+                *backend.agent_options(spec),
+                SIDECAR_AGENT_IMAGE,
+                "sleep",
+                "1200",
+            ],
             check=True,
             stdout=subprocess.DEVNULL,
         )

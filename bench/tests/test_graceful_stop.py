@@ -2,18 +2,19 @@
 
 import json
 import logging
-import subprocess
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
 
 import pytest
 
 from ssebench.agents import Agent
+from ssebench.backends import Images
 from ssebench.models import NoModel
 from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
 from ssebench.runner.runner import stopped_after_grading
 from ssebench.tasks import LocalTask
+
+from .conftest import FakeDocker
 
 TASK = "demo-1"
 RUN_DIR = Path("results") / TASK / "none" / "dummy" / "r1"
@@ -24,19 +25,16 @@ GRADE = {
 
 
 class Container:
-    """A container whose `docker run` writes the grade if it `graded`, then exits with `status`."""
+    """A container that writes the grade if it `graded`, then exits with `status`."""
 
     def __init__(self, status: int, graded: bool) -> None:
         self.status = status
         self.graded = graded
 
-    def __call__(self, cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
-        if cmd[:2] == ["docker", "run"]:
-            if self.graded:
-                _ = (RUN_DIR / "result.json").write_text(json.dumps(GRADE))
-            if self.status:
-                raise subprocess.CalledProcessError(self.status, cmd)
-        return subprocess.CompletedProcess(cmd, 0, "", "")
+    def __call__(self, cmd: list[str]) -> int:
+        if self.graded:
+            _ = (RUN_DIR / "result.json").write_text(json.dumps(GRADE))
+        return self.status
 
 
 @pytest.fixture
@@ -46,13 +44,20 @@ def task(tmp_path: Path, make_task: Callable[..., Path]) -> LocalTask:
     return LocalTask(TASK, dataset)
 
 
-def run(task: LocalTask, container: Container, keep_container: bool, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    monkeypatch.setattr(subprocess, "run", container)
+def run(
+    task: LocalTask,
+    container: Container,
+    keep_container: bool,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    docker: FakeDocker,
+):
+    docker.on_run = container
     monkeypatch.chdir(tmp_path)
     runner = BenchmarkSandboxRunner(
         NoModel(), Agent("dummy", task_name=task.name), task, 60, 2, keep_container, run_id="r1"
     )
-    runner.sandbox_image = "registry.test/agent-image"
+    runner.images = Images(agent="registry.test/agent-image")
     runner.run()
 
 
@@ -62,11 +67,16 @@ def errors(caplog: pytest.LogCaptureFixture) -> list[str]:
 
 @pytest.mark.parametrize("status", [143, 137])
 def test_a_stop_after_grading_is_not_an_error(
-    status: int, task: LocalTask, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    status: int,
+    task: LocalTask,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+    docker: FakeDocker,
 ) -> None:
     caplog.set_level(logging.INFO)
 
-    run(task, Container(status, graded=True), True, monkeypatch, tmp_path)
+    run(task, Container(status, graded=True), True, monkeypatch, tmp_path, docker)
 
     assert errors(caplog) == []
     assert f"The kept container was stopped after grading (exit status {status})" in caplog.messages
@@ -76,9 +86,13 @@ def test_a_stop_after_grading_is_not_an_error(
 
 
 def test_a_clean_exit_after_grading_is_not_an_error(
-    task: LocalTask, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    task: LocalTask,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+    docker: FakeDocker,
 ) -> None:
-    run(task, Container(0, graded=True), True, monkeypatch, tmp_path)
+    run(task, Container(0, graded=True), True, monkeypatch, tmp_path, docker)
 
     assert errors(caplog) == []
 
@@ -101,8 +115,9 @@ def test_any_other_non_zero_exit_is_an_error(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     caplog: pytest.LogCaptureFixture,
+    docker: FakeDocker,
 ) -> None:
-    run(task, Container(status, graded), keep_container, monkeypatch, tmp_path)
+    run(task, Container(status, graded), keep_container, monkeypatch, tmp_path, docker)
 
     [message, *_] = errors(caplog)
     assert message == f"Agent container stopped with a non-zero exit status: {status}"
@@ -128,20 +143,19 @@ def test_stopped_after_grading(status: int, keep_container: bool, grade: str, ex
 
 
 def test_a_failed_sidecar_run_does_not_log_the_proxy_key(
-    task: LocalTask, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    task: LocalTask,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+    docker: FakeDocker,
 ) -> None:
     model = NoModel()
     model.api_key = "sk-run-secret"
-
-    def fake(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
-        if "SSE_API_KEY=sk-run-secret" in cmd:  # the agent container, the only one that holds the key
-            raise subprocess.CalledProcessError(1, cmd)
-        return subprocess.CompletedProcess(cmd, 0, "", "")
-
-    monkeypatch.setattr(subprocess, "run", fake)
+    # The agent container is the only one that holds the key.
+    docker.on_run = lambda cmd: 1 if "SSE_API_KEY=sk-run-secret" in cmd else 0
     monkeypatch.chdir(tmp_path)
     runner = BenchmarkSidecarRunner(model, Agent("dummy", task_name=task.name), task, 60, 2, run_id="r1")
-    runner.sidecar_agentrt_image, runner.sidecar_environ_image = "registry.test/agent", "registry.test/env"
+    runner.images = Images(agent="registry.test/agent", environment="registry.test/env")
 
     runner.run()
 

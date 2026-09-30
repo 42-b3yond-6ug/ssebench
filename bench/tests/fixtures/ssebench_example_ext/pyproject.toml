@@ -5,12 +5,15 @@
 [project]
 name = "ssebench-example-ext"
 version = "0.1.0"
-description = "Example SSEBench extension: a tool layer and a hello command"
+description = "Example SSEBench extension: a tool layer, a runner backend and a hello command"
 requires-python = ">=3.12"
 dependencies = ["ssebench"]
 
 [project.entry-points."ssebench.tool_layers"]
 example = "ssebench_example_ext:ExampleToolLayer"
+
+[project.entry-points."ssebench.backends"]
+logging = "ssebench_example_ext:LoggingBackend"
 
 [project.entry-points."ssebench.commands"]
 hello = "ssebench_example_ext:HelloCommand"

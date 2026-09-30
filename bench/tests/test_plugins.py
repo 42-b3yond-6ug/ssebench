@@ -10,6 +10,7 @@ from typing import cast
 import pytest
 
 from ssebench.agents import Agent
+from ssebench.backends import docker as docker_module
 from ssebench.middleware import ToolLayer
 from ssebench.models import Model
 from ssebench.plugins import (
@@ -20,7 +21,6 @@ from ssebench.plugins import (
     selected_plugins,
 )
 from ssebench.runner import BenchmarkSandboxRunner
-from ssebench.runner import runner as runner_module
 
 from .test_extensions import FakeTask
 
@@ -133,7 +133,7 @@ def test_sandbox_runner_installs_selected_plugins(monkeypatch: pytest.MonkeyPatc
         built.append(cast(ToolLayer, pipeline[1]))
         return "image"
 
-    monkeypatch.setattr(runner_module, "build_pipe", record)
+    monkeypatch.setattr(docker_module, "build_pipe", record)
     task = FakeTask()
     agent = Agent("dummy", task_name=task.name)
     runner = BenchmarkSandboxRunner(cast(Model, None), agent, task, 60, 2, plugins=["artifact"], select_plugins=True)

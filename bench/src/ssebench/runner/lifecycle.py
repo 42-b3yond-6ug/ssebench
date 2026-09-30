@@ -1,7 +1,7 @@
 """How a run is identified from outside and how it ends when the CLI is asked to stop.
 
-A tool that starts `ssebench run` labels the run with its own ID and finds the containers by it, rather
-than by task, which several runs can share. The CLI also runs the container in the foreground, so a
+A tool that starts `ssebench run` labels the run with its own ID and finds its containers by it, rather
+than by task, which several runs can share. The CLI also waits for the run in the foreground, so a
 SIGTERM to the CLI would otherwise end it with no summary, and no record of what the run spent.
 """
 
@@ -9,24 +9,17 @@ import logging
 import os
 import re
 import signal
-import subprocess
-import tempfile
-import time
 from pathlib import Path
 from types import FrameType, TracebackType
 
+from ssebench.backends import RUN_ID_LABEL, STOP_GRACE_SECONDS, Backend, RunHandle, RunSpec
 from ssebench.runner.layout import LATEST
+
+__all__ = ["RUN_ID_LABEL", "RUN_ID_PATTERN", "RunGuard", "check_run_id", "execute"]
 
 logger = logging.getLogger(__name__)
 
-RUN_ID_LABEL = "ssebench.run-id"
-"""Container label with the run's ID: the caller's `--run-id`, else the generated one."""
 RUN_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}")
-
-STOP_GRACE_SECONDS = 20
-"""How long `docker stop` waits for the entrypoint to clean up before it kills the container."""
-CONTAINER_ID_WAIT_SECONDS = 10
-"""How long a signal waits for `docker run` to create the container it is meant to stop."""
 
 
 def check_run_id(value: str) -> str:
@@ -39,15 +32,10 @@ def check_run_id(value: str) -> str:
     return value
 
 
-def run_id_labels(run_id: str | None) -> list[str]:
-    """The `docker run` arguments that label a run's container with its `--run-id`."""
-    return ["--label", f"{RUN_ID_LABEL}={run_id}"] if run_id else []
-
-
 class RunGuard:
     """Lets a run end in an orderly way when the CLI gets SIGTERM or SIGINT.
 
-    While the guard is active, the first signal stops the run's container instead of ending this
+    While the guard is active, the first signal stops the run's containers instead of ending this
     process, so that the runner still records the run's results afterwards. A second signal ends the
     process as it would have without the guard. Signal handlers can only be set in the main thread;
     elsewhere the guard does nothing.
@@ -57,7 +45,7 @@ class RunGuard:
 
     def __init__(self) -> None:
         self.signalled = False
-        self._cidfile: Path | None = None
+        self._run: tuple[Backend, RunHandle] | None = None
         self._previous: dict[signal.Signals, object] = {}
 
     def __enter__(self) -> "RunGuard":
@@ -89,50 +77,43 @@ class RunGuard:
             return
         self.signalled = True
         logger.warning(f"Received {signal.Signals(signum).name}; stopping the container, then recording the run")
-        container = self._container_id()
-        if container:
-            _ = subprocess.run(
-                ["docker", "stop", "--time", str(STOP_GRACE_SECONDS), container], capture_output=True, text=True
-            )
+        if self._run is not None:
+            backend, handle = self._run
+            backend.stop(handle, STOP_GRACE_SECONDS)
 
-    def _container_id(self) -> str:
-        """The ID of the container being waited on, once `docker run` has created it; empty if none."""
-        if self._cidfile is None:
-            return ""
-        deadline = time.monotonic() + CONTAINER_ID_WAIT_SECONDS
-        while True:
-            try:
-                container = self._cidfile.read_text().strip()
-            except OSError:
-                container = ""
-            if container or time.monotonic() >= deadline:
-                return container
-            time.sleep(0.1)
-
-    def run_container(self, command: list[str]) -> None:
+    def attach(self, backend: Backend, handle: RunHandle) -> None:
+        """Make `handle` the run that a signal stops; stop it now if the signal has already come."""
+        self._run = (backend, handle)
         if self.signalled:
-            # The signal came before there was a container to stop.
-            raise subprocess.CalledProcessError(128 + signal.SIGTERM, command)
-        with tempfile.TemporaryDirectory(prefix="ssebench-run-") as tmp:
-            self._cidfile = Path(tmp) / "cid"
-            try:
-                _ = subprocess.run([*command[:2], "--cidfile", str(self._cidfile), *command[2:]], check=True)
-            finally:
-                self._cidfile = None
+            backend.stop(handle, STOP_GRACE_SECONDS)
+
+    def detach(self) -> None:
+        self._run = None
 
 
 _active: RunGuard | None = None
 
 
-def run_container(command: list[str]) -> None:
-    """Run `command`, a foreground `docker run`, and wait for it.
+def execute(backend: Backend, spec: RunSpec, results: Path) -> int:
+    """Start the run, wait for it, collect its results into `results` and clean up; return the exit status.
 
-    Under a `RunGuard`, a signal stops the container and this returns as the container exits.
+    Under a `RunGuard`, a signal stops the run and this returns once it exits. A signal that comes before
+    there is a run to stop starts nothing and returns 128 plus SIGTERM.
 
     Raises:
-        subprocess.CalledProcessError: If the container exits non-zero, also when a signal stopped it.
+        BackendError: If the run cannot be started or its results cannot be collected.
     """
-    if _active is None:
-        _ = subprocess.run(command, check=True)
-    else:
-        _active.run_container(command)
+    guard = _active
+    if guard is not None and guard.signalled:
+        return 128 + signal.SIGTERM
+    handle = backend.start(spec)
+    try:
+        if guard is not None:
+            guard.attach(backend, handle)
+        status = backend.wait(handle)
+        backend.collect_results(handle, results)
+        return status
+    finally:
+        if guard is not None:
+            guard.detach()
+        backend.cleanup(handle)

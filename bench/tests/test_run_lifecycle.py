@@ -6,7 +6,6 @@ import os
 import re
 import signal
 import stat
-import subprocess
 import threading
 from collections.abc import Callable
 from pathlib import Path
@@ -15,11 +14,14 @@ import pytest
 
 from ssebench import stack
 from ssebench.agents import Agent
+from ssebench.backends import RUN_ID_LABEL, DockerBackend, Images
 from ssebench.cli import cli
 from ssebench.models import NoModel
 from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
-from ssebench.runner.lifecycle import RUN_ID_LABEL, RunGuard, check_run_id, run_container, run_id_labels
+from ssebench.runner.lifecycle import RunGuard, check_run_id, execute
 from ssebench.tasks import LocalTask
+
+from .conftest import FakeDocker
 
 TASK = "demo-1"
 
@@ -33,8 +35,12 @@ def task(tmp_path: Path, make_task: Callable[..., Path]) -> LocalTask:
 
 def sandbox_runner(task: LocalTask, run_id: str | None = None) -> BenchmarkSandboxRunner:
     runner = BenchmarkSandboxRunner(NoModel(), Agent("dummy", task_name=task.name), task, 60, 2, run_id=run_id)
-    runner.sandbox_image = "registry.test/agent-image"
+    runner.images = Images(agent="registry.test/agent-image")
     return runner
+
+
+def command(runner: BenchmarkSandboxRunner, results: Path) -> list[str]:
+    return DockerBackend().run_command(runner.run_spec(results, None))
 
 
 def labels(cmd: list[str]) -> list[str]:
@@ -58,8 +64,7 @@ def test_other_run_ids_are_rejected(run_id: str) -> None:
 
 
 def test_the_sandbox_container_carries_the_run_id(task: LocalTask, tmp_path: Path) -> None:
-    assert f"{RUN_ID_LABEL}=abc-1" in labels(sandbox_runner(task, "abc-1").docker_command(tmp_path))
-    assert run_id_labels(None) == [] and run_id_labels("x") == ["--label", f"{RUN_ID_LABEL}=x"]
+    assert f"{RUN_ID_LABEL}=abc-1" in labels(command(sandbox_runner(task, "abc-1"), tmp_path))
 
 
 def test_a_run_without_an_id_gets_a_generated_one(task: LocalTask, tmp_path: Path) -> None:
@@ -67,26 +72,19 @@ def test_a_run_without_an_id_gets_a_generated_one(task: LocalTask, tmp_path: Pat
 
     assert re.fullmatch(r"\d{8}-\d{6}-[0-9a-f]{6}", first.run_id)
     assert first.run_id != second.run_id
-    assert f"{RUN_ID_LABEL}={first.run_id}" in labels(first.docker_command(tmp_path))
+    assert f"{RUN_ID_LABEL}={first.run_id}" in labels(command(first, tmp_path))
 
 
 def test_the_sidecar_task_container_carries_the_run_id(
-    task: LocalTask, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    task: LocalTask, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, docker: FakeDocker
 ) -> None:
-    commands: list[list[str]] = []
-
-    def fake(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
-        commands.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0, "", "")
-
-    monkeypatch.setattr(subprocess, "run", fake)
     monkeypatch.chdir(tmp_path)
     runner = BenchmarkSidecarRunner(NoModel(), Agent("dummy", task_name=task.name), task, 60, 2, run_id="side-1")
-    runner.sidecar_agentrt_image, runner.sidecar_environ_image = "registry.test/agent", "registry.test/env"
+    runner.images = Images(agent="registry.test/agent", environment="registry.test/env")
 
     runner.run()
 
-    [environment] = [cmd for cmd in commands if cmd[:3] == ["docker", "run", "--detach"]]
+    [environment] = [cmd for cmd in docker.commands if cmd[:3] == ["docker", "run", "--detach"]]
     assert f"{RUN_ID_LABEL}=side-1" in labels(environment)
 
 
@@ -236,41 +234,34 @@ def test_the_handlers_are_restored_when_the_guard_ends(fake_docker: Path) -> Non
     assert {sig: signal.getsignal(sig) for sig in RunGuard.SIGNALS} == before
 
 
-def test_a_container_that_finishes_on_its_own_is_left_alone(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    commands: list[list[str]] = []
+def sandbox_spec(task: LocalTask, tmp_path: Path):
+    return sandbox_runner(task, "spec").run_spec(tmp_path, None)
 
-    def fake(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
-        commands.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake)
+def test_a_container_that_finishes_on_its_own_is_left_alone(
+    task: LocalTask, tmp_path: Path, docker: FakeDocker
+) -> None:
     with RunGuard():
-        run_container(["docker", "run", "--rm", "image"])
+        assert execute(DockerBackend(), sandbox_spec(task, tmp_path), tmp_path) == 0
 
-    [cmd] = commands
-    assert cmd[:2] == ["docker", "run"] and cmd[2] == "--cidfile" and cmd[4:] == ["--rm", "image"]
+    [cmd] = docker.runs()
+    assert cmd[:2] == ["docker", "run"] and cmd[2] == "--cidfile" and cmd[4] == "--rm"
+    assert not [c for c in docker.commands if c[:2] == ["docker", "stop"]]
 
 
-def test_a_signal_before_the_container_exists_starts_nothing(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(subprocess, "run", lambda *a, **k: pytest.fail("no container may start"))
-
+def test_a_signal_before_the_container_exists_starts_nothing(
+    task: LocalTask, tmp_path: Path, docker: FakeDocker
+) -> None:
     with RunGuard() as guard:
         os.kill(os.getpid(), signal.SIGTERM)
-        with pytest.raises(subprocess.CalledProcessError):
-            run_container(["docker", "run", "image"])
+        assert execute(DockerBackend(), sandbox_spec(task, tmp_path), tmp_path) == 128 + signal.SIGTERM
 
     assert guard.signalled
+    assert docker.commands == []
 
 
-def test_without_a_guard_the_container_runs_as_before(monkeypatch: pytest.MonkeyPatch) -> None:
-    commands: list[list[str]] = []
+def test_without_a_guard_the_container_runs_as_before(task: LocalTask, tmp_path: Path, docker: FakeDocker) -> None:
+    assert execute(DockerBackend(), sandbox_spec(task, tmp_path), tmp_path) == 0
 
-    def fake(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
-        commands.append(cmd)
-        assert kwargs == {"check": True}
-        return subprocess.CompletedProcess(cmd, 0, "", "")
-
-    monkeypatch.setattr(subprocess, "run", fake)
-    run_container(["docker", "run", "image"])
-
-    assert commands == [["docker", "run", "image"]]
+    [cmd] = docker.runs()
+    assert cmd[:2] == ["docker", "run"]

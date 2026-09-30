@@ -1,3 +1,3 @@
-from .runner import BenchmarkRunner, BenchmarkSandboxRunner, BenchmarkSidecarRunner, SidecarPair
+from .runner import BenchmarkRunner, BenchmarkSandboxRunner, BenchmarkSidecarRunner
 
-__all__ = ["BenchmarkRunner", "BenchmarkSandboxRunner", "BenchmarkSidecarRunner", "SidecarPair"]
+__all__ = ["BenchmarkRunner", "BenchmarkSandboxRunner", "BenchmarkSidecarRunner"]
