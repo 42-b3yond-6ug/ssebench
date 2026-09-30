@@ -199,9 +199,9 @@ def up(rebuild: bool = False) -> None:
         logger.info("The LiteLLM proxy now serves the current models/")
 
 
-def down() -> None:
-    """Stop the stack. Its database volume is kept."""
-    compose("down")
+def down(volumes: bool = False) -> None:
+    """Stop the stack. Its database volume is kept unless `volumes` is set."""
+    compose("down", *(["--volumes"] if volumes else []))
 
 
 def is_healthy(timeout: float = 2.0) -> bool:
@@ -211,12 +211,82 @@ def is_healthy(timeout: float = 2.0) -> bool:
         return False
 
 
-def wait_healthy(timeout: float = 180.0, interval: float = 2.0) -> None:
+class ProxyError(TimeoutError):
+    """The proxy did not become healthy: its container exited, or it did not answer in time.
+
+    A `TimeoutError`, because callers already report that.
+    """
+
+
+# What the proxy or its database log when the volume holds another password than `.env`.
+PASSWORD_MISMATCH = (
+    "password authentication failed",
+    "Authentication failed against database",
+    "provided database credentials",
+)
+LOG_LINES = 25
+
+
+def _docker_output(*args: str) -> str:
+    result = subprocess.run(["docker", *args], capture_output=True, text=True)
+    return (result.stdout + result.stderr).strip() if result.returncode == 0 else ""
+
+
+def _service_container(service: str) -> tuple[str, str] | None:
+    """The ID and state (`running`, `exited`, ...) of a service's container in the stack, if it has one."""
+    project = settings.compose_project()
+    out = _docker_output(
+        "ps",
+        "--all",
+        "--filter",
+        f"label=com.docker.compose.project={project}",
+        "--filter",
+        f"label=com.docker.compose.service={service}",
+        "--format",
+        "{{.ID}} {{.State}}",
+    )
+    line = out.splitlines()[0].split() if out else []
+    return (line[0], line[1]) if len(line) == 2 else None
+
+
+def _log_tail(service: str) -> str:
+    found = _service_container(service)
+    if found is None:
+        return ""
+    return "\n".join(_docker_output("logs", "--tail", str(LOG_LINES), found[0]).splitlines()[-LOG_LINES:])
+
+
+def exited_error(reset: str) -> ProxyError:
+    """The error for a proxy container that exited: its last log lines, and the likely cause when known.
+
+    `reset` is the command that removes the stack together with its database volume.
+    """
+    project = settings.compose_project()
+    proxy_log = _log_tail(SERVICE)
+    message = f"The LiteLLM proxy container exited before it became healthy (Compose project {project})."
+    logs = proxy_log + _log_tail("litellm_db")
+    if any(text in logs for text in PASSWORD_MISMATCH):
+        message += (
+            f"\n\nThe database volume {project}_postgres_data was created with another POSTGRES_PASSWORD than the "
+            "one in .env, because Postgres keeps the password it was created with. Put the old password back in "
+            f".env, or start with a new database by running `{reset}` (it deletes the proxy's stored keys and "
+            "spend records), or give this workspace its own COMPOSE_PROJECT_NAME."
+        )
+    if proxy_log:
+        message += f"\n\nThe end of the proxy's log:\n{proxy_log}"
+    return ProxyError(message)
+
+
+def wait_healthy(timeout: float = 180.0, interval: float = 2.0, reset: str = "ssebench proxy down --volumes") -> None:
+    """Wait until the proxy answers; fail at once when its container has exited, since it never restarts."""
     url = health_url()
     logger.info(f"Waiting for the LiteLLM proxy at {url}...")
     deadline = time.monotonic() + timeout
     while not is_healthy():
+        found = _service_container(SERVICE)
+        if found is not None and found[1] in ("exited", "dead"):
+            raise exited_error(reset)
         if time.monotonic() >= deadline:
-            raise TimeoutError(f"The LiteLLM proxy did not become healthy at {url} within {timeout:.0f}s")
+            raise ProxyError(f"The LiteLLM proxy did not become healthy at {url} within {timeout:.0f}s")
         time.sleep(interval)
     logger.info("The LiteLLM proxy is healthy.")

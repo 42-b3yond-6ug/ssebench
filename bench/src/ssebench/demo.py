@@ -315,7 +315,7 @@ def wait_for(url: str, what: str, timeout: float = 120.0) -> None:
 def start_stack(demo: Demo) -> None:
     check_project(demo)
     stack.compose("up", "--detach", overlays=[paths.demo_compose_file()])
-    stack.wait_healthy()
+    stack.wait_healthy(reset="ssebench demo down")
     wait_for(f"{demo.catalog_url}/manifest.json", "The task catalog")
     wait_for(f"{demo.webui_url}/api/health", "The web UI")
     try:

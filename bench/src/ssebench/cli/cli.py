@@ -224,7 +224,7 @@ def cmd_proxy(args: argparse.Namespace) -> int:
             case "build":
                 _ = stack.build(stack.config_hash(), force=args.rebuild)
             case "down":
-                stack.down()
+                stack.down(volumes=args.volumes)
             case _:
                 logger.error(f"Unknown action: {args.action}")
                 return 1
@@ -450,7 +450,8 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
     proxy_parser = subparsers.add_parser(
         "proxy",
         help="Start, rebuild or stop the local LiteLLM proxy",
-        description="`up` rebuilds the proxy image first when models/ changed; `down` keeps the database volume.",
+        description="`up` rebuilds the proxy image first when models/ changed; `down` keeps the database volume "
+        "unless you pass --volumes.",
     )
     proxy_parser.add_argument(
         "action",
@@ -459,6 +460,12 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
         help="up: build the proxy image if it is missing or older than models/, start the stack and wait until "
         "the proxy is healthy; build: only build the image, if it is missing or older than models/; down: stop "
         "the stack and keep its database volume",
+    )
+    proxy_parser.add_argument(
+        "--volumes",
+        action="store_true",
+        help="With down, also remove the database volume: the next start creates a new database with the "
+        "POSTGRES_PASSWORD of .env, and the proxy's stored keys and spend records are gone",
     )
     proxy_parser.add_argument(
         "--rebuild",

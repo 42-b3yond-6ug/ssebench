@@ -15,7 +15,7 @@ and no API key**. The grade checks the task and the grader: every check passes.
 You need a Linux host with Docker (with the buildx and Compose plugins),
 [uv](https://docs.astral.sh/uv/), [just](https://just.systems/) and a clone of
 the repository; see [Installation](/getting-started/installation). The demo
-does not need Bun, Rust or Go. It uses about 4 GB of disk for images. Docker
+does not need Bun, Rust or Go. It uses about 4 GB of disk for images, and about 11 GB more of build cache when the images are built from the checkout (see [Disk space](/getting-started/installation#prerequisites)). Docker
 Desktop and other engines that run containers in a VM have not been tested,
 because the web UI container uses the host's network to reach the run
 containers.
@@ -133,18 +133,21 @@ containers today.
 
 ## How long it takes
 
-Measured on a 48-core host with a 180 Mbit/s connection:
+Measured on a 48-core host with a fast connection:
 
 | | Time | What happens |
 |---|---|---|
 | Warm | 26 s (41 s from a stopped stack) | Every image is cached. |
 | Images pulled | about 2 min (estimated) | Downloads of about 1.1 GB compressed (LiteLLM 390 MB, Postgres 160 MB, the case image 240 MB, the web UI 95 MB, small images and Python packages for the rest), then the tool and agent layers, which take 10 s with the published runtime image. |
-| Images built from the checkout (`--build`, before a release) | about 2.5 min plus the base image downloads | Builds without a cache: base 14 s, catalog 7 s, web UI 9 s, tool layer 54 s (the daemon compiles), the rest 10 s, then the stack and the run. |
+| Images built from the checkout (`--build`, before a release), cold | 3 to 4 min (3 min 15 s measured on a fresh machine, with no cached image or build) | The images take about 30 s: the LiteLLM proxy, the catalog, the web UI and the base image, plus the download of Postgres. The stack takes 20 s. The run takes about 2 min, almost all of it building the tool layer, because the daemon compiles. |
 
 The pulled path is estimated from the image sizes and the rate of a pull on
-this host (23 MB/s), because the images are not published yet. On a small VM
-with 2 vCPUs and 100 Mbit/s, expect it to take four to six minutes, most of it
-downloads and the LiteLLM proxy's start.
+this host (23 MB/s), because the images are not published yet. Builds and the
+daemon's compile scale with the number of cores, and downloads with the
+connection: on a small VM with 2 vCPUs and 100 Mbit/s, expect the pulled path to
+take four to six minutes, most of it downloads and the LiteLLM proxy's start,
+and the build from a checkout several times longer than on the large host
+(estimated).
 
 ## Settings
 

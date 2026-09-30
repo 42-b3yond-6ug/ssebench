@@ -466,3 +466,30 @@ def test_the_command_line_prints_no_traceback(dataset: Path, tmp_path: Path) -> 
         assert "Traceback" not in result.stderr
         assert needle in result.stderr
         assert len(result.stderr.strip().splitlines()) == 1
+
+
+# ==================== proxy ====================
+
+
+def test_proxy_up_reports_a_proxy_that_exited(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def exited(*args: object, **kwargs: object) -> None:
+        raise stack.ProxyError("The LiteLLM proxy container exited before it became healthy")
+
+    monkeypatch.setattr(stack, "up", lambda *args, **kwargs: None)
+    monkeypatch.setattr(stack, "wait_healthy", exited)
+
+    assert run_cli(["proxy", "up"]) == 1
+    assert errors(caplog) == ["The LiteLLM proxy container exited before it became healthy"]
+
+
+@pytest.mark.parametrize(("argv", "volumes"), [(["proxy", "down"], False), (["proxy", "down", "--volumes"], True)])
+def test_proxy_down_removes_the_volume_only_when_asked(
+    monkeypatch: pytest.MonkeyPatch, argv: list[str], volumes: bool
+) -> None:
+    calls: list[bool] = []
+    monkeypatch.setattr(stack, "down", lambda volumes=False: calls.append(volumes))
+
+    assert run_cli(argv) == 0
+    assert calls == [volumes]

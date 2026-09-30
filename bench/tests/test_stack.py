@@ -202,3 +202,104 @@ def test_the_published_proxy_image_carries_the_config_label() -> None:
     workflow = (paths.home() / ".github" / "workflows" / "images.yml").read_text()
 
     assert f'.labels = "{stack.CONFIG_LABEL}=" + $litellm' in workflow
+
+
+class Containers:
+    """Answers `docker ps` and `docker logs` for the stack's services."""
+
+    def __init__(self, states: dict[str, str], logs: dict[str, str]) -> None:
+        self.states = states
+        self.logs = logs
+        self.commands: list[list[str]] = []
+
+    def __call__(self, cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        self.commands.append(cmd)
+        if cmd[:2] == ["docker", "ps"]:
+            service = next(a.split("=", 2)[2] for a in cmd if a.startswith("label=com.docker.compose.service="))
+            state = self.states.get(service)
+            return subprocess.CompletedProcess(cmd, 0, f"id-{service} {state}\n" if state else "", "")
+        if cmd[:2] == ["docker", "logs"]:
+            return subprocess.CompletedProcess(cmd, 0, "", self.logs[cmd[-1].removeprefix("id-")])
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+
+@pytest.fixture
+def unhealthy(monkeypatch: pytest.MonkeyPatch) -> None:
+    def no_sleep(seconds: float) -> None:
+        raise AssertionError("the wait must end before it sleeps")
+
+    monkeypatch.setattr(stack, "is_healthy", lambda *args, **kwargs: False)
+    monkeypatch.setattr(stack.time, "sleep", no_sleep)
+
+
+def test_wait_fails_at_once_when_the_proxy_exited(home: Path, monkeypatch: pytest.MonkeyPatch, unhealthy: None) -> None:
+    docker = Containers(
+        {"litellm": "exited", "litellm_db": "running"}, {"litellm": "ImportError: boom\n", "litellm_db": ""}
+    )
+    monkeypatch.setattr(subprocess, "run", docker)
+
+    with pytest.raises(stack.ProxyError) as error:
+        stack.wait_healthy()
+
+    assert "ImportError: boom" in str(error.value)
+    assert "POSTGRES_PASSWORD" not in str(error.value)
+    assert isinstance(error.value, TimeoutError)
+
+
+@pytest.mark.parametrize(
+    ("proxy_log", "db_log"),
+    [
+        ("", 'FATAL:  password authentication failed for user "litellm"'),
+        ("Authentication failed against database server, the provided database credentials are not valid", ""),
+    ],
+)
+def test_wait_explains_a_stale_database_volume(
+    home: Path, monkeypatch: pytest.MonkeyPatch, unhealthy: None, proxy_log: str, db_log: str
+) -> None:
+    monkeypatch.setenv("COMPOSE_PROJECT_NAME", "mine")
+    docker = Containers({"litellm": "exited", "litellm_db": "running"}, {"litellm": proxy_log, "litellm_db": db_log})
+    monkeypatch.setattr(subprocess, "run", docker)
+
+    with pytest.raises(stack.ProxyError) as error:
+        stack.wait_healthy()
+
+    message = str(error.value)
+    assert "mine_postgres_data" in message
+    assert "`ssebench proxy down --volumes`" in message
+    assert "COMPOSE_PROJECT_NAME" in message
+    assert all(cmd[-1] != "--follow" for cmd in docker.commands)
+
+
+def test_wait_names_the_reset_of_the_caller(home: Path, monkeypatch: pytest.MonkeyPatch, unhealthy: None) -> None:
+    docker = Containers({"litellm": "exited"}, {"litellm": "P1000: Authentication failed against database"})
+    monkeypatch.setattr(subprocess, "run", docker)
+
+    with pytest.raises(stack.ProxyError, match="ssebench demo down"):
+        stack.wait_healthy(reset="ssebench demo down")
+
+
+def test_wait_times_out_while_the_proxy_runs(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(stack, "is_healthy", lambda *args, **kwargs: False)
+    monkeypatch.setattr(subprocess, "run", Containers({"litellm": "running"}, {}))
+
+    with pytest.raises(stack.ProxyError, match="did not become healthy"):
+        stack.wait_healthy(timeout=0)
+
+
+def test_wait_returns_when_the_proxy_answers(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(stack, "is_healthy", lambda *args, **kwargs: True)
+
+    stack.wait_healthy()
+
+
+def test_down_keeps_the_volume_unless_asked(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _ = (home / ".env").write_text("LITELLM_MASTER_KEY=sk-test\nPOSTGRES_PASSWORD=pw\n")
+    docker = Docker(None)
+    monkeypatch.setattr(subprocess, "run", docker)
+
+    stack.down()
+    stack.down(volumes=True)
+
+    plain, wiped = docker.compose()
+    assert plain[-1:] == ["down"]
+    assert wiped[-2:] == ["down", "--volumes"]
