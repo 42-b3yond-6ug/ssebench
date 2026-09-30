@@ -5,6 +5,7 @@
  * Offers two options:
  * - Detach: Just close the tab, container keeps running
  * - Detach + Stop: Close tab, stop and remove the container
+ * A container that has already stopped offers Detach + Remove instead.
  */
 
 import { useState, useEffect, useCallback } from "react"
@@ -99,9 +100,17 @@ export function DetachModal({
               </p>
             </div>
           ) : (
-            <p className="text-fg-4 mt-3 text-sm">
-              Container is already stopped. Detaching will close the tab.
-            </p>
+            <div className="mt-3 space-y-2">
+              <p className="text-fg-4 text-sm">
+                <strong className="text-fg">Detach:</strong> Close tab. The
+                container has stopped and stays on the Exited list.
+              </p>
+              <p className="text-fg-4 text-sm">
+                <strong className="text-gruvbox-red">Detach + Remove:</strong>{" "}
+                Close tab and delete the container. Its results in{" "}
+                <code className="font-mono">results/</code> stay.
+              </p>
+            </div>
           )}
         </div>
 
@@ -114,15 +123,19 @@ export function DetachModal({
           >
             Cancel
           </button>
-          {isRunning && (
-            <button
-              onClick={handleDetachAndStop}
-              disabled={isStopping}
-              className="bg-gruvbox-red text-gruvbox-bg hover:bg-gruvbox-red/80 rounded px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              {isStopping ? "Stopping..." : "Detach + Stop"}
-            </button>
-          )}
+          <button
+            onClick={handleDetachAndStop}
+            disabled={isStopping}
+            className="bg-gruvbox-red text-gruvbox-bg hover:bg-gruvbox-red/80 rounded px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            {isStopping
+              ? isRunning
+                ? "Stopping..."
+                : "Removing..."
+              : isRunning
+                ? "Detach + Stop"
+                : "Detach + Remove"}
+          </button>
           <button
             onClick={onDetach}
             disabled={isStopping}

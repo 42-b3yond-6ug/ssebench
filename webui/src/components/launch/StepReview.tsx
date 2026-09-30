@@ -6,16 +6,19 @@
  */
 
 import { useState, useCallback, forwardRef, useImperativeHandle } from "react"
-import type { TaskSource, LaunchMode } from "../../types/launch"
+import type { TaskSource, LaunchMode, LaunchConfig } from "../../types/launch"
 import type { StepId } from "./WizardSteps"
 import { launchTask } from "../../lib/api"
 
 interface StepReviewProps {
   tasks: string[]
+  /** Empty for the reference agent */
   model: string
   agent: string
   mode: LaunchMode
   source: TaskSource
+  /** Options the user changed; the rest are left to the CLI's defaults */
+  options: Pick<LaunchConfig, "difficulty" | "timeout" | "egress" | "plugins">
   onEdit: (step: StepId) => void
   /** Called once all launches have been fired (wizard should close) */
   onLaunched?: () => void
@@ -29,7 +32,17 @@ export interface StepReviewRef {
 
 export const StepReview = forwardRef<StepReviewRef, StepReviewProps>(
   function StepReview(
-    { tasks, model, agent, mode, source, onEdit, onLaunched, onLaunchError },
+    {
+      tasks,
+      model,
+      agent,
+      mode,
+      source,
+      options,
+      onEdit,
+      onLaunched,
+      onLaunchError,
+    },
     ref
   ) {
     const [isLaunching, setIsLaunching] = useState(false)
@@ -40,7 +53,16 @@ export const StepReview = forwardRef<StepReviewRef, StepReviewProps>(
       try {
         // Fire all launches in parallel — each is independent
         const results = await Promise.allSettled(
-          tasks.map((task) => launchTask({ task, model, agent, mode, source }))
+          tasks.map((task) =>
+            launchTask({
+              task,
+              ...(model ? { model } : {}),
+              agent,
+              mode,
+              source,
+              ...options,
+            })
+          )
         )
 
         // Check if any failed at the API level (not the build itself)
@@ -63,7 +85,7 @@ export const StepReview = forwardRef<StepReviewRef, StepReviewProps>(
         setIsLaunching(false)
         onLaunchError?.(err instanceof Error ? err.message : "Launch failed")
       }
-    }, [tasks, model, agent, mode, source, onLaunched, onLaunchError])
+    }, [tasks, model, agent, mode, source, options, onLaunched, onLaunchError])
 
     // Expose launch function to parent via ref
     useImperativeHandle(
@@ -76,6 +98,26 @@ export const StepReview = forwardRef<StepReviewRef, StepReviewProps>(
     )
 
     const taskCount = tasks.length
+    const changedOptions = [
+      options.difficulty !== undefined && `difficulty ${options.difficulty}`,
+      options.timeout !== undefined && `timeout ${options.timeout / 60} min`,
+      options.egress && `egress ${options.egress}`,
+      options.plugins && `plugins ${options.plugins.join(", ") || "none"}`,
+    ].filter((v): v is string => !!v)
+    // The command a launch corresponds to, without its task
+    const flags = [
+      ...(model ? [`--model ${model}`] : []),
+      `--agent ${agent}`,
+      `--mode ${mode}`,
+      ...(options.difficulty !== undefined
+        ? [`--difficulty ${options.difficulty}`]
+        : []),
+      ...(options.timeout !== undefined
+        ? [`--timeout ${options.timeout}`]
+        : []),
+      ...(options.egress ? [`--egress ${options.egress}`] : []),
+      ...(options.plugins ?? []).map((p) => `--plugin ${p}`),
+    ].join(" ")
     const launchLabel =
       taskCount === 1 ? "Launch Task" : `Launch ${taskCount} Tasks`
 
@@ -121,19 +163,26 @@ export const StepReview = forwardRef<StepReviewRef, StepReviewProps>(
             </div>
 
             <SummaryRow
-              label="Model"
-              value={model}
-              onEdit={() => onEdit("model")}
-            />
-            <SummaryRow
               label="Agent"
               value={agent}
               onEdit={() => onEdit("agent")}
             />
             <SummaryRow
+              label="Model"
+              value={model || "none (no model calls)"}
+              onEdit={() => onEdit("model")}
+            />
+            <SummaryRow
               label="Mode"
               value={mode}
               onEdit={() => onEdit("mode")}
+            />
+            <SummaryRow
+              label="Options"
+              value={
+                changedOptions.length ? changedOptions.join(" · ") : "defaults"
+              }
+              onEdit={() => onEdit("options")}
             />
           </div>
         </div>
@@ -149,15 +198,13 @@ export const StepReview = forwardRef<StepReviewRef, StepReviewProps>(
                 key={task}
                 className="text-fg-3 block font-mono text-xs leading-relaxed"
               >
-                ssebench run --task {task} --model {model} --agent {agent}{" "}
-                --mode {mode}
+                ssebench run --task {task} {flags}
               </code>
             ))
           ) : (
             <>
               <code className="text-fg-3 block font-mono text-xs leading-relaxed">
-                ssebench run --task {tasks[0]} --model {model} --agent {agent}{" "}
-                --mode {mode}
+                ssebench run --task {tasks[0]} {flags}
               </code>
               <code className="text-fg-4 block font-mono text-xs leading-relaxed">
                 ... and {taskCount - 1} more

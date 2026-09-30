@@ -99,8 +99,15 @@ docs-check:
     uv run ssebench dataset schema --check
     cargo test --locked --test openapi
 
-# Build and serve the web UI
+# Build and serve the web UI; with Go installed it also builds the terminal helper
 [group('develop')]
 webui:
+    #!/usr/bin/env bash
+    set -euo pipefail
     bun install
+    if command -v go >/dev/null; then
+        bun run --cwd webui build:pty
+    else
+        echo "Go is not installed: the web UI starts without its container terminal (see webui/README.md)" >&2
+    fi
     bun run --cwd webui prod

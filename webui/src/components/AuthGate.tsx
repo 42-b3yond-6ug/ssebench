@@ -36,7 +36,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
       }
       if (response.ok) {
         const data = await response.json()
-        setServerInfo({ terminal: data.terminal !== false })
+        setServerInfo({
+          terminal: data.terminal !== false,
+          terminalHint: data.terminalHint,
+        })
       }
     } catch {
       // Backend unreachable: render the app, which reports it

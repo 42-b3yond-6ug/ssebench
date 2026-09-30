@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useContainers } from "../../context/useContainers"
 import { useBackendHealth } from "../../hooks/useBackendHealth"
+import { useServerInfo } from "../../lib/serverInfo"
 import {
   useLaunchContext,
   type LaunchEntry,
@@ -44,6 +45,7 @@ export function Sidebar({ width, onResizeStart, isResizing }: SidebarProps) {
   } = useContainers()
   const { openNewPanel } = useNewPanel()
   const { isHealthy, docker, error } = useBackendHealth()
+  const { terminalHint } = useServerInfo()
   const {
     allLaunches,
     cancel: cancelLaunch,
@@ -146,6 +148,9 @@ export function Sidebar({ width, onResizeStart, isResizing }: SidebarProps) {
               docker={docker}
               error={error}
             />
+            {terminalHint && (
+              <p className="text-gruvbox-yellow mt-2 text-xs">{terminalHint}</p>
+            )}
           </div>
         </div>
 

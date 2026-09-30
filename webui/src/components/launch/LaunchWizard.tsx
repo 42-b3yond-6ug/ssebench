@@ -14,12 +14,26 @@ import { StepTask } from "./StepTask"
 import { StepModel } from "./StepModel"
 import { StepAgent } from "./StepAgent"
 import { StepMode } from "./StepMode"
+import { StepOptions } from "./StepOptions"
+import {
+  DEFAULT_DIFFICULTY,
+  DEFAULT_EGRESS,
+  DEFAULT_TIMEOUT_MINUTES,
+  isValidTimeout,
+} from "../../lib/launchOptions"
 import { StepReview, type StepReviewRef } from "./StepReview"
-import type { TaskSource, LaunchMode } from "../../types/launch"
+import type {
+  TaskSource,
+  LaunchMode,
+  Egress,
+  PluginInfo,
+  DoctorResult,
+} from "../../types/launch"
 import {
   fetchLaunchConfig,
   fetchLaunchModels,
   fetchLaunchAgents,
+  fetchDoctor,
 } from "../../lib/api"
 
 interface LaunchWizardProps {
@@ -27,11 +41,15 @@ interface LaunchWizardProps {
   onLaunch: () => void
 }
 
+/** The agent that makes no model calls */
+const REFERENCE_AGENT = "reference"
+
 const WIZARD_STEPS: StepInfo[] = [
   { id: "task", label: "Task" },
-  { id: "model", label: "Model" },
   { id: "agent", label: "Agent" },
+  { id: "model", label: "Model" },
   { id: "mode", label: "Mode" },
+  { id: "options", label: "Options" },
   { id: "review", label: "Review" },
 ]
 
@@ -49,12 +67,19 @@ export function LaunchWizard({ onLaunch }: LaunchWizardProps) {
   const [selectedModel, setSelectedModel] = useState("")
   const [selectedAgent, setSelectedAgent] = useState("")
   const [selectedMode, setSelectedMode] = useState<LaunchMode>("sandbox")
+  const [difficulty, setDifficulty] = useState(DEFAULT_DIFFICULTY)
+  const [timeoutMinutes, setTimeoutMinutes] = useState(DEFAULT_TIMEOUT_MINUTES)
+  const [egress, setEgress] = useState<Egress>(DEFAULT_EGRESS)
+  // null: the plugins that plugins.yaml enables
+  const [pluginChoice, setPluginChoice] = useState<string[] | null>(null)
 
   // Data state
   const [models, setModels] = useState<string[]>([])
   const [agents, setAgents] = useState<string[]>([])
   const [hasLocalBenchmarks, setHasLocalBenchmarks] = useState(false)
   const [catalogConfigured, setCatalogConfigured] = useState(false)
+  const [plugins, setPlugins] = useState<PluginInfo[]>([])
+  const [doctor, setDoctor] = useState<DoctorResult | null>(null)
 
   // Loading state
   const [isLoadingConfig, setIsLoadingConfig] = useState(true)
@@ -77,11 +102,12 @@ export function LaunchWizard({ onLaunch }: LaunchWizardProps) {
         setHasLocalBenchmarks(config.hasLocalBenchmarks)
         setCatalogConfigured(config.catalogConfigured)
         if (!config.catalogConfigured) setSource("local")
+        setPlugins(config.plugins ?? [])
         setModels(modelsData)
         setAgents(agentsData)
 
-        // Set defaults
-        if (modelsData.length > 0) setSelectedModel(modelsData[0])
+        // The model is the user's choice; no model is a better default than
+        // an arbitrary one.
         if (agentsData.length > 0) setSelectedAgent(agentsData[0])
       } catch (err) {
         setConfigError(
@@ -93,7 +119,39 @@ export function LaunchWizard({ onLaunch }: LaunchWizardProps) {
     }
 
     loadConfig()
+
+    // The checks take a moment and only add warnings, so they do not hold up
+    // the wizard.
+    fetchDoctor()
+      .then(setDoctor)
+      .catch(() => setDoctor(null))
   }, [])
+
+  const noModelNeeded = selectedAgent === REFERENCE_AGENT
+  const missingKeys = Object.fromEntries(
+    Object.entries(doctor?.available ? doctor.report.models : {}).map(
+      ([model, keys]) => [model, keys.missing]
+    )
+  )
+  // Sandbox runs use the selection instead of plugins.yaml's; it is only
+  // sent once it differs from those.
+  const defaultPlugins = plugins.filter((p) => p.enabled).map((p) => p.name)
+  const selectedPlugins = pluginChoice ?? defaultPlugins
+  const pluginsChanged =
+    selectedMode === "sandbox" &&
+    pluginChoice !== null &&
+    (pluginChoice.length !== defaultPlugins.length ||
+      pluginChoice.some((p) => !defaultPlugins.includes(p)))
+  // `ssebench run` cannot switch off the plugins that plugins.yaml enables
+  const pluginsValid = !pluginsChanged || selectedPlugins.length > 0
+  const options = {
+    ...(difficulty !== DEFAULT_DIFFICULTY ? { difficulty } : {}),
+    ...(timeoutMinutes !== DEFAULT_TIMEOUT_MINUTES
+      ? { timeout: timeoutMinutes * 60 }
+      : {}),
+    ...(egress !== DEFAULT_EGRESS ? { egress } : {}),
+    ...(pluginsChanged ? { plugins: selectedPlugins } : {}),
+  }
 
   // Validation for each step
   const isStepValid = useCallback(
@@ -102,23 +160,35 @@ export function LaunchWizard({ onLaunch }: LaunchWizardProps) {
         case 0:
           return selectedTasks.length > 0
         case 1:
-          return !!selectedModel
-        case 2:
           return !!selectedAgent
+        case 2:
+          return noModelNeeded || !!selectedModel
         case 3:
           return !!selectedMode
         case 4:
+          return isValidTimeout(timeoutMinutes) && pluginsValid
+        case 5:
           return !!(
             selectedTasks.length > 0 &&
-            selectedModel &&
             selectedAgent &&
-            selectedMode
+            (noModelNeeded || selectedModel) &&
+            selectedMode &&
+            isValidTimeout(timeoutMinutes) &&
+            pluginsValid
           )
         default:
           return false
       }
     },
-    [selectedTasks, selectedModel, selectedAgent, selectedMode]
+    [
+      selectedTasks,
+      selectedModel,
+      selectedAgent,
+      selectedMode,
+      noModelNeeded,
+      timeoutMinutes,
+      pluginsValid,
+    ]
   )
 
   // Navigation handlers
@@ -188,21 +258,23 @@ export function LaunchWizard({ onLaunch }: LaunchWizardProps) {
           />
         )
 
-      case "model":
-        return (
-          <StepModel
-            models={models}
-            selectedModel={selectedModel}
-            onModelSelect={setSelectedModel}
-          />
-        )
-
       case "agent":
         return (
           <StepAgent
             agents={agents}
             selectedAgent={selectedAgent}
             onAgentSelect={setSelectedAgent}
+          />
+        )
+
+      case "model":
+        return (
+          <StepModel
+            models={models}
+            selectedModel={selectedModel}
+            onModelSelect={setSelectedModel}
+            noModelNeeded={noModelNeeded}
+            missingKeys={missingKeys}
           />
         )
 
@@ -214,15 +286,32 @@ export function LaunchWizard({ onLaunch }: LaunchWizardProps) {
           />
         )
 
+      case "options":
+        return (
+          <StepOptions
+            mode={selectedMode}
+            difficulty={difficulty}
+            onDifficultyChange={setDifficulty}
+            timeoutMinutes={timeoutMinutes}
+            onTimeoutChange={setTimeoutMinutes}
+            egress={egress}
+            onEgressChange={setEgress}
+            plugins={plugins}
+            selectedPlugins={selectedPlugins}
+            onPluginsChange={setPluginChoice}
+          />
+        )
+
       case "review":
         return (
           <StepReview
             ref={stepReviewRef}
             tasks={selectedTasks}
-            model={selectedModel}
+            model={noModelNeeded ? "" : selectedModel}
             agent={selectedAgent}
             mode={selectedMode}
             source={source}
+            options={options}
             onEdit={handleJumpToStep}
             onLaunched={handleLaunched}
             onLaunchError={handleLaunchError}

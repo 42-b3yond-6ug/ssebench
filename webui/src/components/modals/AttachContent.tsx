@@ -7,6 +7,7 @@
 import { useState, useMemo, useCallback } from "react"
 import { useContainers } from "../../context/useContainers"
 import type { DockerContainer } from "../../types/container"
+import { removeContainer } from "../../lib/api"
 
 interface AttachContentProps {
   onAttach: (id: string) => void
@@ -27,6 +28,7 @@ export function AttachContent({ onAttach }: AttachContentProps) {
   const [activeTab, setActiveTab] = useState<FilterTab>("running")
   const [search, setSearch] = useState("")
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [removeError, setRemoveError] = useState<string | null>(null)
 
   // Get containers based on active tab
   const tabContainers = useMemo(() => {
@@ -70,6 +72,24 @@ export function AttachContent({ onAttach }: AttachContentProps) {
       recent: getRecentContainers().length,
     }
   }, [containers, getRecentContainers])
+
+  const selected = containers.find((c) => c.id === selectedId)
+  // Only a container that has stopped is offered for removal here
+  const canRemove = selected?.status === "exited" && !isAttached(selected.id)
+
+  const handleRemove = useCallback(async () => {
+    if (!selectedId) return
+    setRemoveError(null)
+    try {
+      await removeContainer(selectedId)
+      setSelectedId(null)
+      await refreshContainers()
+    } catch (err) {
+      setRemoveError(
+        err instanceof Error ? err.message : "Failed to remove the container"
+      )
+    }
+  }, [selectedId, refreshContainers])
 
   const handleAttach = useCallback(() => {
     if (selectedId) {
@@ -259,17 +279,30 @@ export function AttachContent({ onAttach }: AttachContentProps) {
               "Select a container to attach"
             )}
           </div>
-          <button
-            onClick={handleAttach}
-            disabled={!selectedId}
-            className={`rounded-lg px-6 py-2 text-sm font-medium transition-colors ${
-              selectedId
-                ? "bg-gruvbox-aqua text-bg-hard hover:bg-gruvbox-aqua/90"
-                : "bg-bg-2 text-fg-4 cursor-not-allowed"
-            }`}
-          >
-            Attach
-          </button>
+          <div className="flex items-center gap-3">
+            {removeError && (
+              <span className="text-gruvbox-red text-xs">{removeError}</span>
+            )}
+            {canRemove && (
+              <button
+                onClick={handleRemove}
+                className="border-gruvbox-red text-gruvbox-red hover:bg-gruvbox-red/10 rounded-lg border px-4 py-2 text-sm font-medium transition-colors"
+              >
+                Remove
+              </button>
+            )}
+            <button
+              onClick={handleAttach}
+              disabled={!selectedId}
+              className={`rounded-lg px-6 py-2 text-sm font-medium transition-colors ${
+                selectedId
+                  ? "bg-gruvbox-aqua text-bg-hard hover:bg-gruvbox-aqua/90"
+                  : "bg-bg-2 text-fg-4 cursor-not-allowed"
+              }`}
+            >
+              Attach
+            </button>
+          </div>
         </div>
       </div>
     </div>
