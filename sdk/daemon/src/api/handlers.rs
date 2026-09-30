@@ -8,6 +8,8 @@ use super::diff::baseline;
 use super::error::AppError;
 use super::grading::prepare_grading;
 use super::state::{Access, AppState};
+use crate::isolation::{agent_account, is_root, kill_all_processes_of};
+use crate::util::{archive_dir, results_dir};
 
 #[derive(Serialize)]
 struct AppVersion {
@@ -45,6 +47,9 @@ struct ToolQuery {
 /// difficulty level: a level that withholds a check (e.g. the PoC at the
 /// default `NO_FUTURE_TEST`) makes the corresponding action return 403. The
 /// admin socket is privileged and never gated, so grading runs every check.
+///
+/// The agent-facing listeners serve tools only during the agent phase, and
+/// never run a check on the grading copy of the project.
 async fn tool(
     state: web::Data<AppState>,
     access: web::Data<Access>,
@@ -58,6 +63,16 @@ async fn tool(
 
     debug!("Received request: POST /tool/{} action={}", name, action);
 
+    if !access.privileged && state.agent_phase_ended() {
+        return Ok(HttpResponse::Forbidden().json(json!({
+            "error": "tools are unavailable after the agent phase"
+        })));
+    }
+    if !access.privileged && arg.get("grading").and_then(Value::as_bool) == Some(true) {
+        return Ok(HttpResponse::Forbidden().json(json!({
+            "error": "grading checks are only available on the admin socket"
+        })));
+    }
     if !access.privileged && name == "bencher" && !state.difficulty.allows_bencher_action(&action) {
         return Ok(HttpResponse::Forbidden().json(json!({
             "error": format!(
@@ -122,15 +137,13 @@ async fn agent_dialog(query: web::Query<DialogQuery>) -> Result<HttpResponse, Ap
         query.since
     );
 
-    let archive = std::env::var("SSE_ARCHIVE").unwrap_or_else(|_| "/tmp/sse-archive".to_string());
-    let dialog_path = std::path::PathBuf::from(archive).join("dialog.jsonl");
+    let dialog_path = archive_dir().join("dialog.jsonl");
 
-    // If file doesn't exist, return empty entries
-    if !dialog_path.exists() {
+    // No file (or not a plain file) means no entries yet.
+    let Some(content) = read_agent_file(&dialog_path).context("Failed to read dialog.jsonl")?
+    else {
         return Ok(HttpResponse::Ok().json(json!({ "entries": [] })));
-    }
-
-    let content = std::fs::read_to_string(dialog_path).context("Failed to read dialog.jsonl")?;
+    };
 
     let since = query.since.unwrap_or(-1);
     let mut entries: Vec<Value> = Vec::new();
@@ -201,14 +214,53 @@ struct RawEvaluationResult {
     runtime_result: RuntimeResult,
 }
 
+/// Read a file in a directory the agent can write, without following a
+/// link the agent may have put there. `None` if it is missing or not a
+/// regular file.
+fn read_agent_file(path: &std::path::Path) -> std::io::Result<Option<String>> {
+    use std::io::Read;
+    use std::os::unix::fs::OpenOptionsExt;
+
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+        .open(path);
+    let mut file = match file {
+        Ok(file) => file,
+        Err(e)
+            if e.kind() == std::io::ErrorKind::NotFound
+                || e.raw_os_error() == Some(libc::ELOOP) =>
+        {
+            return Ok(None);
+        }
+        Err(e) => return Err(e),
+    };
+    if !file.metadata()?.is_file() {
+        return Ok(None);
+    }
+    let mut content = Vec::new();
+    file.read_to_end(&mut content)?;
+    Ok(Some(String::from_utf8_lossy(&content).into_owned()))
+}
+
+/// The grade the evaluator wrote: `result.json` in the results directory, or
+/// `/sse_result` for a container without one.
+fn result_file() -> std::path::PathBuf {
+    if std::env::var_os("SSE_RESULTS").is_some() {
+        results_dir().join("result.json")
+    } else {
+        std::path::PathBuf::from("/sse_result")
+    }
+}
+
 /// GET /result - Returns evaluation result if available
 ///
-/// Reads the evaluation result from /sse_result (written by evaluator after agent finishes).
+/// Reads the evaluation result the evaluator wrote after the agent finished.
 /// Returns { available: false } if result file doesn't exist or is empty.
 async fn result() -> Result<HttpResponse, AppError> {
     debug!("Received request: GET /result");
 
-    let result_path = std::path::Path::new("/sse_result");
+    let result_path = result_file();
 
     // Check if result file exists and is non-empty
     if !result_path.exists() {
@@ -251,33 +303,30 @@ async fn result() -> Result<HttpResponse, AppError> {
 // Grading Endpoints - For evaluator use (not for agents!)
 // =============================================================================
 
-/// Helper: resolve the archive directory from $SSE_ARCHIVE (default: /tmp/sse-archive).
-fn archive_dir() -> std::path::PathBuf {
-    std::path::PathBuf::from(
-        std::env::var("SSE_ARCHIVE").unwrap_or_else(|_| "/tmp/sse-archive".to_string()),
-    )
-}
-
-/// POST /prepare_grading - Clean the source folder for grading
+/// POST /prepare_grading - Prepare the grading copy of the project
 ///
-/// Captures the agent's diff and commit messages, resets the repo to the
-/// original buggy commit, removes all untracked/gitignored files, and
-/// re-applies only the agent's meaningful code changes.
+/// Starts a fresh task-runner session for grading, captures the agent's diff
+/// and commit messages, and applies the diff to the clean copy of the project
+/// that grading builds and tests.
 ///
-/// The captured diff is saved to $SSE_ARCHIVE/final.patch and can be
-/// retrieved later via GET /final_diff.
+/// The captured diff is saved to final.patch in the results directory and
+/// can be retrieved later via GET /final_diff.
 ///
 /// IMPORTANT: This is an intrusive, destructive operation. It should only
 /// be called by the evaluator after the agent has finished working, and so is
 /// restricted to the privileged admin socket.
-async fn prepare_grading_handler(access: web::Data<Access>) -> Result<HttpResponse, AppError> {
+async fn prepare_grading_handler(
+    state: web::Data<AppState>,
+    access: web::Data<Access>,
+) -> Result<HttpResponse, AppError> {
     debug!("Received request: POST /prepare_grading");
 
     if !access.privileged {
         return Ok(forbidden_privileged());
     }
 
-    prepare_grading(baseline()?, &archive_dir())?;
+    state.tool_router.lock().unwrap().start_grading()?;
+    prepare_grading(baseline()?, &results_dir())?;
 
     Ok(HttpResponse::Ok().json(json!({ "success": true })))
 }
@@ -289,7 +338,7 @@ async fn prepare_grading_handler(access: web::Data<Access>) -> Result<HttpRespon
 async fn final_diff() -> Result<HttpResponse, AppError> {
     debug!("Received request: GET /final_diff");
 
-    let patch_path = archive_dir().join("final.patch");
+    let patch_path = results_dir().join("final.patch");
 
     if !patch_path.exists() {
         return Ok(HttpResponse::Ok().json(json!({ "diff": "" })));
@@ -314,11 +363,10 @@ fn forbidden_privileged() -> HttpResponse {
 
 /// GET /reference/patch - Returns the reference (ground truth) patch.
 ///
-/// This is the answer to the task and must never reach the agent while it
-/// works. It is served in two cases only:
-///   - on the privileged admin socket (used by post-agent tooling), or
-///   - on an agent-facing listener *after* the agent phase has ended, so the
-///     web UI can fetch it from the host once the run is over.
+/// This is the answer to the task. Only the privileged admin socket serves
+/// it, at any time: the agent-facing listeners reach other containers on the
+/// run network too, including after the run when a container is kept.
+/// Post-run tooling on the host reads the task folder or the run's results.
 ///
 /// Returns the same format as /diff: { "diff": "..." }
 async fn reference_patch(
@@ -327,10 +375,8 @@ async fn reference_patch(
 ) -> Result<HttpResponse, AppError> {
     debug!("Received request: GET /reference/patch");
 
-    if !access.privileged && !state.agent_phase_ended() {
-        return Ok(HttpResponse::Forbidden().json(json!({
-            "error": "reference patch is unavailable while the agent is running"
-        })));
+    if !access.privileged {
+        return Ok(forbidden_privileged());
     }
 
     let patch_path = match state.project.ground_truth_patch_file() {
@@ -352,8 +398,10 @@ async fn reference_patch(
 /// POST /admin/agent_exited - Mark the agent phase as ended.
 ///
 /// The entrypoint calls this over the admin socket once the agent process
-/// exits, which unlocks the reference patch on the agent-facing listeners for
-/// the web UI. Privileged-only.
+/// exits. From then on the agent-facing listeners refuse tools, and every
+/// process of the agent's user in this container is killed: what the agent
+/// left running (through the bash tool, or detached from its session) must
+/// not run next to grading. Privileged-only.
 async fn agent_exited(
     state: web::Data<AppState>,
     access: web::Data<Access>,
@@ -365,6 +413,9 @@ async fn agent_exited(
     }
 
     state.end_agent_phase();
+    if is_root() {
+        kill_all_processes_of(agent_account()).context("failed to stop the agent's processes")?;
+    }
     Ok(HttpResponse::Ok().json(json!({ "success": true })))
 }
 
@@ -400,7 +451,7 @@ routes! {
     get "/final_diff" => final_diff,
     // Phase control (privileged admin socket only)
     post "/admin/agent_exited" => agent_exited,
-    // Reference patch: privileged, or agent-facing only after the agent phase
+    // Reference patch (privileged admin socket only)
     get "/reference/patch" => reference_patch,
 }
 

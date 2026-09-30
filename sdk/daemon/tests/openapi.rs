@@ -16,7 +16,7 @@ use tempfile::TempDir;
 
 const SPEC: &str = include_str!("../openapi.yaml");
 const METHODS: [&str; 5] = ["get", "post", "put", "patch", "delete"];
-const ACCESS: [&str; 3] = ["any", "admin", "after-agent"];
+const ACCESS: [&str; 3] = ["any", "admin", "agent-phase"];
 const LEVELS: [Difficulty; 5] = [
     Difficulty::FullAssistance,
     Difficulty::NoIntentTest,
@@ -269,14 +269,16 @@ async fn listeners_enforce_the_documented_access() {
     let (_dir, core) = bench();
     let mut problems = Vec::new();
     for op in operations(&spec) {
-        // A fresh state each time: POST /admin/agent_exited must not unlock later operations.
+        // A fresh state each time: POST /admin/agent_exited must not close later operations.
         let (agent, admin) = listeners(&app_state(&core, Difficulty::FullAssistance));
         let uri = op.uri();
         let (status, body) = agent.call(&op.method, &uri).await;
         let refused = status == StatusCode::FORBIDDEN;
         match op.access.as_str() {
-            "any" if refused => problems.push(format!("{} {uri}: agent-facing 403", op.method)),
-            "admin" | "after-agent" if !refused => problems.push(format!(
+            "any" | "agent-phase" if refused => {
+                problems.push(format!("{} {uri}: agent-facing 403", op.method))
+            }
+            "admin" if !refused => problems.push(format!(
                 "{} {uri}: agent-facing {status}, expected 403",
                 op.method
             )),
@@ -313,63 +315,51 @@ async fn listeners_enforce_the_documented_access() {
 }
 
 #[actix_web::test]
-async fn reference_patch_unlocks_when_the_agent_exits() {
+async fn the_end_of_the_agent_phase_closes_tools_and_not_the_answer() {
     let spec = spec();
     let (_dir, core) = bench();
-    let (agent, admin) = listeners(&app_state(&core, Difficulty::NoFutureTest));
-
-    let unlocking: Vec<_> = operations(&spec)
-        .into_iter()
-        .filter(|op| op.access == "after-agent")
-        .collect();
-    assert!(
-        !unlocking.is_empty(),
-        "no operation is x-access: after-agent"
-    );
-    for op in &unlocking {
-        let (status, _) = agent.call(&op.method, &op.uri()).await;
-        assert_eq!(
-            status,
-            StatusCode::FORBIDDEN,
-            "{} {} before the agent exits",
-            op.method,
-            op.path
-        );
-    }
+    let (agent, admin) = listeners(&app_state(&core, Difficulty::FullAssistance));
 
     let (status, _) = admin.call("post", "/admin/agent_exited").await;
     assert_eq!(status, StatusCode::OK);
 
-    for op in &unlocking {
-        let (status, body) = agent.call(&op.method, &op.uri()).await;
+    for op in operations(&spec) {
+        // An action that every difficulty level allows, so only the phase refuses it.
+        let uri = match op.gate() {
+            Some(_) => format!("{}?action=build", op.uri()),
+            None => op.uri(),
+        };
+        let (status, _) = agent.call(&op.method, &uri).await;
         assert_eq!(
-            status,
-            StatusCode::OK,
-            "{} {} after the agent exits",
+            status == StatusCode::FORBIDDEN,
+            op.access != "any",
+            "{} {} after the agent exits answered {status} on an agent-facing listener",
             op.method,
             op.path
         );
-        let mut problems = Vec::new();
-        let schema = response_schema(op, status).expect("a documented 200 body");
-        check_shape(&spec, schema, &body, &op.path, &mut problems);
-        assert!(problems.is_empty(), "{}", problems.join("\n"));
     }
-    let (_, body) = agent.call("get", "/reference/patch").await;
+    let (status, body) = admin.call("get", "/reference/patch").await;
+    assert_eq!(status, StatusCode::OK);
     assert_eq!(body["diff"], REFERENCE_PATCH);
+}
 
-    for op in operations(&spec)
-        .into_iter()
-        .filter(|op| op.access == "admin")
-    {
-        let (status, _) = agent.call(&op.method, &op.uri()).await;
-        assert_eq!(
-            status,
-            StatusCode::FORBIDDEN,
-            "{} {} after the agent exits",
-            op.method,
-            op.path
-        );
-    }
+#[actix_web::test]
+async fn agent_facing_listeners_never_run_grading_checks() {
+    let (_dir, core) = bench();
+    let state = app_state(&core, Difficulty::FullAssistance);
+    let app = actix_test::init_service(
+        App::new()
+            .app_data(web::Data::new(state))
+            .app_data(web::Data::new(Access { privileged: false }))
+            .configure(configure_routes),
+    )
+    .await;
+    let request = actix_test::TestRequest::post()
+        .uri("/tool/bencher?action=build")
+        .set_json(serde_json::json!({ "grading": true }))
+        .to_request();
+    let response = actix_test::call_service(&app, request).await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
 #[actix_web::test]
