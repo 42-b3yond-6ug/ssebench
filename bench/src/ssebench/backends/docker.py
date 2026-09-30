@@ -10,7 +10,7 @@ import logging
 import subprocess
 import tempfile
 import time
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import get_args, override
@@ -71,6 +71,7 @@ class DockerBackend(Backend):
 
     name = "docker"
     builds_images = True
+    supports_exec = True
 
     def __init__(self, network: str | None = None) -> None:
         self.network = network
@@ -341,6 +342,62 @@ class DockerBackend(Backend):
         elif handle.process is None and handle.container:
             self._best_effort(["docker", "rm", "--force", handle.container])
 
+    # ==================== reaching a run ====================
+
+    @override
+    def endpoint(self, handle: RunHandle, port: int) -> str:
+        """The container's address on its Docker network, which a host with a Linux bridge can route to.
+
+        Docker Desktop keeps that network inside a virtual machine; the address does not work there.
+        """
+        assert isinstance(handle, DockerRun)
+        container = self._container_id(handle)
+        if not container:
+            raise BackendError(f"The run {handle.run_id} has no container")
+        inspected = subprocess.run(
+            ["docker", "inspect", "--type", "container", container], capture_output=True, text=True
+        )
+        if inspected.returncode != 0:
+            raise BackendError(f"Could not inspect {container}: {inspected.stderr.strip()}")
+        entry = json.loads(inspected.stdout)[0]
+        if not entry.get("State", {}).get("Running"):
+            raise BackendError(f"The run {handle.run_id} is not running")
+        for network in (entry.get("NetworkSettings", {}).get("Networks") or {}).values():
+            if network.get("IPAddress"):
+                return f"http://{network['IPAddress']}:{port}"
+            if network.get("GlobalIPv6Address"):
+                return f"http://[{network['GlobalIPv6Address']}]:{port}"
+        raise BackendError(f"The run {handle.run_id} has no address on a Docker network")
+
+    @override
+    def exec_argv(
+        self,
+        handle: RunHandle,
+        command: Sequence[str],
+        *,
+        user: str | None = None,
+        workdir: str | None = None,
+        tty: bool = False,
+        stdin: bool = False,
+        env_names: Sequence[str] = (),
+    ) -> list[str]:
+        assert isinstance(handle, DockerRun)
+        container = self._container_id(handle)
+        if not container:
+            raise BackendError(f"The run {handle.run_id} has no container")
+        return [
+            "docker",
+            "exec",
+            *(["--interactive"] if stdin or tty else []),
+            *(["--tty"] if tty else []),
+            *(["--user", user] if user else []),
+            *(["--workdir", workdir] if workdir else []),
+            # `-e NAME` takes the value from the docker client's own environment.
+            *[option for name in env_names for option in ("--env", name)],
+            container,
+            *command,
+        ]
+
     # ==================== sidecar pairs ====================
 
     def create_volumes(self, pair: SidecarPair) -> None:
@@ -401,5 +458,6 @@ class DockerBackend(Backend):
             exit_code=int(str(state["ExitCode"])) if run_state == "exited" and "ExitCode" in state else None,
             image=str(config.get("Image", "")),
             labels=labels,
+            created_at=str(entry["Created"]) if entry.get("Created") else None,
             handle=DockerRun(run_id=run_id, name=str(entry.get("Name", "")).lstrip("/"), container=container),
         )

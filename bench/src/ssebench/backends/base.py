@@ -11,7 +11,7 @@ This module imports nothing from the runner, so an extension can depend on it al
 import logging
 import shlex
 from abc import ABC, abstractmethod
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, ClassVar, Final, Literal
@@ -248,6 +248,8 @@ class RunInfo:
     labels: Mapping[str, str]
     handle: RunHandle
     """For `stop`, `logs`, `wait` and `cleanup`."""
+    created_at: str | None = None
+    """When the run's container was created, as an ISO 8601 timestamp, if the backend knows."""
 
 
 class Backend(ABC):
@@ -262,6 +264,9 @@ class Backend(ABC):
 
     builds_images: bool = False
     """Whether `prepare_images` can build the layers of a run. A backend without it needs `prebuilt=True`."""
+
+    supports_exec: bool = False
+    """Whether `exec_argv` works, which is what the web UI's terminal and assistant need."""
 
     @abstractmethod
     def prepare_images(self, request: ImageRequest) -> Images:
@@ -341,6 +346,46 @@ class Backend(ABC):
         """The run whose `ssebench.run-id` label is `run_id`, or None."""
         found = self.list_runs({RUN_ID_LABEL: run_id})
         return found[0] if found else None
+
+    def endpoint(self, handle: RunHandle, port: int) -> str:
+        """A URL, `http://host:port`, at which this process can reach `port` of the run's container.
+
+        A tool that watches a run, such as the web UI, reaches the daemon (4263) and the OpenCode server
+        (4096) of a running container through it. The URL has to work from the machine that calls this,
+        wherever the containers are: a container address where that is routable, a published or forwarded
+        port, or a Service. It must stay valid after this process exits, since the caller is often a
+        short-lived command: a backend that needs a port-forward keeps one running and reuses it on the
+        next call. It carries no credentials.
+
+        Raises:
+            BackendError: If the run is not running, or this backend cannot reach its ports.
+        """
+        raise BackendError(f"The {self.name} backend cannot reach the ports of a run")
+
+    def exec_argv(
+        self,
+        handle: RunHandle,
+        command: Sequence[str],
+        *,
+        user: str | None = None,
+        workdir: str | None = None,
+        tty: bool = False,
+        stdin: bool = False,
+        env_names: Sequence[str] = (),
+    ) -> list[str]:
+        """The argument vector of a local command that runs `command` in the run's container.
+
+        The caller executes it with the standard streams attached; nothing goes through a shell, and
+        `command` reaches the container as separate arguments. `tty` allocates a terminal, `stdin` keeps
+        standard input open, and `env_names` are variables that the container's process gets with the
+        values they have in the caller's environment. Their values never appear in the vector, since a
+        process list shows it: a backend that cannot pass them otherwise raises. Set `supports_exec` on a
+        backend that implements this.
+
+        Raises:
+            BackendError: If the run cannot run commands, for example because it is not running.
+        """
+        raise BackendError(f"The {self.name} backend cannot run commands in a run")
 
 
 def describe_command(command: list[str]) -> str:
