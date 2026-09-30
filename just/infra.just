@@ -7,11 +7,14 @@ images: base-images runtime-images
 base-images:
     make -C images/base-images all SSEBENCH_REGISTRY="{{registry}}"
 
-# Build the sidecar runtime, LiteLLM proxy and catalog images
+# Build the runtime image (daemon and entrypoint), the sidecar agent image, and the LiteLLM proxy and catalog images
 [group('images')]
 runtime-images:
-    docker buildx build --load -f images/sidecar-agent/Dockerfile --build-arg VERSION="{{version}}" \
+    docker buildx build --load -f images/runtime/Dockerfile --build-arg VERSION="{{version}}" \
         -t "{{registry}}/runtime:{{version}}" .
+    docker buildx build --load -f images/sidecar-agent/Dockerfile --build-arg VERSION="{{version}}" \
+        --build-context runtime=docker-image://{{registry}}/runtime:{{version}} \
+        -t "{{registry}}/tool-sidecar-agent:{{version}}" .
     uv run ssebench proxy build
     docker buildx build --load -f catalog/Dockerfile --build-arg VERSION="{{version}}" \
         -t "{{registry}}/catalog:{{version}}" .
