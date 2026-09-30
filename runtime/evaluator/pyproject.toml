@@ -1,6 +1,6 @@
 [project]
 name = "ssebench-evaluator"
-version = "1.0.0.dev0"
+version = "1.0.0rc1"
 requires-python = ">=3.12"
 dependencies = [
   "pydantic>=2.12.4",
