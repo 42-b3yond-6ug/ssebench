@@ -41,9 +41,14 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
 FROM ghcr.io/astral-sh/uv:0.12.20@sha256:100047e74f30778ab704942321a09750d6158739573ff58bf3924085cc6cd2d8 AS uv
 
 
+# The uv of the build platform: the target's uv would run under emulation and
+# fetch a Python for the target, which the build stage cannot run.
+FROM --platform=$BUILDPLATFORM ghcr.io/astral-sh/uv:0.12.20@sha256:100047e74f30778ab704942321a09750d6158739573ff58bf3924085cc6cd2d8 AS build-uv
+
+
 FROM --platform=$BUILDPLATFORM oven/bun:1.3.13-slim AS cli-wheel
 # The wheel of the CLI carries the assets it needs (see bench/hatch_build.py).
-COPY --from=uv /uv /usr/local/bin/uv
+COPY --from=build-uv /uv /usr/local/bin/uv
 WORKDIR /repo
 COPY . .
 RUN uv build --package ssebench --wheel --out-dir /wheel
