@@ -1,5 +1,6 @@
 """The architecture a run builds and runs for, and that every docker command of the run follows it."""
 
+import argparse
 import json
 import subprocess
 from collections.abc import Callable
@@ -8,9 +9,10 @@ from typing import cast
 
 import pytest
 
-from ssebench import arch
+from ssebench import arch, stack
 from ssebench.agents import Agent
 from ssebench.arch import Arch
+from ssebench.cli import cli
 from ssebench.dataset.generate import build_manifest, render_manifest
 from ssebench.middleware import ToolLayer
 from ssebench.models import NoModel
@@ -241,3 +243,63 @@ def test_an_agent_is_built_for_the_platform_of_its_base(monkeypatch: pytest.Monk
     with_platform, without = docker.commands
     assert flag_values(with_platform, "--platform") == ["linux/arm64"]
     assert "--platform" not in without
+
+
+def run_args(local: Path) -> argparse.Namespace:
+    return argparse.Namespace(
+        model=None,
+        agent="reference",
+        task=TASK,
+        local=str(local),
+        catalog="",
+        mode="sandbox",
+        tool_layer=None,
+        timeout=60,
+        difficulty=2,
+        keep_container=False,
+        egress="restricted",
+    )
+
+
+@pytest.mark.parametrize(("machine", "warnings"), [("aarch64", 1), ("x86_64", 0)])
+def test_run_warns_once_when_the_task_runs_under_emulation(
+    monkeypatch: pytest.MonkeyPatch,
+    make_task: Callable[..., Path],
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+    machine: str,
+    warnings: int,
+) -> None:
+    host(monkeypatch, machine)
+    dataset = dataset_with(make_task, tmp_path, ["amd64"])
+    monkeypatch.setattr(stack, "up", lambda: None)
+    monkeypatch.setattr(stack, "wait_healthy", lambda: None)
+    monkeypatch.setattr(BenchmarkSandboxRunner, "build", lambda self: None)
+    monkeypatch.setattr(BenchmarkSandboxRunner, "run", lambda self: None)
+
+    assert cli.cmd_run(run_args(dataset)) == 0
+
+    assert len([r for r in caplog.records if "emulation" in r.getMessage()]) == warnings
+
+
+@pytest.mark.parametrize(("machine", "warnings"), [("aarch64", 1), ("x86_64", 0)])
+def test_build_case_warns_once_however_many_tasks_are_emulated(
+    monkeypatch: pytest.MonkeyPatch,
+    make_task: Callable[..., Path],
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+    machine: str,
+    warnings: int,
+) -> None:
+    host(monkeypatch, machine)
+    dataset = dataset_with(make_task, tmp_path, ["amd64"])
+    _ = make_task(dataset, "demo-2")
+    manifest = json.loads(render_manifest(build_manifest(dataset)))
+    assert len(manifest["tasks"]) == 2
+    _ = (dataset / "manifest.json").write_text(json.dumps(manifest))
+    docker = Docker(monkeypatch)
+
+    assert cli.cmd_build_case(argparse.Namespace(benchmarks=str(dataset), tasks=None, force=True)) == 0
+
+    assert len([r for r in caplog.records if "emulation" in r.getMessage()]) == warnings
+    assert [flag_values(cmd, "--platform") for cmd in docker.commands] == [["linux/amd64"]] * 2

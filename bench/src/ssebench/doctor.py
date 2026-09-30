@@ -2,7 +2,6 @@
 
 import json
 import os
-import platform
 import shutil
 import subprocess
 from dataclasses import asdict, dataclass
@@ -11,14 +10,13 @@ from pathlib import Path
 
 import yaml
 
-from ssebench import paths, settings, stack
+from ssebench import arch, paths, settings, stack
 from ssebench.models import ModelError, model_names
 
 GIB = 1024**3
 # Case images of C tasks with their toolchains run to several GiB each.
 DISK_FAIL_GIB = 10
 DISK_WARN_GIB = 50
-AMD64 = ("x86_64", "amd64")
 
 
 class Status(Enum):
@@ -108,14 +106,15 @@ def check_disk(home: Path) -> Check:
 
 
 def check_cpu() -> Check:
-    machine = platform.machine().lower()
-    if machine in AMD64:
-        return Check("CPU", Status.OK, machine)
+    # Every pilot task is amd64-only, so any other host runs them under emulation.
+    if arch.host_arch() == "amd64":
+        return Check("CPU", Status.OK, arch.host_machine())
     return Check(
         "CPU",
         Status.WARN,
-        f"{machine or 'unknown'}: many pilot tasks build amd64-only images",
-        "Use an x86-64 host, or expect some tasks to fail or to run slowly under emulation.",
+        arch.emulation_warning("amd64"),
+        "Use an x86-64 host. To run here, Docker must be able to run amd64 images: Docker Desktop can, and on "
+        "Linux `docker run --privileged --rm tonistiigi/binfmt --install amd64` installs QEMU's handlers.",
     )
 
 

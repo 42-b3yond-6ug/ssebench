@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
-from ssebench import doctor, paths, settings, stack
+from ssebench import arch, doctor, paths, settings, stack
 from ssebench.agents import Agent
 from ssebench.errors import UserError
 from ssebench.extensions import (
@@ -124,6 +124,8 @@ def cmd_run(args: argparse.Namespace) -> int:
         require_defined(args.model)
         if args.agent not in KEYLESS_AGENTS:
             doctor.require_model_key(args.model)
+    if arch.is_emulated(task.arch):
+        logger.warning(arch.emulation_warning(task.arch))
 
     try:
         stack.up()
@@ -213,6 +215,9 @@ def cmd_build_case(args: argparse.Namespace) -> int:
         return 1
 
     logger.info(f"Found {len(tasks)} tasks to build")
+    emulated: set[arch.Arch] = {task.arch for task in tasks if arch.is_emulated(task.arch)}
+    for target in sorted(emulated):
+        logger.warning(arch.emulation_warning(target))
 
     successful = []
     failed = []
