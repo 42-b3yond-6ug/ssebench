@@ -1,4 +1,4 @@
-"""`ssebench run --backend` and `--prebuilt`, and the settings that stand for them."""
+"""`ssebench run --backend`, `--prebuilt` and `--egress`, and the settings that stand for them."""
 
 import argparse
 from collections.abc import Callable
@@ -35,7 +35,7 @@ def run_args(local: Path, **overrides: object) -> argparse.Namespace:
         "timeout": 60,
         "difficulty": 2,
         "keep_container": False,
-        "egress": "restricted",
+        "egress": None,
     }
     return argparse.Namespace(**(defaults | overrides))
 
@@ -109,3 +109,38 @@ def test_run_rejects_an_unknown_backend(caplog: pytest.LogCaptureFixture) -> Non
 
     assert exit_info.value.code == 1
     assert "Unknown backend 'nope'" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("flag", "setting", "expected"),
+    [(None, None, "restricted"), (None, "open", "open"), ("restricted", "open", "restricted"), ("open", None, "open")],
+)
+def test_egress_is_the_flag_else_the_setting_else_restricted(
+    flag: str | None,
+    setting: str | None,
+    expected: str,
+    task: LocalTask,
+    tmp_path: Path,
+    runners: list[BenchmarkSandboxRunner],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    if setting:
+        monkeypatch.setenv("SSEBENCH_EGRESS", setting)
+
+    assert cli.cmd_run(run_args(tmp_path / "pilot", egress=flag)) == 0
+
+    [runner] = runners
+    assert runner.egress == expected
+
+
+def test_a_setting_that_is_not_an_egress_policy_fails_before_the_run(
+    task: LocalTask,
+    tmp_path: Path,
+    runners: list[BenchmarkSandboxRunner],
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setenv("SSEBENCH_EGRESS", "everything")
+
+    assert cli.cmd_run(run_args(tmp_path / "pilot")) == 1
+    assert "SSEBENCH_EGRESS='everything'" in caplog.text and not runners

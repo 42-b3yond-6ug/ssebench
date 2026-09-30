@@ -84,7 +84,7 @@ ssebench run [-h] [--model NAME] --agent NAME --task ID [--local DIR]
 | `--timeout SECONDS` | `3600` | How long the agent may run |
 | `--difficulty LEVEL` | 2 = `NO_FUTURE_TEST` | Which checks the agent's `test_patch` tool may run, from 0 (all) to 4 (none). One of 0, 1, 2, 3, 4 |
 | `--keep-container` | off | Keep the container after the run, for example to inspect it from the web UI |
-| `--egress POLICY` | `restricted` | Network egress of the run container: restricted reaches the LiteLLM proxy but not the internet; open also has internet access, for tasks that need network at test time |
+| `--egress POLICY` | `$SSEBENCH_EGRESS`, else restricted | Network egress of the run container: restricted reaches the LiteLLM proxy but not the internet; open also has internet access, for tasks that need network at test time |
 
 <!-- end generated -->
 
