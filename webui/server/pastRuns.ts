@@ -164,13 +164,11 @@ function readJson(dir: string, name: string): Record<string, unknown> | null {
 /** The task's metadata as the daemon's /project reports it, from the summary the CLI wrote */
 export function readProject(dir: string): ProjectInfo | null {
   const task = readJson(dir, "summary.json")?.task as
-    | Record<string, unknown>
-    | undefined
+    Record<string, unknown> | undefined
   if (!task || typeof task.id !== "string") return null
   const files = task.files as { poc?: unknown } | undefined
   const description = task.task_description as
-    | ProjectInfo["task_description"]
-    | undefined
+    ProjectInfo["task_description"] | undefined
   return {
     id: task.id,
     project: typeof task.project === "string" ? task.project : task.id,

@@ -18,6 +18,8 @@
  *   </Dock>
  */
 
+/* eslint-disable react-refresh/only-export-components -- the rule does not recognise the Object.assign compound export */
+
 import React, { type CSSProperties, type ReactNode } from "react"
 import { useDock } from "./useDock"
 import { DockTabBar, type DockTab } from "./DockTabBar"

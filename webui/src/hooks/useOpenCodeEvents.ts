@@ -259,8 +259,7 @@ export function useOpenCodeEvents({
           // Handle message.part.updated events
           if (eventType === "message.part.updated") {
             const props = eventData.properties as
-              | PartUpdatedProperties
-              | undefined
+              PartUpdatedProperties | undefined
 
             if (!props?.part) return
 
@@ -322,8 +321,7 @@ export function useOpenCodeEvents({
           // Handle message.updated events
           if (eventType === "message.updated") {
             const props = eventData.properties as
-              | MessageUpdatedProperties
-              | undefined
+              MessageUpdatedProperties | undefined
 
             // Check if message is complete (has end time)
             if (
@@ -339,8 +337,7 @@ export function useOpenCodeEvents({
           // Handle session.status events
           if (eventType === "session.status") {
             const props = eventData.properties as
-              | SessionStatusProperties
-              | undefined
+              SessionStatusProperties | undefined
 
             const status = props?.status
             if (callbacksRef.current.onSessionStatus && status) {
@@ -359,8 +356,7 @@ export function useOpenCodeEvents({
           // Handle session.error events (provider errors, unreachable providers)
           if (eventType === "session.error") {
             const props = eventData.properties as
-              | SessionErrorProperties
-              | undefined
+              SessionErrorProperties | undefined
             if (callbacksRef.current.onSessionError && props?.error) {
               callbacksRef.current.onSessionError(props.error)
             }
@@ -373,8 +369,7 @@ export function useOpenCodeEvents({
             eventType === "permission.updated"
           ) {
             const props = eventData.properties as
-              | PermissionAskedProperties
-              | undefined
+              PermissionAskedProperties | undefined
 
             console.log(
               "[useOpenCodeEvents] Permission event raw:",
@@ -420,8 +415,7 @@ export function useOpenCodeEvents({
           // Handle permission.replied events
           if (eventType === "permission.replied") {
             const props = eventData.properties as
-              | PermissionRepliedProperties
-              | undefined
+              PermissionRepliedProperties | undefined
 
             console.log(
               "[useOpenCodeEvents] Permission replied:",

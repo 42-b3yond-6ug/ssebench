@@ -111,12 +111,7 @@ const security = loadSecurityOrExit()
 interface WSData {
   containerId?: string
   type?:
-    | "bash"
-    | "debug"
-    | "launch"
-    | "container-logs"
-    | "opencode-events"
-    | "sdk" // Type of connection
+    "bash" | "debug" | "launch" | "container-logs" | "opencode-events" | "sdk" // Type of connection
   initialMessage?: string // Initial message to send to opencode (for debug type)
   sessionId?: string // Session ID for opencode-events
   directory?: string // Working directory for opencode-events
