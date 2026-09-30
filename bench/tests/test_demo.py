@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
 
 from ssebench import arch, demo, doctor, paths, settings, stack
@@ -502,3 +503,39 @@ def test_the_run_s_container_is_found_by_its_run_id(monkeypatch: pytest.MonkeyPa
 
     assert demo.find_run(demo.configure(), plan) == "abc123"
     assert "label=ssebench.run-id=demo-run" in asked[0]
+
+
+def test_the_web_ui_is_asked_for_the_run_by_its_run_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    urls: list[str] = []
+
+    def get(url: str, timeout: float) -> httpx.Response:
+        urls.append(url)
+        return httpx.Response(200, json={"available": True})
+
+    monkeypatch.setattr(demo.httpx, "get", get)
+    config = demo.configure()
+
+    demo.check_run_in_webui(config, "20260930-152335-e5fd25")
+
+    assert urls == [f"{config.webui_url}/api/containers/20260930-152335-e5fd25/result"]
+
+
+# ==================== the web UI's health ====================
+
+
+def test_a_web_ui_that_reaches_its_runner_passes() -> None:
+    # The shape of GET /api/health in webui/server/index.ts.
+    assert demo.runner_problem({"status": "ok", "runner": True, "backend": "docker", "terminal": False}) is None
+
+
+def test_a_web_ui_that_cannot_reach_docker_says_why() -> None:
+    problem = demo.runner_problem({"status": "ok", "runner": False, "backend": None, "runnerError": "connect ENOENT"})
+
+    assert problem is not None
+    assert "/var/run/docker.sock" in problem
+    assert problem.endswith("It reports: connect ENOENT")
+
+
+@pytest.mark.parametrize("health", [None, [], "ok", {"status": "ok"}, {"docker": True}])
+def test_an_answer_without_the_runner_field_is_a_problem(health: object) -> None:
+    assert demo.runner_problem(health) is not None

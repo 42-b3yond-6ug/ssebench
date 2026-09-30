@@ -142,9 +142,8 @@ Measured on a 48-core host with a fast connection:
 | Images built from the checkout (`--build`, before a release), cold | 3 to 4 min (3 min 15 s measured on a fresh machine, with no cached image or build) | The images take about 30 s: the LiteLLM proxy, the catalog, the web UI and the base image, plus the download of Postgres. The stack takes 20 s. The run takes about 2 min, almost all of it building the tool layer, because the daemon compiles. |
 
 The pulled path is estimated from the image sizes and the rate of a pull on
-this host (23 MB/s), because the images are not published yet. Builds and the
-daemon's compile scale with the number of cores, and downloads with the
-connection: on a small VM with 2 vCPUs and 100 Mbit/s, expect the pulled path to
+this host (23 MB/s). Builds and the daemon's compile scale with the number of
+cores, and downloads with the connection: on a small VM with 2 vCPUs and 100 Mbit/s, expect the pulled path to
 take four to six minutes, most of it downloads and the LiteLLM proxy's start,
 and the build from a checkout several times longer than on the large host
 (estimated).
