@@ -105,7 +105,7 @@ When its hook comes, the entrypoint runs the plugin's `run.sh` with Bash:
 | User | See [above](#which-user-a-plugin-runs-as) |
 | Standard output and error | `plugins/<name>.log` in the results directory |
 | Time limit | `timeout` minutes, after which its whole process group is killed |
-| Environment | The entrypoint's own environment, plus `SSE_PLUGIN_NAME` and `SSE_PLUGIN_HOOK` (such as `after-grading`) |
+| Environment | The entrypoint's own environment, plus `SSE_PLUGIN_NAME` and `SSE_PLUGIN_HOOK` (such as `after-grading`); a plugin that runs as `model` has `HOME=/home/model`, `USER` and `LOGNAME` set to `model` |
 
 The environment includes `SSE_ARCHIVE` (the results directory),
 `SSE_DIFFICULTY`, `TIMEOUT` and `SSE_DAEMON_SOCKET`, the daemon's agent-facing

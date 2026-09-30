@@ -54,7 +54,7 @@ RUN apt-get update && \
 RUN userdel --remove ubuntu && \
     groupadd -g 1000 model && \
     useradd -m -u 1000 -g 1000 -s /bin/bash model && \
-    su model -c "git config --global user.name 'SSEBench' && git config --global user.email 'bench@ssebench.local'"
+    su model -c "git config --global user.name 'SSEBench Agent' && git config --global user.email 'agent@ssebench.invalid'"
 
 COPY --from=uv /uv /uvx /bin/
 COPY --from=python-builder /root/.local/share/uv/python /root/.local/share/uv/python

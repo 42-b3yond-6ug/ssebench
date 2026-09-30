@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -15,6 +16,9 @@ import (
 
 // agentUser is the unprivileged user the agent runs as.
 const agentUser = "model"
+
+// agentHome is the home of [agentUser] when the user database does not say.
+const agentHome = "/home/model"
 
 // account is a user's numeric identity.
 type account struct {
@@ -36,6 +40,18 @@ func lookupAccount(name string) (account, error) {
 		return account{}, err
 	}
 	return account{uid: uint32(uid), gid: uint32(gid), home: u.HomeDir}, nil
+}
+
+// agentEnvironment returns env with the identity of [agentUser]. `su -p` keeps the entrypoint's
+// environment, whose HOME is root's /root, a directory the agent cannot read, so git, uv and the
+// agents' own tools would fail on it. The home holds the git identity.
+func agentEnvironment(env []string) []string {
+	home := agentHome
+	if a, err := lookupAccount(agentUser); err == nil && a.home != "" {
+		home = a.home
+	}
+	// The last value of a repeated key is the one a child gets.
+	return append(slices.Clone(env), "HOME="+home, "USER="+agentUser, "LOGNAME="+agentUser)
 }
 
 // credential runs a process as the account, without the supplementary groups
