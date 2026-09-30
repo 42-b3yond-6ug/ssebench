@@ -37,8 +37,8 @@ RUN mv "${SOURCE_DIR}" /ssebench-repo && chmod 700 /ssebench-repo && chmod 700 /
 COPY --from=case-image-builder --chown=1000:1000 ${SOURCE_DIR}/ ${SOURCE_DIR}/
 
 # Create model user, init clean git repo
-COPY --chmod=755 images/common/setup-source.sh /tmp/setup-source.sh
-RUN /tmp/setup-source.sh "${SOURCE_DIR}" && rm /tmp/setup-source.sh
+COPY --chmod=755 images/common/ /tmp/image-setup/
+RUN /tmp/image-setup/setup-source.sh "${SOURCE_DIR}" && rm -r /tmp/image-setup
 
 COPY --from=runtime /ssebench/ssebench-daemon /ssebench/ssebench-daemon
 
