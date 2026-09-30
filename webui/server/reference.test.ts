@@ -26,6 +26,23 @@ describe("readReferencePatch", () => {
     expect(readReferencePatch(labels, tasks)).toBe("from the run\n")
   })
 
+  test("reads the copy of the run that its label names, among several runs", () => {
+    const tasks = dataset()
+    const group = mkdtempSync(join(tmpdir(), "group-"))
+    for (const id of ["first", "second"]) {
+      mkdirSync(join(group, id))
+      writeFileSync(join(group, id, "reference.patch"), `from run ${id}\n`)
+    }
+    const labels = (id: string) => ({
+      "ssebench.task-id": "demo-1",
+      [RESULTS_LABEL]: join(group, id),
+    })
+    expect(readReferencePatch(labels("first"), tasks)).toBe("from run first\n")
+    expect(readReferencePatch(labels("second"), tasks)).toBe(
+      "from run second\n"
+    )
+  })
+
   test("falls back to the task folder", () => {
     const tasks = dataset()
     const labels = {
