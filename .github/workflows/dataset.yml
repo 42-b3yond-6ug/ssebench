@@ -11,14 +11,15 @@ name: Dataset
 # private, to save minutes. The config, manifest and schema checks run in the
 # CI workflow.
 #
-# A release tag (v*), the weekly run and a manual run with `publish` also push
-# the case image of each task that passes to
-# ghcr.io/<owner>/<repo>/case/<dataset>/<task>, tagged with the dataset version
-# and with the version and the commit. It is the image that the verification
-# graded, not a rebuild. A run writes the digests it pushed to images.lock.json,
-# an artifact that a release tag also attaches to the release; see
-# docs/contributing/releasing.md. Nothing is pushed while the repository is
-# private, from a branch other than main, or from a pull request.
+# A release tag (v*) and a manual run with `publish` also push the case image of
+# each task that passes to ghcr.io/<owner>/<repo>/case/<dataset>/<task>, tagged
+# with the dataset version and with the version and the commit. It is the image
+# that the verification graded, not a rebuild. The weekly run only verifies, so
+# the version tag moves only when someone publishes. A run that publishes writes
+# the digests it pushed to images.lock.json, an artifact that a release tag also
+# attaches to the release; see docs/contributing/releasing.md. Nothing is pushed
+# while the repository is private, from a branch other than main, or from a pull
+# request.
 
 on:
   pull_request:
@@ -113,7 +114,7 @@ jobs:
 
           publish=false
           case "$EVENT" in
-            push | schedule) publish=true ;;
+            push) publish=true ;;
             workflow_dispatch) [ "$PUBLISH_INPUT" != true ] || publish=true ;;
           esac
           if [ "$publish" = true ] && [ "$PRIVATE" = true ]; then

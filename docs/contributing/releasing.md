@@ -305,8 +305,11 @@ passes to `ghcr.io/42-b3yond-6ug/ssebench/case/pilot/<task>`:
 |---|---|---|
 | Pull request | the tasks it changes | nothing |
 | `v*` tag | every task | every task that passes, and attaches the images lock to the release |
-| Weekly run | every task | every task that passes |
+| Weekly run | every task | nothing |
 | Manual run | the tasks named, else every task | the same, when `publish` is set, and only from `main` |
+
+The weekly run only verifies, so `pilot-v1` moves only when a release tag or a
+manual run publishes.
 
 ```sh
 gh workflow run dataset.yml --ref main -f publish=true
