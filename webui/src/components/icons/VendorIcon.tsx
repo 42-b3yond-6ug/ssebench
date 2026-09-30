@@ -6,7 +6,7 @@
  * - Project info bar (showing current model/agent)
  */
 
-import * as SimpleIcons from "simple-icons"
+import { siAnthropic, siGoogle } from "simple-icons"
 
 interface VendorIconProps {
   vendor: "anthropic" | "openai" | "google" | "unknown"
@@ -37,7 +37,7 @@ export function VendorIcon({
           fill="currentColor"
           style={{ color: "#D4A373" }}
         >
-          <path d={SimpleIcons.siAnthropic.path} />
+          <path d={siAnthropic.path} />
         </svg>
       )
 
@@ -63,7 +63,7 @@ export function VendorIcon({
           fill="currentColor"
           style={{ color: "#4285F4" }}
         >
-          <path d={SimpleIcons.siGoogle.path} />
+          <path d={siGoogle.path} />
         </svg>
       )
 
