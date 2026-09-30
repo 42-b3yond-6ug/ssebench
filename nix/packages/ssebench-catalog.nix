@@ -6,12 +6,13 @@ in
 pkgs.buildGo126Module {
   pname = "ssebench-catalog";
   inherit (flake.lib) version;
-  # The tests load the pilot manifest from the dataset.
+  # The tests load the pilot manifest and images lock from the dataset.
   src = lib.fileset.toSource {
     inherit root;
     fileset = lib.fileset.unions [
       (root + "/catalog")
       (root + "/datasets/pilot/manifest.json")
+      (root + "/datasets/pilot/images.lock.json")
     ];
   };
   modRoot = "catalog";
