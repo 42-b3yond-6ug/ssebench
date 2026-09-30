@@ -6,9 +6,19 @@ name: Dataset
 #
 # Pull requests verify the tasks whose files they change, every task of a base
 # image they change, and one canary task when only this workflow or the
-# verifier changes. The weekly run and a manual run verify every task; the
-# weekly run is skipped while the repository is private, to save minutes.
-# The config, manifest and schema checks run in the CI workflow.
+# verifier changes. The weekly run, a manual run and a release tag verify every
+# task; the weekly run and a release tag are skipped while the repository is
+# private, to save minutes. The config, manifest and schema checks run in the
+# CI workflow.
+#
+# A release tag (v*), the weekly run and a manual run with `publish` also push
+# the case image of each task that passes to
+# ghcr.io/<owner>/<repo>/case/<dataset>/<task>, tagged with the dataset version
+# and with the version and the commit. It is the image that the verification
+# graded, not a rebuild. A run writes the digests it pushed to images.lock.json,
+# an artifact that a release tag also attaches to the release; see
+# docs/contributing/releasing.md. Nothing is pushed while the repository is
+# private, from a branch other than main, or from a pull request.
 
 on:
   pull_request:
@@ -16,7 +26,10 @@ on:
       - datasets/**
       - images/base-images/**
       - bench/src/ssebench/dataset/verify.py
+      - bench/src/ssebench/dataset/publish.py
       - .github/workflows/dataset.yml
+  push:
+    tags: ["v*"]
   schedule:
     - cron: "23 4 * * 1"
   workflow_dispatch:
@@ -24,6 +37,10 @@ on:
       tasks:
         description: Tasks to verify, separated by spaces; empty for every task.
         default: ""
+      publish:
+        description: Push the case images of the tasks that pass, with an images lock. Only from main, and only when the repository is public.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -42,12 +59,15 @@ env:
 jobs:
   plan:
     name: Select tasks
-    if: ${{ github.event_name != 'schedule' || !github.event.repository.private }}
+    # The weekly run and a release tag verify every task, which is not worth the minutes of a private repository.
+    if: ${{ (github.event_name != 'schedule' && github.event_name != 'push') || !github.event.repository.private }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
       tasks: ${{ steps.select.outputs.tasks }}
       count: ${{ steps.select.outputs.count }}
+      publish: ${{ steps.select.outputs.publish }}
+      registry: ${{ steps.select.outputs.registry }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -59,8 +79,13 @@ jobs:
         id: select
         env:
           EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          PRIVATE: ${{ github.event.repository.private }}
+          REPOSITORY: ${{ github.repository }}
           BASE: ${{ github.event.pull_request.base.sha }}
           TASKS: ${{ inputs.tasks }}
+          PUBLISH_INPUT: ${{ inputs.publish }}
           GH_TOKEN: ${{ github.token }}
         run: |
           verify() { uv run ssebench dataset verify --dir "$DATASET" --list "$@"; }
@@ -85,10 +110,42 @@ jobs:
               # shellcheck disable=SC2086 # the input is a list of task names
               tasks=$(verify $TASKS) ;;
           esac
+
+          publish=false
+          case "$EVENT" in
+            push | schedule) publish=true ;;
+            workflow_dispatch) [ "$PUBLISH_INPUT" != true ] || publish=true ;;
+          esac
+          if [ "$publish" = true ] && [ "$PRIVATE" = true ]; then
+            echo "The repository is private; no image will be published."
+            publish=false
+          fi
+          if [ "$publish" = true ]; then
+            case "$REF" in
+              refs/heads/main) ;;
+              refs/tags/v*)
+                version=$(cat VERSION)
+                if [ "$REF" != "refs/tags/v$version" ]; then
+                  echo "::error::Tag ${REF#refs/tags/} does not match VERSION ($version)."
+                  exit 1
+                fi
+                if ! git merge-base --is-ancestor "$SHA" origin/main; then
+                  echo "::error::Tag ${REF#refs/tags/} is not on main."
+                  exit 1
+                fi ;;
+              *)
+                echo "::error::Images are published from main or from a release tag, not from $REF."
+                exit 1 ;;
+            esac
+          fi
+
           {
             echo "tasks=$tasks"
             echo "count=$(jq length <<< "$tasks")"
+            echo "publish=$publish"
+            echo "registry=ghcr.io/${REPOSITORY,,}"
           } >> "$GITHUB_OUTPUT"
+          echo "publish=$publish"
           jq -r '.[] | "\(.task) on \(.base)"' <<< "$tasks"
 
   verify:
@@ -99,6 +156,11 @@ jobs:
     # The C tasks with AddressSanitizer build and test their projects several
     # times per run; CPython runs most of its test suite.
     timeout-minutes: 240
+    permissions:
+      contents: read
+      # Only the login and the push of a publishing run use it. A pull request
+      # from a fork gets a read-only token whatever is declared here.
+      packages: write
     strategy:
       fail-fast: false
       max-parallel: 8
@@ -167,6 +229,28 @@ jobs:
       - name: Verify the task
         # A retry covers a case image build that loses the network, not a failed check.
         run: uv run ssebench dataset verify --dir "$DATASET" --output "$OUTPUT" --jobs 1 --retries 1 "$TASK"
+      - name: Log in to the registry
+        # After the verification, so that the run of the task's own scripts never sees the credentials.
+        if: needs.plan.outputs.publish == 'true' && !github.event.repository.private
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Publish the verified image
+        # Runs only when the task passed. It pushes the image that both runs graded, and refuses one that was rebuilt since.
+        if: needs.plan.outputs.publish == 'true' && !github.event.repository.private
+        env:
+          REGISTRY: ${{ needs.plan.outputs.registry }}
+        run: uv run ssebench dataset publish --dir "$DATASET" --output "$OUTPUT" --registry "$REGISTRY" --revision "$GITHUB_SHA" "$TASK"
+      - name: Upload the publication record
+        if: needs.plan.outputs.publish == 'true' && !github.event.repository.private
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dataset-published-${{ matrix.task.task }}
+          path: ${{ env.OUTPUT }}/published/
+          if-no-files-found: error
+          retention-days: 30
       - name: Annotate the failures
         if: failure()
         run: |
@@ -236,3 +320,77 @@ jobs:
             ${{ env.OUTPUT }}/summary.json
           if-no-files-found: ignore
           retention-days: 90
+
+  lock:
+    name: Images lock
+    needs: [plan, verify]
+    # Tasks that failed are not in it, and the others are, so it runs after a failed verification too.
+    if: ${{ !cancelled() && needs.plan.outputs.publish == 'true' && needs.plan.outputs.count != '0' && !github.event.repository.private }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-python
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        # There is nothing to download when no task was published.
+        continue-on-error: true
+        with:
+          pattern: dataset-published-*
+          path: ${{ env.OUTPUT }}/published
+          merge-multiple: true
+      - name: Write the images lock
+        run: |
+          shopt -s nullglob
+          records=("$OUTPUT"/published/*.json)
+          if [ ${#records[@]} -eq 0 ]; then
+            echo "::warning::No task was published, so there is no images lock."
+            exit 0
+          fi
+          # The lock in the checkout, with the images of this run on top.
+          uv run ssebench dataset lock "$DATASET" --records "$OUTPUT/published" -o "$OUTPUT/images.lock.json"
+          {
+            echo "## Images lock"
+            echo
+            echo "This run published ${#records[@]} case images. The lock pins $(jq '.images | length' "$OUTPUT/images.lock.json")"
+            echo "of the dataset's tasks by digest; it is the artifact \`images-lock\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: images-lock
+          path: ${{ env.OUTPUT }}/images.lock.json
+          if-no-files-found: ignore
+          retention-days: 90
+
+  attach-lock:
+    name: Attach the images lock to the release
+    needs: [plan, lock]
+    if: ${{ needs.lock.result == 'success' && github.ref_type == 'tag' && needs.plan.outputs.publish == 'true' && !github.event.repository.private }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: write # upload to the release
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        continue-on-error: true
+        with:
+          name: images-lock
+          path: assets
+      - name: Attach the lock to the release
+        run: |
+          if [ ! -f assets/images.lock.json ]; then
+            echo "::warning::There is no images lock to attach."
+            exit 0
+          fi
+          # The Release workflow creates the release for this tag, and is long done by now;
+          # this only covers a run that was started by hand on a tag it has not released.
+          for _ in $(seq 40); do
+            gh release view "$TAG" > /dev/null 2>&1 && break
+            sleep 60
+          done
+          gh release upload "$TAG" assets/images.lock.json --clobber

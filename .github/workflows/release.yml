@@ -3,7 +3,8 @@ name: Release
 # A v* tag builds the Python packages, the binaries and the dataset manifest,
 # publishes the packages to PyPI, creates the GitHub release with the binaries
 # and the manifest attached, and deploys the docs. The images are published by
-# the Images workflow on the same tag.
+# the Images workflow on the same tag, and the pilot case images by the Dataset
+# workflow, which also attaches the images lock to the release.
 #
 # Every publishing job is skipped while the repository is private, so a tag
 # then only produces the workflow artifacts. A manual run does the same on any
