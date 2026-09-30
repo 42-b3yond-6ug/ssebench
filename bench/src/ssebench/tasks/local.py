@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import final, override
 
 from ssebench.pipe import REGISTRY
-from ssebench.tasks.manifest import task_files_digest
+from ssebench.tasks.manifest import case_image_name, task_files_digest
 from ssebench.tasks.metadata import TaskMetadata, load_task_metadata
 
 from .task import Task
@@ -28,7 +28,7 @@ class LocalTask(Task):
         self.task_path = get_task_path(localpath, name)
         self.task_metadata = self.get_task_metadata()
         self.dataset = localpath.resolve().name
-        self.docker_image_name = f"{REGISTRY}/case/{self.dataset}/{name}".lower()
+        self.docker_image_name = f"{REGISTRY}/{case_image_name(self.dataset, name)}"
         assert self._validate()
 
     @override

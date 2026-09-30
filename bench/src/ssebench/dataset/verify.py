@@ -24,9 +24,10 @@ from pydantic import ValidationError
 
 from ssebench import paths
 from ssebench.models import NO_MODEL
+from ssebench.pipe import REGISTRY
 from ssebench.runner.result import PatchResult, PerTaskEvaluationResult
 from ssebench.runner.runner import summary_path
-from ssebench.tasks.manifest import Check, task_files
+from ssebench.tasks.manifest import Check, case_image_name, task_files
 
 from .generate import MANIFEST, checks
 from .validate import DatasetReport, TaskReport, validate_dataset
@@ -54,6 +55,8 @@ class RunReport:
     log: str
     result: dict[str, Any] | None = None
     attempts: int = 1
+    image: str | None = None
+    """ID of the local case image that the run graded; the image to publish must be this one."""
     cells: dict[str, Cell] = field(default_factory=dict)
     failures: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
@@ -74,7 +77,10 @@ class TaskVerdict:
     @property
     def failures(self) -> list[str]:
         missing = [f"{agent}: no result, the verification did not finish" for agent in AGENTS if agent not in self.runs]
-        return missing + [f"{run.agent}: {f}" for run in self.runs.values() for f in run.failures]
+        failures = missing + [f"{run.agent}: {f}" for run in self.runs.values() for f in run.failures]
+        if len({run.image for run in self.runs.values() if run.image}) > 1:
+            failures.append("the runs graded different case images, so no single image has been verified")
+        return failures
 
     @property
     def warnings(self) -> list[str]:
@@ -227,6 +233,17 @@ def read_result(path: Path) -> PatchResult | None:
         return None
 
 
+def case_image(dataset: Path, task: str) -> str:
+    """The name of the case image that `ssebench run --local DATASET` builds for a task."""
+    return f"{REGISTRY}/{case_image_name(dataset.resolve().name, task)}"
+
+
+def image_id(image: str) -> str | None:
+    """The ID of a local image, or None if there is none."""
+    proc = subprocess.run(["docker", "image", "inspect", "--format", "{{.Id}}", image], capture_output=True, text=True)
+    return (proc.stdout.strip() or None) if proc.returncode == 0 else None
+
+
 def run_agent(opts: Options, task: TaskReport, agent: str) -> RunReport:
     result_file = result_path(opts, task.id, agent)
     result_file.unlink(missing_ok=True)
@@ -254,6 +271,7 @@ def run_agent(opts: Options, task: TaskReport, agent: str) -> RunReport:
     assert task.metadata is not None
     report = judge(agent, result, checks(task.metadata), len(task.metadata.files.poc or []))
     report.attempts = attempts
+    report.image = image_id(case_image(opts.dataset, task.id))
     report.exit_code = proc.returncode
     report.seconds = round(seconds, 1)
     report.log = log.relative_to(opts.output).as_posix()
@@ -380,6 +398,14 @@ def write_verdict(output: Path, verdict: TaskVerdict) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     _ = path.write_text(json.dumps(verdict.to_json(), indent=2) + "\n")
     return path
+
+
+def read_verdict(output: Path, task: str) -> TaskVerdict | None:
+    """The result of one task in `output`, or None if it has none."""
+    try:
+        return TaskVerdict.from_json(json.loads((output / "tasks" / f"{task}.json").read_text()))
+    except OSError:
+        return None
 
 
 def read_verdicts(output: Path) -> list[TaskVerdict]:

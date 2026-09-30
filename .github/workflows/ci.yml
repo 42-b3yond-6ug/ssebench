@@ -339,6 +339,8 @@ jobs:
         run: uv run ssebench dataset validate datasets/pilot
       - name: manifest.json is up to date
         run: uv run ssebench dataset manifest --check
+      - name: images.lock.json is consistent with the dataset
+        run: uv run ssebench dataset lock --check
       - name: The task config schema is up to date
         run: uv run ssebench dataset schema --check
       - name: THIRD_PARTY.md is up to date

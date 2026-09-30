@@ -38,8 +38,10 @@ INCLUDE = (
     "sdk/python/pyproject.toml",
     "sdk/python/README.md",
     "sdk/python/sse",
-    # Only the manifest and its license, not the task folders: the case images hold the tasks, and the CLI pulls them.
+    # Only the manifest, the digests of the published case images and the license, not the task folders: the
+    # case images hold the tasks, and the CLI pulls them.
     "datasets/pilot/manifest.json",
+    "datasets/pilot/images.lock.json",
     "datasets/pilot/LICENSE",
 )
 

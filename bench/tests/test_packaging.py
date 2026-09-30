@@ -86,6 +86,7 @@ def test_the_hook_lists_what_the_cli_needs() -> None:
         "sdk/python/README.md",
         "sdk/python/sse/__init__.py",
         "datasets/pilot/manifest.json",
+        "datasets/pilot/images.lock.json",
         "datasets/pilot/LICENSE",
     } <= files
 
@@ -94,7 +95,7 @@ def test_the_hook_leaves_out_task_folders_and_caches() -> None:
     files = set(hatch_build.data_files(CHECKOUT).values())
 
     datasets = {f for f in files if f.startswith("datasets/")}
-    assert datasets == {"datasets/pilot/manifest.json", "datasets/pilot/LICENSE"}
+    assert datasets == {"datasets/pilot/manifest.json", "datasets/pilot/images.lock.json", "datasets/pilot/LICENSE"}
     assert [f for f in files if "__pycache__" in f or f.endswith(".pyc") or ".venv" in f] == []
     assert not any(f.startswith(("sdk/daemon/", "runtime/entrypoint/", "webui/")) for f in files)
 
