@@ -9,7 +9,7 @@ WORKDIR /app/agents/codex/codex-sse
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -y nodejs
 
-ARG CODEX_VERSION=0.159.0
+ARG CODEX_VERSION=0.159.2
 RUN npm install -g "@openai/codex@${CODEX_VERSION}"
 
 COPY --from=workspace --chown=model:model pyproject.toml uv.lock /app/

@@ -10,6 +10,8 @@ CONFIG_TEMPLATE = {
     "check_for_update_on_startup": False,
     "analytics": {"enabled": False},
     "otel": {"metrics_exporter": "none"},
+    # Plugin support syncs a plugin catalogue from GitHub and ChatGPT at start-up.
+    "features": {"plugins": False},
     "mcp_servers": {
         "ssebench": {
             "url": "",
