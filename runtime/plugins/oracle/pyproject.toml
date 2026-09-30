@@ -1,6 +1,6 @@
 [project]
 name = "ssebench-plugin-oracle"
-version = "1.0.0"
+version = "1.1.0.dev0"
 description = "Oracle plugin for SSEBench"
 requires-python = ">=3.12"
 dependencies = [
