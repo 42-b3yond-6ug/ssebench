@@ -37,6 +37,7 @@ SSEBench home, and variables set in the environment take precedence over it.
 | `OPENAI_API_KEY` | unset | Key of the OpenAI models in `models/openai-gpt.yaml`. |
 | `GOOGLE_API_KEY` | unset | Key of the Gemini models in `models/google-gemini.yaml`. |
 | `LITELLM_PORT` | `4000` | Host port of the LiteLLM proxy. |
+| `LITELLM_BIND` | `127.0.0.1` | Host address that the LiteLLM proxy's port is published on. The proxy holds the master key and the provider keys, so it listens on loopback only; set `0.0.0.0` to reach it from other machines, and only on a network you trust. |
 | `COMPOSE_PROJECT_NAME` | `ssebench` | Compose project of the proxy stack. Its containers, networks (`<project>_default`, and the internal `<project>_agents` that run containers join by default) and database volume (`<project>_postgres_data`) carry this name, so stacks with different names and ports run side by side. |
 | `SSEBENCH_REGISTRY` | `ghcr.io/42-b3yond-6ug/ssebench` | Registry prefix of every image SSEBench builds or pulls, and of the image names that the catalog service returns. |
 | `SSEBENCH_CATALOG` | the bundled pilot manifest | [Task catalog](/reference/cli#task-catalog) that `ssebench run`, `ssebench tasks list` and the web UI get tasks from: the path or URL of a `manifest.json`, a dataset directory, or the URL of a catalog service. `--catalog` overrides it. |

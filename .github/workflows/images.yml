@@ -50,6 +50,11 @@ jobs:
           # paths-filter diffs a push against its "before" commit; without the
           # history it would fetch it, which needs the credentials dropped above.
           fetch-depth: 0
+      - uses: ./.github/actions/setup-python
+      - name: Hash the LiteLLM configuration
+        id: litellm
+        # `ssebench` rebuilds the proxy image unless its label carries this hash.
+        run: echo "config=$(uv run --locked python -c 'from ssebench import stack; print(stack.config_hash())')" >> "$GITHUB_OUTPUT"
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
         # Only pull requests and pushes to a private main build a subset.
@@ -101,6 +106,7 @@ jobs:
           PRIVATE: ${{ github.event.repository.private }}
           CHANGES: ${{ steps.filter.outputs.changes || '[]' }}
           DISPATCH_PLATFORMS: ${{ inputs.platforms }}
+          PROXY_CONFIG_HASH: ${{ steps.litellm.outputs.config }}
           REPOSITORY: ${{ github.repository }}
           IMAGES: |
             [
@@ -142,8 +148,9 @@ jobs:
             names=$CHANGES platforms=linux/amd64
           fi
 
-          matrix=$(jq -c --arg names "$names" --arg platforms "$platforms" '
-            map(select($names == "all" or (.name as $n | $names | fromjson | index($n))) | .platforms = $platforms)
+          matrix=$(jq -c --arg names "$names" --arg platforms "$platforms" --arg litellm "$PROXY_CONFIG_HASH" '
+            map(select($names == "all" or (.name as $n | $names | fromjson | index($n))) | .platforms = $platforms
+              | if .name == "litellm" then .labels = "ssebench.litellm-config=" + $litellm else . end)
           ' <<< "$IMAGES")
 
           {
@@ -179,6 +186,7 @@ jobs:
           file: ${{ matrix.image.file }}
           platforms: ${{ matrix.image.platforms }}
           description: ${{ matrix.image.description }}
+          labels: ${{ matrix.image.labels }}
           registry: ${{ needs.plan.outputs.registry }}
           version: ${{ needs.plan.outputs.version }}
 
@@ -215,6 +223,7 @@ jobs:
           file: ${{ matrix.image.file }}
           platforms: ${{ matrix.image.platforms }}
           description: ${{ matrix.image.description }}
+          labels: ${{ matrix.image.labels }}
           registry: ${{ needs.plan.outputs.registry }}
           version: ${{ needs.plan.outputs.version }}
           push: "true"

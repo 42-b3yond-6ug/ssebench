@@ -182,3 +182,23 @@ def test_compose_layers_overlays_over_the_base_file(home: Path, monkeypatch: pyt
     ]
     assert [plain[i + 1] for i, arg in enumerate(plain) if arg == "--file"] == [str(paths.compose_file())]
     assert layered[-2:] == ["up", "--detach"]
+
+
+def test_compose_publishes_the_proxy_on_loopback_unless_told_otherwise() -> None:
+    service = yaml.safe_load(paths.compose_file().read_text())["services"]["litellm"]
+
+    assert service["ports"] == ["${LITELLM_BIND:-127.0.0.1}:${LITELLM_PORT:-4000}:4000"]
+
+
+def test_compose_healthcheck_uses_a_tool_the_image_has() -> None:
+    check = yaml.safe_load(paths.compose_file().read_text())["services"]["litellm"]["healthcheck"]["test"]
+
+    assert check[:2] == ["CMD", "python3"]
+    assert "wget" not in " ".join(check) and "curl" not in " ".join(check)
+    assert "/health/liveliness" in check[-1]
+
+
+def test_the_published_proxy_image_carries_the_config_label() -> None:
+    workflow = (paths.home() / ".github" / "workflows" / "images.yml").read_text()
+
+    assert f'.labels = "{stack.CONFIG_LABEL}=" + $litellm' in workflow
