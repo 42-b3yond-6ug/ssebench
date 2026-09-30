@@ -137,6 +137,15 @@ class Catalog:
         """The name that a task's case image has in the local Docker store: its published name and the dataset version."""
         return f"{REGISTRY}/{entry.image}:{self.manifest.version}"
 
+    def image_ref(self, entry: ManifestTask) -> str:
+        """The reference to pull a task's case image by: its digest when the images lock pins one, else its tag.
+
+        Raises:
+            CatalogError: If the images lock cannot be read or is not valid.
+        """
+        digest = self.locked_digest(entry)
+        return self.case_image(entry) if digest is None else f"{REGISTRY}/{entry.image}@{digest}"
+
     @cached_property
     def images_lock(self) -> ImagesLock | None:
         """The lock that pins this dataset version's published images, if there is one.
@@ -236,7 +245,7 @@ class CatalogTask(Task):
             CatalogError: If the image can be neither pulled nor built from a local task folder.
             subprocess.CalledProcessError: If the local build fails.
         """
-        source = self.docker_image_name if self.digest is None else f"{REGISTRY}/{self.entry.image}@{self.digest}"
+        source = self.docker_image_name if self.digest is None else self.catalog.image_ref(self.entry)
         if not self.build_locally:
             logger.info(f"Pulling case image {source}...")
             if subprocess.run(["docker", "pull", source]).returncode == 0:

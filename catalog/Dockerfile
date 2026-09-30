@@ -17,7 +17,9 @@ FROM alpine:3.22
 
 ARG DATASET=pilot
 COPY --from=build /out/ssebench-catalog /usr/local/bin/
-COPY datasets/${DATASET}/manifest.json /srv/manifest.json
+# The images lock is optional: a dataset without published images has none. The
+# service reads it from next to the manifest.
+COPY datasets/${DATASET}/manifest.json datasets/${DATASET}/images.lock.jso[n] /srv/
 
 ENV SSEBENCH_MANIFEST=/srv/manifest.json \
     SSEBENCH_CATALOG_PORT=8080

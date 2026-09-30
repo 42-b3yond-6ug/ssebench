@@ -167,7 +167,7 @@ ssebench tasks list [-h] [--catalog PATH|URL | --local DIR] [--json]
 |---|---|---|
 | `--catalog PATH\|URL` | `$SSEBENCH_CATALOG`, else the bundled pilot manifest | Task catalog: a `manifest.json` path or URL, a dataset directory, or the URL of a catalog service |
 | `--local DIR` |  | Dataset directory: list its task folders instead |
-| `--json` | off | Print a JSON array of the tasks without files and metadata, with image names prefixed by the registry |
+| `--json` | off | Print a JSON array of the tasks without files and metadata, with image names prefixed by the registry and the case image tagged with the dataset version, or named by its digest when the images lock pins it |
 
 <!-- end generated -->
 
@@ -346,8 +346,8 @@ It publishes the image that `ssebench dataset verify` graded and no other: a
 task with no result, a task that did not pass, and an image that was rebuilt
 after the verification are refused. Log in to the registry first. The
 [Dataset](https://github.com/42-b3yond-6ug/ssebench/blob/main/.github/workflows/dataset.yml)
-workflow runs it for every task that passes, on a release tag, on the weekly
-run and on a manual run that asks for it, and never from a private repository.
+workflow runs it for every task that passes, on a release tag and on a manual
+run that asks for it, and never from a private repository.
 
 ```sh
 uv run ssebench dataset verify gjson-196-bf4efcb

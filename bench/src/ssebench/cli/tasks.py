@@ -8,8 +8,8 @@ from typing import Any
 
 from ssebench.dataset.generate import InvalidDatasetError, build_manifest
 from ssebench.pipe import REGISTRY
-from ssebench.tasks import CatalogError, load_catalog
-from ssebench.tasks.catalog import CATALOG_ENV
+from ssebench.tasks import Catalog, CatalogError, load_catalog
+from ssebench.tasks.catalog import CATALOG_ENV, MANIFEST
 from ssebench.tasks.manifest import ManifestTask
 
 CATALOG_HELP = (
@@ -29,22 +29,28 @@ def add_parser(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]"
     _ = listing.add_argument(
         "--json",
         action="store_true",
-        help="Print a JSON array of the tasks without files and metadata, with image names prefixed by the registry",
+        help="Print a JSON array of the tasks without files and metadata, with image names prefixed by the registry "
+        "and the case image tagged with the dataset version, or named by its digest when the images lock pins it",
     )
     listing.set_defaults(handler=cmd_list)
 
 
-def summary(task: ManifestTask) -> dict[str, Any]:
-    """A task as the catalog service's GET /tasks returns it."""
+def summary(task: ManifestTask, image: str) -> dict[str, Any]:
+    """A task as the catalog service's GET /tasks returns it; `image` is the reference of its case image."""
     data = task.model_dump(mode="json", exclude={"files", "metadata"})
     data["base"] = f"{REGISTRY}/{task.base}"
-    data["image"] = f"{REGISTRY}/{task.image}"
+    data["image"] = image
     return data
 
 
 def cmd_list(args: argparse.Namespace) -> int:
     try:
-        manifest = build_manifest(Path(args.local)) if args.local else load_catalog(args.catalog).manifest
+        if args.local:
+            catalog = Catalog(str(Path(args.local) / MANIFEST), build_manifest(Path(args.local)))
+        else:
+            catalog = load_catalog(args.catalog)
+        manifest = catalog.manifest
+        images = {t.id: catalog.image_ref(t) for t in manifest.tasks}
     except InvalidDatasetError as e:
         print(e.report.format_errors(), file=sys.stderr)
         print(f"{args.local}: not a valid dataset", file=sys.stderr)
@@ -54,7 +60,7 @@ def cmd_list(args: argparse.Namespace) -> int:
         return 1
 
     if args.json:
-        print(json.dumps([summary(t) for t in manifest.tasks], indent=2, ensure_ascii=False))
+        print(json.dumps([summary(t, images[t.id]) for t in manifest.tasks], indent=2, ensure_ascii=False))
         return 0
     rows = [("ID", "LANGUAGE", "PROJECT")] + [(t.id, t.language, t.project) for t in manifest.tasks]
     widths = [max(len(row[i]) for row in rows) for i in range(2)]

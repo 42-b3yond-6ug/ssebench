@@ -19,20 +19,21 @@ type server struct {
 }
 
 // New returns the HTTP API for a manifest. Task entries carry image names
-// prefixed by registry:
+// prefixed by registry, and the case image is tagged with the dataset version,
+// or named by digest when lock, which may be nil, pins the task:
 //
 //	GET /tasks                 all tasks without files and metadata, sorted by id
 //	GET /tasks/{id}            one task
 //	GET /tasks/{id}/metadata   the task's config.yaml as JSON
-//	GET /manifest.json         the manifest as loaded, with image names relative to the registry
-func New(m catalog.Manifest, registry string) http.Handler {
+//	GET /manifest.json         the manifest as loaded, with image names relative to the registry and without a tag
+func New(m catalog.Manifest, registry string, lock *catalog.Lock) http.Handler {
 	s := &server{
 		manifest:  m,
 		summaries: make([]catalog.Task, 0, len(m.Tasks)),
 		byID:      make(map[string]catalog.Task, len(m.Tasks)),
 	}
 	for _, t := range m.Tasks {
-		t = t.Resolve(registry)
+		t = m.Resolve(t, registry, lock)
 		s.summaries = append(s.summaries, t.Summary())
 		s.byID[t.ID] = t
 	}
