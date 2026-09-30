@@ -118,8 +118,9 @@ it works. Final grading always runs every check the task has.
 
 You need Docker with the buildx and Compose plugins, and
 [uv](https://docs.astral.sh/uv/); [just](https://just.systems/) if you work
-from a clone. An x86-64 Linux host is recommended, and images take tens of GB;
-see [Installation](docs/getting-started/installation.md).
+from a clone. An x86-64 Linux host is recommended: the pilot tasks are
+amd64-only, so an arm64 host runs them under emulation, which is slow. Images
+take tens of GB. See [Installation](docs/getting-started/installation.md).
 
 **See it work, with no API key**
 

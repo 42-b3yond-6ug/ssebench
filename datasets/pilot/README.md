@@ -172,9 +172,14 @@ the tasks a pull request changes, and every task weekly. See
 
 ## Known limitations
 
-- **amd64 only.** The manifest lists `amd64` for every task. The tool layers
-  target amd64, and many C tasks build with AddressSanitizer for x86-64. The
-  dataset was verified only on x86-64 Linux hosts.
+- **amd64 only.** The manifest lists `amd64` for every task, and many C tasks
+  build with AddressSanitizer for x86-64. The tool and agent layers also build
+  for arm64, but a task's layers share its case image's architecture, so on an
+  arm64 host a run builds and runs everything as `linux/amd64` under emulation.
+  That is slow, AddressSanitizer may misbehave under QEMU, and `ssebench doctor`
+  and `ssebench run` warn about it. The dataset was verified only on x86-64
+  Linux hosts. See
+  [Architectures](../../docs/getting-started/installation.md#architectures).
 - **Builds need the network; grading does not.** A case image build clones the
   upstream project at a pinned commit and fetches packages, Go modules, crates
   and toolchains, so it depends on those hosts being reachable. A build that

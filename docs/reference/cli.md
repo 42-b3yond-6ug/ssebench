@@ -119,6 +119,12 @@ In order, `run`:
 5. writes the grade, the run settings and the model spend to `results/`, and
    adds the run settings to the run's `result.json` as `config`.
 
+Every image and container of a run uses the platform of the task's case image:
+the host's architecture if the task's manifest `arch` lists it, otherwise the
+first architecture listed. When that is not the host's, as for a `pilot` task
+on an arm64 host, `run` warns once, before it starts anything, that the task
+runs under emulation. See [Architectures](/getting-started/installation#architectures).
+
 ### Reference runs
 
 `--agent reference` runs the [`reference` agent](https://github.com/42-b3yond-6ug/ssebench/tree/main/agents/reference),
@@ -227,7 +233,10 @@ lists the size of every image.
 
 ## `ssebench build-case`
 
-Builds the case images of a dataset without running anything.
+Builds the case images of a dataset without running anything. Each image is
+built for the platform that a run of its task uses, and the command warns once
+when that is emulated; see
+[Architectures](/getting-started/installation#architectures).
 
 ```sh
 uv run ssebench build-case --benchmarks datasets/pilot --tasks gjson-196-bf4efcb
@@ -571,7 +580,8 @@ ssebench doctor [-h] [--json]
 <!-- end generated -->
 
 It checks Docker, buildx and Compose, the free disk space where Docker keeps
-its images, the CPU architecture (many pilot tasks build amd64-only images),
+its images, the CPU architecture (a warning on a host that is not amd64, where
+every pilot task runs under emulation),
 `.env` and the proxy secrets in it, whether the LiteLLM proxy answers on its
 port, and which provider keys that `models/*.yaml` refers to are set. It exits
 with status 1 when a required check fails; warnings do not change the exit

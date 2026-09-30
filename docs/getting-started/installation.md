@@ -35,7 +35,7 @@ one downloads packages.
 **Platform.** SSEBench is developed and tested on Linux. An x86-64 host is
 recommended: every pilot task builds an amd64 image, and many C tasks compile
 with AddressSanitizer for x86-64 only. On another architecture Docker must run
-them under emulation; see [CPU architecture](/getting-started/troubleshooting#cpu-architecture).
+them under emulation; see [Architectures](#architectures).
 [The demo](/getting-started/demo) needs a Linux Docker engine.
 
 **Disk space.** Images are large, and they live where Docker keeps its data
@@ -200,6 +200,52 @@ from the registry, and the layers on top of them are built on your machine.
 directory, which is your workspace: run `ssebench` from there. See
 [Without a clone](/reference/cli#without-a-clone) for what the package carries and
 what it pulls.
+
+## Architectures
+
+SSEBench's own images (`runtime`, `litellm`, `catalog` and `webui`) and its
+tool and agent layers build for `linux/amd64` and `linux/arm64`, and the
+published images cover both. The case images do not: a task lists the
+platforms it supports in the `arch` field of its
+[manifest](/dataset/manifest#manifest), and every `pilot` task is
+`amd64` only, because many C tasks build with AddressSanitizer for x86-64.
+
+| Host | `pilot` tasks |
+|---|---|
+| x86-64 (amd64) | Run natively. This is the recommended host. |
+| arm64 (Apple silicon, AWS Graviton and similar) | Run under amd64 emulation. |
+
+A run uses one platform, chosen from the task: the host's own architecture if
+the task's `arch` lists it, otherwise the first architecture that it lists.
+The tool layer is added on top of the case image, and the agent on top of the
+tool layer, so all of them must have the case image's architecture.
+`ssebench run` therefore builds the case, tool and agent images with
+`--platform` and starts the container with it. On an arm64 host with an
+amd64-only task, that puts the whole task container under emulation: the
+project build, its tests, the grader and the agent. The LiteLLM proxy and the
+web UI keep running natively.
+
+Emulation is slow, and AddressSanitizer may misbehave under QEMU, so a task
+that passes on an x86-64 host can fail or time out on an arm64 one.
+`ssebench doctor` warns when the host is not amd64, and `ssebench run` prints
+the same warning once at the start of a run.
+
+Docker needs an amd64 emulator on such a host. Docker Desktop includes one.
+On Linux, install QEMU's handlers once, or use your distribution's
+`qemu-user-static` package:
+
+```sh
+docker run --privileged --rm tonistiigi/binfmt --install amd64
+docker run --rm --platform linux/amd64 alpine uname -m   # prints x86_64
+```
+
+The base images are pulled for the platform of the run. If you build them from
+your checkout instead, build the amd64 variant, because the case images build
+on it:
+
+```sh
+make -C images/base-images all BUILD_FLAGS="--platform linux/amd64"
+```
 
 ## Next steps
 

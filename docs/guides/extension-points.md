@@ -81,7 +81,7 @@ from ssebench.extensions import ToolLayer, ToolLayerContext
 
 - `ssebench run` constructs the layer as `Layer(context)`. The base class
   stores the context as `self.context`.
-- `ToolLayerContext` has three fields:
+- `ToolLayerContext` has these fields:
   - `task_name`: the task ID, for example `gjson-196-bf4efcb`;
   - `source_dir`: the absolute path of the project source in the case image;
   - `build_root`: the SSEBench home, which holds `images/`, `runtime/` and
@@ -90,7 +90,11 @@ from ssebench.extensions import ToolLayer, ToolLayerContext
     carries. That copy has no sources of the daemon and the entrypoint, which
     the built-in layers take from the published `runtime` image instead; a
     layer that builds on `SandboxToolLayer`, as the example below does,
-    needs no change.
+    needs no change;
+  - `platform`: the `linux/<arch>` platform that the run builds and runs
+    every image for, that of the case image, or `None` for the Docker host's
+    own. Pass it as `--platform` to your `docker buildx build`, so that your
+    layer has the architecture of the image below it.
 - `docker_image(base)` gets the name of the case image, builds the tool image
   on top of it and returns the tool image's name. The agent image is then built
   from that image. The tool image must meet the
@@ -120,8 +124,9 @@ class ExampleToolLayer(ToolLayer):
     def docker_image(self, base: str | None) -> str:
         runtime = SandboxToolLayer(self.context).docker_image(base)
         image = f"{REGISTRY}/tool-example/{self.context.task_name.lower()}:{TAG}"
+        platform = ["--platform", self.context.platform] if self.context.platform else []
         subprocess.run(
-            ["docker", "buildx", "build",
+            ["docker", "buildx", "build", *platform,
              "--build-context", f"runtime=docker-image://{runtime}",
              "-t", image, "--load", "-"],
             input=DOCKERFILE, text=True, check=True,

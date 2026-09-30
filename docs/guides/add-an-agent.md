@@ -335,6 +335,12 @@ folder as the build context, and passes two named build contexts:
 | `ssebench-agent` | The tool image of the run | Start with `FROM ssebench-agent`. It is not an image name; the CLI resolves it. |
 | `workspace` | The SSEBench home, the repository root | Copy the SDK and the lockfile in with `COPY --from=workspace`. |
 
+The build passes `--platform linux/<arch>`, the platform of the tool image, so
+`ARG TARGETARCH` in the Dockerfile is `amd64` or `arm64`. An agent that
+downloads a binary picks the download by `TARGETARCH` and checks a SHA-256 sum
+for each architecture, as the `claude-code` agent does; an agent that installs
+from a package manager needs no change.
+
 The tool image is the case image plus the SSEBench runtime. So, in sandbox
 mode, an agent starts from:
 
