@@ -6,7 +6,10 @@ outside names. The network's only other member is `stub_llm.py`, reachable as
 `litellm:4000`, where the LiteLLM proxy would be; it answers every model call with
 "I'm done.". A test passes when the agent container exits with status 0, the agent
 made at least one model call (except `dummy`, which makes none), its wrapper
-reports a clean finish, and the evaluator wrote a grade.
+reports a clean finish, the evaluator wrote a grade, and no container on the
+network tried to resolve a name outside it. A tool that only logs a failed update
+check or download would pass the other checks, so a packet capture inside each
+container's network namespace looks for lookups that fail.
 
 Sandbox mode covers every agent; sidecar mode every agent that supports it
 (OpenCode does not).
@@ -25,6 +28,7 @@ import json
 import logging
 import shutil
 import subprocess
+import threading
 import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
@@ -35,6 +39,7 @@ import pytest
 TASK = "gjson-196-bf4efcb"
 STUB = Path(__file__).with_name("stub_llm.py")
 STUB_IMAGE = "python:3.12-alpine"
+CAPTURE_IMAGE = "ssebench-offline-tcpdump"
 # Long enough for any agent to start; a wrapper that waits on the internet times out.
 AGENT_TIMEOUT = 300
 
@@ -106,12 +111,80 @@ def docker(*args: str) -> str:
     return subprocess.run(["docker", *args], check=True, capture_output=True, text=True).stdout
 
 
+@dataclass(frozen=True)
+class OfflineNetwork:
+    name: str
+    model_requests: Callable[[], list[dict[str, object]]]
+    failed_lookups: Callable[[], list[str]]
+    """The DNS captures that show a failed lookup, from every container but the stub."""
+
+
+def watch_dns(network: str, stop: threading.Event, captures: list[str]) -> None:
+    """Capture the DNS traffic of every container that joins the network, until stopped.
+
+    A capture shares the container's network namespace, so it sees the lookups
+    the embedded resolver answers. It attaches within a fraction of a second of the
+    container starting, which is before an agent starts.
+    """
+    seen: set[str] = set()
+    while not stop.wait(0.1):
+        rows = subprocess.run(
+            ["docker", "ps", "--filter", f"network={network}", "--format", "{{.ID}} {{.Names}}"],
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        for row in rows:
+            container, name = row.split(maxsplit=1)
+            if container in seen or name.startswith(network):
+                continue
+            seen.add(container)
+            capture = f"{network}-capture-{container[:12]}"
+            started = subprocess.run(
+                [
+                    "docker",
+                    "run",
+                    "--detach",
+                    "--name",
+                    capture,
+                    "--network",
+                    f"container:{container}",
+                    "--cap-add",
+                    "NET_RAW",
+                    CAPTURE_IMAGE,
+                    "tcpdump",
+                    "-l",
+                    "-n",
+                    "-A",
+                    "-i",
+                    "any",
+                    "udp",
+                ],
+                capture_output=True,
+            )
+            if started.returncode == 0:
+                captures.append(capture)
+
+
+@pytest.fixture(scope="session")
+def capture_image() -> None:
+    _ = subprocess.run(
+        ["docker", "build", "--quiet", "--tag", CAPTURE_IMAGE, "-"],
+        input="FROM alpine:3.22\nRUN apk add --no-cache tcpdump\n",
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 @pytest.fixture
-def offline_network() -> Iterator[tuple[str, Callable[[], list[dict[str, object]]]]]:
-    """An internal network with the stub proxy on it, and a function that returns its requests."""
+def offline_network(capture_image: None) -> Iterator[OfflineNetwork]:
+    """An internal network with the stub proxy on it, and what happened on it."""
     name = f"ssebench-offline-{uuid.uuid4().hex[:8]}"
     _ = docker("network", "create", "--internal", name)
     stub = f"{name}-stub"
+    captures: list[str] = []
+    stop = threading.Event()
+    watcher = threading.Thread(target=watch_dns, args=(name, stop, captures))
     try:
         _ = docker(
             "run",
@@ -130,14 +203,29 @@ def offline_network() -> Iterator[tuple[str, Callable[[], list[dict[str, object]
             "/stub_llm.py",
             "4000",
         )
+        watcher.start()
 
         def requests() -> list[dict[str, object]]:
             logs = docker("logs", stub)
             return [r for r in map(json.loads, logs.splitlines()) if "method" in r]
 
-        yield name, requests
+        def failed_lookups() -> list[str]:
+            stop.set()
+            watcher.join()
+            failed: list[str] = []
+            for capture in captures:
+                log = subprocess.run(["docker", "logs", capture], capture_output=True, text=True).stdout
+                if any(word in log for word in ("ServFail", "NXDomain", "Refused")):
+                    failed.append(f"{capture}:\n{log}")
+            return failed
+
+        yield OfflineNetwork(name, requests, failed_lookups)
     finally:
-        subprocess.run(["docker", "rm", "--force", stub], capture_output=True)
+        stop.set()
+        if watcher.is_alive():
+            watcher.join()
+        for container in [stub, *captures]:
+            subprocess.run(["docker", "rm", "--force", container], capture_output=True)
         subprocess.run(["docker", "network", "rm", name], capture_output=True)
 
 
@@ -145,7 +233,7 @@ def offline_network() -> Iterator[tuple[str, Callable[[], list[dict[str, object]
 def test_agent_runs_offline(
     case: Case,
     mode: str,
-    offline_network: tuple[str, Callable[[], list[dict[str, object]]]],
+    offline_network: OfflineNetwork,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
@@ -156,7 +244,7 @@ def test_agent_runs_offline(
     from ssebench.runner.layout import run_dir
     from ssebench.tasks import LocalTask
 
-    network, model_requests = offline_network
+    network = offline_network.name
     monkeypatch.setattr(stack, "run_network", lambda egress: network)
     task = LocalTask(TASK, paths.default_dataset_dir())
     model = StubModel(case.model)
@@ -170,7 +258,7 @@ def test_agent_runs_offline(
         runner.run()
 
     run = run_dir(TASK, case.agent, case.model, runner.run_id, tmp_path / "results")
-    requests = model_requests()
+    requests = offline_network.model_requests()
     calls = [r for r in requests if r["method"] == "POST"]
     report = f"stub requests: {requests}\nagent.log:\n{(run / 'agent.log').read_text()[-3000:]}"
     print(f"{case.agent} ({mode}): model calls {[(r['method'], r['path']) for r in calls]}")
@@ -183,3 +271,5 @@ def test_agent_runs_offline(
         assert not calls, report
     grade = json.loads((run / "result.json").read_text())
     assert grade["patch_result"]["build_success"] is True, report
+    failed = offline_network.failed_lookups()
+    assert not failed, "failed DNS lookups:\n" + "\n".join(failed) + f"\n{report}"
