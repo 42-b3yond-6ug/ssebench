@@ -186,9 +186,9 @@ files, so it is bound to `127.0.0.1` and, in the demo, has no terminal. It
 runs as a container that has the Docker socket, which is root access to the
 host: run the demo on a machine you control, and see
 [Web UI security](/webui/security). The catalog listens on `127.0.0.1` as well.
-The LiteLLM proxy listens on every interface at `LITELLM_PORT`, as it does for
-`just launch`, and asks for the master key from `.env` for everything but its
-health check.
+The LiteLLM proxy listens on `127.0.0.1` at `LITELLM_PORT`, as it does for
+`just launch` (`LITELLM_BIND` sets another address), and asks for the master key
+from `.env` for everything but its health check.
 
 ## Next steps
 

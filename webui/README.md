@@ -18,12 +18,15 @@ terminal helper.
 ```bash
 cd webui
 bun install
-bun run build:pty   # optional: enables the terminal
+bun run build:pty   # optional: enables the terminal; `just webui` does this when Go is installed
 bun run prod        # build the client, serve everything on http://127.0.0.1:3001
 ```
 
 For development, `bun run dev` starts the API server and the Vite dev server
 (`http://127.0.0.1:5173`), which forwards `/api` to the API server.
+
+Without the terminal helper, `/api/health` reports `terminal: false` with a
+`terminalHint`, and the UI hides the terminal tabs and shows the hint.
 
 Tests: `bun test` for the server, `go test ./...` in `pty-proxy/`.
 
@@ -111,6 +114,13 @@ and launch parameters must name a model, agent and task the server lists.
 run container as the image's default user, and `/api/pty-debug/<id>` runs
 OpenCode's terminal UI there. Set `SSEBENCH_WEBUI_TERMINAL=0` to refuse both;
 the UI then hides the terminal tabs.
+
+**Assistant through the proxy.** For a run that has a model, the assistant uses
+that model through the run's LiteLLM proxy instead: the server makes a key for
+it with `LITELLM_MASTER_KEY` (environment, or `.env` in `SSEBENCH_PATH`) and a
+budget of 5 dollars, and starts a second OpenCode server in the container, on
+port 4098, with that key in its environment. It works on the restricted network.
+The provider key described next is used only when there is no such model.
 
 **Provider API key.** The API key entered under Settings for the AI
 assistant is stored unencrypted in the browser's `localStorage`, where any
