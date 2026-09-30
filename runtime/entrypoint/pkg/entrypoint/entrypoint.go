@@ -21,6 +21,10 @@ Another program can add modes by registering them before it calls [Main]:
 Usage:
 
 	entrypoint [--mode NAME] [--] <command> [args...]
+
+A mode can change where the entrypoint logs through [Config]. One that speaks a
+protocol over the container's stdin and stdout keeps the entrypoint's log out
+of stdout ([Config.LogTo]).
 */
 package entrypoint
 
@@ -62,7 +66,7 @@ func Run(args []string) int {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			initLogger("ssebench", os.Stdout, os.Getenv("SSE_DEBUG") != "")
+			initLogger("ssebench", os.Stdout, debugLogging())
 			status = runMode(c.String("mode"), c.Args().Slice())
 			return nil
 		},
@@ -73,6 +77,11 @@ func Run(args []string) int {
 		return 1
 	}
 	return status
+}
+
+// debugLogging reports whether SSE_DEBUG asks for debug logs.
+func debugLogging() bool {
+	return os.Getenv("SSE_DEBUG") != ""
 }
 
 // runMode sets up the runtime for the named mode, runs it, and stops the
@@ -90,6 +99,15 @@ func runMode(name string, agentCmd []string) int {
 	}
 	cfg.applyEnvOverrides()
 
+	// A mode that keeps stdout for itself must not get log lines there, not
+	// even the errors below. With LogToFile they go to stderr until the results
+	// directory exists to hold the log.
+	out := cfg.LogTo.stream()
+	if out == nil {
+		out = os.Stderr
+	}
+	initLogger("ssebench", out, debugLogging())
+
 	if cfg.ArchivePath == "" {
 		logger.Error("SSE_ARCHIVE environment variable is required")
 		return 1
@@ -101,16 +119,19 @@ func runMode(name string, agentCmd []string) int {
 
 	rt := newRuntime(cfg, agentCmd)
 	rt.setupSignalHandler()
-	defer rt.sm.cleanup()
-	// Registered after cleanup, so it runs before it (defers are LIFO): a
-	// plugin that talks to the daemon still has it while it finishes.
-	defer rt.finishPlugins()
 
 	if err := rt.setupArchive(); err != nil {
 		logger.Error("Failed to setup archive", "err", err)
 		return 1
 	}
 	rt.initLogFiles()
+	// Registered first, so it runs last: cleanup still logs to the file.
+	defer rt.logToFile()()
+
+	defer rt.sm.cleanup()
+	// Registered after cleanup, so it runs before it (defers are LIFO): a
+	// plugin that talks to the daemon still has it while it finishes.
+	defer rt.finishPlugins()
 
 	if err := rt.loadPlugins(); err != nil {
 		logger.Error("Invalid plugin configuration", "err", err)

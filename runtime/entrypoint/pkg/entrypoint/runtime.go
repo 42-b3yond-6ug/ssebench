@@ -115,7 +115,8 @@ func (rt *Runtime) AgentCommand() []string {
 	return append([]string(nil), rt.agentCmd...)
 }
 
-// Logger returns the entrypoint's logger, which writes logfmt to stdout.
+// Logger returns the entrypoint's logger, which writes logfmt to
+// [Config.LogTo]: stdout unless the mode chose otherwise.
 func (rt *Runtime) Logger() *slog.Logger {
 	return logger
 }
@@ -210,6 +211,25 @@ func (rt *Runtime) initLogFiles() {
 		}
 		f.Close()
 		logger.Debug("Initialized log file", "path", path)
+	}
+}
+
+// logToFile moves the entrypoint's log to entrypoint.log in the results
+// directory when the mode chose [LogToFile]. The returned function closes the
+// file and puts the log back on stderr; without [LogToFile], it does nothing.
+func (rt *Runtime) logToFile() func() {
+	if rt.cfg.LogTo != LogToFile {
+		return func() {}
+	}
+	f, _, err := openLog(rt.LogPath("entrypoint"))
+	if err != nil {
+		logger.Warn("Failed to open the entrypoint log, logging to stderr", "err", err)
+		return func() {}
+	}
+	initLogger("ssebench", f, debugLogging())
+	return func() {
+		initLogger("ssebench", os.Stderr, debugLogging())
+		f.Close()
 	}
 }
 

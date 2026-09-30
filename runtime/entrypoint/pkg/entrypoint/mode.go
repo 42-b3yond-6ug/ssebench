@@ -11,8 +11,9 @@ import (
 // mode that --mode names.
 //
 // Before Run, the entrypoint has installed the signal handler, made the
-// results directory root-only, created the archive directory if it was missing
-// and given it to the agent's user, and created the log files. After Run returns, it stops every service
+// results directory root-only, created the archive directory if it was
+// missing and given it to the agent's user, created the log files and pointed
+// its own log at [Config.LogTo]. After Run returns, it stops every service
 // the mode started and exits with Run's status. A mode runs the agent with
 // [Runtime.RunAgent] and grades with [Runtime.Evaluate]; both end the agent
 // phase, which stops what the agent left running before grading starts.
