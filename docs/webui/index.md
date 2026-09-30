@@ -60,6 +60,10 @@ same environment variables (see `webui/README.md`). Access to the socket is root
 access to the host, so run it only on a machine you control. To show runs
 read-only, add `-e SSEBENCH_WEBUI_HOSTED=1`; see [Hosted mode](#hosted-mode).
 
+On Docker Desktop, `--network host` is the virtual machine's network and works
+only with **Enable host networking** turned on (4.34 or later); it is untested.
+See [macOS and Docker Desktop](/getting-started/installation#macos-and-docker-desktop).
+
 `just demo` starts this image, with the catalog and the LiteLLM proxy, and opens
 a finished run in it; see [Try the demo](/getting-started/demo).
 

@@ -7,7 +7,11 @@ outline: deep
 This page gets you from nothing to a graded run. Every path runs the pilot task
 `gjson-196-bf4efcb`, a Go task that builds in seconds, and every path assumes
 Docker and [uv](https://docs.astral.sh/uv/) are installed; see
-[Installation](/getting-started/installation).
+[Installation](/getting-started/installation). The paths are tested on Linux;
+on macOS with Docker Desktop, read
+[macOS and Docker Desktop](/getting-started/installation#macos-and-docker-desktop)
+first, because it is untested and needs settings (amd64 emulation, resources,
+and host networking for the demo's web UI).
 
 | You want to | You need | Go to |
 |---|---|---|
