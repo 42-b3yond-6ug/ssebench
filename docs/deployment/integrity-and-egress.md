@@ -73,8 +73,13 @@ told not to reach for the internet:
 | Agent | Setting | What it turns off |
 |---|---|---|
 | `claude-code` | `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`, `CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL=1` | update checks, telemetry, error reports, release notes, plugin marketplace installs |
-| `codex` | `check_for_update_on_startup = false`, `analytics.enabled = false`, `otel.metrics_exporter = "none"` in `~/.codex/config.toml` | update checks, analytics, usage metrics |
-| `opencode` | `OPENCODE_DISABLE_AUTOUPDATE`, `OPENCODE_DISABLE_MODELS_FETCH`, `OPENCODE_DISABLE_DEFAULT_PLUGINS`, `OPENCODE_DISABLE_LSP_DOWNLOAD` | update checks, the models.dev catalogue, default plugin installs, language server downloads |
+| `codex` | `check_for_update_on_startup = false`, `analytics.enabled = false`, `otel.metrics_exporter = "none"`, `features.plugins = false` in `~/.codex/config.toml` | update checks, analytics, usage metrics, the plugin catalogue sync |
+| `opencode` | `OPENCODE_DISABLE_AUTOUPDATE`, `OPENCODE_DISABLE_MODELS_FETCH`, `OPENCODE_DISABLE_DEFAULT_PLUGINS`, `OPENCODE_DISABLE_LSP_DOWNLOAD`, set for the agent's server and for the one the entrypoint starts | update checks, the models.dev catalogue, default plugin installs, language server downloads |
+
+The tools' own downloads happen when the images are built: Claude Code and
+OpenCode are fetched by version and checked against a SHA-256, Codex is
+installed from npm by version, and the OpenCode image also carries the plugin
+SDK that OpenCode would otherwise install from npm on its first request.
 
 `tests/agents` checks it: it runs every agent, in each mode it supports, on an
 internal network whose only other member is a stub of the proxy that answers
