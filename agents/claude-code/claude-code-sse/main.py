@@ -406,6 +406,13 @@ async def main():
     """
     claude_executable = os.environ["CLAUDE"]
 
+    # Claude Code opens a connection to its API when it starts, `mcp add`
+    # included; with no base URL that is api.anthropic.com, which the run
+    # container cannot reach.
+    mcp_env = os.environ.copy()
+    if "SSE_BASE_URL" in mcp_env:
+        mcp_env["ANTHROPIC_BASE_URL"] = mcp_env["SSE_BASE_URL"]
+
     # Register the MCP server with Claude Code
     _ = subprocess.run(
         [
@@ -418,7 +425,8 @@ async def main():
             "http",
             "--scope",
             "user",
-        ]
+        ],
+        env=mcp_env,
     )
 
     # Initialize dialog writer
