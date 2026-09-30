@@ -11,7 +11,7 @@ import pytest
 
 from ssebench.agents import Agent
 from ssebench.models import NoModel
-from ssebench.runner import BenchmarkSandboxRunner
+from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
 from ssebench.runner.runner import stopped_after_grading
 from ssebench.tasks import LocalTask
 
@@ -125,3 +125,26 @@ def test_stopped_after_grading(status: int, keep_container: bool, grade: str, ex
     _ = result.write_text(grade)
 
     assert stopped_after_grading(status, keep_container, result) is expected
+
+
+def test_a_failed_sidecar_run_does_not_log_the_proxy_key(
+    task: LocalTask, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    model = NoModel()
+    model.api_key = "sk-run-secret"
+
+    def fake(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if "SSE_API_KEY=sk-run-secret" in cmd:  # the agent container, the only one that holds the key
+            raise subprocess.CalledProcessError(1, cmd)
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake)
+    monkeypatch.chdir(tmp_path)
+    runner = BenchmarkSidecarRunner(model, Agent("dummy", task_name=task.name), task, 60, 2, run_id="r1")
+    runner.sidecar_agentrt_image, runner.sidecar_environ_image = "registry.test/agent", "registry.test/env"
+
+    runner.run()
+
+    [message, *_] = errors(caplog)
+    assert message == "Sidecar run failed: `docker run` exited with status 1"
+    assert "sk-run-secret" not in caplog.text
