@@ -78,7 +78,6 @@ updates:
       - /catalog
       - /images/litellm
       - /images/runtime
-      - /images/sandbox
       - /images/sidecar-agent
       - /images/sidecar-case
       - /webui
@@ -91,6 +90,23 @@ updates:
     ignore:
       # The rust image tags follow rust-toolchain.toml and move with it.
       - dependency-name: rust
+    groups:
+      docker:
+        patterns: ["*"]
+
+  # The sandbox's Python venvs are copied into case images built on the base
+  # images, so their build stage stays on the base images' Ubuntu release.
+  - package-ecosystem: docker
+    directory: /images/sandbox
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    ignore:
+      - dependency-name: rust
+      - dependency-name: ubuntu
     groups:
       docker:
         patterns: ["*"]
