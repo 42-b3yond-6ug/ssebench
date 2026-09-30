@@ -185,7 +185,9 @@ GOOGLE_API_KEY=...
 ```
 
 Leave the others empty. The `dummy` and `reference` agents make no model calls
-and need no key.
+and need no key. To reach these models through a router or gateway instead of
+the provider's own API, see
+[A compatible endpoint for the bundled providers](/guides/add-a-model#a-compatible-endpoint-for-the-bundled-providers).
 
 ::: warning
 Never commit `.env`. It is listed in `.gitignore`.
