@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -30,6 +31,10 @@ type Runtime struct {
 	archiveOwner *[2]int
 
 	endPhase sync.Once
+
+	// keptAlive is set once the run is graded and the container waits to be
+	// stopped, so a stop signal is the expected end of the run.
+	keptAlive atomic.Bool
 }
 
 // AgentResult describes how the agent run ended.
@@ -528,6 +533,7 @@ func (rt *Runtime) KeepAlive() {
 	if !rt.cfg.KeepAlive {
 		return
 	}
+	rt.keptAlive.Store(true)
 	logger.Info("Keep-alive mode: container will remain running for WebUI inspection")
 	logger.Info("SDK daemon, MCP server, and OpenCode server remain accessible")
 	logger.Info("Container will stop when 'docker stop' is called")
@@ -537,14 +543,29 @@ func (rt *Runtime) KeepAlive() {
 }
 
 // setupSignalHandler installs a SIGINT/SIGTERM handler that triggers cleanup
-// and exits with status 1.
+// and exits; see [Runtime.stopOn] for the exit status.
 func (rt *Runtime) setupSignalHandler() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
-		sig := <-sigCh
-		logger.Warn("Received signal, initiating cleanup...", "signal", sig)
-		rt.sm.cleanup()
-		os.Exit(1)
+		os.Exit(rt.stopOn(<-sigCh))
 	}()
+}
+
+// stopOn cleans up after a stop signal and returns the exit status.
+//
+// A run that is graded and kept alive is meant to end this way, so it exits 0,
+// and skips the wait after stopping the services: `docker stop` sends SIGKILL
+// after ten seconds, which would turn the status into 137. A signal before
+// that interrupts the run and exits 1.
+func (rt *Runtime) stopOn(sig os.Signal) int {
+	if rt.keptAlive.Load() {
+		logger.Info("Stopped after grading", "signal", sig)
+		rt.sm.cfg.CleanupWait = 0
+		rt.sm.cleanup()
+		return 0
+	}
+	logger.Warn("Received signal, initiating cleanup...", "signal", sig)
+	rt.sm.cleanup()
+	return 1
 }

@@ -44,10 +44,9 @@ uv run ssebench run --local datasets/pilot --task gjson-196-bf4efcb \
     --agent reference --keep-container
 ```
 
-When you stop the container, the CLI may log `Agent container stopped with a
-non-zero exit ... exit status 137` before it writes the summary as usual. That is
-the exit status of a container that was stopped, and does not mean the run
-failed.
+Stop the container with `docker stop`. The CLI takes that as the normal end of
+the run and writes the summary; it logs an error only when the container ends
+some other way, or is stopped before the grade was written.
 
 ## Layout
 

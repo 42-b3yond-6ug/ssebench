@@ -429,3 +429,6 @@ def main(argv: Sequence[str] | None = None):
     except (paths.HomeNotFoundError, settings.SettingError, UserError) as e:
         logger.error(e)
         sys.exit(1)
+    except KeyboardInterrupt:
+        logger.error("Interrupted")
+        sys.exit(130)

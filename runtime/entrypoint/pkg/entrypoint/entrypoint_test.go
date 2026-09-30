@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -361,5 +362,54 @@ func TestEvaluateEndsTheAgentPhaseBeforeGrading(t *testing.T) {
 	}
 	if _, err := os.Stat(graded); err != nil {
 		t.Error("the evaluator did not run")
+	}
+}
+
+func TestStopSignalBeforeGradingInterruptsTheRun(t *testing.T) {
+	rt, _ := testRuntime(t, newAdminServer(t), time.Minute, "true")
+
+	if status := rt.stopOn(syscall.SIGTERM); status != 1 {
+		t.Errorf("exit status = %d, want 1", status)
+	}
+}
+
+func TestStopSignalAfterGradingIsANormalStop(t *testing.T) {
+	rt, _ := testRuntime(t, newAdminServer(t), time.Minute, "true")
+	rt.cfg.KeepAlive = true
+	go rt.KeepAlive()
+	deadline := time.Now().Add(5 * time.Second)
+	for !rt.keptAlive.Load() {
+		if time.Now().After(deadline) {
+			t.Fatal("the run did not start waiting to be stopped")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	// Under the production wait, cleanup outlasts the ten seconds that
+	// `docker stop` allows.
+	rt.sm.cfg.CleanupWait = time.Minute
+	service := exec.Command("sleep", "60")
+	if err := service.Start(); err != nil {
+		t.Fatal(err)
+	}
+	rt.sm.processes = append(rt.sm.processes, &processInfo{name: "service", cmd: service})
+
+	start := time.Now()
+	for _, sig := range []os.Signal{syscall.SIGTERM, syscall.SIGINT} {
+		if status := rt.stopOn(sig); status != 0 {
+			t.Errorf("exit status after %v = %d, want 0", sig, status)
+		}
+	}
+	if elapsed := time.Since(start); elapsed > 5*time.Second {
+		t.Errorf("stopping took %v, want no wait after the services stop", elapsed)
+	}
+}
+
+func TestKeepAliveIsANoOpWithoutTheOption(t *testing.T) {
+	rt, _ := testRuntime(t, newAdminServer(t), time.Minute, "true")
+
+	rt.KeepAlive()
+
+	if rt.keptAlive.Load() {
+		t.Error("a run that is not kept alive must not treat a stop as normal")
 	}
 }
