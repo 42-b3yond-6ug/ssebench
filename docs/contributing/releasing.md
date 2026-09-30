@@ -115,9 +115,14 @@ pre-release and is never the latest release, and its images do not move
 
 ## What a tag does
 
-Pushing a `v*` tag starts three workflows. The Images workflow publishes the
+Pushing a `v*` tag starts several workflows. The Images workflow publishes the
 [images](#images), and the Dataset workflow the [case images](#case-images) of
-the pilot tasks. The Release workflow (`.github/workflows/release.yml`) runs
+the pilot tasks. The Verify and Helm workflows run the heavy checks (the
+end-to-end smoke run, the SDK integration test, `nix flake check` and the kind
+install) on the tagged commit, as they do every week; see
+[Testing and CI](/contributing/testing). They do not gate the release, so
+run `just verify` on the commit, or read the last weekly runs, before you tag.
+The Release workflow (`.github/workflows/release.yml`) runs
 these jobs:
 
 | Job | What it does |
@@ -236,7 +241,7 @@ the repository `42-b3yond-6ug/ssebench`.
 2. **Make the repository public.**
 3. **Rulesets.** Apply a ruleset to `main`: require pull requests, require a
    linear history, block force pushes and deletion, and require the `ci-ok`
-   and `images-ok` checks. Add a ruleset for the tags `v*` that restricts who
+   check. Add a ruleset for the tags `v*` that restricts who
    can create them and blocks updates and deletion, because pushing such a tag
    publishes a release.
 4. **Environments.** Limit where the environments deploy from, so that only a
@@ -279,7 +284,8 @@ the repository `42-b3yond-6ug/ssebench`.
    gh api -X PUT repos/42-b3yond-6ug/ssebench/pages -F https_enforced=true
    ```
 
-8. **Container packages.** The first push to `main` after step 2 publishes
+8. **Container packages.** The first push to `main` after step 2 that changes an
+   image, or the first release tag, publishes
    `base-generic-c`, `base-generic-go`, `base-generic-rust`, `runtime`,
    `litellm`, `catalog` and `webui` to `ghcr.io/42-b3yond-6ug/ssebench/` as
    private packages. The first release adds one more, the Helm chart, as
@@ -309,7 +315,6 @@ passes to `ghcr.io/42-b3yond-6ug/ssebench/case/pilot/<task>`:
 
 | Trigger | Verifies | Publishes |
 |---|---|---|
-| Pull request | the tasks it changes | nothing |
 | `v*` tag | every task | every task that passes, and attaches the images lock to the release |
 | Weekly run | every task | nothing |
 | Manual run | the tasks named, else every task | the same, when `publish` is set, and only from `main` |
@@ -411,8 +416,10 @@ try a wheel by hand, do the same with `SSEBENCH_HOME` unset.
 
 ## Images
 
-The Images workflow (`.github/workflows/images.yml`) builds these images, and
-every push to `main` and every `v*` tag publishes them as
+The Images workflow (`.github/workflows/images.yml`) builds these images. A
+`v*` tag publishes all of them, and a push to `main` publishes the ones whose
+inputs it changed (an image's Dockerfile and sources, `models/` for `litellm`,
+and `VERSION` for all), as
 `ghcr.io/42-b3yond-6ug/ssebench/<name>`, for `linux/amd64` and `linux/arm64`:
 
 | Image | Contents |
@@ -428,8 +435,12 @@ with `sha-<commit>`. A release tag such as `v1.2.0` also moves `latest`; a
 pre-release tag such as `v1.2.0-rc.1` does not. A tag that does not match
 `VERSION` fails the workflow before anything is built. Published images carry
 an SBOM, provenance attestations, and OCI labels for their source, revision,
-version and license. Pull requests build the images whose inputs changed, for
-`linux/amd64` only, and push nothing.
+version and license. `main` keeps publishing because the Compose files and the
+Helm chart name the images of the version on `main`, so a checkout of `main`
+needs them. Pull requests build nothing: `just verify images` builds every
+image for `linux/amd64` on your machine. A weekly run and a manual run build
+all of them, for both platforms unless a manual run says otherwise, and push
+nothing.
 
 The tool layers and the agent images are not published: the CLI builds them
 itself for each task, on top of the task's case image, and never pulls them.
@@ -461,7 +472,9 @@ they report `VERSION`, and uploads them with a `SHA256SUMS` file as the
 workflow artifact `ssebench-binaries-<version>`. The daemon and the entrypoint
 are built by the runtime image's Dockerfile, so they are the same files as in
 that image. The Release workflow runs it through `workflow_call` and attaches
-the files to the GitHub release; its `artifact` output names the artifact.
+the files to the GitHub release; its `artifact` output names the artifact. It
+also runs every week and on demand, and not for pull requests: `just verify
+binaries` builds the same files on your machine.
 
 ## Helm chart
 
@@ -475,9 +488,11 @@ helm install ssebench oci://ghcr.io/42-b3yond-6ug/ssebench/charts/ssebench --ver
 
 Its version is `VERSION` and so is its `appVersion`, which the chart uses as the tag of
 the images in `image.registry`; `just release` changes both, and `bump.py --check`
-fails when either differs. The Helm workflow (`.github/workflows/helm.yml`) lints the
-chart on every change to it and, in the public repository, installs it on a kind
-cluster with Calico and runs a pilot task; see
+fails when either differs. The CI workflow lints the chart and validates its
+manifests on every change to it. The Helm workflow (`.github/workflows/helm.yml`)
+installs it, in the public repository, on a kind cluster with Calico and runs a
+pilot task every week, for each release tag and on demand; `just verify kind`
+does the same locally. See
 [Kubernetes](/deployment/kubernetes#install-with-helm) for what the chart installs.
 
 ## Datasets

@@ -105,6 +105,7 @@ Every recipe runs without prompts, except the fzf pickers that `just run` and
 | `just fmt [components]` | ruff, cargo fmt, gofmt, prettier. |
 | `just images` | Build the base images and the runtime, LiteLLM and catalog images (`just base-images`, `just runtime-images`); `just case-build [tasks]` and `just case-clean` build and remove case images. |
 | `just dataset-verify [tasks]` | Grade tasks with the reference agent (every check must pass) and the dummy agent (the PoCs must still trigger), as the Dataset workflow does; `--changed-since origin/main` picks the tasks a branch changed. |
+| `just verify [parts]` | The heavy checks that pull requests skip in CI, run locally, in parallel and isolated from other Docker work: `e2e`, `sdk`, `kind`, `nix`, `agents`, `images`, `binaries` and `dataset` (the tasks changed since `--since`, `origin/main` by default). Logs go to `.verify/`; it ends with a per-part summary. `just verify-clean` removes its images. See `docs/contributing/testing.md`. |
 | `just docs [build]` | Serve or build the documentation site; the build fails on a broken link between pages. |
 | `just webui` | Build and serve the web UI on `http://127.0.0.1:3001`. |
 | `just docs-gen` / `just docs-check` | Regenerate, or check, the reference pages generated from the code (CLI, Python SDK, daemon API, environment variables, config files). |
@@ -219,10 +220,16 @@ what you created; the default project's database volume may hold someone's data.
 
 ## Before you finish
 
+Pull request CI is a light gate (lint, unit tests, docs, dataset and chart
+checks, `ci-ok`). The heavy checks run on your machine, not in CI, so run them
+yourself and state the result on the pull request's "Verified locally" line:
+`just verify` for a change to the runtime, the images, the chart, the daemon
+or the build, or only the parts that cover your change (`just verify e2e kind`).
 Run what CI runs for the parts you touched: `just lint`, `just test` and
 `just docs-check`; `bun run docs:build` when you changed `docs/`;
 `uv run ssebench dataset validate`, `uv run ssebench dataset manifest --check`
-and `just dataset-verify <task-id>` when you changed a task; and an end-to-end
+and `just dataset-verify <task-id>` (or `just verify dataset`) when you changed
+a task, which no pull request check grades; and an end-to-end
 run with the `dummy` or `reference` agent when you changed the runtime or an
 image. Keep each change focused,
 and report unrelated problems you find instead of fixing them in passing.

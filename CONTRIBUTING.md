@@ -81,6 +81,9 @@ just docs-check  # generated reference pages, JSON Schemas and the daemon's Open
 `rust`, `go`, `webui`), for example `just test python` or `just lint rust go`.
 Run `just lint`, `just test` and `just docs-check` before you open a pull
 request; CI runs the same checks, on the parts of the tree your change touches.
+That is all CI runs for a pull request: it is a light gate that finishes in a
+few minutes. The heavy checks run on your machine, see
+[Verify before review](#verify-before-review).
 Markdown is not linted, but `bun run docs:build` builds the documentation site
 and fails on a broken link between pages, so run it when you change `docs/`.
 
@@ -113,6 +116,29 @@ truth, then run `just docs-gen`:
 `cargo test --test openapi` fail when a page or the OpenAPI description is out
 of date, so commit the regenerated files with your change.
 [Writing documentation](docs/contributing/documentation.md) has the details.
+
+### Verify before review
+
+The checks that build images, start containers or a cluster do not run for
+pull requests; GitHub's runners are slow for them. `just verify` runs them on
+your machine, in parallel and isolated from other Docker work: the end-to-end
+smoke run in both modes with the integrity bypass tests, the SDK integration
+test, the Helm chart on a kind cluster, `nix flake check`, every agent offline,
+the images, the release binaries and the dataset tasks your branch changed.
+
+```sh
+just verify                # every part
+just verify e2e kind       # the parts that cover your change
+just verify dataset        # the tasks changed since origin/main
+```
+
+Run the parts that cover your change, or all of them for a change to the
+runtime, the images, the chart or the build, and write the result on the
+"Verified locally" line of the pull request. It ends with a summary of each
+part's result, duration and log file. The same checks run in CI every week, for
+each release and on demand (`gh workflow run verify.yml`). See
+[Testing and CI](docs/contributing/testing.md) for the parts, the settings and
+the logs.
 
 ### End to end
 
@@ -161,9 +187,10 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent reference
 - **Add a task:** [docs/guides/add-a-task.md](docs/guides/add-a-task.md). Tasks
   must be publicly disclosed vulnerabilities with an upstream fix. A new task
   must pass `uv run ssebench dataset validate` and `just dataset-verify
-  <task-id>`, which the Dataset workflow runs on every pull request that
-  changes a task: every check must pass with the `reference` agent, while the
-  `dummy` agent must fail its proof-of-concept and hidden-test checks.
+  <task-id>` (or `just verify dataset` for every task your branch changed),
+  which you run yourself, since CI verifies every task only weekly and for
+  releases: every check must pass with the `reference` agent, while the `dummy`
+  agent must fail its proof-of-concept and hidden-test checks.
   Regenerate `datasets/pilot/manifest.json` with `uv run ssebench dataset
   manifest`. Record the upstream project and license in
   `datasets/pilot/third_party.json`, then regenerate
@@ -230,7 +257,10 @@ The pilot dataset is a benchmark, so its files are held to a few rules:
    `bun run docs:build` does if you changed `docs/`. Commit what
    `just docs-gen`, `ssebench dataset manifest` and
    `python3 tools/dataset/third_party.py` regenerate.
-7. Open the pull request against `main`. CI runs on it; fix real failures with
+7. Run `just verify` (or the parts that cover your change, such as
+   `just verify e2e kind`) and fix what fails.
+8. Open the pull request against `main`, and state what you ran on its
+   "Verified locally" line. CI runs a light gate on it; fix real failures with
    new commits. A maintainer reviews every pull request, and merges it by
    rebasing, so `main` keeps a linear history of focused commits.
 

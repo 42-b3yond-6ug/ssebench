@@ -32,7 +32,8 @@ ssebench/
 │   ├── dataset/         # Generates datasets/pilot/THIRD_PARTY.md
 │   ├── docs/            # Generators of the reference pages, and their drift check
 │   ├── release/         # Version bump and drift check (bump.py)
-│   └── report/          # Typst report built from results/
+│   ├── report/          # Typst report built from results/
+│   └── verify/          # `just verify`: the heavy checks that pull requests skip, on this machine
 ├── tests/               # End-to-end smoke run, integrity bypass suite, offline test of every agent
 ├── docs/                # Documentation (this site)
 ├── deploy/

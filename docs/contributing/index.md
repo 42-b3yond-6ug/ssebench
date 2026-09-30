@@ -22,6 +22,7 @@ you open a pull request, and how pull requests are reviewed.
 | Add a model | [Add a model](/guides/add-a-model) |
 | Write a plugin | [Write a plugin](/guides/write-a-plugin) |
 | Extend the runtime from your own package | [Extension points](/guides/extension-points) |
+| Run the checks before you ask for review | [Testing and CI](/contributing/testing) |
 | Find your way around the code | [Project structure](/contributing/project-structure) |
 | Improve these docs | [Writing documentation](/contributing/documentation) |
 | Cut a release | [Releasing and versioning](/contributing/releasing) |

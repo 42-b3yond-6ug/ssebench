@@ -437,9 +437,10 @@ uv run ssebench dataset schema --check
 uv run python tools/dataset/third_party.py --check
 ```
 
-The Dataset workflow then runs `ssebench dataset verify` for every task the
-pull request changes. Run those checks and `just dataset-verify <task-id>`
-yourself first, and read
+CI does not grade the task: the Dataset workflow verifies every task weekly and
+for release tags, not for pull requests. Run `just dataset-verify <task-id>`,
+or `just verify dataset` for every task your branch changed, before you ask
+for review, and say in the pull request that it passed. Read
 [Contributing](https://github.com/42-b3yond-6ug/ssebench/blob/main/CONTRIBUTING.md)
 for the rest of the process. Never include API keys, `.env` files or `results/`.
 

@@ -192,6 +192,7 @@ explains how to read the results.
 | `tools/docs/` | Regenerates the reference pages in `docs/reference/` from the code, and checks them for drift. |
 | `tools/release/` | Sets the version of every component and checks for drift. |
 | `tools/report/` | Typst report built from `results/`. |
+| `tools/verify/` | `just verify`: the heavy checks that pull requests skip in CI, run on your machine. |
 | `tests/` | End-to-end smoke run, the integrity bypass suite, and the offline test of every agent. |
 | `docs/` | Documentation site (VitePress). |
 | `deploy/compose/` | Docker Compose stack: the LiteLLM proxy and its database, and the demo's catalog and web UI. |
