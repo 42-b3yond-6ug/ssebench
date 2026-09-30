@@ -1,0 +1,192 @@
+name: Helm
+
+# Checks the Helm chart in deploy/helm/ssebench.
+#
+# Lint renders the chart with its default values and with the variants in
+# deploy/helm/ssebench/ci and validates the manifests against the Kubernetes
+# schemas. It is quick and runs everywhere.
+#
+# Smoke installs the chart on a kind cluster with Calico, which enforces
+# NetworkPolicy, using images built from the checkout, and passes one pilot
+# task with the `reference` agent on the Kubernetes backend, from `ssebench run`
+# and from the web UI (tests/helm/smoke.sh). It builds several images and a
+# cluster, so it runs only while the repository is public, where minutes are
+# free. Publishing the chart is a job of release.yml.
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/helm.yml
+      - .github/actions/setup-helm/**
+      - VERSION
+      - deploy/helm/**
+      - deploy/k8s/**
+      - tests/helm/**
+      - models/**
+      - images/litellm/**
+      - catalog/**
+      - webui/**
+      - bench/src/ssebench/backends/**
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/helm.yml
+      - .github/actions/setup-helm/**
+      - VERSION
+      - deploy/helm/**
+      - deploy/k8s/**
+      - tests/helm/**
+      - models/**
+      - images/litellm/**
+      - catalog/**
+      - webui/**
+      - bench/src/ssebench/backends/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  KUBECONFORM_VERSION: 0.7.0
+  KUBECONFORM_SHA256: c31518ddd122663b3f3aa874cfe8178cb0988de944f29c74a0b9260920d115d3
+  KIND_VERSION: 0.31.0
+  KIND_SHA256: eb244cbafcc157dff60cf68693c14c9a75c4e6e6fedaf9cd71c58117cb93e3fa
+  # The Kubernetes version of the kind node image in KIND_VERSION, and of the schemas.
+  KUBERNETES_VERSION: 1.35.0
+  CALICO_VERSION: 3.31.0
+  CHART: deploy/helm/ssebench
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-helm
+      - name: Install kubeconform
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/kubeconform.tar.gz" \
+            "https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
+          echo "${KUBECONFORM_SHA256}  $RUNNER_TEMP/kubeconform.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/kubeconform.tar.gz" -C "$RUNNER_TEMP" kubeconform
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: helm lint
+        run: |
+          helm lint "$CHART" --strict
+          for values in "$CHART"/ci/*.yaml; do
+            helm lint "$CHART" --strict --values "$values"
+          done
+      - name: kubeconform
+        # Every variant renders to manifests that the Kubernetes schemas accept.
+        run: |
+          render() { helm template ssebench "$CHART" --namespace ssebench "$@" | kubeconform -strict -summary -kubernetes-version "$KUBERNETES_VERSION"; }
+          render
+          for values in "$CHART"/ci/*.yaml; do
+            echo "== $values"
+            render --values "$values"
+          done
+      - name: The chart packages at the repository version
+        run: |
+          helm package "$CHART" --destination "$RUNNER_TEMP/chart" --version "$(cat VERSION)" --app-version "$(cat VERSION)"
+          ls "$RUNNER_TEMP/chart"
+
+  smoke:
+    name: Install on kind and run a task
+    needs: lint
+    # Builds several images and starts a cluster: a job for the public repository's free minutes.
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      # A prefix that no registry serves, so every image comes from this checkout.
+      SSEBENCH_REGISTRY: ssebench-ci
+      CLUSTER: ssebench
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/share/swift
+          df -h /
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-python
+      - uses: ./.github/actions/setup-helm
+      - name: Install kind
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/kind" "https://github.com/kubernetes-sigs/kind/releases/download/v${KIND_VERSION}/kind-linux-amd64"
+          echo "${KIND_SHA256}  $RUNNER_TEMP/kind" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/kind"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Write .env with generated secrets
+        # `ssebench run` starts the LiteLLM proxy for the Docker run below; the
+        # reference agent never calls a model.
+        run: |
+          secret() { head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n'; }
+          sed -e "s|^LITELLM_MASTER_KEY=.*|LITELLM_MASTER_KEY=sk-$(secret)|" \
+              -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(secret)|" \
+              .env.example > .env
+      - name: Build the images of the chart
+        run: |
+          version=$(cat VERSION)
+          docker build -f images/litellm/Dockerfile -t "$SSEBENCH_REGISTRY/litellm:$version" .
+          docker build -f catalog/Dockerfile --build-arg VERSION="$version" -t "$SSEBENCH_REGISTRY/catalog:$version" .
+          docker build -f webui/Dockerfile --build-arg VERSION="$version" -t "$SSEBENCH_REGISTRY/webui:$version" .
+      - name: Build the prebuilt image of the reference agent
+        # A run on the local Docker daemon builds the case, tool and agent layers,
+        # and grades the task there too.
+        run: |
+          make -C images/base-images generic-go
+          uv run ssebench run --agent reference --task gjson-196-bf4efcb --mode sandbox --local datasets/pilot --run-id docker-baseline
+          jq -e '.patch_result.status == "passed"' results/gjson-196-bf4efcb/none/reference/docker-baseline/result.json
+      - name: Create the cluster
+        # Calico enforces NetworkPolicy; kind's default network plugin does not.
+        run: |
+          kind create cluster --name "$CLUSTER" --config deploy/k8s/kind.yaml --wait 0
+          kubectl apply -f "https://raw.githubusercontent.com/projectcalico/calico/v${CALICO_VERSION}/manifests/calico.yaml"
+          kubectl -n kube-system rollout status daemonset/calico-node --timeout=300s
+          kubectl wait --for=condition=Ready nodes --all --timeout=300s
+      - name: Load the images
+        run: |
+          version=$(cat VERSION)
+          docker pull postgres:16
+          kind load docker-image --name "$CLUSTER" \
+            "$SSEBENCH_REGISTRY/litellm:$version" "$SSEBENCH_REGISTRY/catalog:$version" "$SSEBENCH_REGISTRY/webui:$version" \
+            "$SSEBENCH_REGISTRY/agent-reference/gjson-196-bf4efcb:$version" postgres:16
+      - name: Install the chart
+        run: |
+          kubectl create namespace ssebench-runs
+          kubectl create namespace ssebench
+          # Fake keys: the reference agent makes no model call.
+          kubectl -n ssebench create secret generic provider-keys \
+            --from-literal=ANTHROPIC_API_KEY=sk-not-a-real-key \
+            --from-literal=OPENAI_API_KEY=sk-not-a-real-key \
+            --from-literal=GOOGLE_API_KEY=not-a-real-key
+          helm install ssebench "$CHART" --namespace ssebench --wait --timeout 10m \
+            --set image.registry="$SSEBENCH_REGISTRY" --set image.pullPolicy=Never \
+            --set runs.imagePullPolicy=Never --set runs.namespace=ssebench-runs \
+            --set 'litellm.providerKeySecrets={provider-keys}'
+      - name: Smoke test
+        env:
+          IMAGE_PULL_POLICY: Never
+        run: |
+          PROBE_IMAGE="$SSEBENCH_REGISTRY/litellm:$(cat VERSION)" tests/helm/smoke.sh
+      - name: Show the cluster
+        if: failure()
+        run: |
+          kubectl get pods,jobs,networkpolicy -A -o wide || true
+          kubectl -n ssebench describe pods || true
+          for deploy in litellm catalog webui; do
+            kubectl -n ssebench logs "deploy/ssebench-$deploy" --tail=100 || true
+          done
+          kubectl -n ssebench-runs describe pods || true
+      - name: Delete the cluster
+        if: always()
+        run: kind delete cluster --name "$CLUSTER"
