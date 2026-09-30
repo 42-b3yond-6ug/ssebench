@@ -12,7 +12,9 @@ generated oracle is only added to a task after a person has checked it.
 
 At `after-grading`: the agent has finished, so the reference patch is available
 to post-agent tooling, and the plugin runs as root next to the evaluator. It
-writes its outputs under `oracle/` in the results directory:
+reads the agent's patch (`final.patch`) from the daemon's admin socket, since git
+refuses to run as root in the agent's repository. It writes its outputs under
+`oracle/` in the results directory:
 
 - `review.txt` — the model's comparison of the agent's patch and the reference;
 - `ai_review_dialog.txt` — the full review session.

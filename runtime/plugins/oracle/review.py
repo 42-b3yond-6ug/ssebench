@@ -11,23 +11,31 @@
 # fuzzing pipeline.
 
 import logging
+import os
 from pathlib import Path
 
 from sse import project as sse_project
-from sse.reference import get_reference_patch
+from sse.daemon import Daemon
+from sse.reference import DEFAULT_ADMIN_SOCKET, get_reference_patch
 
 from config import make_opencode_agent
 
 REVIEW_PROMPT_TEMPLATE = """\
 An AI agent has attempted to fix a bug in this directory ({source_dir}). \
-Another candidate fix written by human is provided below.
+The agent's changes and another candidate fix written by human are provided below. \
+Do not rely on git for the agent's changes: the directory belongs to another user, \
+so git refuses to run in it as you.
+
+<agent-fix>
+{agent_patch}
+</agent-fix>
 
 <candidate-fix>
 {ground_truth_patch}
 </candidate-fix>
 
 Please analyze both approaches:
-1. Compare the agent's changes (use git diff) against the candidate above
+1. Compare the agent's changes against the candidate above
 2. Identify any differences in methodology or implementation
 3. Highlight what the agent did well and what could be improved
 4. Assess whether the agent's fix addresses the root cause
@@ -40,12 +48,23 @@ Be specific and cite code examples where relevant."""
 logger = logging.getLogger(__name__)
 
 
+def get_agent_patch() -> str:
+    """The agent's patch as grading captured it, from the daemon's admin socket.
+
+    The plugin runs as root, and git refuses to work in the agent-owned repository
+    as another user, so the patch comes from the daemon instead of `git diff`.
+    Empty when the agent changed nothing.
+    """
+    socket = os.getenv("SSE_ADMIN_SOCKET") or DEFAULT_ADMIN_SOCKET
+    return Daemon(socket).get("/final_diff").get("diff", "")
+
+
 async def run_review(archive_path: str) -> str | None:
     """Run an AI review of the agent's patch vs ground truth.
 
     Starts an OpenCode agent, sends a review prompt comparing the agent's
-    changes (via ``git diff``) against the ground truth patch. Writes the
-    full response to ``{archive_path}/review.txt``.
+    changes (from the daemon's ``/final_diff``) against the ground truth patch.
+    Writes the full response to ``{archive_path}/review.txt``.
 
     Args:
         archive_path: Directory to write the review log to.
@@ -60,9 +79,15 @@ async def run_review(archive_path: str) -> str | None:
             logger.warning("No reference patch available, skipping review")
             return None
 
+        agent_patch = get_agent_patch()
+        if not agent_patch.strip():
+            logger.warning("The agent left no changes, skipping review")
+            return None
+
         source_dir = str(sse_project.metadata.source)
         prompt = REVIEW_PROMPT_TEMPLATE.format(
             source_dir=source_dir,
+            agent_patch=agent_patch,
             ground_truth_patch=reference_patch,
         )
 
