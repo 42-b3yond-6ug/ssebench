@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import re
 import signal
 import stat
 import subprocess
@@ -45,7 +46,9 @@ def test_run_ids_that_label_values_accept(run_id: str) -> None:
     assert check_run_id(run_id) == run_id
 
 
-@pytest.mark.parametrize("run_id", ["", "-x", ".x", "a b", "a=b", "a,b", "a/b", "$(id)", "a\nb", "A" * 65, "é"])
+@pytest.mark.parametrize(
+    "run_id", ["", "-x", ".x", "a b", "a=b", "a,b", "a/b", "$(id)", "a\nb", "A" * 65, "é", "latest", "Latest", "LATEST"]
+)
 def test_other_run_ids_are_rejected(run_id: str) -> None:
     with pytest.raises(ValueError):
         _ = check_run_id(run_id)
@@ -56,8 +59,15 @@ def test_other_run_ids_are_rejected(run_id: str) -> None:
 
 def test_the_sandbox_container_carries_the_run_id(task: LocalTask, tmp_path: Path) -> None:
     assert f"{RUN_ID_LABEL}=abc-1" in labels(sandbox_runner(task, "abc-1").docker_command(tmp_path))
-    assert not [label for label in labels(sandbox_runner(task).docker_command(tmp_path)) if RUN_ID_LABEL in label]
     assert run_id_labels(None) == [] and run_id_labels("x") == ["--label", f"{RUN_ID_LABEL}=x"]
+
+
+def test_a_run_without_an_id_gets_a_generated_one(task: LocalTask, tmp_path: Path) -> None:
+    first, second = sandbox_runner(task), sandbox_runner(task)
+
+    assert re.fullmatch(r"\d{8}-\d{6}-[0-9a-f]{6}", first.run_id)
+    assert first.run_id != second.run_id
+    assert f"{RUN_ID_LABEL}={first.run_id}" in labels(first.docker_command(tmp_path))
 
 
 def test_the_sidecar_task_container_carries_the_run_id(
@@ -109,6 +119,38 @@ def test_run_passes_the_run_id_to_the_runner(task: LocalTask, tmp_path: Path, mo
 
     [runner] = runners
     assert runner.run_id == "from-the-ui"
+
+
+def test_run_makes_an_id_for_the_runner_when_none_is_given(
+    task: LocalTask, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    runners: list[BenchmarkSandboxRunner] = []
+    monkeypatch.setattr(stack, "up", lambda: None)
+    monkeypatch.setattr(stack, "wait_healthy", lambda: None)
+    monkeypatch.setattr(BenchmarkSandboxRunner, "build", lambda self: runners.append(self))
+    monkeypatch.setattr(BenchmarkSandboxRunner, "run", lambda self: None)
+
+    assert cli.cmd_run(run_args(local=str(tmp_path / "pilot"))) == 0
+
+    [runner] = runners
+    assert re.fullmatch(r"\d{8}-\d{6}-[0-9a-f]{6}", runner.run_id)
+
+
+def test_run_refuses_an_id_that_has_results_before_it_starts_anything(
+    task: LocalTask, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    taken = tmp_path / "results" / TASK / "none" / "reference" / "again"
+    taken.mkdir(parents=True)
+
+    def fail() -> None:
+        raise AssertionError("the proxy must not start")
+
+    monkeypatch.setattr(stack, "up", fail)
+
+    assert cli.cmd_run(run_args(local=str(tmp_path / "pilot"), run_id="again")) == 1
+    assert "already has results" in caplog.text
+    assert list(taken.iterdir()) == []
 
 
 # A stand-in for `docker` that runs a "container" until it is stopped: `run` writes the --cidfile and
@@ -170,7 +212,7 @@ def signal_when_started(tmp_path: Path, signum: signal.Signals, times: int = 1) 
 def test_a_signal_stops_the_container_and_the_summary_is_still_written(
     signum: signal.Signals, task: LocalTask, tmp_path: Path, fake_docker: Path
 ) -> None:
-    runner = sandbox_runner(task)
+    runner = sandbox_runner(task, "stopped")
     thread = signal_when_started(tmp_path, signum)
 
     with RunGuard():
@@ -178,7 +220,8 @@ def test_a_signal_stops_the_container_and_the_summary_is_still_written(
     thread.join()
 
     assert "stop --time 20 container-1" in fake_docker.read_text().splitlines()
-    summary = json.loads((tmp_path / "results" / f"{TASK}-dummy-none.json").read_text())
+    summary = json.loads((tmp_path / "results" / TASK / "none" / "dummy" / "stopped" / "summary.json").read_text())
+    assert summary["run_id"] == "stopped"
     assert summary["config"]["agent"] == "dummy"
     assert summary["patch_result"]["error_msg"] == "No result: evaluator did not produce output"
     assert summary["spend"] == 0

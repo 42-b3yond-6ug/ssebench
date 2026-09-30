@@ -16,6 +16,7 @@ from ssebench.runner.runner import stopped_after_grading
 from ssebench.tasks import LocalTask
 
 TASK = "demo-1"
+RUN_DIR = Path("results") / TASK / "none" / "dummy" / "r1"
 GRADE = {
     "patch_result": {"build_success": True, "pov_passed": 0, "pov_total": 1, "func_test_success": True},
     "runtime_result": {"agent_duration": 3, "agent_timeout": False, "evaluator_timeout": False},
@@ -32,8 +33,7 @@ class Container:
     def __call__(self, cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
         if cmd[:2] == ["docker", "run"]:
             if self.graded:
-                result = Path("results") / TASK / "none" / "dummy" / "result.json"
-                _ = result.write_text(json.dumps(GRADE))
+                _ = (RUN_DIR / "result.json").write_text(json.dumps(GRADE))
             if self.status:
                 raise subprocess.CalledProcessError(self.status, cmd)
         return subprocess.CompletedProcess(cmd, 0, "", "")
@@ -49,7 +49,9 @@ def task(tmp_path: Path, make_task: Callable[..., Path]) -> LocalTask:
 def run(task: LocalTask, container: Container, keep_container: bool, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     monkeypatch.setattr(subprocess, "run", container)
     monkeypatch.chdir(tmp_path)
-    runner = BenchmarkSandboxRunner(NoModel(), Agent("dummy", task_name=task.name), task, 60, 2, keep_container)
+    runner = BenchmarkSandboxRunner(
+        NoModel(), Agent("dummy", task_name=task.name), task, 60, 2, keep_container, run_id="r1"
+    )
     runner.sandbox_image = "registry.test/agent-image"
     runner.run()
 
@@ -68,7 +70,7 @@ def test_a_stop_after_grading_is_not_an_error(
 
     assert errors(caplog) == []
     assert f"The kept container was stopped after grading (exit status {status})" in caplog.messages
-    summary = json.loads((tmp_path / "results" / f"{TASK}-dummy-none.json").read_text())
+    summary = json.loads((tmp_path / RUN_DIR / "summary.json").read_text())
     assert summary["patch_result"]["build_success"] is True
     assert summary["runtime_result"]["agent_duration"] == 3
 
@@ -104,7 +106,7 @@ def test_any_other_non_zero_exit_is_an_error(
 
     [message, *_] = errors(caplog)
     assert message == f"Agent container stopped with a non-zero exit status: {status}"
-    assert (tmp_path / "results" / f"{TASK}-dummy-none.json").is_file()
+    assert (tmp_path / RUN_DIR / "summary.json").is_file()
 
 
 @pytest.mark.parametrize(

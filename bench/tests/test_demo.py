@@ -302,7 +302,7 @@ def test_the_run_builds_its_tool_layer_from_the_published_runtime(
 
 def test_reference_run_command_names_no_model() -> None:
     d = demo.configure()
-    plan = demo.Plan(task=TASK, agent="reference", model="ignored", timeout=600, build=False)
+    plan = demo.Plan(task=TASK, agent="reference", model="ignored", timeout=600, build=False, run_id="demo-run")
 
     cmd = plan.run_command(d)
 
@@ -311,19 +311,20 @@ def test_reference_run_command_names_no_model() -> None:
     assert "--keep-container" in cmd
     assert cmd[cmd.index("--catalog") + 1] == "http://127.0.0.1:8090"
     assert cmd[cmd.index("--timeout") + 1] == "600"
-    assert plan.result_file == CHECKOUT / "results" / TASK / "none" / "reference" / "result.json"
+    assert cmd[cmd.index("--run-id") + 1] == "demo-run"
+    assert plan.result_file == CHECKOUT / "results" / TASK / "none" / "reference" / "demo-run" / "result.json"
 
 
 def test_agent_run_command_names_the_model_and_a_local_build_uses_the_dataset() -> None:
     d = demo.configure()
-    plan = demo.Plan(task=TASK, agent="claude-code", model="claude-sonnet-4-6", timeout=3600, build=True)
+    plan = demo.Plan(task=TASK, agent="claude-code", model="claude-sonnet-4-6", timeout=3600, build=True, run_id="r1")
 
     cmd = plan.run_command(d)
 
     assert cmd[cmd.index("--model") + 1] == "claude-sonnet-4-6"
     assert cmd[cmd.index("--local") + 1] == str(CHECKOUT / "datasets" / "pilot")
     assert "--catalog" not in cmd
-    assert plan.result_file.parts[-3:] == ("claude-sonnet-4-6", "claude-code", "result.json")
+    assert plan.result_file.parts[-4:] == ("claude-sonnet-4-6", "claude-code", "r1", "result.json")
 
 
 def test_a_grade_written_before_the_run_started_is_not_this_run_s(tmp_path: Path) -> None:
@@ -459,10 +460,10 @@ def test_without_a_checkout_results_go_to_the_workspace_and_builds_are_refused(
     monkeypatch.setattr(paths, "workspace", lambda: tmp_path)
     monkeypatch.setattr(paths, "is_packaged", lambda: True)
     d = demo.configure()
-    pulled = demo.Plan(task=TASK, agent="reference", model=None, timeout=60, build=False)
+    pulled = demo.Plan(task=TASK, agent="reference", model=None, timeout=60, build=False, run_id="r1")
     built = demo.Plan(task=TASK, agent="reference", model=None, timeout=60, build=True)
 
-    assert pulled.result_file == tmp_path / "results" / TASK / "none" / "reference" / "result.json"
+    assert pulled.result_file == tmp_path / "results" / TASK / "none" / "reference" / "r1" / "result.json"
     assert "--catalog" in pulled.run_command(d)
     with pytest.raises(paths.HomeNotFoundError, match="needs an SSEBench checkout"):
         _ = built.run_command(d)
@@ -487,3 +488,17 @@ def test_the_run_starts_in_the_workspace(monkeypatch: pytest.MonkeyPatch, tmp_pa
 
     assert started == [tmp_path]
     assert log.parent == tmp_path / "results"
+
+
+def test_the_run_s_container_is_found_by_its_run_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    asked: list[tuple[str, ...]] = []
+
+    def container_ids(*filters: str) -> list[str]:
+        asked.append(filters)
+        return ["abc123"]
+
+    monkeypatch.setattr(demo, "container_ids", container_ids)
+    plan = demo.Plan(task=TASK, agent="reference", model=None, timeout=60, build=False, run_id="demo-run")
+
+    assert demo.find_run(demo.configure(), plan) == "abc123"
+    assert "label=ssebench.run-id=demo-run" in asked[0]

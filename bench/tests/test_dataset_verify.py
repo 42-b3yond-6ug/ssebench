@@ -113,13 +113,14 @@ def test_checks_the_task_does_not_have_are_not_judged() -> None:
 def test_only_the_dummy_run_names_a_model(tmp_path: Path) -> None:
     opts = verify.Options(dataset=tmp_path / "pilot", output=tmp_path / "out", model="some-model")
 
-    reference = verify.run_command(opts, "demo-1", verify.REFERENCE)
-    dummy = verify.run_command(opts, "demo-1", verify.DUMMY)
+    reference = verify.run_command(opts, "demo-1", verify.REFERENCE, "r1")
+    dummy = verify.run_command(opts, "demo-1", verify.DUMMY, "r1")
 
     assert "--model" not in reference
     assert dummy[dummy.index("--model") + 1] == "some-model"
-    assert verify.result_path(opts, "demo-1", verify.REFERENCE) == (
-        tmp_path / "out" / "runs" / "results" / "demo-1-reference-none.json"
+    assert dummy[dummy.index("--run-id") + 1] == "r1"
+    assert verify.result_path(opts, "demo-1", verify.REFERENCE, "r1") == (
+        tmp_path / "out" / "runs" / "results" / "demo-1" / "none" / "reference" / "r1" / "summary.json"
     )
 
 
@@ -329,7 +330,7 @@ def test_a_run_without_a_result_is_retried(
             return subprocess.CompletedProcess(cmd, 0, "sha256:aa\n", "")
         calls.append(cmd)
         if len(calls) == 2:
-            path = verify.result_path(opts, "demo-1", verify.DUMMY)
+            path = verify.result_path(opts, "demo-1", verify.DUMMY, cmd[cmd.index("--run-id") + 1])
             path.parent.mkdir(parents=True, exist_ok=True)
             result = {"build_success": True, "pov_passed": 0, "pov_total": 1, "func_test_success": True}
             _ = path.write_text(run_summary(task_config, result))
@@ -339,6 +340,8 @@ def test_a_run_without_a_result_is_retried(
     run = verify.run_agent(opts, task, verify.DUMMY)
 
     assert len(calls) == 2
+    # Each attempt is a run of its own.
+    assert calls[0][calls[0].index("--run-id") + 1] != calls[1][calls[1].index("--run-id") + 1]
     assert run.attempts == 2 and run.exit_code == 0
     assert run.cells["poc"] == "ok"
     assert run.image == "sha256:aa"

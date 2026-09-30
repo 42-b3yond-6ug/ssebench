@@ -15,10 +15,12 @@ import time
 from pathlib import Path
 from types import FrameType, TracebackType
 
+from ssebench.runner.layout import LATEST
+
 logger = logging.getLogger(__name__)
 
 RUN_ID_LABEL = "ssebench.run-id"
-"""Container label with the caller's `--run-id`."""
+"""Container label with the run's ID: the caller's `--run-id`, else the generated one."""
 RUN_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}")
 
 STOP_GRACE_SECONDS = 20
@@ -28,9 +30,12 @@ CONTAINER_ID_WAIT_SECONDS = 10
 
 
 def check_run_id(value: str) -> str:
-    """`value` if it can be a label value, else ValueError."""
+    """`value` if it can be a label value and a directory name, else ValueError."""
     if not RUN_ID_PATTERN.fullmatch(value):
         raise ValueError("a run ID is 1 to 64 letters, digits, '.', '_' or '-', starting with a letter or digit")
+    # `latest` is the link beside the run directories; the check is case-blind for case-folding file systems.
+    if value.lower() == LATEST:
+        raise ValueError(f"'{LATEST}' is not a run ID: it names the newest run of a task, model and agent")
     return value
 
 

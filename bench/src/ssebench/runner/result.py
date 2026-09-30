@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal, Self
 
 from pydantic import BaseModel, Field, model_validator
@@ -80,6 +81,10 @@ class PerTaskEvaluationResult(BaseModel):
     patch_result: PatchResult
     runtime_result: RuntimeResult
     spend: float
+    # The name of the run's directory under results/<task>/<model>/<agent>/, and when its container
+    # was started, in UTC: what orders the runs of one task, model and agent.
+    run_id: str | None = None
+    started_at: datetime | None = None
 
     @classmethod
     def build(
@@ -88,6 +93,8 @@ class PerTaskEvaluationResult(BaseModel):
         rc: RunConfig,
         frs: FrameworkResult,
         crs: EvaluationResult,
+        run_id: str | None = None,
+        started_at: datetime | None = None,
     ) -> Self:
         return cls(
             task=tm,
@@ -95,4 +102,6 @@ class PerTaskEvaluationResult(BaseModel):
             patch_result=crs.patch_result,
             runtime_result=crs.runtime_result,
             spend=frs.spend,
+            run_id=run_id,
+            started_at=started_at,
         )
