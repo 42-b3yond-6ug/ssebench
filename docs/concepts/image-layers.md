@@ -153,6 +153,13 @@ The tool and agent images carry the task ID in their names, so each task has
 its own. They are tagged with the SSEBench version, so images from different
 versions sit side by side.
 
+### Prebuilt images
+
+`ssebench run --prebuilt` builds nothing: it pulls the agent image of the task and
+the agent, named as in the table above, and runs it. A backend that cannot build,
+such as one that runs on a cluster, uses this mode. See
+[Prebuilt images](/concepts/runner-backends#prebuilt-images).
+
 ## Using another registry
 
 `SSEBENCH_REGISTRY` sets the prefix of every image SSEBench builds or pulls:

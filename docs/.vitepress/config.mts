@@ -25,6 +25,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Task prompt', link: '/concepts/prompt' },
       { text: 'Image layers', link: '/concepts/image-layers' },
       { text: 'Sandbox and sidecar', link: '/concepts/sandbox-and-sidecar' },
+      { text: 'Runner backends', link: '/concepts/runner-backends' },
       { text: 'Difficulty levels', link: '/concepts/difficulty-levels' },
       { text: 'Grading pipeline', link: '/concepts/grading' },
       { text: 'Results format', link: '/concepts/results' },
