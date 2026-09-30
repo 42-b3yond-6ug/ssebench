@@ -1284,7 +1284,7 @@ dependencies = [
 
 [[package]]
 name = "ssebench"
-version = "1.0.0-dev"
+version = "1.0.0-rc.1"
 dependencies = [
  "actix-web",
  "anyhow",

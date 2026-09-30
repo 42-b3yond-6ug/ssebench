@@ -505,7 +505,7 @@ wheels = [
 
 [[package]]
 name = "claude-code-sse"
-version = "1.0.0.dev0"
+version = "1.0.0rc1"
 source = { virtual = "agents/claude-code/claude-code-sse" }
 dependencies = [
     { name = "fastmcp" },
@@ -529,7 +529,7 @@ wheels = [
 
 [[package]]
 name = "codex-sse"
-version = "1.0.0.dev0"
+version = "1.0.0rc1"
 source = { virtual = "agents/codex/codex-sse" }
 dependencies = [
     { name = "fastmcp" },
@@ -1423,7 +1423,7 @@ wheels = [
 
 [[package]]
 name = "opencode-sse"
-version = "1.0.0.dev0"
+version = "1.0.0rc1"
 source = { virtual = "agents/opencode/opencode-sse" }
 dependencies = [
     { name = "httpx" },
@@ -1903,7 +1903,7 @@ wheels = [
 
 [[package]]
 name = "reference-sse"
-version = "1.0.0.dev0"
+version = "1.0.0rc1"
 source = { virtual = "agents/reference/reference-sse" }
 dependencies = [
     { name = "ssebench-sdk" },
@@ -2150,7 +2150,7 @@ wheels = [
 
 [[package]]
 name = "ssebench"
-version = "1.0.0.dev0"
+version = "1.0.0rc1"
 source = { editable = "bench" }
 dependencies = [
     { name = "httpx" },
@@ -2182,7 +2182,7 @@ provides-extras = ["kubernetes"]
 
 [[package]]
 name = "ssebench-evaluator"
-version = "1.0.0.dev0"
+version = "1.0.0rc1"
 source = { virtual = "runtime/evaluator" }
 dependencies = [
     { name = "pydantic" },
@@ -2197,7 +2197,7 @@ requires-dist = [
 
 [[package]]
 name = "ssebench-mcp"
-version = "1.0.0.dev0"
+version = "1.0.0rc1"
 source = { virtual = "runtime/mcp" }
 dependencies = [
     { name = "fastmcp" },
@@ -2212,12 +2212,12 @@ requires-dist = [
 
 [[package]]
 name = "ssebench-plugin-artifact"
-version = "1.0.0.dev0"
+version = "1.0.0rc1"
 source = { virtual = "runtime/plugins/artifact" }
 
 [[package]]
 name = "ssebench-plugin-oracle"
-version = "1.0.0.dev0"
+version = "1.0.0rc1"
 source = { virtual = "runtime/plugins/oracle" }
 dependencies = [
     { name = "pydantic" },
@@ -2232,7 +2232,7 @@ requires-dist = [
 
 [[package]]
 name = "ssebench-sdk"
-version = "1.0.0.dev0"
+version = "1.0.0rc1"
 source = { editable = "sdk/python" }
 dependencies = [
     { name = "dacite" },
