@@ -10,6 +10,7 @@ from typing import Literal
 
 from ssebench import doctor, paths, settings, stack
 from ssebench.agents import Agent
+from ssebench.errors import UserError
 from ssebench.extensions import (
     DEFAULT_TOOL_LAYER,
     Command,
@@ -18,7 +19,7 @@ from ssebench.extensions import (
     get_tool_layer,
     load_commands,
 )
-from ssebench.models import NO_MODEL, Model, NoModel
+from ssebench.models import NO_MODEL, Model, NoModel, require_defined
 from ssebench.plugins import PluginError, selected_plugins
 from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
 from ssebench.runner.reference import REFERENCE_AGENT, is_reference_run, reference_patch_path
@@ -100,6 +101,12 @@ def cmd_run(args: argparse.Namespace) -> int:
             logger.error(e)
             return 1
 
+    # Reject an unknown or broken agent and an unknown model before starting the proxy.
+    # A sidecar agent image is built on the task-independent runtime image, so every task shares it.
+    agent = Agent(args.agent, task_name=task.name if args.mode == "sandbox" else "sidecar")
+    if args.model is not None and not reference_run:
+        require_defined(args.model)
+
     try:
         stack.up()
         stack.wait_healthy()
@@ -112,8 +119,6 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     # Run the experiment
     model = NoModel() if reference_run or args.model is None else Model(args.model)
-    # A sidecar agent image is built on the task-independent runtime image, so every task shares it.
-    agent = Agent(args.agent, task_name=task.name if args.mode == "sandbox" else "sidecar")
     timeout = args.timeout
     difficulty = args.difficulty
     keep_container = args.keep_container
@@ -420,6 +425,6 @@ def main(argv: Sequence[str] | None = None):
         else:
             parser.print_help()
             sys.exit(1)
-    except (paths.HomeNotFoundError, settings.SettingError) as e:
+    except (paths.HomeNotFoundError, settings.SettingError, UserError) as e:
         logger.error(e)
         sys.exit(1)

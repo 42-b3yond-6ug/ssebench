@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import override
 
 from ssebench.pipe import DockerLayerMixin
 from ssebench.tasks.metadata import TaskMetadata
@@ -15,6 +16,10 @@ class Task(DockerLayerMixin, ABC):
 
     name: str
     docker_image_name: str
+
+    @override
+    def describe(self) -> str:
+        return f"case image of task {self.name}"
 
     @abstractmethod
     def get_task_metadata(self) -> TaskMetadata:
