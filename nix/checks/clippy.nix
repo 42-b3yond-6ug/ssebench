@@ -19,7 +19,17 @@ pkgs.rustPlatform.buildRustPackage {
   };
   cargoLock.lockFile = root + "/Cargo.lock";
 
-  nativeBuildInputs = [ pkgs.clippy ];
+  nativeBuildInputs = [
+    pkgs.clippy
+    # The diff tests run git in throwaway repositories.
+    pkgs.git
+  ];
+
+  # The build sandbox refuses to set set-id bits, which this test does.
+  checkFlags = [
+    "--skip"
+    "skips_fifos_and_drops_set_id_bits"
+  ];
 
   buildPhase = ''
     runHook preBuild
