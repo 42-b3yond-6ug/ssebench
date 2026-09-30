@@ -99,6 +99,10 @@ jobs:
               - bunfig.toml
               - docs/package.json
               - webui/**
+              # The image carries the ssebench CLI, built from these.
+              - bench/**
+              - pyproject.toml
+              - uv.lock
       - name: Plan the builds
         id: plan
         env:
