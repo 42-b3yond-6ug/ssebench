@@ -183,8 +183,8 @@ component.
 | `webui/` | Web UI: Vite + React front end, Bun/Hono server, and `pty-proxy` (Go) for terminals. |
 | `datasets/pilot/` | The pilot dataset, one folder per task. |
 | `tools/bear/` | Generates `compile_commands.json` for C tasks. |
+| `tools/dataset/` | Generates the third-party license listing of the dataset. |
 | `tools/report/` | Typst report built from `results/`. |
-| `tools/validate/` | Task validator: checks that a task builds, its PoC reproduces and its tests behave. |
 | `docs/` | Documentation site (VitePress). |
 | `deploy/compose/` | Docker Compose stack: the LiteLLM proxy and its database, and the demo's catalog and web UI. |
 | `.github/workflows/` | CI (GitHub Actions). |

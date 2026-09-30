@@ -405,34 +405,6 @@ It prints a table of task by check and lists every check that did not grade as
 expected, with the log of each run under `results/dataset-verify/logs/`. See
 [`ssebench dataset verify`](/reference/cli#ssebench-dataset-verify).
 
-### 4. Run the offline validator
-
-```sh
-just dataset-validate <task-id>
-```
-
-The script `tools/validate/run_validator.sh` builds the case image and a
-validator image on top of it, and runs `tools/validate/validate.py` in a
-container with no network. It builds the project, runs each proof of concept
-ten times before and after the reference patch, and runs the tests before and
-after the hidden test diff, and logs to `results/validate/<task-id>.log`:
-
-```text
-[*] [pre-patch] Running 1 PoC(s) 10 times each...
-        ✓ [pre-patch] PoC pocs/poc.go crashed in 10/10 runs.
-[*] Applying patch using git apply...
-[*] Starting post-patch reproduction (expecting no crashes)...
-        ✓ [post-patch] PoC pocs/poc.go crashed in 0/10 runs.
-[*] Functional test passed (after applying test.diff)
-[***] Validation completed!
-[ok] <task-id> (0 warning(s); log: results/validate/<task-id>.log)
-```
-
-Lines that start with `[!]` are findings to review, such as a proof of concept
-that does not crash before the patch. The task fails only when the project does
-not build, or the config lacks a field the validator needs. Without task names,
-the recipe validates every task in the dataset, which takes long.
-
 ## Regenerate the manifest
 
 `manifest.json` lists every task with the checksums of its files, so it changes

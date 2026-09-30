@@ -61,7 +61,6 @@ jobs:
               - tools/docs/**
               - tools/release/**
               - tools/report/**
-              - tools/validate/**
               - tests/**
               - docs/reference/**
             rust:

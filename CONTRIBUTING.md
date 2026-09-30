@@ -120,7 +120,7 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent reference
 | `catalog/` | Go | Task catalog service. |
 | `webui/` | TypeScript, Go | Web UI and its terminal proxy. |
 | `datasets/pilot/` | mixed | The pilot tasks. |
-| `tools/` | shell, Python, Typst | Task preprocessing (`bear`), reference docs generation (`docs`), reports (`report`), task validation (`validate`). |
+| `tools/` | shell, Python, Typst | Task preprocessing (`bear`), reference docs generation (`docs`), reports (`report`), dataset tooling (`dataset`). |
 | `docs/` | Markdown | Documentation site (VitePress). |
 | `deploy/` | YAML | Deployment configurations (Docker Compose). |
 
