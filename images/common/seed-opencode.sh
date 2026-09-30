@@ -16,7 +16,7 @@ HOME="$seed" OPENCODE_DISABLE_AUTOUPDATE=1 OPENCODE_DISABLE_MODELS_FETCH=1 \
 pid=$!
 
 # package-lock.json is written last. A request can block while the install
-# runs, so each one is cut short and the loop ends after about four minutes.
+# runs, so each one is cut short.
 config="$seed/.config/opencode"
 for _ in $(seq 120); do
 	curl -fs --max-time 5 -X POST -H 'content-type: application/json' -d '{}' \
