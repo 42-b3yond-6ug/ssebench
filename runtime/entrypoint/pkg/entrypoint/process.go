@@ -122,15 +122,20 @@ func (sm *serviceManager) startProcessAs(name string, argv []string, logPath str
 	return info, nil
 }
 
-// startLogTail tails a log file to stdout in real time, from byte offset from,
-// or from its last lines if from is negative.
+// startLogTail relays a log file to the log destination in real time, from
+// byte offset from, or from its last lines if from is negative. It starts
+// nothing, and returns nil, when the destination is a file.
 func (sm *serviceManager) startLogTail(logPath string, from int64) *exec.Cmd {
+	out := sm.cfg.LogTo.stream()
+	if out == nil {
+		return nil
+	}
 	args := []string{"-f", logPath}
 	if from >= 0 {
 		args = []string{"-c", "+" + strconv.FormatInt(from+1, 10), "-f", logPath}
 	}
 	cmd := exec.Command("tail", args...)
-	cmd.Stdout = os.Stdout
+	cmd.Stdout = out
 	cmd.Stderr = os.Stderr
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 	if err := cmd.Start(); err != nil {

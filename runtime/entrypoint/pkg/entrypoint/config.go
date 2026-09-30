@@ -27,6 +27,12 @@ type Config struct {
 	// built-in modes set it; a mode where only root writes clears it in
 	// [Configurer.Configure].
 	AgentWritesArchive bool
+	// LogTo is where the entrypoint writes its own log and relays the logs of
+	// the services it starts. It defaults to stdout. A mode that speaks a
+	// protocol over the container's stdin and stdout sets [LogToStderr] or
+	// [LogToFile] in [Configurer.Configure], so the log stays out of its
+	// output.
+	LogTo LogDestination
 
 	// DaemonSocketPath is the daemon's agent-facing Unix socket.
 	DaemonSocketPath string
@@ -61,6 +67,36 @@ type Config struct {
 	WaitLogInterval time.Duration
 	// HTTPRequestTimeout bounds each health-check request.
 	HTTPRequestTimeout time.Duration
+}
+
+// LogDestination is where the entrypoint writes its own log and relays the logs
+// of the services it starts. The service logs themselves always go to files in
+// the results directory.
+type LogDestination int
+
+const (
+	// LogToStdout writes to the container's stdout. It is the default.
+	LogToStdout LogDestination = iota
+	// LogToStderr writes to the container's stderr.
+	LogToStderr
+	// LogToFile writes the entrypoint's log only to entrypoint.log in the
+	// results directory and does not relay the service logs, so the mode has
+	// both stdout and stderr for itself. Until the results directory exists,
+	// the entrypoint reports errors on stderr.
+	LogToFile
+)
+
+// stream returns the container stream the destination writes to, or nil for a
+// file.
+func (d LogDestination) stream() *os.File {
+	switch d {
+	case LogToStderr:
+		return os.Stderr
+	case LogToFile:
+		return nil
+	default:
+		return os.Stdout
+	}
 }
 
 // DefaultResultsPath is where the CLI mounts the run's results directory.
