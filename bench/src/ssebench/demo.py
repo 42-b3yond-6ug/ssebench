@@ -174,8 +174,14 @@ def check_ports(demo: Demo) -> None:
         ("SSEBENCH_DEMO_WEBUI_PORT", demo.webui_port),
     ):
         if not port_free(port):
+            hint = (
+                " If it is the LiteLLM proxy that `ssebench run` started, `ssebench proxy down` stops it."
+                if name == "LITELLM_PORT"
+                else ""
+            )
             raise DemoError(
-                f"Port {port} is in use. Choose another one with {name}, for example `{name}={port + 1} just demo`."
+                f"Port {port} is in use. Choose another one with {name}, for example `{name}={port + 1} just demo`"
+                f" (`{name}={port + 1} ssebench demo up` without a clone).{hint}"
             )
 
 
@@ -319,13 +325,21 @@ def start_stack(demo: Demo) -> None:
     wait_for(f"{demo.catalog_url}/manifest.json", "The task catalog")
     wait_for(f"{demo.webui_url}/api/health", "The web UI")
     try:
-        docker_access = httpx.get(f"{demo.webui_url}/api/health", timeout=5.0).json().get("docker")
+        health: object = httpx.get(f"{demo.webui_url}/api/health", timeout=5.0).json()
     except (httpx.HTTPError, ValueError):
-        docker_access = None
-    if not docker_access:
-        raise DemoError(
-            "The web UI cannot reach the Docker daemon through /var/run/docker.sock, so it could not list runs."
-        )
+        health = None
+    problem = runner_problem(health)
+    if problem is not None:
+        raise DemoError(problem)
+
+
+def runner_problem(health: object) -> str | None:
+    """Why the web UI cannot list runs, from its `/api/health` answer, or None when it can."""
+    if isinstance(health, dict) and health.get("runner") is True:
+        return None
+    message = "The web UI cannot reach the Docker daemon through /var/run/docker.sock, so it could not list runs."
+    detail = health.get("runnerError") if isinstance(health, dict) else None
+    return f"{message} It reports: {detail}" if isinstance(detail, str) and detail else message
 
 
 def run_containers(demo: Demo) -> list[str]:
@@ -529,13 +543,13 @@ def find_run(demo: Demo, plan: Plan) -> str | None:
     return None
 
 
-def check_run_in_webui(demo: Demo, container: str) -> None:
-    """Ask the web UI for the run's grade, as the browser does.
+def check_run_in_webui(demo: Demo, run_id: str) -> None:
+    """Ask the web UI for the run's grade, as the browser does; the web UI names a run by its run ID.
 
     Raises:
         DemoError: If the web UI does not have it.
     """
-    url = f"{demo.webui_url}/api/containers/{container}/result"
+    url = f"{demo.webui_url}/api/containers/{run_id}/result"
     deadline = time.monotonic() + 60
     while True:
         try:
@@ -628,10 +642,9 @@ def up(plan: Plan) -> int:
         raise
     run_done = time.monotonic()
 
-    container = find_run(demo, plan)
-    if container is None:
+    if find_run(demo, plan) is None:
         raise DemoError(f"The run finished, but its container is gone. Its log is {log}.")
-    check_run_in_webui(demo, container)
+    check_run_in_webui(demo, plan.run_id)
 
     say()
     say(
