@@ -11,7 +11,7 @@ import pytest
 from ssebench.cli import cli
 from ssebench.tasks import LocalTask
 from ssebench.tasks.local import FILES_LABEL, docker_build_case
-from ssebench.tasks.manifest import task_files_digest
+from ssebench.tasks.manifest import files_digest, task_files, task_files_digest
 
 TASK = "demo-1"
 NO_VALUE = "<no value>"
@@ -84,6 +84,27 @@ def test_the_digest_follows_the_names_of_the_files(task: LocalTask) -> None:
     _ = (task.task_path / "sse" / "test.sh").rename(task.task_path / "sse" / "check.sh")
 
     assert task_files_digest(task.task_path) != before
+
+
+def test_the_label_and_the_images_lock_share_one_digest(task: LocalTask) -> None:
+    files = task_files(task.task_path)
+
+    assert task_files_digest(task.task_path) == files_digest(files)
+
+
+def test_the_digest_of_files_is_the_one_the_lock_and_the_catalog_use() -> None:
+    # The same expected values as TestFilesDigest in catalog/internal/catalog/lock_test.go.
+    assert files_digest({}) == "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    escapes = {
+        "a/b c.txt": "00",
+        "ünï/日本.go": "11",
+        'quo"te\\back': "22",
+        "tab\there\n": "33",
+        "del\x7f<>&": "44",
+        "emoji/\U0001f600": "55",
+        "": "",
+    }
+    assert files_digest(escapes) == "da99528d31864bf3bcd3ef61ed0c6338565eb1f12f500b2e8739f0a12e0590c2"
 
 
 def test_the_case_image_is_built_with_the_digest_as_a_label(task: LocalTask, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -88,25 +88,23 @@ def task_files(task_dir: Path) -> dict[str, str]:
     return {name: hashlib.sha256(p.read_bytes()).hexdigest() for name, p in paths}
 
 
-def task_files_digest(task_dir: Path) -> str:
-    """One SHA-256 over the paths and contents of every file in a task folder.
-
-    The case image records it as a label, so that a later build can tell whether the folder changed.
-    """
-    digest = hashlib.sha256()
-    for name, sha256 in task_files(task_dir).items():
-        digest.update(f"{name}\0{sha256}\n".encode())
-    return digest.hexdigest()
-
-
 def case_image_name(dataset: str, task_id: str) -> str:
     """The case image of a task, relative to the registry."""
     return f"case/{dataset}/{task_id}".lower()
 
 
 def files_digest(files: Mapping[str, str]) -> str:
-    """One SHA-256 for the `files` of a manifest entry, which says which task files an image was built from."""
+    """One SHA-256 for the `files` of a manifest entry, which says which task files an image was built from.
+
+    The images lock records it, and the Go catalog computes it the same way; a case image carries it as a
+    label (see `task_files_digest`). Changing it invalidates every lock.
+    """
     return hashlib.sha256(json.dumps(files, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def task_files_digest(task_dir: Path) -> str:
+    """`files_digest` of the files in a task folder as they are now, to compare with what an image was built from."""
+    return files_digest(task_files(task_dir))
 
 
 class LockedImage(_Model):
