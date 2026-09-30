@@ -24,6 +24,8 @@ on:
       - tests/helm/**
       - models/**
       - images/litellm/**
+      - images/common/**
+      - images/sandbox/**
       - catalog/**
       - webui/**
       - bench/src/ssebench/backends/**
@@ -38,6 +40,8 @@ on:
       - tests/helm/**
       - models/**
       - images/litellm/**
+      - images/common/**
+      - images/sandbox/**
       - catalog/**
       - webui/**
       - bench/src/ssebench/backends/**
