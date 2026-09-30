@@ -54,7 +54,7 @@ just demo-down
 This removes what the demo created: its containers, its Compose project and the
 database volume. The images stay cached, and the run's files stay in `results/`.
 
-The first run pulls or builds about 4 GB of images. [Try the demo](/getting-started/demo)
+The first run pulls or builds about 4 GB of images (a build from the checkout also leaves about 11 GB of build cache; see [Disk space](/getting-started/installation#prerequisites)). [Try the demo](/getting-started/demo)
 has the timings, the settings (ports, the Compose project) and what to do when
 it stops early.
 

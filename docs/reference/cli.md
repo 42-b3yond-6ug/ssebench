@@ -451,12 +451,13 @@ uv run ssebench proxy up
 <!-- generated: cli proxy -->
 
 ```sh
-ssebench proxy [-h] [--rebuild] ACTION
+ssebench proxy [-h] [--volumes] [--rebuild] ACTION
 ```
 
 | Option | Default | Description |
 |---|---|---|
 | `ACTION` | *(required)* | up: build the proxy image if it is missing or older than `models/`, start the stack and wait until the proxy is healthy; build: only build the image, if it is missing or older than `models/`; down: stop the stack and keep its database volume |
+| `--volumes` | off | With down, also remove the database volume: the next start creates a new database with the `POSTGRES_PASSWORD` of .env, and the proxy's stored keys and spend records are gone |
 | `--rebuild` | off | With up or build, rebuild the proxy image even if it is current |
 
 <!-- end generated -->

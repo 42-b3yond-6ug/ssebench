@@ -40,29 +40,48 @@ them under emulation; see [Architectures](#architectures).
 [The demo](/getting-started/demo) needs a Linux Docker engine.
 
 **Disk space.** Images are large, and they live where Docker keeps its data
-(`/var/lib/docker` by default). Sizes as `docker images` reports them:
+(`/var/lib/docker` by default). Docker Engine 29 stores images with containerd
+by default, and `docker images` reports them about 45% larger than the classic
+overlay2 store of older installs does. Sizes as `docker images` reports them:
 
-| Image | Size |
-|---|---|
-| Base images `generic-c`, `generic-go`, `generic-rust` | 1.1 GB, 0.7 GB and 1.6 GB (3.5 GB together) |
-| LiteLLM proxy | 1.2 GB |
-| Postgres, the proxy's database | 0.5 GB |
-| Web UI and task catalog, for the demo | 0.2 GB and 17 MB |
-| A task's case image | 0.7 to 3.4 GB, half of them under 1.3 GB |
-| A task's tool and agent layers, on top of its case image | about 0.4 to 2 GB, depending on the task and the agent |
+| Image | Docker 29, containerd store | Classic overlay2 store |
+|---|---|---|
+| Base images `generic-c`, `generic-go`, `generic-rust` | 1.6 GB, 1.0 GB and 2.3 GB | 1.1 GB, 0.7 GB and 1.6 GB |
+| LiteLLM proxy | 1.7 GB | 1.2 GB |
+| Postgres, the proxy's database | 0.6 GB | 0.5 GB |
+| Web UI and task catalog, for the demo | 0.3 GB and 25 MB | 0.2 GB and 17 MB |
+| A task's case image | about 45% more than in the next column | 0.7 to 3.4 GB, half of them under 1.3 GB |
+| A task's tool and agent layers, on top of its case image | 1.5 GB and 1.7 GB in total for `gjson-196-bf4efcb`, case image included | about 0.4 to 2 GB, depending on the task and the agent |
 
 Layers are shared between images, so one task needs a few GB, and the demo about
-4 GB. Leave at least 10 GB free to try SSEBench (`ssebench doctor` fails below
-that, and warns below 50 GB), and expect all 55 pilot tasks, built for one
-agent, to need roughly 100 GB. Downloads are smaller than these sizes, because
-images are compressed on the wire.
+4 GB of images (`docker system df` counted 4.4 GB after it on Docker 29). Leave
+at least 10 GB free to try SSEBench (`ssebench doctor` fails below that, and
+warns below 50 GB), and expect all 55 pilot tasks, built for one agent, to need
+roughly 100 GB. Downloads are smaller than these sizes, because images are
+compressed on the wire.
+
+**Build cache.** Building an image also fills Docker's build cache. A demo built
+from a checkout, which is what happens before a release, leaves about 11 GB of it
+on top of the 4 GB of images, so plan for 15 GB free; building the three base
+images alone leaves about 5.6 GB. The cache only speeds up later builds. To get
+the space back without touching images, containers or volumes:
+
+```sh
+docker system df          # the Build Cache row shows what it holds
+docker builder prune --all
+```
+
+The next build then starts cold and takes longer.
 
 ## Install the tools
 
 ::: code-group
 
 ```sh [Ubuntu/Debian]
-# Docker Engine and the buildx and Compose plugins: see https://docs.docker.com/engine/install/
+# Docker Engine with the buildx and Compose plugins, from Docker's apt repository:
+# https://docs.docker.com/engine/install/ubuntu/ (Debian: .../debian/). Install
+#   docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+# Not Ubuntu's `docker.io` package: it has neither plugin.
 # Let your user run docker: sudo usermod -aG docker "$USER", then log in again
 
 # uv
@@ -98,7 +117,8 @@ sudo pacman -S fzf jq make typst
 
 Check that Docker works with `docker info`, `docker buildx version` and
 `docker compose version`; `ssebench doctor` runs these checks for you once you
-have the code.
+have the code. It reports `fail buildx` or `fail Compose` when a plugin is
+missing, as with Ubuntu's `docker.io` package.
 
 ## With Nix
 

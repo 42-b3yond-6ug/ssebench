@@ -93,11 +93,15 @@ fails with `exec format error`, install the emulator. `ssebench run` and
 `ssebench doctor` looks at the file system that holds Docker's images, not at
 your working directory. It fails below 10 GiB free and warns below 50 GiB.
 
-The three base images take about 3.5 GB, the LiteLLM proxy 1.2 GB, and every
-task adds its case image (0.7 to 3.4 GB, half of them under 1.3 GB) plus the tool
-and agent layers on top of it. Many tasks share layers, so `docker system df`
-shows what Docker really uses.
+The three base images take 3.5 to 5 GB, the LiteLLM proxy 1.2 to 1.7 GB, and
+every task adds its case image (0.7 to 3.4 GB, half of them under 1.3 GB) plus the
+tool and agent layers on top of it; the [sizes](/getting-started/installation#prerequisites)
+depend on the Docker version. Many tasks share layers, so `docker system df`
+shows what Docker really uses. Its `Build Cache` row is often the largest: about
+11 GB after a demo built from the checkout.
 
+- `docker builder prune --all` frees the build cache and touches no image,
+  container or volume. The next build starts cold and takes longer.
 - `just case-clean` removes every case image. They are pulled or built again
   the next time a task needs them.
 - Move Docker's data to a larger disk with `data-root` in
@@ -125,13 +129,19 @@ Without a clone, `ssebench` reads `.env` in the **working directory**, so run it
 from the directory that `ssebench init` set up. `ssebench init` never overwrites
 an existing file.
 
-**The proxy never becomes healthy after you changed `POSTGRES_PASSWORD`.**
-Postgres applies the password only when it creates its volume. If you change it
-afterwards, the proxy cannot log in to the database, exits, and the CLI waits
-until it gives up:
+**The proxy exits because the database volume has another password.**
+Postgres applies `POSTGRES_PASSWORD` only when it creates its volume. If `.env`
+holds another password afterwards, the proxy cannot log in to the database and
+exits. This happens after you change the password, and when a second workspace
+(a checkout, or a directory set up by `ssebench init`) uses the same Compose
+project, `ssebench` by default, with its own generated `.env`. The command stops
+as soon as the proxy container has exited, and prints the end of the proxy's
+log:
 
 ```text
-ERROR:ssebench.cli.cli:The LiteLLM proxy did not become healthy at http://localhost:4000/health/liveliness within 180s
+ERROR:ssebench.cli.cli:The LiteLLM proxy container exited before it became healthy (Compose project ssebench).
+
+The database volume ssebench_postgres_data was created with another POSTGRES_PASSWORD than the one in .env, because Postgres keeps the password it was created with. Put the old password back in .env, or start with a new database by running `ssebench proxy down --volumes` (it deletes the proxy's stored keys and spend records), or give this workspace its own COMPOSE_PROJECT_NAME.
 ```
 
 The database's log (`docker logs ssebench-litellm_db-1`) says
@@ -139,14 +149,14 @@ The database's log (`docker logs ssebench-litellm_db-1`) says
 in `.env`, or remove the database volume and let Postgres create a new one:
 
 ```sh
-just stop                             # or: ssebench proxy down
-docker volume rm ssebench_postgres_data
-just launch                           # or: ssebench proxy up
+ssebench proxy down --volumes         # just stop keeps the volume
+ssebench proxy up                     # or: just launch
 ```
 
-The volume is named `<COMPOSE_PROJECT_NAME>_postgres_data`, and `ssebench` is
-the default project. Removing it deletes the proxy's database, with the keys
-and the spend records of earlier runs.
+Or keep both databases: set `COMPOSE_PROJECT_NAME` (and `LITELLM_PORT`, if both
+run at once) to a value of its own in the `.env` of the second workspace. The
+volume is named `<COMPOSE_PROJECT_NAME>_postgres_data`. Removing it deletes the
+proxy's database, with the keys and the spend records of earlier runs.
 
 ## The LiteLLM proxy
 
@@ -161,8 +171,9 @@ yourself, use `just launch` and `just stop`, or `ssebench proxy up` and
   `LITELLM_PORT` in `.env`. A second stack also needs a Compose project of its
   own, `COMPOSE_PROJECT_NAME`, so that the two do not share containers and the
   database volume; stacks with different names and ports run side by side.
-- **The proxy does not become healthy within 180 seconds.** Look at its log,
-  `docker logs ssebench-litellm-1` (`<project>-litellm-1` when you set
+- **The proxy exited, or does not become healthy within 180 seconds.** A proxy
+  that exited is reported at once, with the end of its log. Otherwise look at it
+  yourself, `docker logs ssebench-litellm-1` (`<project>-litellm-1` when you set
   `COMPOSE_PROJECT_NAME`). The most common cause is the Postgres password;
   see [`.env` and the secrets](#env-and-the-secrets).
 - **`docker ps` says the proxy container is `unhealthy`.** Trust `ssebench doctor`,
