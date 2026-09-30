@@ -1,0 +1,15 @@
+name: Set up Helm
+description: Install a pinned Helm release, checked against its published SHA-256.
+runs:
+  using: composite
+  steps:
+    - name: Install Helm
+      shell: bash
+      env:
+        HELM_VERSION: 3.20.2
+        HELM_SHA256: 258e830a9e613c8a7a302d6059b4bb3b9758f2f3e1bb8ea0d707ce10a9a72fea
+      run: |
+        curl -fsSL -o "$RUNNER_TEMP/helm.tar.gz" "https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz"
+        echo "${HELM_SHA256}  $RUNNER_TEMP/helm.tar.gz" | sha256sum -c -
+        tar -xzf "$RUNNER_TEMP/helm.tar.gz" -C "$RUNNER_TEMP" --strip-components=1 linux-amd64/helm
+        echo "$RUNNER_TEMP" >> "$GITHUB_PATH"

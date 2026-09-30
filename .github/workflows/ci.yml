@@ -63,6 +63,10 @@ jobs:
               - tools/report/**
               - tests/**
               - docs/reference/**
+              # The chart's tests compare it with the RBAC manifest and the docs.
+              - deploy/helm/**
+              - deploy/k8s/**
+              - docs/deployment/kubernetes.md
             rust:
               - *workflow
               - Cargo.toml
@@ -131,6 +135,7 @@ jobs:
               - '**/package.json'
               - '**/Dockerfile'
               - deploy/compose/**
+              - deploy/helm/**
               - '!datasets/**'
             # Only the flake itself: the other jobs cover the sources, and a
             # full flake check costs about 20 runner minutes.
