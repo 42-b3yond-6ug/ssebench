@@ -1,7 +1,260 @@
+---
+outline: deep
+---
+
 # Troubleshooting
 
-::: info
-This page is being written.
-:::
+Start with `ssebench doctor`. It checks what a run needs from your machine, and
+prints a fix for each problem it finds. The sections below follow its checks,
+then the failures that only show up during a run.
 
-This page will collect common problems and how to fix them: Docker and buildx setup, disk space for task images, running amd64-only tasks on other architectures, a LiteLLM proxy that does not become healthy, and missing provider keys. It will be organised around a planned `ssebench doctor` command that checks these for you.
+## Start with `ssebench doctor`
+
+From a clone, run `just doctor`; without one, run `uvx ssebench doctor` in the
+directory that `ssebench init` set up.
+
+```text
+  ok    SSEBench home  /home/you/ssebench
+  ok    Docker         daemon 29.8.0
+  ok    buildx         v0.31.1
+  ok    Compose        5.4.0
+  ok    CPU            x86_64
+  ok    Disk           553 GiB free on /var/lib/docker
+  ok    .env           /home/you/ssebench/.env
+  warn  LiteLLM        no answer at http://localhost:4000/health/liveliness (Compose project ssebench)
+                       fix: `ssebench run` starts the proxy when needed; start it now with `ssebench proxy up` (`just launch` in a checkout). If another program uses port 4000, set LITELLM_PORT in .env.
+  warn  Provider keys  missing: ANTHROPIC_API_KEY (7 models), GOOGLE_API_KEY (2 models), OPENAI_API_KEY (4 models)
+                       fix: Put the key of each provider you use in .env (the proxy reads keys only from there), then restart the proxy with `ssebench proxy up`. The dummy and reference agents need no key.
+
+All required checks passed (2 warning(s)).
+```
+
+`ok` means the check passed. `fail` marks a problem that stops runs, with a
+`fix:` line under it, and makes the command exit with status 1. `warn` marks
+something to know about; it does not change the exit status. The two warnings
+above are normal on a fresh setup: the proxy starts with your first run, and
+you only need the key of the provider you use.
+
+| Check | What it looks at | Section |
+|---|---|---|
+| `SSEBench home` | Where the CLI finds `agents/`, `images/` and the Compose file: your checkout, or the copy in the package | [Working directory](/reference/cli#working-directory) |
+| `Docker`, `buildx`, `Compose` | `docker version`, `docker buildx version`, `docker compose version` | [Docker, buildx and Compose](#docker-buildx-and-compose) |
+| `CPU` | The machine's architecture | [CPU architecture](#cpu-architecture) |
+| `Disk` | Free space where Docker keeps its images | [Disk space](#disk-space) |
+| `.env` | That `.env` exists and holds the proxy secrets | [`.env` and the secrets](#env-and-the-secrets) |
+| `LiteLLM` | Whether the proxy answers on its port | [The LiteLLM proxy](#the-litellm-proxy) |
+| `Provider keys` | Which of the keys that `models/*.yaml` refers to are set in `.env` | [Provider keys](#provider-keys) |
+
+## Docker, buildx and Compose
+
+SSEBench needs a running Docker daemon that your user can reach, the buildx
+plugin (every image is built with `docker buildx build`) and the Compose plugin
+(the LiteLLM proxy is a Compose stack).
+
+```text
+  fail  Docker         failed to connect to the docker API at unix:///nonexistent; check if the path is correct and if the daemon is running: dial unix /nonexistent: connect: no such file or directory
+                       fix: Install Docker, start the daemon, and make sure your user can reach it (`docker info`).
+```
+
+- **The daemon does not answer.** Start it (`sudo systemctl start docker` on
+  most Linux systems, or start Docker Desktop), then check with `docker info`.
+  If `DOCKER_HOST` is set, it must point at a daemon that runs.
+- **`permission denied while trying to connect to the Docker daemon socket`.**
+  Your user is not allowed to use the daemon. Add it to the `docker` group
+  (`sudo usermod -aG docker "$USER"`) and log in again. On NixOS, set
+  `virtualisation.docker.enable = true;` and add `"docker"` to your user's
+  `extraGroups`.
+- **`fail buildx` or `fail Compose`.** Install the plugins:
+  `docker-buildx` and `docker-compose-plugin` in most Linux package managers,
+  or a current Docker Desktop. `docker buildx version` and
+  `docker compose version` must both print a version.
+- **Docker Desktop and other engines that run containers in a VM** have not
+  been tested with [the demo](/getting-started/demo), whose web UI container
+  shares the host's network.
+
+## CPU architecture
+
+```text
+  warn  CPU            aarch64: many pilot tasks build amd64-only images
+```
+
+All 55 pilot tasks build amd64 images, and many C tasks compile with
+AddressSanitizer for x86-64 only. On an ARM64 host, Docker has to run them under
+emulation, which is slower and where some tasks fail. Use an x86-64 host for
+benchmark runs. `docker run --rm --platform linux/amd64 alpine uname -m` prints
+`x86_64` when your Docker can run amd64 images.
+
+## Disk space
+
+`ssebench doctor` looks at the file system that holds Docker's images, not at
+your working directory. It fails below 10 GiB free and warns below 50 GiB.
+
+The three base images take about 3.5 GB, the LiteLLM proxy 1.2 GB, and every
+task adds its case image (0.7 to 3.4 GB, half of them under 1.3 GB) plus the tool
+and agent layers on top of it. Many tasks share layers, so `docker system df`
+shows what Docker really uses.
+
+- `just case-clean` removes every case image. They are pulled or built again
+  the next time a task needs them.
+- Move Docker's data to a larger disk with `data-root` in
+  `/etc/docker/daemon.json`.
+- `results/` also grows: every run keeps a copy of the source tree.
+
+## `.env` and the secrets
+
+`.env` holds the LiteLLM master key, the Postgres password and your provider
+keys. `just setup` writes it in a clone, and `ssebench init` writes it in the
+directory you run from without one.
+
+```text
+  fail  .env           /home/you/ssebench-work/.env not found
+                       fix: Run `ssebench init` (`just setup` in a checkout).
+```
+
+A command that needs the secrets says the same thing:
+
+```text
+ERROR:ssebench.cli.cli:LITELLM_MASTER_KEY is not set. Run `ssebench init` (`just setup` in a checkout) to write .env with generated local secrets, or set LITELLM_MASTER_KEY in the environment.
+```
+
+Without a clone, `ssebench` reads `.env` in the **working directory**, so run it
+from the directory that `ssebench init` set up. `ssebench init` never overwrites
+an existing file.
+
+**The proxy never becomes healthy after you changed `POSTGRES_PASSWORD`.**
+Postgres applies the password only when it creates its volume. If you change it
+afterwards, the proxy cannot log in to the database, exits, and the CLI waits
+until it gives up:
+
+```text
+ERROR:ssebench.cli.cli:The LiteLLM proxy did not become healthy at http://localhost:4000/health/liveliness within 180s
+```
+
+The database's log (`docker logs ssebench-litellm_db-1`) says
+`password authentication failed for user "litellm"`. Put the old password back
+in `.env`, or remove the database volume and let Postgres create a new one:
+
+```sh
+just stop                             # or: ssebench proxy down
+docker volume rm ssebench_postgres_data
+just launch                           # or: ssebench proxy up
+```
+
+The volume is named `<COMPOSE_PROJECT_NAME>_postgres_data`, and `ssebench` is
+the default project. Removing it deletes the proxy's database, with the keys
+and the spend records of earlier runs.
+
+## The LiteLLM proxy
+
+Every agent reaches its model through the [LiteLLM proxy](/concepts/litellm-proxy),
+which runs as a Compose stack. `ssebench run` starts it when it is not running,
+so `warn LiteLLM no answer` is normal before your first run. To start or stop it
+yourself, use `just launch` and `just stop`, or `ssebench proxy up` and
+`ssebench proxy down`.
+
+- **`Bind for 0.0.0.0:4000 failed: port is already allocated`.** Another
+  program, or another SSEBench stack, uses the port. Choose another with
+  `LITELLM_PORT` in `.env`. A second stack also needs a Compose project of its
+  own, `COMPOSE_PROJECT_NAME`, so that the two do not share containers and the
+  database volume; stacks with different names and ports run side by side.
+- **The proxy does not become healthy within 180 seconds.** Look at its log,
+  `docker logs ssebench-litellm-1` (`<project>-litellm-1` when you set
+  `COMPOSE_PROJECT_NAME`). The most common cause is the Postgres password;
+  see [`.env` and the secrets](#env-and-the-secrets).
+- **`docker ps` says the proxy container is `unhealthy`.** Trust `ssebench doctor`,
+  or `curl http://localhost:4000/health/liveliness`, which answers
+  `"I'm alive!"`, rather than the container's own health status.
+- **You changed `models/`.** `ssebench run` and `ssebench proxy up` rebuild the
+  proxy image when a file in `models/` changed, and `ssebench proxy up --rebuild`
+  forces it. See [Add a model](/guides/add-a-model).
+
+## Provider keys
+
+The proxy reads the keys of the model providers from `.env` only. A key that is
+set in your shell does not count, and `ssebench doctor` says so:
+
+```text
+  warn  Provider keys  set: ANTHROPIC_API_KEY (7 models); missing: GOOGLE_API_KEY (2 models), OPENAI_API_KEY (4 models)
+```
+
+Put the key of the provider you use in `.env`, then restart the proxy so that it
+picks the key up:
+
+```sh
+ssebench proxy up      # just launch
+```
+
+Missing keys are only a problem for the models that need them: the `dummy` and
+`reference` agents need none, and `just demo --agent <agent> --model <model>`
+stops before it builds anything when the model's key is missing.
+
+### The agent ended at once, or said it could not log in
+
+`ssebench run` does not check the key before it starts. A run whose provider key
+is missing or wrong still builds the images and runs the agent, and ends with a
+grade, so check the run when it finishes much sooner than an agent working on a
+task would. The signs:
+
+- `result.json` says `failed`, with `PoC failed` as `error_msg`, because the
+  agent changed nothing, and the summary's `spend` is 0.
+- `dialog.jsonl` ends with a message from the agent instead of a fix, and
+  `agent.log` shows what went wrong. With no key at all, Claude Code says
+  `Not logged in · Please run /login`. With a wrong key, it says
+  `Failed to authenticate. API Error: 401 litellm.AuthenticationError:
+  AnthropicException - ... API key is invalid`. The agent retries the request a
+  few times first, so this takes about three minutes to show.
+
+Fix the key in `.env`, restart the proxy with `ssebench proxy up`, and run again.
+
+## Running a task
+
+- **`Model no-such-model does not exist.`** The name is not in `models/*.yaml`.
+  `grep -h model_name models/*.yaml` lists the names.
+- **`Agent no-such-agent does not exist.`** The name is not a directory under
+  `agents/`. SSEBench ships `claude-code`, `codex`, `opencode`, `dummy` and
+  `reference`.
+- **`Benchmark task no-such-task does not exist.`** With `--local DIR`, the
+  task is not a folder of that directory. `uv run ssebench tasks list` prints
+  the task IDs.
+- **`Cannot pull <image>, and there is no local copy of task <id> to build it
+  from.`** Without `--local`, the case image is pulled from the registry
+  (`SSEBENCH_REGISTRY`). The pull failed, because you are offline or the
+  registry does not have the image, and a package install has no task folder to
+  build it from. Check your network and `SSEBENCH_REGISTRY`, or use a clone and
+  run the task from its dataset: `just run` adds `--local datasets/pilot`, which
+  builds the case image from the task's folder.
+- **A build cannot pull a base image.** Case images build on
+  `base-generic-c`, `base-generic-go` or `base-generic-rust`. Docker pulls the
+  one a task pins, and `just base-images` builds all three yourself, which also
+  helps when you are offline.
+- **A case image fails to build.** The task's `Dockerfile` clones the upstream
+  project at a pinned commit and downloads its dependencies, so a build needs the
+  network and the upstream repositories to still exist. Pulling the published case
+  image, that is running without `--local`, avoids the build.
+- **A task fails because it needs the internet.** A run container reaches the
+  LiteLLM proxy but not the internet. A task whose tests download something
+  needs `--egress open`; see [Integrity and egress](/deployment/integrity-and-egress).
+- **A run takes a long time.** The agent works until it stops or reaches
+  `--timeout` (3600 seconds by default). `agent.log` and `daemon.log` in
+  `results/<task>/<model>/<agent>/` grow while it works, and the [web UI](/webui/)
+  shows the dialog live.
+- **You want to clean up.** `just stop` stops the proxy and keeps its database,
+  and `just demo-down` removes the demo. Run containers that were kept for the
+  web UI show up in `docker ps --filter label=ssebench.webui=true`;
+  remove them with `docker rm -f`.
+
+## The demo
+
+[Try the demo](/getting-started/demo#troubleshooting) lists what can go wrong
+with `just demo`: a port in use, images that are not in the registry yet, and a
+web UI that cannot reach Docker.
+
+## Still stuck
+
+Open an [issue](https://github.com/42-b3yond-6ug/ssebench/issues) with the
+output of `ssebench doctor`, the output of `ssebench --version`, the command you
+ran and the end of its output. The logs in the run's directory under `results/`
+(`agent.log`, `daemon.log`, `evaluator.log`) help too; check them for keys and
+private data first. Report a way for an agent to reach the reference answer
+privately, as [SECURITY.md](https://github.com/42-b3yond-6ug/ssebench/blob/main/SECURITY.md)
+describes.
