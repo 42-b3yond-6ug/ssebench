@@ -100,8 +100,9 @@ images are for `linux/amd64`.
 
 Each image has two tags, and a digest:
 
-- `pilot-v1`, the [dataset version](/dataset/manifest#dataset-version), always
-  the newest verified image of the task.
+- `pilot-v1`, the [dataset version](/dataset/manifest#dataset-version), the
+  image published last for the task. It moves only when a release or a manual
+  run publishes.
 - `pilot-v1-<commit>`, with the first seven characters of the commit it was built
   and verified at. It is never used for another commit.
 - `datasets/pilot/images.lock.json` lists the digest of every published image.
