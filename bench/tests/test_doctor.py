@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from ssebench import doctor, paths, stack
+from ssebench import arch, doctor, paths, stack
 from ssebench.doctor import Status
 
 VARIABLES = (
@@ -55,7 +55,7 @@ def healthy_host(home: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     }
     monkeypatch.setattr(doctor, "run", lambda cmd: (0, outputs[tuple(cmd[:2])]))
     monkeypatch.setattr(shutil, "disk_usage", lambda _: Usage(0, 0, 500 * doctor.GIB))
-    monkeypatch.setattr(doctor.platform, "machine", lambda: "x86_64")
+    monkeypatch.setattr(arch.platform, "machine", lambda: "x86_64")
     monkeypatch.setattr(stack, "is_healthy", lambda: True)
     _ = (home / ".env").write_text(SECRETS + "ANTHROPIC_API_KEY=a\nOPENAI_API_KEY=o\n")
     return home
@@ -116,13 +116,39 @@ def test_disk_falls_back_to_the_home(healthy_host: Path, monkeypatch: pytest.Mon
     assert str(healthy_host) in check.detail
 
 
-@pytest.mark.parametrize("machine", ["arm64", "aarch64"])
-def test_non_amd64_warns(healthy_host: Path, monkeypatch: pytest.MonkeyPatch, machine: str) -> None:
-    monkeypatch.setattr(doctor.platform, "machine", lambda: machine)
+@pytest.mark.parametrize("machine", ["x86_64", "AMD64"])
+def test_amd64_is_ok(healthy_host: Path, monkeypatch: pytest.MonkeyPatch, machine: str) -> None:
+    monkeypatch.setattr(arch.platform, "machine", lambda: machine)
+
+    check = doctor.check_cpu()
+    assert check.status is Status.OK
+    assert check.detail == machine.lower()
+
+
+@pytest.mark.parametrize("machine", ["arm64", "aarch64", "riscv64"])
+def test_non_amd64_warns_that_tasks_run_under_emulation(
+    healthy_host: Path, monkeypatch: pytest.MonkeyPatch, machine: str
+) -> None:
+    monkeypatch.setattr(arch.platform, "machine", lambda: machine)
 
     check = doctor.check_cpu()
     assert check.status is Status.WARN
-    assert "amd64" in check.detail
+    assert machine in check.detail
+    assert "amd64 emulation" in check.detail
+    assert "slow" in check.detail
+    assert "AddressSanitizer" in check.detail
+    assert "binfmt" in check.fix
+
+
+def test_the_warning_does_not_fail_the_check(
+    healthy_host: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(arch.platform, "machine", lambda: "aarch64")
+
+    assert doctor.main() == 0
+    out = capsys.readouterr().out
+    assert "warn  CPU" in out
+    assert "All required checks passed (1 warning(s))" in out
 
 
 def test_missing_env_file_fails_with_setup_hint(home: Path) -> None:
