@@ -228,6 +228,47 @@ file as `os.environ/AZURE_API_KEY` and set it in `.env`. The proxy reads the
 file when its container starts, so after a change to `.env` run `just launch`,
 which recreates the container.
 
+## A compatible endpoint for the bundled providers
+
+The models in `models/` call Anthropic, OpenAI and Google directly. To send them
+to a compatible endpoint instead, such as a model router or a company gateway
+that serves the same models, leave `models/` as it is and set the endpoint's
+base URL in `.env`, next to its key:
+
+```sh
+ANTHROPIC_API_KEY=<the endpoint's key>
+ANTHROPIC_BASE_URL=https://router.example.com
+```
+
+| Provider | Variable | Form of the URL | LiteLLM calls |
+|---|---|---|---|
+| Anthropic | `ANTHROPIC_BASE_URL` | without `/v1` | `<base>/v1/messages` |
+| OpenAI | `OPENAI_BASE_URL` | with `/v1` | `<base>/chat/completions`, `<base>/responses` |
+| Google | `GEMINI_API_BASE` | with `/v1beta` | `<base>/models/<model>:generateContent` |
+
+The key is sent the way the provider expects it (`x-api-key` for Anthropic,
+`Authorization: Bearer` for OpenAI, `x-goog-api-key` for Google), so the
+endpoint must accept it there. LiteLLM also reads `ANTHROPIC_API_BASE`, which
+takes precedence over `ANTHROPIC_BASE_URL`, and `OPENAI_API_BASE`, which
+`OPENAI_BASE_URL` takes precedence over. Run `just launch` afterwards so the
+proxy restarts with the new variables.
+
+A few things follow from this:
+
+- The variable applies to every model of that provider that has no `api_base`
+  of its own, including models you add. An `api_base` in the model file takes
+  precedence.
+- The endpoint must know the models by the IDs in `litellm_params.model`
+  (`claude-opus-5-5`, not `anthropic/claude-opus-5-5`, for example). If it
+  names them differently, give the model its own entry with `api_base` and the
+  endpoint's ID, as in [Configuration format](#configuration-format).
+- The proxy still charges the prices in `model_info`, which are the provider's
+  list prices, not the endpoint's.
+- `uv run ssebench doctor --verify-keys` asks the endpoint's model-list endpoint
+  (`<base>/v1/models` for Anthropic, `<base>/models` for the others) whether
+  it accepts the key. An endpoint that does not serve that list leaves the key
+  unverified; it does not mean the key is wrong.
+
 ## Troubleshooting
 
 ### `Unknown model '<name>'`

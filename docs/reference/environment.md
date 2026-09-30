@@ -40,7 +40,10 @@ GOOGLE_API_KEY=...
 <!-- end generated -->
 
 Set the key of each provider you use and leave out the others: the proxy still
-lists every model, but a model fails when it is called without its key. A model
+lists every model, but a model fails when it is called without its key. The
+base URLs send a provider's models to a compatible endpoint, such as a router,
+instead of the provider's own API; see
+[Add a model](/guides/add-a-model#a-compatible-endpoint-for-the-bundled-providers). A model
 you add can use any other variable name, for example:
 
 ```sh
