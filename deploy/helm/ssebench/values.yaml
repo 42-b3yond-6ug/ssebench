@@ -1,0 +1,136 @@
+# Values of the SSEBench chart. docs/deployment/kubernetes.md describes each of them.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  # Every SSEBench image is <registry>/<name>:<tag>: litellm, catalog and webui here, and the prebuilt
+  # agent images of the runs (agent-<agent>/<task>) unless runs.registry says otherwise.
+  registry: ghcr.io/42-b3yond-6ug/ssebench
+  # Empty is the chart's appVersion, the SSEBench version the chart was released with.
+  tag: ""
+  pullPolicy: IfNotPresent
+  # Names of image pull Secrets for the chart's own pods.
+  pullSecrets: []
+
+auth:
+  # A Secret of your own with the keys LITELLM_MASTER_KEY (it starts with "sk-"), POSTGRES_PASSWORD
+  # (letters and digits) and SSEBENCH_WEBUI_TOKEN (16 or more characters, no spaces). Empty: the chart
+  # makes one with random values and keeps them across upgrades. Use your own Secret when a tool
+  # renders the chart without a cluster to look at, because that would make new values on every render.
+  existingSecret: ""
+
+litellm:
+  image:
+    name: litellm
+    tag: ""
+  # Secrets whose entries become environment variables of the proxy, for the provider keys that the
+  # models reference (ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY). A key that is missing only
+  # disables the models that use it.
+  providerKeySecrets: []
+  # A LiteLLM configuration file that replaces the one baked into the image, which lists the models in
+  # the repository's models/ directory. It must set `master_key: os.environ/LITELLM_MASTER_KEY`.
+  config: ""
+  resources:
+    requests: {cpu: 100m, memory: 512Mi}
+    limits: {memory: 2Gi}
+
+postgres:
+  # false: use the database in the Secret below instead of one from this chart.
+  enabled: true
+  image: postgres:16
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: ""
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {memory: 1Gi}
+  # postgres.enabled=false only: a Secret with the key DATABASE_URL, a PostgreSQL connection URL.
+  externalSecret: ""
+
+catalog:
+  image:
+    name: catalog
+    tag: ""
+  resources:
+    requests: {cpu: 10m, memory: 32Mi}
+    limits: {memory: 128Mi}
+
+webui:
+  image:
+    name: webui
+    tag: ""
+  # true: the web UI only shows runs. It refuses to launch, stop or remove them, has no terminal and no
+  # assistant, and holds no key of the proxy. false: it launches runs, with its service account, and
+  # anyone who has the token can spend your provider keys and run commands in the run pods.
+  hosted: true
+  # Only with hosted=false: a shell in the run pods.
+  terminal: false
+  # Origins besides the web UI's own that may call its API, for a proxy that rewrites the Host header.
+  corsOrigins: []
+  # Where the web UI keeps the results of the runs it launches. An emptyDir is lost with the pod.
+  persistence:
+    enabled: false
+    size: 5Gi
+    storageClass: ""
+  service:
+    type: ClusterIP
+    port: 3001
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {memory: 1Gi}
+
+runs:
+  # The namespace of the runs' Jobs, Secrets and NetworkPolicies, and of the Role that lets the web UI
+  # create them. It must exist. Empty: the release's namespace, which then also holds the proxy; give
+  # the runs a namespace of their own so that the Role does not reach anything else.
+  namespace: ""
+  # The registry of the prebuilt agent images. Empty: image.registry.
+  registry: ""
+  # What a run's pod may reach, when a launch does not ask for something else: "restricted" is the
+  # proxy and DNS, "open" also the internet outside the cluster.
+  egress: restricted
+  # runtimeClassName of the run pods, for gVisor or Kata Containers.
+  runtimeClassName: ""
+  imagePullPolicy: IfNotPresent
+  # Names of image pull Secrets in the runs' namespace.
+  imagePullSecrets: []
+  # requests and limits of the task container. Empty: the backend's, 1 CPU and 2Gi to 4 CPUs and 8Gi.
+  resources: {}
+  # How long the cluster keeps a finished Job, and the seconds it adds to a run's timeout before it stops the Job.
+  ttlSecondsAfterFinished: 3600
+  deadlineSlackSeconds: 1800
+
+rbac:
+  # The Role and RoleBinding of deploy/k8s/rbac.yaml, in the runs' namespace, for the web UI's service account.
+  create: true
+
+serviceAccount:
+  # The web UI's. Empty: the release's name.
+  name: ""
+  annotations: {}
+
+networkPolicy:
+  # Ingress rules for the proxy and its database. The proxy accepts the web UI and the run pods of the
+  # runs' namespace, and the database accepts the proxy. They need a network plugin that enforces
+  # NetworkPolicy, as the runs' own policies do.
+  enabled: true
+  # More peers that may reach the proxy, in the form of a NetworkPolicy's `from`.
+  proxyExtraIngress: []
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: ssebench.example.org
+      path: /
+      pathType: Prefix
+  tls: []
+
+# Scheduling of the chart's own pods.
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podAnnotations: {}

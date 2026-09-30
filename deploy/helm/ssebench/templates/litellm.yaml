@@ -1,0 +1,110 @@
+{{- $name := include "ssebench.litellmService" . }}
+{{- $selector := dict "component" "litellm" "root" . }}
+{{- if .Values.litellm.config }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}-config
+  labels: {{- include "ssebench.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    {{- .Values.litellm.config | nindent 4 }}
+---
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "ssebench.commonLabels" . | nindent 4 }}
+    {{- include "ssebench.selector" $selector | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: {{- include "ssebench.selector" $selector | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ssebench.commonLabels" . | nindent 8 }}
+        {{- include "ssebench.selector" $selector | nindent 8 }}
+      annotations:
+        {{- if .Values.litellm.config }}
+        checksum/config: {{ .Values.litellm.config | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- include "ssebench.imagePullSecrets" . | nindent 6 }}
+      {{- include "ssebench.scheduling" . | nindent 6 }}
+      # The proxy never calls the Kubernetes API.
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: litellm
+          image: {{ include "ssebench.image" (dict "root" . "image" .Values.litellm.image) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.litellm.providerKeySecrets }}
+          envFrom:
+            {{- range . }}
+            - secretRef: {name: {{ . }}}
+            {{- end }}
+          {{- end }}
+          env:
+            - name: LITELLM_MASTER_KEY
+              valueFrom: {secretKeyRef: {name: {{ include "ssebench.authSecret" . }}, key: LITELLM_MASTER_KEY}}
+            {{- if .Values.postgres.enabled }}
+            - name: POSTGRES_PASSWORD
+              valueFrom: {secretKeyRef: {name: {{ include "ssebench.authSecret" . }}, key: POSTGRES_PASSWORD}}
+            - name: DATABASE_URL
+              value: postgresql://litellm:$(POSTGRES_PASSWORD)@{{ include "ssebench.databaseService" . }}:5432/litellm
+            {{- else }}
+            - name: DATABASE_URL
+              valueFrom: {secretKeyRef: {name: {{ required "postgres.externalSecret is required when postgres.enabled is false" .Values.postgres.externalSecret }}, key: DATABASE_URL}}
+            {{- end }}
+            # Lets the runs' keys, which the proxy stores, survive a restart.
+            - {name: STORE_MODEL_IN_DB, value: "True"}
+            {{- if .Values.litellm.config }}
+            - {name: CONFIG_FILE_PATH, value: /etc/litellm/config.yaml}
+            {{- end }}
+          ports:
+            - {name: http, containerPort: 4000}
+          startupProbe:
+            httpGet: {path: /health/liveliness, port: http}
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /health/liveliness, port: http}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /health/liveliness, port: http}
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          resources: {{- toYaml .Values.litellm.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          {{- if .Values.litellm.config }}
+          volumeMounts:
+            - {name: config, mountPath: /etc/litellm, readOnly: true}
+          {{- end }}
+      {{- if .Values.litellm.config }}
+      volumes:
+        - name: config
+          configMap: {name: {{ $name }}-config}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels: {{- include "ssebench.labels" . | nindent 4 }}
+spec:
+  selector: {{- include "ssebench.selector" $selector | nindent 4 }}
+  ports:
+    - {name: http, port: 4000, targetPort: http}

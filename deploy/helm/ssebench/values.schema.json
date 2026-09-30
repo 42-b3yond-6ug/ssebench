@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "nameOverride": {"type": "string"},
+    "fullnameOverride": {"type": "string"},
+    "image": {
+      "type": "object",
+      "properties": {
+        "registry": {"type": "string", "minLength": 1},
+        "tag": {"type": "string"},
+        "pullPolicy": {"enum": ["Always", "IfNotPresent", "Never"]},
+        "pullSecrets": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "auth": {
+      "type": "object",
+      "properties": {"existingSecret": {"type": "string"}}
+    },
+    "litellm": {
+      "type": "object",
+      "properties": {
+        "image": {"$ref": "#/definitions/component-image"},
+        "providerKeySecrets": {"type": "array", "items": {"type": "string"}},
+        "config": {"type": "string"},
+        "resources": {"type": "object"}
+      }
+    },
+    "postgres": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "image": {"type": "string", "minLength": 1},
+        "persistence": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "size": {"type": "string"},
+            "storageClass": {"type": "string"}
+          }
+        },
+        "resources": {"type": "object"},
+        "externalSecret": {"type": "string"}
+      }
+    },
+    "catalog": {
+      "type": "object",
+      "properties": {
+        "image": {"$ref": "#/definitions/component-image"},
+        "resources": {"type": "object"}
+      }
+    },
+    "webui": {
+      "type": "object",
+      "properties": {
+        "image": {"$ref": "#/definitions/component-image"},
+        "hosted": {"type": "boolean"},
+        "terminal": {"type": "boolean"},
+        "corsOrigins": {"type": "array", "items": {"type": "string"}},
+        "persistence": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "size": {"type": "string"},
+            "storageClass": {"type": "string"}
+          }
+        },
+        "service": {
+          "type": "object",
+          "properties": {
+            "type": {"enum": ["ClusterIP", "NodePort", "LoadBalancer"]},
+            "port": {"type": "integer", "minimum": 1, "maximum": 65535}
+          }
+        },
+        "resources": {"type": "object"}
+      }
+    },
+    "runs": {
+      "type": "object",
+      "properties": {
+        "namespace": {"type": "string"},
+        "registry": {"type": "string"},
+        "egress": {"enum": ["restricted", "open"]},
+        "runtimeClassName": {"type": "string"},
+        "imagePullPolicy": {"enum": ["Always", "IfNotPresent", "Never"]},
+        "imagePullSecrets": {"type": "array", "items": {"type": "string"}},
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {"type": "object"},
+            "limits": {"type": "object"}
+          },
+          "additionalProperties": false
+        },
+        "ttlSecondsAfterFinished": {"type": "integer", "minimum": 1},
+        "deadlineSlackSeconds": {"type": "integer", "minimum": 1}
+      }
+    },
+    "rbac": {
+      "type": "object",
+      "properties": {"create": {"type": "boolean"}}
+    },
+    "serviceAccount": {
+      "type": "object",
+      "properties": {"name": {"type": "string"}, "annotations": {"type": "object"}}
+    },
+    "networkPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "proxyExtraIngress": {"type": "array", "items": {"type": "object"}}
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "className": {"type": "string"},
+        "annotations": {"type": "object"},
+        "hosts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["host"],
+            "properties": {
+              "host": {"type": "string"},
+              "path": {"type": "string"},
+              "pathType": {"enum": ["Prefix", "Exact", "ImplementationSpecific"]}
+            }
+          }
+        },
+        "tls": {"type": "array", "items": {"type": "object"}}
+      }
+    },
+    "nodeSelector": {"type": "object"},
+    "tolerations": {"type": "array"},
+    "affinity": {"type": "object"},
+    "podAnnotations": {"type": "object"}
+  },
+  "definitions": {
+    "component-image": {
+      "type": "object",
+      "properties": {"name": {"type": "string", "minLength": 1}, "tag": {"type": "string"}}
+    }
+  }
+}

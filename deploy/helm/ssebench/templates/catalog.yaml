@@ -1,0 +1,59 @@
+{{- $name := include "ssebench.catalogService" . }}
+{{- $selector := dict "component" "catalog" "root" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "ssebench.commonLabels" . | nindent 4 }}
+    {{- include "ssebench.selector" $selector | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {{- include "ssebench.selector" $selector | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ssebench.commonLabels" . | nindent 8 }}
+        {{- include "ssebench.selector" $selector | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "ssebench.imagePullSecrets" . | nindent 6 }}
+      {{- include "ssebench.scheduling" . | nindent 6 }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: catalog
+          image: {{ include "ssebench.image" (dict "root" . "image" .Values.catalog.image) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            # The registry that the image names in /tasks are prefixed with.
+            - {name: SSEBENCH_REGISTRY, value: {{ default .Values.image.registry .Values.runs.registry | quote }}}
+          ports:
+            - {name: http, containerPort: 8080}
+          readinessProbe:
+            tcpSocket: {port: http}
+          livenessProbe:
+            tcpSocket: {port: http}
+            periodSeconds: 30
+          resources: {{- toYaml .Values.catalog.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels: {{- include "ssebench.labels" . | nindent 4 }}
+spec:
+  selector: {{- include "ssebench.selector" $selector | nindent 4 }}
+  ports:
+    - {name: http, port: 8080, targetPort: http}

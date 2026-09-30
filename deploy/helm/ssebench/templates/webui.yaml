@@ -1,0 +1,126 @@
+{{- $name := include "ssebench.webuiService" . }}
+{{- $selector := dict "component" "webui" "root" . }}
+{{- $auth := include "ssebench.authSecret" . }}
+{{- $hosted := .Values.webui.hosted }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "ssebench.commonLabels" . | nindent 4 }}
+    {{- include "ssebench.selector" $selector | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: {{- include "ssebench.selector" $selector | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ssebench.commonLabels" . | nindent 8 }}
+        {{- include "ssebench.selector" $selector | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "ssebench.serviceAccountName" . }}
+      {{- include "ssebench.imagePullSecrets" . | nindent 6 }}
+      {{- include "ssebench.scheduling" . | nindent 6 }}
+      # The Kubernetes backend authenticates with the service account's token.
+      automountServiceAccountToken: true
+      enableServiceLinks: false
+      securityContext:
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: webui
+          image: {{ include "ssebench.image" (dict "root" . "image" .Values.webui.image) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - {name: PORT, value: "3001"}
+            # Not loopback, so the server requires the token.
+            - {name: SSEBENCH_WEBUI_HOST, value: 0.0.0.0}
+            - name: SSEBENCH_WEBUI_TOKEN
+              valueFrom: {secretKeyRef: {name: {{ $auth }}, key: SSEBENCH_WEBUI_TOKEN}}
+            - {name: SSEBENCH_WEBUI_HOSTED, value: {{ ternary "1" "0" $hosted | quote }}}
+            - {name: SSEBENCH_WEBUI_TERMINAL, value: {{ ternary "1" "0" (and (not $hosted) .Values.webui.terminal) | quote }}}
+            {{- with .Values.webui.corsOrigins }}
+            - {name: SSEBENCH_WEBUI_CORS_ORIGINS, value: {{ join "," . | quote }}}
+            {{- end }}
+            - {name: SSEBENCH_CATALOG, value: "http://{{ include "ssebench.catalogService" . }}:8080"}
+            - {name: SSEBENCH_BACKEND, value: kubernetes}
+            - {name: SSEBENCH_PREBUILT, value: "1"}
+            - {name: SSEBENCH_REGISTRY, value: {{ default .Values.image.registry .Values.runs.registry | quote }}}
+            - {name: SSEBENCH_EGRESS, value: {{ .Values.runs.egress | quote }}}
+            - {name: SSEBENCH_K8S_NAMESPACE, value: {{ include "ssebench.runsNamespace" . | quote }}}
+            - {name: SSEBENCH_K8S_PROXY_NAMESPACE, value: {{ .Release.Namespace | quote }}}
+            - {name: SSEBENCH_K8S_PROXY_URL, value: {{ include "ssebench.litellmUrl" . | quote }}}
+            - {name: SSEBENCH_K8S_PROXY_SELECTOR, value: "app.kubernetes.io/name=litellm,app.kubernetes.io/instance={{ .Release.Name }}"}
+            - {name: SSEBENCH_K8S_IMAGE_PULL_POLICY, value: {{ .Values.runs.imagePullPolicy | quote }}}
+            - {name: SSEBENCH_K8S_TTL_SECONDS, value: {{ .Values.runs.ttlSecondsAfterFinished | quote }}}
+            - {name: SSEBENCH_K8S_DEADLINE_SLACK, value: {{ .Values.runs.deadlineSlackSeconds | quote }}}
+            {{- with .Values.runs.runtimeClassName }}
+            - {name: SSEBENCH_K8S_RUNTIME_CLASS, value: {{ . | quote }}}
+            {{- end }}
+            {{- with .Values.runs.imagePullSecrets }}
+            - {name: SSEBENCH_K8S_IMAGE_PULL_SECRETS, value: {{ join "," . | quote }}}
+            {{- end }}
+            {{- with .Values.runs.resources }}
+            - {name: SSEBENCH_K8S_RESOURCES, value: {{ toJson . | quote }}}
+            {{- end }}
+            {{- if not $hosted }}
+            # A launch makes the run's key with the proxy's master key.
+            - name: LITELLM_MASTER_KEY
+              valueFrom: {secretKeyRef: {name: {{ $auth }}, key: LITELLM_MASTER_KEY}}
+            {{- end }}
+          ports:
+            - {name: http, containerPort: 3001}
+          # The API asks for the token, so the probes only test the port.
+          readinessProbe:
+            tcpSocket: {port: http}
+          livenessProbe:
+            tcpSocket: {port: http}
+            periodSeconds: 30
+          resources: {{- toYaml .Values.webui.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: results, mountPath: /app/results}
+            # The CLI keeps a record of port-forwards under the temporary directory, and kubectl its cache under $HOME.
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: results
+          {{- if .Values.webui.persistence.enabled }}
+          persistentVolumeClaim: {claimName: {{ $name }}-results}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - {name: tmp, emptyDir: {}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels: {{- include "ssebench.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.webui.service.type }}
+  selector: {{- include "ssebench.selector" $selector | nindent 4 }}
+  ports:
+    - {name: http, port: {{ .Values.webui.service.port }}, targetPort: http}
+{{- if .Values.webui.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name }}-results
+  labels: {{- include "ssebench.labels" . | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.webui.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.webui.persistence.size }}
+{{- end }}

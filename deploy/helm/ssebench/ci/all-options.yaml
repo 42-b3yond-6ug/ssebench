@@ -1,0 +1,63 @@
+# Every optional part of the chart switched on, for `helm lint` and kubeconform.
+nameOverride: bench
+image:
+  registry: registry.example.org/ssebench
+  tag: 1.0.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  pullSecrets: [registry-login]
+auth:
+  existingSecret: my-ssebench-auth
+litellm:
+  providerKeySecrets: [anthropic-key, openai-key]
+  config: |
+    model_list:
+      - model_name: only-model
+        litellm_params: {model: openai/gpt-5.1, api_key: os.environ/OPENAI_API_KEY}
+    general_settings:
+      master_key: os.environ/LITELLM_MASTER_KEY
+postgres:
+  persistence: {size: 20Gi, storageClass: fast}
+webui:
+  hosted: false
+  terminal: true
+  corsOrigins: [https://bench.example.org, https://bench.internal]
+  persistence: {enabled: true, storageClass: fast}
+  service: {type: NodePort, port: 8080}
+runs:
+  namespace: ssebench-runs
+  registry: registry.example.org/agents
+  egress: open
+  runtimeClassName: gvisor
+  imagePullPolicy: Always
+  imagePullSecrets: [registry-login]
+  resources:
+    requests: {cpu: "2", memory: 4Gi}
+    limits: {cpu: "8", memory: 16Gi}
+  ttlSecondsAfterFinished: 600
+  deadlineSlackSeconds: 900
+serviceAccount:
+  name: bench-runner
+  annotations: {example.org/role: bench}
+networkPolicy:
+  proxyExtraIngress:
+    - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: monitoring}}
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"}
+  hosts:
+    - host: bench.example.org
+      path: /
+      pathType: Prefix
+  tls:
+    - secretName: bench-tls
+      hosts: [bench.example.org]
+nodeSelector: {kubernetes.io/os: linux}
+tolerations:
+  - {key: dedicated, operator: Equal, value: bench, effect: NoSchedule}
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 1
+        preference:
+          matchExpressions: [{key: pool, operator: In, values: [bench]}]
+podAnnotations: {example.org/owner: bench}
