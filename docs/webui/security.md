@@ -19,6 +19,7 @@ same machine can reach it, and only through a loopback address.
 | Requires a token on any other address | the server does not start without one | `SSEBENCH_WEBUI_TOKEN` |
 | Refuses requests and WebSocket handshakes from other origins | on | `SSEBENCH_WEBUI_CORS_ORIGINS` |
 | Allows a shell in a container | on | `SSEBENCH_WEBUI_TERMINAL` |
+| Only shows runs; no launch, stop, remove, shell or assistant | off | `SSEBENCH_WEBUI_HOSTED` |
 
 The variables are listed in [Environment variables](/reference/environment#web-ui).
 `webui/README.md` in the repository has the same reference next to the code.
@@ -27,19 +28,24 @@ The variables are listed in [Environment variables](/reference/environment#web-u
 
 The server runs as the user that started it, and:
 
-- starts `uv run ssebench run` for a launch, with the environment of the server.
-  The run uses the proxy and provider keys of the checkout. A model, agent or
-  local task that the server does not list is refused, and every value is passed
-  as an argument, never through a shell;
-- calls the `docker` CLI for a container's listing, logs, stop, remove and
-  shell. It acts only on containers with the label `ssebench.webui`, and takes
-  only hexadecimal container IDs, so a request cannot name another container or
-  inject a command;
-- talks to the daemon in a container over the Docker network, to read the
-  dialog, the diff, the grade and the reference patch.
+- starts `ssebench run` (`uv run ssebench` unless `SSEBENCH_CLI` says otherwise)
+  for a launch, with the environment of the server. The run uses the proxy and
+  provider keys of the checkout. A model, agent or local task that the server
+  does not list is refused, and every value is passed as an argument, never
+  through a shell;
+- runs `ssebench runs` for a run's listing, logs, stop, remove, address and
+  shell. The backend behind it acts only on runs with the label
+  `ssebench.webui`, and the server passes only run IDs (1 to 64 letters, digits,
+  `.`, `_` and `-`, starting with a letter or digit), so a request cannot name
+  anything but a run or inject a command. The server itself never runs `docker`;
+- talks to the daemon in a container at the address the backend gives, to read
+  the dialog, the diff, the grade and the reference patch;
+- reads the run directories under `results/`, for finished runs. It reads plain
+  files only, and does not follow a link, since the agent can write to
+  `archive/`.
 
-The label is the limit of what the server acts on. Every container with it is
-visible and can be stopped, whoever started it.
+The label is the limit of what the server acts on. Every run with it is visible
+and can be stopped, whoever started it.
 
 ## Address
 
@@ -132,10 +138,11 @@ set a token to allow it.
 
 ## Terminal
 
-The terminal WebSocket, `/api/pty/<container>`, opens a shell in the run
-container with `docker exec -it`, as the image's default user, which is `root`.
-`/api/pty-debug/<container>` runs the OpenCode terminal interface in the same
-way. A shell in the container of a run in progress is outside the agent's
+The terminal WebSocket, `/api/pty/<run>`, opens a shell in the run
+container with `ssebench runs exec --tty`, which the Docker backend turns into
+`docker exec -it`, as the image's default user, which is `root`.
+`/api/pty-debug/<run>` runs the OpenCode terminal interface in the same way. A
+backend that cannot run commands in a run has no terminal. A shell in the container of a run in progress is outside the agent's
 restrictions: it can read the task's hidden files under `/ssebench`. Open
 terminals only in runs whose agent phase is over.
 
@@ -146,7 +153,8 @@ the words `true`, `false`, `yes`, `no`, `on` and `off`, and any other value stop
 the server.
 
 The switch controls only the terminal. The [assistant](#provider-api-key-and-the-assistant)
-below is a second way to run commands.
+below is a second way to run commands, which [hosted mode](#hosted-mode) turns off
+too.
 
 ## Provider API key and the assistant
 
@@ -155,7 +163,8 @@ there. The web UI passes OpenCode's permission requests on as a prompt with
 **Allow**, **Deny** and **Always allow**, the last for the rest of the session,
 but it sets no permission rules of its own. OpenCode decides what it asks about,
 so treat the assistant as able to run commands without asking. This does not
-depend on `SSEBENCH_WEBUI_TERMINAL`, and no setting turns the assistant off.
+depend on `SSEBENCH_WEBUI_TERMINAL`; only [hosted mode](#hosted-mode) turns the
+assistant off.
 Anyone who can use the API can start a session, with the key from Settings or
 with one of their own, and can approve what it asks.
 
@@ -190,6 +199,32 @@ Use a key you can revoke and that has a spending limit. Clear the field in
 Settings when you are done, and remove the containers you used the assistant in.
 The runs themselves never see this key.
 
+## Hosted mode
+
+`SSEBENCH_WEBUI_HOSTED=1` is for a server that shows runs to people who must not
+be able to change or run anything: a showcase, or a shared viewer of results. It
+forces the views read-only:
+
+| Refused with `403` | Why |
+|---|---|
+| Every request that is not `GET`, `HEAD` or `OPTIONS`: launch, cancel, clear, stop, remove, and starting or answering an assistant session | It would change a run or start one |
+| The terminal, `/api/pty/<run>` and `/api/pty-debug/<run>` | It runs commands in a container |
+| The assistant, every `/api/containers/<run>/opencode/*` route and its event stream | It runs commands in a container, and the server would start an OpenCode server there |
+| `/api/launch/doctor` | It reports on the host's Docker, `.env` and provider keys |
+
+The server also never starts the assistant's OpenCode server in hosted mode, and
+`/api/health` reports `hosted: true`, `terminal: false` and `assistant: false`,
+which the UI uses to hide the launch wizard and the tabs. `SSEBENCH_WEBUI_TERMINAL=1`
+does not override it, and a value of `SSEBENCH_WEBUI_HOSTED` that cannot be read
+stops the server.
+
+The runs stay readable, with their dialogs, diffs, logs, grades and reference
+patches. The **reference patch** is the task's answer: a hosted server shows it
+to everyone who can reach it. Combine hosted mode with a
+[token](#token) when the audience is limited, and note that it does not limit the
+Docker access of the server process: the process can still stop and remove
+containers through the CLI, only requests are refused.
+
 ## The container image
 
 The [container image](/webui/#in-a-container) needs the Docker socket and the
@@ -206,7 +241,9 @@ If you must serve the web UI to other machines, in order of preference:
 2. Set `SSEBENCH_WEBUI_TOKEN`, put a TLS-terminating reverse proxy in front, list
    the public origin in `SSEBENCH_WEBUI_CORS_ORIGINS` if the proxy changes `Host`,
    and firewall the server's own port.
-3. Set `SSEBENCH_WEBUI_TERMINAL=0`. This closes the terminal only; the assistant
+3. Set `SSEBENCH_WEBUI_HOSTED=1` to make the server read-only. This closes the
+   terminal and the assistant, and refuses launching, stopping and removing.
+   `SSEBENCH_WEBUI_TERMINAL=0` alone closes the terminal only; the assistant
    remains a way to run commands, so it is no substitute for the first two.
 
 These settings limit who can use the web UI. They do not limit what a run

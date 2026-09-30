@@ -91,7 +91,7 @@ too.
 | `SSEBENCH_DEMO_PROJECT` | `ssebench-demo` | CLI, Compose | Compose project of the [demo](/getting-started/demo). It must differ from `COMPOSE_PROJECT_NAME`: `just demo-down` deletes the project's database volume, and the demo refuses to touch a project whose containers it did not create. |
 | `SSEBENCH_DEMO_WEBUI_PORT` | `3001` | CLI, Compose | Host port of the demo's web UI, on `127.0.0.1`. |
 | `SSEBENCH_DEMO_CATALOG_PORT` | `8090` | CLI, Compose | Host port of the demo's catalog service, on `127.0.0.1`. |
-| `SSEBENCH_BACKEND` | `docker` | CLI | Runner backend that `ssebench run` uses when `--backend` is not given: where the run's containers execute. Installed extensions can add backends; see [Runner backends](/concepts/runner-backends). |
+| `SSEBENCH_BACKEND` | `docker` | CLI, web UI | Runner backend that `ssebench run` and `ssebench runs` use when `--backend` is not given: where the run's containers execute. The web UI runs those commands, so it works with the backend named here. Installed extensions can add backends; see [Runner backends](/concepts/runner-backends). |
 | `SSEBENCH_PREBUILT` | `unset` | CLI | `1`, `true`, `yes` or `on` makes `ssebench run` use the published agent images of the task, under `SSEBENCH_REGISTRY`, instead of building the case, tool and agent layers; the same as `--prebuilt`. See [Prebuilt images](/concepts/runner-backends#prebuilt-images). |
 | `SSEBENCH_RUNTIME_IMAGE` | `<registry>/runtime:<version>` without a checkout, else unset | CLI | Runtime image that the tool layers copy the daemon and the entrypoint from, as `<registry>/runtime:<version>` does. Unset, a checkout compiles both from its sources, and an installation without a checkout uses the published image of its version. Set it to skip the compilation in a checkout. The image must exist for the platform of the run, which is `linux/amd64` for a `pilot` task. |
 | `SSEBENCH_VERSION` | set by the CLI | CLI, Compose | SSEBench version that the Compose files pass as the `VERSION` build argument of the images they build. The CLI sets it from `VERSION`; it only matters when you run `docker compose build` yourself. |
@@ -179,8 +179,10 @@ The web UI server reads these; see [WebUI](/webui/).
 | `PORT` | `3001` | web UI | API server port; the Vite servers forward `/api` there. |
 | `SSEBENCH_WEBUI_TOKEN` | unset | web UI | Access token, at least 16 characters. Required when the bind address is not loopback. |
 | `SSEBENCH_WEBUI_CORS_ORIGINS` | unset | web UI | Comma-separated origins, besides the server's own, allowed to call the API, such as `https://bench.example.org`. |
-| `SSEBENCH_WEBUI_TERMINAL` | `1` | web UI | `0` turns off the container terminal. The demo's web UI has it off (`0`) unless you set this to `1`. |
-| `SSEBENCH_PATH` | the repository root | web UI | SSEBench checkout: `uv run ssebench` runs there, and `models/` and `agents/` are read from there. |
+| `SSEBENCH_WEBUI_TERMINAL` | `1` | web UI | `0` turns off the container terminal. The demo's web UI has it off (`0`) unless you set this to `1`. Hosted mode (`SSEBENCH_WEBUI_HOSTED`) turns it off whatever this says. |
+| `SSEBENCH_WEBUI_HOSTED` | `0` | web UI | `1` runs the web UI as a read-only viewer, for a showcase or a shared server. It refuses to launch, stop or remove runs, opens no terminal, and lets the AI assistant run no commands in a container; runs and finished runs can still be read. See [Security model](/webui/security#hosted-mode). |
+| `SSEBENCH_CLI` | uv run ssebench | web UI | The command that runs the `ssebench` CLI, split on white space and started without a shell in `SSEBENCH_PATH`, such as `ssebench` or `uv run --project /opt/ssebench ssebench`. The web UI finds, stops, reaches and launches runs through it. The web UI image sets it to `ssebench`. |
+| `SSEBENCH_PATH` | the repository root | web UI | SSEBench checkout: the CLI runs there, so `results/` is read and written there, and `models/` and `agents/` are read from there. |
 | `SSEBENCH_LOCAL_TASKS` | `$SSEBENCH_PATH/datasets/pilot` | web UI | Local dataset offered in the launcher. |
 | `SSEBENCH_CATALOG_URL` | unset | web UI | Former name of `SSEBENCH_CATALOG`; deprecated, and read only when that is unset. |
 | `PTY_ENABLE_CLEANUP` | `true` | web UI | `false` turns off the cleanup of terminal processes whose browser went away. |

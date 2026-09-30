@@ -32,6 +32,14 @@ bench/src/ssebench/cli/, then run `just docs-gen`. -->
 | `ssebench dataset publish` | Push the case images of verified tasks to a registry |
 | `ssebench dataset lock` | Write the images lock, which pins the published case images by digest |
 | `ssebench tasks list` | List the tasks of a catalog or a local dataset |
+| `ssebench runs list` | List the runs that exist on the backend, running or not |
+| `ssebench runs inspect` | Show one run on the backend |
+| `ssebench runs logs` | Print the output of a run's container |
+| `ssebench runs stop` | Stop a run's container, leaving it in place |
+| `ssebench runs remove` | Remove a run's containers and volumes, running or not |
+| `ssebench runs endpoint` | Print the URL at which a port of a running run can be reached from here |
+| `ssebench runs exec` | Run a command in a run's container |
+| `ssebench runs results` | List the finished runs in results/, whether or not they still have containers |
 | `ssebench proxy` | Start, rebuild or stop the local LiteLLM proxy |
 | `ssebench init` | Write .env with generated secrets, models/ and results/ to the current directory |
 | `ssebench demo up` | Start the demo stack, run one agent on one task and show the run in the web UI |
@@ -239,6 +247,184 @@ layers built on it and the [reference patch](#reference-runs) use exactly that
 image. [Releasing and versioning](/contributing/releasing#case-images) describes
 how the lock is refreshed, and the [pilot dataset](/dataset/pilot#prebuilt-images)
 lists the size of every image.
+
+## `ssebench runs`
+
+Finds, watches, stops and removes runs through the [runner
+backend](/concepts/runner-backends), and lists finished runs. A run is named by
+its run ID, the value of `--run-id`. The [web UI](/webui/) drives these commands
+with `--json`, so it works with every backend; they are as useful by hand:
+
+```sh
+uv run ssebench runs list
+uv run ssebench runs logs --follow 20260929-153012-a1b2c3
+uv run ssebench runs stop 20260929-153012-a1b2c3
+```
+
+Every command that takes a run ID exits with status 3 if no run has it, and 4 if
+several runs do, which `--run-id` allows across different tasks, models and
+agents. The commands other than `results` use the backend that `--backend`, or
+`SSEBENCH_BACKEND`, names.
+
+### `ssebench runs list`
+
+<!-- generated: cli runs list -->
+
+```sh
+ssebench runs list [-h] [--backend NAME] [--json]
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--backend NAME` | docker, or `$SSEBENCH_BACKEND` | The runner backend; installed extensions can add more |
+| `--json` | off | Print JSON instead of text |
+
+<!-- end generated -->
+
+`--json` prints one object: `backend` (its name), `supports_exec` (whether it can
+run commands in a run), and `runs`, newest first. Each run has `run_id`, `name`,
+`state` (`created`, `running`, `exited` or `unknown`), `exit_code`, `image`,
+`created_at`, `task`, `model`, `agent`, `reference_run`, `results_dir` and the
+run's `ssebench.*` labels. The container's environment, which holds the run's
+key, is never part of it.
+
+### `ssebench runs inspect`
+
+<!-- generated: cli runs inspect -->
+
+```sh
+ssebench runs inspect [-h] [--backend NAME] [--json] RUN_ID
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--backend NAME` | docker, or `$SSEBENCH_BACKEND` | The runner backend; installed extensions can add more |
+| `--json` | off | Print JSON instead of text |
+| `RUN_ID` | *(required)* | The run's ID |
+
+<!-- end generated -->
+
+### `ssebench runs logs`
+
+<!-- generated: cli runs logs -->
+
+```sh
+ssebench runs logs [-h] [--backend NAME] [--follow] RUN_ID
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--backend NAME` | docker, or `$SSEBENCH_BACKEND` | The runner backend; installed extensions can add more |
+| `RUN_ID` | *(required)* | The run's ID |
+| `--follow` | off | Keep printing until the container exits |
+
+<!-- end generated -->
+
+### `ssebench runs stop`
+
+<!-- generated: cli runs stop -->
+
+```sh
+ssebench runs stop [-h] [--backend NAME] [--grace SECONDS] RUN_ID
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--backend NAME` | docker, or `$SSEBENCH_BACKEND` | The runner backend; installed extensions can add more |
+| `RUN_ID` | *(required)* | The run's ID |
+| `--grace SECONDS` | `20` | How long the entrypoint may take to clean up before the container is killed |
+
+<!-- end generated -->
+
+### `ssebench runs remove`
+
+<!-- generated: cli runs remove -->
+
+```sh
+ssebench runs remove [-h] [--backend NAME] RUN_ID
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--backend NAME` | docker, or `$SSEBENCH_BACKEND` | The runner backend; installed extensions can add more |
+| `RUN_ID` | *(required)* | The run's ID |
+
+<!-- end generated -->
+
+It removes the containers and volumes and leaves the run's `results/` directory
+alone. It fails if the run is still there afterwards.
+
+### `ssebench runs endpoint`
+
+<!-- generated: cli runs endpoint -->
+
+```sh
+ssebench runs endpoint [-h] [--backend NAME] [--json] RUN_ID PORT
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--backend NAME` | docker, or `$SSEBENCH_BACKEND` | The runner backend; installed extensions can add more |
+| `--json` | off | Print JSON instead of text |
+| `RUN_ID` | *(required)* | The run's ID |
+| `PORT` | *(required)* | A TCP port of the run's container |
+
+<!-- end generated -->
+
+With `--json` it prints `{"url": "http://host:port"}`. The URL is one that this
+machine can use, whatever the backend: on Docker the container's address on its
+network.
+
+### `ssebench runs exec`
+
+<!-- generated: cli runs exec -->
+
+```sh
+ssebench runs exec [-h] [--backend NAME] [--user USER] [--workdir DIR] [--tty] [--stdin]
+                   [--env NAME]
+                   RUN_ID COMMAND [COMMAND ...]
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--backend NAME` | docker, or `$SSEBENCH_BACKEND` | The runner backend; installed extensions can add more |
+| `RUN_ID` | *(required)* | The run's ID |
+| `--user USER` |  | Run as this user of the container |
+| `--workdir DIR` |  | Working directory in the container |
+| `--tty` | off | Allocate a terminal |
+| `--stdin` | off | Keep standard input open |
+| `--env NAME` | `[]` | Pass the variable NAME with the value it has here (repeatable); the value never appears in a command line |
+| `COMMAND` | *(required)* | The command and its arguments |
+
+<!-- end generated -->
+
+```sh
+uv run ssebench runs exec 20260929-153012-a1b2c3 --tty -- bash
+```
+
+A backend that cannot run commands in a run exits with status 1.
+
+### `ssebench runs results`
+
+<!-- generated: cli runs results -->
+
+```sh
+ssebench runs results [-h] [--json] [--dir DIR]
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `--json` | off | Print JSON instead of text |
+| `--dir DIR` | results in the working directory | The results directory |
+
+<!-- end generated -->
+
+It reads the `summary.json` of every run directory under the results directory,
+at any depth, and needs no backend and no container. `--json` prints
+`{"runs": [...]}`, newest first, each with `run_id`, `task`, `model`, `agent`,
+`mode`, `reference_run`, `status` (the grade's), `started_at` and `dir`, the
+run directory. Directories without a `summary.json`, such as a run in progress,
+and summaries that do not parse are left out.
 
 ## `ssebench build-case`
 
