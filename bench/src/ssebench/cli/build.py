@@ -1,10 +1,9 @@
 """Build commands for SSEBench CLI."""
 
 import logging
-import subprocess
 from pathlib import Path
 
-from ssebench.pipe import build_pipe
+from ssebench.pipe import ImageBuildError, build_pipe
 from ssebench.tasks import LocalTask
 from ssebench.tasks.task import Task
 
@@ -91,6 +90,6 @@ def build_case_image(task: Task, force: bool = False) -> bool:
         build_pipe([task])
         logger.info(f"Successfully built {task.docker_image_name}")
         return True
-    except subprocess.CalledProcessError as e:
+    except ImageBuildError as e:
         logger.error(f"Failed to build case image for {task.name}: {e}")
         return False
