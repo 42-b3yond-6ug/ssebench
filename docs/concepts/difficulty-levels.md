@@ -50,12 +50,29 @@ this order:
    When the intent tests pass, the functional tests count as passed without
    running.
 
-Steps the level disables are skipped and count as passed. So at level 4,
-`test_patch` runs nothing and always answers
-`Test succeeded: All checks passed.`; at level 3, it reports success whenever
-the project builds. When a check fails, the answer names it and includes the
-check's output. The [MCP server reference](/reference/mcp-server#the-test-patch-tool)
-lists the exact messages.
+Steps the level disables are not run, and they are not reported as passed
+either. The answer lists the checks that ran with their outcome, then names
+the checks that this level makes unavailable, for example at the default
+level, on a tree that builds and passes the project's tests:
+
+```
+test_patch result: every check that ran passed.
+
+Checks:
+- build: passed
+- functional tests: passed
+
+Not available at difficulty level 2 (NO_FUTURE_TEST): PoCs, intent tests. Nothing is reported about them. Without the PoCs, this result does not show whether the vulnerability is fixed.
+```
+
+That tree can still contain the vulnerability. The answer never calls the patch
+valid and never tells the agent to stop, at any level: a pass means that the
+checks listed passed. At level 3 only the build runs. At level 4 nothing runs,
+and the answer says `test_patch result: no checks ran.` and that it says
+nothing about the patch. When a check fails, the answer names it, marks the
+checks after a failed build as not run, and includes the failed check's output.
+The [MCP server reference](/reference/mcp-server#return-value) has the exact
+format and an example for each level.
 
 ## Where the level is enforced
 

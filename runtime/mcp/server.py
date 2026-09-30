@@ -19,7 +19,7 @@ def build_mcp(config: McpConfig):
     async def test_patch(ctx: Context) -> str:  # pyright: ignore[reportUnusedFunction]
         try:
             result = await test_patch_internal(config.test_tool_config)
-            await ctx.debug(f"[mcp] Patch success={result.ok()}")
+            await ctx.debug(f"[mcp] Checks that ran passed={result.ok()}")
             return str(result)
         except Exception:
             return INTERNAL_ERROR_PROMPT
