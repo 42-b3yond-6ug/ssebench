@@ -68,8 +68,8 @@ The CLI installs the plugin in the tool image and enables it for this run. In
 the run directory, `results/gjson-196-bf4efcb/claude-sonnet-4-6/dummy/`:
 
 - `diffstat/diffstat.txt` is the plugin's output;
-- `plugins/diffstat.log` has its standard output and error;
-- `plugins/results.json` records how it ended:
+- `archive/plugins/diffstat.log` has its standard output and error;
+- `archive/plugins/results.json` records how it ended:
 
 ```json
 [
@@ -85,7 +85,7 @@ the run directory, `results/gjson-196-bf4efcb/claude-sonnet-4-6/dummy/`:
 ```
 
 The summary, `summary.json` in the run directory, lists it
-in `config.plugins`. `result.json` is the same as without the plugin.
+in `config.plugins` and its outcome in `plugin_results`. `result.json` is the same as without the plugin.
 
 To run it in every run, set `enabled: true`.
 
@@ -127,7 +127,10 @@ readable by root, so Python plugins use the grading hooks.
 With `llm: true`, the plugin also gets `SSE_BASE_URL`, `SSE_API_KEY` and
 `SSE_MODEL_NAME`, the run's model through the LiteLLM proxy. Check that they
 are set and exit with 0 when they are not, as `runtime/plugins/oracle/main.py`
-does, so the plugin does nothing without a model instead of failing.
+does, so the plugin does nothing without a model instead of failing. Write the
+reason to the file named by `SSE_PLUGIN_SKIP_FILE` before you exit, so the run
+says that the plugin was [skipped](/concepts/plugins-and-hooks#skipping) and
+why.
 
 ## Rules
 
@@ -136,5 +139,5 @@ does, so the plugin does nothing without a model instead of failing.
 - In the agent phase, do not give the agent anything it could not reach itself;
   running as `model` already keeps the task files out of reach.
 - Write only under `SSE_ARCHIVE`, in a folder named after the plugin.
-- Exit with 0 when there is nothing to do; a non-zero status is recorded as a
-  failure.
+- Exit with 0 when there is nothing to do, after writing the reason to
+  `SSE_PLUGIN_SKIP_FILE`; a non-zero status is recorded as a failure.

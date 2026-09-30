@@ -3,6 +3,7 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, Field, model_validator
 
+from ssebench.runner.plugin_report import PluginOutcome
 from ssebench.tasks.metadata import TaskMetadata
 
 GradeStatus = Literal["passed", "failed", "error"]
@@ -85,6 +86,8 @@ class PerTaskEvaluationResult(BaseModel):
     # was started, in UTC: what orders the runs of one task, model and agent.
     run_id: str | None = None
     started_at: datetime | None = None
+    # How each plugin that ran ended, from the container's plugin report.
+    plugin_results: list[PluginOutcome] = []
 
     @classmethod
     def build(

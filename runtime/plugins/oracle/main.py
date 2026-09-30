@@ -36,10 +36,19 @@ def output_dir() -> Path:
     return archive / "oracle"
 
 
+def report_skipped(reason: str) -> None:
+    logger.warning("%s; skipping", reason)
+    # The entrypoint records the plugin as skipped and logs the reason on the
+    # run's console; the file is only set when the entrypoint runs the plugin.
+    skip_file = os.environ.get("SSE_PLUGIN_SKIP_FILE")
+    if skip_file:
+        Path(skip_file).write_text(reason + "\n")
+
+
 def llm_ready() -> bool:
     missing = [v for v in LLM_VARS if not os.environ.get(v)]
     if missing:
-        logger.warning("No LLM configured (%s unset); skipping", ", ".join(missing))
+        report_skipped(f"No LLM configured ({', '.join(missing)} unset)")
         return False
     return True
 

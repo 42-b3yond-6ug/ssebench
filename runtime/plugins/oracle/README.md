@@ -22,8 +22,10 @@ refuses to run as root in the agent's repository. It writes its outputs under
 ## Requirements
 
 - **A model.** The plugin declares `llm: true`, so it receives the run's
-  `SSE_API_KEY`, `SSE_BASE_URL` and `SSE_MODEL_NAME`. Without them it logs a
-  warning and exits without doing anything, so it is disabled by default.
+  `SSE_API_KEY`, `SSE_BASE_URL` and `SSE_MODEL_NAME`. Without them it says so and exits without doing anything: the
+  run's console shows `Plugin skipped` with the reason, and the plugin is
+  recorded as `skipped` in `plugin_results` of `summary.json`. It is disabled
+  by default.
 - **OpenCode**, which the sandbox tool image already includes.
 - **Fuzzing is opt-in.** Set `SSE_ORACLE_FUZZ=1` to run the fuzzing stage after
   the review. It installs and runs AFL++, so the run needs `--egress open`.

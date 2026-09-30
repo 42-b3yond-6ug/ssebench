@@ -31,6 +31,7 @@ from ssebench.extensions import DEFAULT_BACKEND, DEFAULT_TOOL_LAYER, get_backend
 from ssebench.models import Model, NoModel
 from ssebench.runner.layout import SUMMARY_FILE, mark_latest, new_run_id, run_dir
 from ssebench.runner.lifecycle import execute
+from ssebench.runner.plugin_report import read_plugin_report
 from ssebench.runner.reference import (
     is_reference_run,
     reference_artifacts,
@@ -131,6 +132,7 @@ def record_results(
         run_id=run_id,
         started_at=started_at,
     )
+    per_task_result.plugin_results = read_plugin_report(evaluator_file.parent / ARCHIVE_DIR)
     replace_file(evaluator_file.with_name(SUMMARY_FILE), per_task_result.model_dump_json())
 
 
