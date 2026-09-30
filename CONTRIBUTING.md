@@ -149,6 +149,7 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent reference
 | `webui/` | TypeScript, Go | Web UI and its terminal proxy. |
 | `datasets/pilot/` | mixed | The pilot tasks, `dataset.yaml`, the generated `manifest.json`, `third_party.json` and the `THIRD_PARTY.md` generated from it. |
 | `datasets/schema/` | JSON | JSON Schemas of the task config, `dataset.yaml` and the manifest, generated from the CLI's models. |
+| `tools/` | shell, Python, Typst | Task preprocessing (`bear`), the third-party license file (`dataset`), reference docs generation (`docs`), version bumps (`release`), reports (`report`). |
 | `tests/` | Python, shell | End-to-end smoke run, integrity bypass suite, offline test of every agent. |
 | `docs/` | Markdown | Documentation site (VitePress). |
 | `deploy/` | YAML | Deployment configurations (Docker Compose). |
