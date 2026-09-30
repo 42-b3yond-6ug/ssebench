@@ -74,19 +74,24 @@ them. The models defined now:
 
 | `--model` | LiteLLM model | Key | File |
 |---|---|---|---|
+| `claude-fable-5-1` | `anthropic/claude-fable-5-1` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
 | `claude-opus-5-5` | `anthropic/claude-opus-5-5` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
 | `claude-sonnet-5-5` | `anthropic/claude-sonnet-5-5` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
-| `claude-opus-4-6` | `anthropic/claude-opus-4-6` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
-| `claude-sonnet-4-6` | `anthropic/claude-sonnet-4-6` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
-| `claude-opus-4-5` | `anthropic/claude-opus-4-5` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
-| `claude-sonnet-4-5` | `anthropic/claude-sonnet-4-5` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
 | `claude-haiku-4-5` | `anthropic/claude-haiku-4-5` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
+| `claude-opus-5` | `anthropic/claude-opus-5` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
+| `claude-sonnet-5` | `anthropic/claude-sonnet-5` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
+| `claude-opus-4-8` | `anthropic/claude-opus-4-8` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
+| `claude-sonnet-4-6` | `anthropic/claude-sonnet-4-6` | `ANTHROPIC_API_KEY` | `models/anthropic-claude.yaml` |
 | `gemini-3.1-pro` | `gemini/gemini-3.1-pro-preview` | `GOOGLE_API_KEY` | `models/google-gemini.yaml` |
-| `gemini-3-flash` | `gemini/gemini-3-flash-preview` | `GOOGLE_API_KEY` | `models/google-gemini.yaml` |
-| `gpt-5.2` | `openai/gpt-5.2` | `OPENAI_API_KEY` | `models/openai-gpt.yaml` |
+| `gemini-3.8-flash` | `gemini/gemini-3.8-flash` | `GOOGLE_API_KEY` | `models/google-gemini.yaml` |
+| `gemini-3.5-flash-lite` | `gemini/gemini-3.5-flash-lite` | `GOOGLE_API_KEY` | `models/google-gemini.yaml` |
+| `gpt-6-astra` | `openai/gpt-6-astra` | `OPENAI_API_KEY` | `models/openai-gpt.yaml` |
+| `gpt-6.1-sol` | `openai/gpt-6.1-sol` | `OPENAI_API_KEY` | `models/openai-gpt.yaml` |
+| `gpt-6-luna` | `openai/gpt-6-luna` | `OPENAI_API_KEY` | `models/openai-gpt.yaml` |
+| `gpt-5.6-sol` | `openai/gpt-5.6-sol` | `OPENAI_API_KEY` | `models/openai-gpt.yaml` |
+| `gpt-5.5` | `openai/gpt-5.5` | `OPENAI_API_KEY` | `models/openai-gpt.yaml` |
+| `gpt-5.3-codex` | `openai/gpt-5.3-codex` | `OPENAI_API_KEY` | `models/openai-gpt.yaml` |
 | `gpt-5.1` | `openai/gpt-5.1` | `OPENAI_API_KEY` | `models/openai-gpt.yaml` |
-| `gpt-5.1-codex-max` | `openai/gpt-5.1-codex-max` | `OPENAI_API_KEY` | `models/openai-gpt.yaml` |
-| `gpt-5.1-codex` | `openai/gpt-5.1-codex` | `OPENAI_API_KEY` | `models/openai-gpt.yaml` |
 
 <!-- end generated -->
 
