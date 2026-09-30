@@ -119,7 +119,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     # Reject an unknown or broken agent, an unknown model and a missing provider key before the
     # proxy starts or anything is built.
     # A sidecar agent image is built on the task-independent runtime image, so every task shares it.
-    agent = Agent(args.agent, task_name=task.name if args.mode == "sandbox" else "sidecar")
+    agent = Agent(args.agent, task_name=task.name if args.mode == "sandbox" else "sidecar", platform=task.platform)
     if args.model is not None and not reference_run:
         require_defined(args.model)
         if args.agent not in KEYLESS_AGENTS:

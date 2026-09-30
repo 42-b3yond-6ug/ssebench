@@ -21,6 +21,7 @@ import requests
 from pydantic import ValidationError
 
 from ssebench import paths, settings
+from ssebench.arch import Arch, platform_args
 from ssebench.pipe import REGISTRY
 from ssebench.tasks.manifest import IMAGES_LOCK, ImagesLock, Manifest, ManifestTask, files_digest, task_files
 from ssebench.tasks.metadata import TaskMetadata
@@ -248,7 +249,7 @@ class CatalogTask(Task):
         source = self.docker_image_name if self.digest is None else self.catalog.image_ref(self.entry)
         if not self.build_locally:
             logger.info(f"Pulling case image {source}...")
-            if subprocess.run(["docker", "pull", source]).returncode == 0:
+            if subprocess.run(["docker", "pull", *platform_args(self.platform), source]).returncode == 0:
                 if source != self.docker_image_name:
                     _ = subprocess.run(["docker", "tag", source, self.docker_image_name], check=True)
                 return
@@ -260,12 +261,16 @@ class CatalogTask(Task):
             )
         if not self.build_locally:
             logger.warning(f"Cannot pull {source}; building it from {folder} instead")
-        docker_build_case(folder, self.docker_image_name)
+        docker_build_case(folder, self.docker_image_name, self.platform)
 
     @override
     def case_image_exists(self) -> bool:
         """Catalog images are pulled on demand; treat them as always available."""
         return True
+
+    @override
+    def supported_arches(self) -> list[Arch]:
+        return list(self.entry.arch)
 
     @override
     def task_folder(self) -> Path | None:

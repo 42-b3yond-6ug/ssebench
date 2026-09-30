@@ -3,14 +3,15 @@
 import json
 from pathlib import Path
 
-from ssebench.tasks.manifest import Arch, Check, Manifest, ManifestTask, case_image_name, task_files
+from ssebench.arch import Arch
+from ssebench.tasks.manifest import Check, Manifest, ManifestTask, case_image_name, task_files
 from ssebench.tasks.metadata import TaskMetadata
 
 from .validate import DatasetReport, TaskReport, validate_dataset
 
 MANIFEST = "manifest.json"
 
-# The tool layers build the entrypoint for amd64 only.
+# Case images are built and verified for amd64 only: many C tasks build with AddressSanitizer for x86-64.
 DEFAULT_ARCH: list[Arch] = ["amd64"]
 
 

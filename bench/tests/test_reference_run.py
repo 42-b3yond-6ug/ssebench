@@ -132,6 +132,7 @@ def test_reference_run_mounts_the_patch_from_the_case_image(
     assert copy[-2] == "container-id:/ssebench/diffs/patch.diff"
     [create] = [cmd for cmd in docker.commands if cmd[:2] == ["docker", "create"]]
     assert task.docker_image_name in create
+    assert create[create.index("--platform") + 1] == task.platform
 
     [agent_run] = [cmd for cmd in docker.runs() if "registry.test/agent-image" in cmd]
     [mount] = [m for m in mounts(agent_run) if REFERENCE_PATCH_PATH in m]
