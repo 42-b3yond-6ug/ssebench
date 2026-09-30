@@ -29,7 +29,7 @@ RUN target="$(cat /rust-target)" && \
     cp "target/$target/release/ssebench-daemon" /ssebench-daemon
 
 
-FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS entrypoint-builder
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS entrypoint-builder
 WORKDIR /build
 COPY runtime/entrypoint/go.mod runtime/entrypoint/go.sum ./
 RUN go mod download
