@@ -32,8 +32,7 @@ A reference run grades the task, not a model, so it is never counted as a
 model's score:
 
 - the run records the model as `none`, so its results go to
-  `results/<task>/none/reference/` and `results/<task>-reference-none.json`,
-  with no spend;
+  `results/<task>/none/reference/<run-id>/`, with no spend;
 - `result.json` and the summary have `config.agent: "reference"` and
   `config.reference_run: true`;
 - the container carries the label `ssebench.reference-run=true`, and the web

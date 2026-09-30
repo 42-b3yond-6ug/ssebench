@@ -371,8 +371,8 @@ The two agents bracket a sound task. The `reference` agent applies
 uv run ssebench run --local datasets/pilot --task <task-id> --agent reference
 uv run ssebench run --local datasets/pilot --task <task-id> --agent dummy --model claude-sonnet-4-6
 
-jq -c '.patch_result | del(.error_log)' results/<task-id>/none/reference/result.json
-jq -c '.patch_result | del(.error_log)' results/<task-id>/claude-sonnet-4-6/dummy/result.json
+jq -c '.patch_result | del(.error_log)' results/<task-id>/none/reference/latest/result.json
+jq -c '.patch_result | del(.error_log)' results/<task-id>/claude-sonnet-4-6/dummy/latest/result.json
 ```
 
 For a sound task, such as a copy of `gjson-196-bf4efcb`, the two grades are:

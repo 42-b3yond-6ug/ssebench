@@ -486,9 +486,9 @@ bridge; see [Integrity and egress](/deployment/integrity-and-egress).
 
 ### Result files
 
-`ssebench run` mounts `results/<task>/<model>/<agent>/`, under the working
-directory, at `SSE_RESULTS` (root-only), and its `archive/` subdirectory at
-`SSE_ARCHIVE` (the agent's). The run directory is emptied before each run.
+`ssebench run` mounts the run directory, `results/<task>/<model>/<agent>/<run-id>/`
+under the working directory, at `SSE_RESULTS` (root-only), and its `archive/`
+subdirectory at `SSE_ARCHIVE` (the agent's). Every run has a new directory.
 [Results format](/concepts/results) describes every file.
 
 | File | Written by | Contents |
@@ -533,7 +533,7 @@ The evaluator writes `patch_result` and `runtime_result`; after the container
 exits, `ssebench run` adds the run settings as `config`. If the container
 leaves `result.json` empty, `ssebench run` records an ungraded run, `status`
 `error`, with the error `No result: evaluator did not produce output`. It then
-writes the summary, `results/<task>-<agent>-<model>.json`: the task metadata
+writes the summary, `summary.json` in the run directory: the task metadata
 (`task`), the run settings (`config`: `agent`, `model`, `mode`, `timeout`,
 `difficulty`, `tool_layer`, `egress` and `reference_run`), `patch_result`,
 `runtime_result` and the model `spend` in US dollars. `reference_run` is `true`

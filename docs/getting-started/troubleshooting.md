@@ -245,7 +245,7 @@ Fix the key in `.env`, restart the proxy with `ssebench proxy up`, and run again
   needs `--egress open`; see [Integrity and egress](/deployment/integrity-and-egress).
 - **A run takes a long time.** The agent works until it stops or reaches
   `--timeout` (3600 seconds by default). `agent.log` and `daemon.log` in
-  `results/<task>/<model>/<agent>/` grow while it works, and the [web UI](/webui/)
+  `results/<task>/<model>/<agent>/latest/` grow while it works, and the [web UI](/webui/)
   shows the dialog live.
 - **You want to clean up.** `just stop` stops the proxy and keeps its database,
   and `just demo-down` removes the demo. Run containers that were kept for the

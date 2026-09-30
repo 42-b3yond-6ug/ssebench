@@ -265,12 +265,12 @@ level=INFO service=ssebench msg="Agent finished" status=0
 
 ### 6. Read the results
 
-The run writes `results/gjson-196-bf4efcb/claude-sonnet-4-6/example-shell/`;
-see [Results format](/concepts/results). Three files matter for an agent:
+The run writes `results/gjson-196-bf4efcb/claude-sonnet-4-6/example-shell/<run-id>/`,
+which `latest` in `example-shell/` links to; see [Results format](/concepts/results). Three files matter for an agent:
 
 - `agent.log` holds the agent's standard output and error. This agent prints
   nothing, so it is empty.
-- `dialog.jsonl` is what the web UI shows:
+- `archive/dialog.jsonl` is what the web UI shows:
 
   ```text
   {"seq": 0, "type": "init", "data": {"task": "gjson-196-bf4efcb", "cwd": "/src/gjson", "model": "claude-sonnet-4-6", "agent": "example-shell"}, ...}
@@ -285,7 +285,7 @@ see [Results format](/concepts/results). Three files matter for an agent:
   agent changed nothing.
 
   ```sh
-  jq -c '.patch_result | del(.error_log)' results/gjson-196-bf4efcb/claude-sonnet-4-6/example-shell/result.json
+  jq -c '.patch_result | del(.error_log)' results/gjson-196-bf4efcb/claude-sonnet-4-6/example-shell/latest/result.json
   ```
 
   ```json

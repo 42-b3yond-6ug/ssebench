@@ -36,7 +36,7 @@ up: that directory holds `.env` and `models/`, and `results/` is written there.
 
 The first run of a task pulls its case image and builds the tool and agent
 layers on top of it, which takes a few minutes. The results are in
-`results/<task>/<model>/<agent>/`.
+`results/<task>/<model>/<agent>/<run-id>/`, a directory of its own for each run.
 
 ## Versions
 

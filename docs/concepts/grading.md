@@ -170,7 +170,8 @@ output`). Such a run says nothing about the patch: it is never a success. Count
 it apart from failures, or run it again.
 
 `just report` shows, for each agent and model, the share of runs that passed
-each check.
+each check; it counts the latest run of each task, or every run if you ask, see
+[Reports](/concepts/results#reports).
 
 ## Time limit
 
