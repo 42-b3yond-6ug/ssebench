@@ -44,12 +44,17 @@ for arg in "$@"; do printf '%s\\n' "$arg"; done >> "$${logVar}"
 printf '%s\\n' '--' >> "$${logVar}"
 `
 
-export function inspectJson(labels: Record<string, string>, id = FULL_ID) {
+export function inspectJson(
+  labels: Record<string, string>,
+  id = FULL_ID,
+  status = "running",
+  env: string[] = []
+) {
   return JSON.stringify([
     {
       Id: id,
-      State: { Status: "running" },
-      Config: { Labels: labels },
+      State: { Status: status },
+      Config: { Labels: labels, Env: env },
       NetworkSettings: {
         Networks: { ssebench_net: { IPAddress: "172.30.0.5" } },
       },
@@ -84,6 +89,26 @@ export function createFakes(): Fakes {
   const repo = join(dir, "repo")
   mkdirSync(join(repo, "models"), { recursive: true })
   mkdirSync(join(repo, "agents", "dummy"), { recursive: true })
+  mkdirSync(join(repo, "agents", "reference"), { recursive: true })
+  mkdirSync(join(repo, "runtime", "plugins"), { recursive: true })
+  writeFileSync(
+    join(repo, "runtime", "plugins", "plugins.yaml"),
+    [
+      "# comment",
+      "- name: artifact",
+      "  enabled: false",
+      "  hook: after-grading",
+      "  llm: false",
+      "  timeout: 5",
+      "",
+      "- name: oracle",
+      "  enabled: true",
+      "  hook: after-grading",
+      "  llm: true",
+      "  timeout: 60",
+      "",
+    ].join("\n")
+  )
   mkdirSync(join(repo, "datasets", "pilot", "demo-task-1"), {
     recursive: true,
   })

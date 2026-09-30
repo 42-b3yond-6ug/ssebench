@@ -14,20 +14,23 @@ import { spawn, type ServerWebSocket, type Subprocess } from "bun"
 import { readdirSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
 import { loadCatalogTasks, resolveCatalog, type CatalogTask } from "./catalog"
+import { ssebenchPath } from "./config"
 import { listContainers } from "./docker"
 
 // =============================================================================
 // Configuration
 // =============================================================================
 
-// Root of the SSEBench checkout: `uv run ssebench` runs here, and models/
-// and agents/ are read from here. The webui lives in webui/ at that root.
-const SSEBENCH_PATH =
-  process.env.SSEBENCH_PATH || join(import.meta.dir, "..", "..")
+// Read once: the paths below do not change while the server runs.
+const SSEBENCH_PATH = ssebenchPath()
 export const LOCAL_TASKS_PATH =
   process.env.SSEBENCH_LOCAL_TASKS || join(SSEBENCH_PATH, "datasets", "pilot")
 const MODELS_PATH = join(SSEBENCH_PATH, "models")
 const AGENTS_PATH = join(SSEBENCH_PATH, "agents")
+const PLUGINS_FILE = join(SSEBENCH_PATH, "runtime", "plugins", "plugins.yaml")
+
+/** The agent that applies the task's known fix and makes no model calls */
+export const REFERENCE_AGENT = "reference"
 
 // Task catalog for the "Catalog" source, handed to the CLI as --catalog so
 // that both read the same one.
@@ -47,12 +50,16 @@ type Task = CatalogTask
 
 export interface LaunchConfig {
   task: string
-  model: string
+  /** Absent for the reference agent, which uses none */
+  model?: string
   agent: string
   mode: "sandbox" | "sidecar"
   source: "local" | "remote"
   timeout?: number
   difficulty?: number
+  egress?: "restricted" | "open"
+  /** Plugins to run instead of those plugins.yaml enables; sandbox mode only */
+  plugins?: string[]
 }
 
 interface LaunchStatus {
@@ -175,19 +182,31 @@ function startContainerCheck(launchId: string): void {
       return
     }
 
-    try {
-      const containers = await listContainers()
-      const match = containers.find((c) => c.taskId === e.status.taskId)
-      if (match) {
-        console.log(
-          `[launch:${launchId}] Container ready: ${match.id} (task: ${e.status.taskId})`
-        )
-        setLaunchRunning(launchId, match.id)
-      }
-    } catch (error) {
-      console.error(`[launch:${launchId}] Failed to check containers:`, error)
-    }
+    await findRunContainer(launchId)
   }, 2000)
+}
+
+/**
+ * Look for the container of a launch by the run ID it passed to the CLI and
+ * mark the launch running when it exists. Task IDs do not identify a run:
+ * other launches, other users and other Compose projects share them.
+ */
+export async function findRunContainer(launchId: string): Promise<boolean> {
+  const entry = launches.get(launchId)
+  if (!entry || entry.status.status !== "launching") return false
+  try {
+    const containers = await listContainers()
+    const match = containers.find((c) => c.runId === launchId)
+    if (!match) return false
+    console.log(
+      `[launch:${launchId}] Container ready: ${match.id} (task: ${entry.status.taskId})`
+    )
+    setLaunchRunning(launchId, match.id)
+    return true
+  } catch (error) {
+    console.error(`[launch:${launchId}] Failed to check containers:`, error)
+    return false
+  }
 }
 
 function stopContainerCheck(launchId: string): void {
@@ -284,6 +303,42 @@ export function getAgents(): string[] {
   }
 }
 
+export interface PluginInfo {
+  name: string
+  /** plugins.yaml runs it in every run */
+  enabled: boolean
+  hook: string
+  /** It gets the run's LiteLLM endpoint, key and model */
+  llm: boolean
+}
+
+/**
+ * The plugins that runtime/plugins/plugins.yaml declares, in file order. The
+ * file is a flat list of `- name:` entries, and `ssebench run` validates it.
+ */
+export function getPlugins(): PluginInfo[] {
+  if (!existsSync(PLUGINS_FILE)) return []
+  try {
+    const plugins: PluginInfo[] = []
+    for (const line of readFileSync(PLUGINS_FILE, "utf-8").split("\n")) {
+      const name = line.match(/^-\s+name:\s*([A-Za-z0-9._-]+)\s*$/)
+      if (name) {
+        plugins.push({ name: name[1], enabled: false, hook: "", llm: false })
+        continue
+      }
+      const field = line.match(/^\s+(enabled|hook|llm):\s*([A-Za-z0-9-]+)\s*$/)
+      const current = plugins[plugins.length - 1]
+      if (!field || !current) continue
+      if (field[1] === "hook") current.hook = field[2]
+      else current[field[1] as "enabled" | "llm"] = field[2] === "true"
+    }
+    return plugins
+  } catch (error) {
+    console.error("Failed to read plugins:", error)
+    return []
+  }
+}
+
 export function hasLocalBenchmarks(): boolean {
   return getLocalTasks().length > 0
 }
@@ -310,10 +365,11 @@ export function validateLaunchConfig(input: unknown): LaunchValidation {
   if (typeof input !== "object" || input === null) {
     return fail("Invalid launch request")
   }
-  const { task, model, agent, mode, source, timeout, difficulty } =
+  const { task, model, agent, mode, source, timeout, difficulty, egress } =
     input as Record<string, unknown>
+  const plugins = (input as Record<string, unknown>).plugins
 
-  if (!task || !model || !agent || !mode || !source) {
+  if (!task || !agent || !mode || !source) {
     return fail("Missing required fields")
   }
   if (source !== "local" && source !== "remote") {
@@ -322,11 +378,16 @@ export function validateLaunchConfig(input: unknown): LaunchValidation {
   if (mode !== "sandbox" && mode !== "sidecar") {
     return fail("Invalid mode: expected sandbox or sidecar")
   }
-  if (typeof model !== "string" || !getModels().includes(model)) {
-    return fail("Unknown model")
-  }
   if (typeof agent !== "string" || !getAgents().includes(agent)) {
     return fail("Unknown agent")
+  }
+  // The reference agent makes no model calls; any model sent is ignored.
+  const needsModel = agent !== REFERENCE_AGENT
+  if (needsModel) {
+    if (!model) return fail("Missing required fields")
+    if (typeof model !== "string" || !getModels().includes(model)) {
+      return fail("Unknown model")
+    }
   }
   if (typeof task !== "string" || !TASK_ID_PATTERN.test(task)) {
     return fail("Invalid task ID")
@@ -338,7 +399,30 @@ export function validateLaunchConfig(input: unknown): LaunchValidation {
     return fail(CATALOG_NOT_CONFIGURED)
   }
 
-  const config: LaunchConfig = { task, model, agent, mode, source }
+  const config: LaunchConfig = { task, agent, mode, source }
+  if (needsModel) config.model = model as string
+  if (egress !== undefined && egress !== null) {
+    if (egress !== "restricted" && egress !== "open") {
+      return fail("Invalid egress: expected restricted or open")
+    }
+    config.egress = egress
+  }
+  if (plugins !== undefined && plugins !== null) {
+    if (
+      !Array.isArray(plugins) ||
+      !plugins.every((name) => typeof name === "string")
+    ) {
+      return fail("Invalid plugins: expected a list of plugin names")
+    }
+    const known = getPlugins().map((p) => p.name)
+    if (!plugins.every((name) => known.includes(name))) {
+      return fail("Unknown plugin")
+    }
+    if (plugins.length > 0 && mode !== "sandbox") {
+      return fail("Plugins apply to sandbox mode only")
+    }
+    if (plugins.length > 0) config.plugins = [...new Set(plugins)]
+  }
   if (timeout !== undefined && timeout !== null) {
     if (
       typeof timeout !== "number" ||
@@ -368,19 +452,19 @@ export function validateLaunchConfig(input: unknown): LaunchValidation {
 
 /**
  * Arguments for `uv` that run one benchmark. Values are attached with `=`
- * so none can be read as an option of its own.
+ * so none can be read as an option of its own. `runId` labels the run's
+ * containers, so the launch can tell them from every other container.
  */
-export function buildLaunchArgs(config: LaunchConfig): string[] {
-  const args = [
-    "run",
-    "ssebench",
-    "run",
-    `--model=${config.model}`,
+export function buildLaunchArgs(config: LaunchConfig, runId: string): string[] {
+  const args = ["run", "ssebench", "run"]
+  if (config.model !== undefined) args.push(`--model=${config.model}`)
+  args.push(
     `--agent=${config.agent}`,
     `--task=${config.task}`,
     `--mode=${config.mode}`,
-    "--keep-container",
-  ]
+    `--run-id=${runId}`,
+    "--keep-container"
+  )
 
   if (config.source === "local") {
     args.push(`--local=${LOCAL_TASKS_PATH}`)
@@ -394,6 +478,14 @@ export function buildLaunchArgs(config: LaunchConfig): string[] {
 
   if (config.difficulty !== undefined) {
     args.push(`--difficulty=${config.difficulty}`)
+  }
+
+  if (config.egress !== undefined) {
+    args.push(`--egress=${config.egress}`)
+  }
+
+  for (const plugin of config.plugins ?? []) {
+    args.push(`--plugin=${plugin}`)
   }
 
   return args
@@ -454,15 +546,20 @@ export function cancelLaunch(launchId: string): boolean {
   return true
 }
 
-/** Clear a specific launch entry */
+/**
+ * Clear a specific launch entry. Clearing a launch that has not reached its
+ * container stops it. Once the container exists the run belongs to the
+ * container, not to this entry: the CLI keeps running until the container
+ * stops, and then writes the run's summary and spend, so it is detached
+ * rather than killed.
+ */
 export function clearLaunchEntry(launchId: string): void {
   const entry = launches.get(launchId)
   if (!entry) return
 
   stopContainerCheck(launchId)
 
-  // Kill process if still running
-  if (entry.process) {
+  if (entry.process && entry.status.status === "launching") {
     try {
       entry.process.kill()
     } catch {
@@ -539,10 +636,11 @@ export function unsubscribeFromLaunch(ws: ServerWebSocket<unknown>): void {
  * `config` must come from validateLaunchConfig.
  */
 export async function launchTask(config: LaunchConfig): Promise<LaunchStatus> {
-  const args = buildLaunchArgs(config)
+  const launch_id = crypto.randomUUID()
+  // The launch ID is also the run ID that labels the run's containers
+  const args = buildLaunchArgs(config, launch_id)
   // For display only; the process is spawned from the argument vector
   const command = `uv ${args.join(" ")}`
-  const launch_id = crypto.randomUUID()
 
   // Initialize launch entry
   const status: LaunchStatus = {
@@ -586,8 +684,11 @@ export async function launchTask(config: LaunchConfig): Promise<LaunchStatus> {
 
     entry.process = proc
 
-    // Helper to add and broadcast a log line
+    // Helper to add and broadcast a log line. A detached run keeps writing
+    // to its pipes, which are read to the end so it never blocks on them,
+    // but its lines belong to no launch any more.
     const addLog = (line: string) => {
+      if (launches.get(launch_id) !== entry) return
       entry.output.push(line)
       if (entry.output.length > MAX_LAUNCH_OUTPUT_LINES) {
         entry.output.shift()
@@ -640,19 +741,26 @@ export async function launchTask(config: LaunchConfig): Promise<LaunchStatus> {
     }
 
     // Monitor process exit
-    proc.exited.then((exitCode) => {
+    proc.exited.then(async (exitCode) => {
       console.log(`[launch:${launch_id}] Process exited with code: ${exitCode}`)
 
       const e = launches.get(launch_id)
-      if (e && e.status.status === "launching" && exitCode !== 0) {
-        e.status.status = "failed"
-        e.status.error = `Process exited with code ${exitCode}`
-        broadcastStatus(launch_id)
-      }
-
       if (e) {
         e.process = null
       }
+      if (!e || e.status.status !== "launching") return
+
+      // A run that ended before the periodic check saw its container still
+      // has one; only a launch without a container has failed.
+      stopContainerCheck(launch_id)
+      if (await findRunContainer(launch_id)) return
+      if (e.status.status !== "launching") return
+      e.status.status = "failed"
+      e.status.error =
+        exitCode === 0
+          ? "The run ended without starting a container"
+          : `Process exited with code ${exitCode}`
+      broadcastStatus(launch_id)
     })
 
     return status

@@ -31,6 +31,11 @@ import { resolveContainer } from "./docker"
 /** Built from source by `bun run build:pty`; not checked in */
 const PTY_PROXY_BIN = join(import.meta.dir, "..", "pty-proxy", "pty-proxy")
 
+/** Whether the terminal helper is built; without it no terminal can open */
+export function ptyProxyBuilt(): boolean {
+  return existsSync(PTY_PROXY_BIN)
+}
+
 const config = {
   /** Interval for orphan cleanup (ms) */
   CLEANUP_INTERVAL: parseInt(process.env.PTY_CLEANUP_INTERVAL || "30000"), // 30s
@@ -180,7 +185,7 @@ export async function createPTYSession(
     return null
   }
 
-  if (!existsSync(PTY_PROXY_BIN)) {
+  if (!ptyProxyBuilt()) {
     sendMessage(ws, {
       type: "error",
       message:

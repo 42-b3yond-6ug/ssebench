@@ -4,13 +4,15 @@
  */
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-import { existsSync, rmSync } from "node:fs"
+import { existsSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import type { Subprocess } from "bun"
 import { version } from "../package.json"
 import {
   createFakes,
+  FULL_ID,
   injectionPayloads,
+  inspectJson,
   invocations,
   SHORT_ID,
   type Fakes,
@@ -163,6 +165,52 @@ describe("loopback server without a token", () => {
     expect(existsSync(fakes.marker)).toBe(false)
   })
 
+  test("stop and remove can be repeated, and act only on SSEBench containers", async () => {
+    const stop = () =>
+      fetch(`${server.base}/api/containers/${SHORT_ID}/stop`, {
+        method: "POST",
+      })
+    const remove = () =>
+      fetch(`${server.base}/api/containers/${SHORT_ID}/remove`, {
+        method: "POST",
+      })
+    // Present and running, then exited, then gone
+    for (const status of ["running", "exited"]) {
+      writeFileSync(
+        fakes.inspectFile,
+        inspectJson({ "ssebench.webui": "true" }, FULL_ID, status)
+      )
+      expect((await stop()).status).toBe(200)
+    }
+    expect((await remove()).status).toBe(200)
+    rmSync(fakes.inspectFile)
+    expect(await (await stop()).json()).toEqual({ stopped: true })
+    expect(await (await remove()).json()).toEqual({ removed: true })
+    // Not an SSEBench container
+    writeFileSync(fakes.inspectFile, inspectJson({ other: "label" }))
+    expect((await stop()).status).toBe(404)
+    expect((await remove()).status).toBe(404)
+    writeFileSync(fakes.inspectFile, inspectJson({ "ssebench.webui": "true" }))
+  })
+
+  test("health reports a terminal only when its helper is built", async () => {
+    const built = existsSync(
+      join(import.meta.dir, "..", "pty-proxy", "pty-proxy")
+    )
+    const health = (await (
+      await fetch(`${server.base}/api/health`)
+    ).json()) as {
+      terminal: boolean
+      terminalHint?: string
+    }
+    expect(health.terminal).toBe(built)
+    if (built) {
+      expect(health.terminalHint).toBeUndefined()
+    } else {
+      expect(health.terminalHint).toContain("bun run build:pty")
+    }
+  })
+
   test("launch payloads are rejected before uv runs", async () => {
     for (const field of ["task", "model", "agent", "mode", "source"]) {
       const res = await fetch(`${server.base}/api/launch`, {
@@ -196,6 +244,7 @@ describe("loopback server without a token", () => {
       }),
     })
     expect(res.status).toBe(200)
+    const { launch_id } = (await res.json()) as { launch_id: string }
     for (
       let i = 0;
       i < 50 && (await invocations(fakes.uvLog)).length === 0;
@@ -212,6 +261,7 @@ describe("loopback server without a token", () => {
         "--agent=dummy",
         "--task=demo-task-1",
         "--mode=sandbox",
+        `--run-id=${launch_id}`,
         "--keep-container",
         `--local=${fakes.env.SSEBENCH_LOCAL_TASKS}`,
       ],

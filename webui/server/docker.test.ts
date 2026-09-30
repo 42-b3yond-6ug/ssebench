@@ -76,8 +76,8 @@ describe("isContainerId", () => {
 describe("container operations", () => {
   test("injection payloads never reach docker or a shell", async () => {
     for (const payload of injectionPayloads(fakes.marker)) {
-      expect(await stopContainer(payload)).toBe(false)
-      expect(await removeContainer(payload)).toBe(false)
+      expect(await stopContainer(payload)).toBe("refused")
+      expect(await removeContainer(payload)).toBe("refused")
       expect(await getContainer(payload)).toBeNull()
       expect(await resolveContainer(payload)).toBeNull()
       expect(await getSDKUrl(payload)).toBeNull()
@@ -86,19 +86,50 @@ describe("container operations", () => {
     expect(existsSync(fakes.marker)).toBe(false)
   })
 
-  test("stop resolves the full ID, then kills and removes by argv", async () => {
-    expect(await stopContainer(SHORT_ID)).toBe(true)
+  test("stop resolves the full ID, then kills a running container by argv", async () => {
+    expect(await stopContainer(SHORT_ID)).toBe("ok")
     expect(await invocations(fakes.dockerLog)).toEqual([
       ["inspect", "--type", "container", SHORT_ID],
       ["kill", FULL_ID],
-      ["rm", FULL_ID],
     ])
+  })
+
+  test("remove resolves the full ID, then removes by argv, running or not", async () => {
+    writeFileSync(
+      fakes.inspectFile,
+      inspectJson({ "ssebench.webui": "true" }, FULL_ID, "exited")
+    )
+    expect(await removeContainer(SHORT_ID)).toBe("ok")
+    expect(await invocations(fakes.dockerLog)).toEqual([
+      ["inspect", "--type", "container", SHORT_ID],
+      ["rm", "--force", FULL_ID],
+    ])
+  })
+
+  test("stopping a container that is not running does nothing", async () => {
+    for (const status of ["exited", "created"]) {
+      writeFileSync(
+        fakes.inspectFile,
+        inspectJson({ "ssebench.webui": "true" }, FULL_ID, status)
+      )
+      expect(await stopContainer(SHORT_ID)).toBe("ok")
+    }
+    const calls = await invocations(fakes.dockerLog)
+    expect(calls.every((argv) => argv[0] === "inspect")).toBe(true)
+  })
+
+  test("stop and remove succeed again for a container that is gone", async () => {
+    rmSync(fakes.inspectFile)
+    expect(await stopContainer(SHORT_ID)).toBe("ok")
+    expect(await removeContainer(SHORT_ID)).toBe("ok")
+    const calls = await invocations(fakes.dockerLog)
+    expect(calls.every((argv) => argv[0] === "inspect")).toBe(true)
   })
 
   test("containers without the SSEBench label are off limits", async () => {
     writeFileSync(fakes.inspectFile, inspectJson({ other: "label" }))
-    expect(await stopContainer(SHORT_ID)).toBe(false)
-    expect(await removeContainer(SHORT_ID)).toBe(false)
+    expect(await stopContainer(SHORT_ID)).toBe("refused")
+    expect(await removeContainer(SHORT_ID)).toBe("refused")
     expect(await getSDKUrl(SHORT_ID)).toBeNull()
     const calls = await invocations(fakes.dockerLog)
     expect(calls.every((argv) => argv[0] === "inspect")).toBe(true)
@@ -110,6 +141,7 @@ describe("container operations", () => {
       inspectJson({ "ssebench.webui": "true" }, "f".repeat(64))
     )
     expect(await resolveContainer(SHORT_ID)).toBeNull()
+    expect(await stopContainer(SHORT_ID)).toBe("refused")
   })
 
   test("SDK URL comes from the container's network address", async () => {
@@ -147,6 +179,25 @@ describe("container operations", () => {
       ["reference", "none", true],
       ["dummy", "test-model", false],
     ])
+  })
+
+  test("listing reads the run ID label", async () => {
+    writeFileSync(
+      fakes.psFile,
+      JSON.stringify({
+        ID: "aaaaaaaaaaaa",
+        Names: "run",
+        Image: "agent-image",
+        Status: "Up 1 minute",
+        Ports: "",
+        Labels: "ssebench.webui=true,ssebench.run-id=6f1d2c3e",
+        CreatedAt: "2026-01-01 00:00:00 +0000 UTC",
+      })
+    )
+
+    const [container] = await listContainers()
+
+    expect(container.runId).toBe("6f1d2c3e")
   })
 
   test("listing filters on the SSEBench label", async () => {

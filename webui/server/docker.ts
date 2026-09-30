@@ -35,6 +35,7 @@ const TASK_ID_LABEL = "ssebench.task-id"
 const MODEL_LABEL = "ssebench.model"
 const AGENT_LABEL = "ssebench.agent"
 const REFERENCE_RUN_LABEL = "ssebench.reference-run"
+const RUN_ID_LABEL = "ssebench.run-id"
 
 /**
  * Parse Docker status string to normalized status
@@ -118,6 +119,7 @@ function transformContainer(raw: DockerPsJson): DockerContainer {
     model: labels[MODEL_LABEL] || "unknown",
     agent: labels[AGENT_LABEL] || "unknown",
     referenceRun: labels[REFERENCE_RUN_LABEL] === "true",
+    runId: labels[RUN_ID_LABEL] ?? null,
     status: parseStatus(raw.Status),
     image: raw.Image,
     ports: parsePorts(raw.Ports),
@@ -202,8 +204,61 @@ export interface ResolvedContainer {
 interface DockerInspect {
   Id: string
   State?: { Status?: string }
-  Config?: { Labels?: Record<string, string> | null }
+  Config?: { Labels?: Record<string, string> | null; Env?: string[] | null }
   NetworkSettings?: { Networks?: Record<string, { IPAddress?: string }> }
+}
+
+/**
+ * What a request-supplied ID names: an SSEBench container, no container at
+ * all (never created, or already removed), or something the web UI must not
+ * touch (a container without the SSEBench label, or a name that is not an ID).
+ */
+type Lookup =
+  | {
+      kind: "ours"
+      container: ResolvedContainer
+      /** The environment the container was created with */
+      env: Record<string, string>
+    }
+  | { kind: "missing" }
+  | { kind: "refused" }
+
+async function lookupContainer(id: string): Promise<Lookup> {
+  if (!isContainerId(id)) return { kind: "refused" }
+  let info: DockerInspect | undefined
+  try {
+    const stdout = await docker(["inspect", "--type", "container", id])
+    info = (JSON.parse(stdout) as DockerInspect[])[0]
+  } catch {
+    return { kind: "missing" }
+  }
+  // docker resolves names before ID prefixes; insist on an ID match.
+  if (!info || !info.Id.startsWith(id)) return { kind: "refused" }
+  if (info.Config?.Labels?.[SSEBENCH_LABEL] === undefined) {
+    return { kind: "refused" }
+  }
+
+  const ip =
+    Object.values(info.NetworkSettings?.Networks ?? {})
+      .map((n) => n.IPAddress)
+      .find((addr) => !!addr) ?? null
+
+  const env: Record<string, string> = {}
+  for (const entry of info.Config?.Env ?? []) {
+    const eq = entry.indexOf("=")
+    if (eq > 0) env[entry.slice(0, eq)] = entry.slice(eq + 1)
+  }
+
+  return {
+    kind: "ours",
+    env,
+    container: {
+      id: info.Id,
+      status: info.State?.Status ?? "unknown",
+      ip,
+      labels: info.Config?.Labels ?? {},
+    },
+  }
 }
 
 /**
@@ -213,29 +268,19 @@ interface DockerInspect {
 export async function resolveContainer(
   id: string
 ): Promise<ResolvedContainer | null> {
-  if (!isContainerId(id)) return null
-  let info: DockerInspect | undefined
-  try {
-    const stdout = await docker(["inspect", "--type", "container", id])
-    info = (JSON.parse(stdout) as DockerInspect[])[0]
-  } catch {
-    return null
-  }
-  // docker resolves names before ID prefixes; insist on an ID match.
-  if (!info || !info.Id.startsWith(id)) return null
-  if (info.Config?.Labels?.[SSEBENCH_LABEL] === undefined) return null
+  const found = await lookupContainer(id)
+  return found.kind === "ours" ? found.container : null
+}
 
-  const ip =
-    Object.values(info.NetworkSettings?.Networks ?? {})
-      .map((n) => n.IPAddress)
-      .find((addr) => !!addr) ?? null
-
-  return {
-    id: info.Id,
-    status: info.State?.Status ?? "unknown",
-    ip,
-    labels: info.Config?.Labels ?? {},
-  }
+/**
+ * The environment a container was created with (`SSE_BASE_URL` and the like),
+ * or null when it is not an SSEBench container.
+ */
+export async function containerEnv(
+  id: string
+): Promise<Record<string, string> | null> {
+  const found = await lookupContainer(id)
+  return found.kind === "ours" ? found.env : null
 }
 
 /**
@@ -251,37 +296,53 @@ export async function checkDockerAccess(): Promise<boolean> {
 }
 
 /**
- * Stop a container by ID - kills immediately and removes
- * @param id Container ID
- * @returns true if killed and removed successfully
+ * Outcome of stopping or removing a container. Both operations are idempotent:
+ * `ok` means the container is in the requested state afterwards, however it got
+ * there, so repeating a request or racing another one is harmless.
  */
-export async function stopContainer(id: string): Promise<boolean> {
-  const container = await resolveContainer(id)
-  if (!container) return false
+export type ContainerOp = "ok" | "refused" | "failed"
+
+const RUNNING_STATES = new Set(["running", "paused", "restarting"])
+
+/**
+ * Stop a container by ID: kill it if it is running and leave it on the list as
+ * exited. A container that is not running, or is gone, is already stopped.
+ */
+export async function stopContainer(id: string): Promise<ContainerOp> {
+  const found = await lookupContainer(id)
+  if (found.kind === "refused") return "refused"
+  if (found.kind === "missing") return "ok"
+  if (!RUNNING_STATES.has(found.container.status)) return "ok"
   try {
-    await docker(["kill", container.id])
-    await docker(["rm", container.id])
-    return true
+    await docker(["kill", found.container.id])
+    return "ok"
   } catch (error) {
-    console.error(`Failed to kill/remove container ${id}:`, error)
-    return false
+    // It may have exited between the inspect and the kill
+    const after = await lookupContainer(id)
+    if (after.kind === "missing") return "ok"
+    if (after.kind === "ours" && !RUNNING_STATES.has(after.container.status)) {
+      return "ok"
+    }
+    console.error(`Failed to kill container ${id}:`, error)
+    return "failed"
   }
 }
 
 /**
- * Remove a stopped container by ID
- * @param id Container ID
- * @returns true if removed successfully
+ * Remove a container by ID, running or not. A container that is gone is
+ * already removed.
  */
-export async function removeContainer(id: string): Promise<boolean> {
-  const container = await resolveContainer(id)
-  if (!container) return false
+export async function removeContainer(id: string): Promise<ContainerOp> {
+  const found = await lookupContainer(id)
+  if (found.kind === "refused") return "refused"
+  if (found.kind === "missing") return "ok"
   try {
-    await docker(["rm", container.id])
-    return true
+    await docker(["rm", "--force", found.container.id])
+    return "ok"
   } catch (error) {
+    if ((await lookupContainer(id)).kind === "missing") return "ok"
     console.error(`Failed to remove container ${id}:`, error)
-    return false
+    return "failed"
   }
 }
 
