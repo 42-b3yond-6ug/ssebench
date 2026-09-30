@@ -451,7 +451,8 @@ datasets/pilot/manifest.json is up to date
 The manifest records the dataset's version too. A new task changes the dataset,
 so bump `version` in `datasets/pilot/dataset.yaml` first (see
 [Dataset version](/dataset/manifest#dataset-version)), and update any text that
-states how many tasks `pilot` has, such as [The pilot dataset](/dataset/pilot).
+states how many tasks `pilot` has, such as [The pilot dataset](/dataset/pilot) and
+the [dataset card](https://github.com/42-b3yond-6ug/ssebench/blob/main/datasets/pilot/README.md).
 
 ## Before you open the pull request
 
