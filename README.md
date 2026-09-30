@@ -1,23 +1,55 @@
 # SSEBench
 
-SSEBench measures how well AI coding agents fix real security vulnerabilities.
+SSEBench is a framework of reinforcement-learning environments for AI coding
+agents on real security vulnerabilities, with verifiable rewards. The same
+environments make a benchmark.
 
 Every task is a publicly disclosed bug in an open-source C, Go or Rust project,
-paired with its upstream fix. SSEBench drops an agent into a Docker container
-with the vulnerable source tree and a small tool API for building and testing,
-lets it work until it stops or times out, and then grades the patch it leaves
-behind: does the project still build, does the proof-of-concept stop
-reproducing, and do the project's tests pass, including the tests that came
-with the upstream fix?
+paired with its upstream fix, and packaged as a self-contained Docker
+environment. SSEBench drops an agent into the container with the vulnerable
+source tree and a small tool API for building and testing, lets it work until
+it stops or times out, and then grades the patch it leaves behind: does the
+project still build, does the proof-of-concept stop reproducing, and do the
+project's tests pass, including the tests that came with the upstream fix? The
+grade comes from running code, not from a judge model, so it can serve as a
+reward for training a policy or as a score for comparing agents.
 
-Agents and models are decoupled. Any agent can run against any model, because
-all LLM traffic goes through a LiteLLM proxy.
+Models, agent harnesses and tasks plug in independently. Any agent can run
+against any model, because all LLM traffic goes through a LiteLLM proxy.
 
 [Quickstart](docs/getting-started/quickstart.md) ·
 [Try the demo](docs/getting-started/demo.md) ·
 [Documentation](docs/) ·
 [The pilot dataset](docs/dataset/pilot.md) ·
 [Contributing](CONTRIBUTING.md)
+
+## Environments, episodes and rewards
+
+| SSEBench | Reinforcement learning |
+|---|---|
+| a task: case image, build, PoC and test scripts, hidden tests | environment |
+| a model driving an agent harness (Claude Code, Codex, OpenCode, your own) | policy |
+| the issue or crash report the agent receives | initial observation |
+| one run of agent × model × task | episode (rollout) |
+| the `test_patch` tool, gated by the [difficulty level](#difficulty-levels) | feedback during the episode |
+| `result.json`: build, each PoC, functional tests, intent tests | reward |
+
+A reward is only useful if the policy cannot game it. Nothing the agent can
+reach while it works reveals the reference patch, the hidden tests or the
+upstream fix, and nothing it does changes how it is graded:
+
+- the agent runs as an unprivileged user; the reference patch, the hidden tests
+  and the grade are readable only by root;
+- the project's git history is replaced by a single commit, so the fix cannot
+  be recovered from `git log`;
+- the task's scripts run as a third user in a scratch copy of the project, and
+  every process the agent left running is killed before grading;
+- intent tests, the upstream tests that came with the fix, reject patches that
+  only silence the proof of concept;
+- a bypass suite (`tests/integrity/`) attacks these defenses from inside a run.
+
+Any way around this is a security bug; see
+[the integrity model](docs/concepts/integrity.md) and [SECURITY.md](SECURITY.md).
 
 ## What's inside
 
@@ -95,16 +127,11 @@ Inside the container, the entrypoint:
    grades them: build, every PoC, the functional tests, and the intent tests
    (the upstream tests that accompany the fix) where the task has them.
 
-Keeping the answer away from the agent is part of the design. The reference
-patch and hidden tests are readable only by root, the agent runs as an
-unprivileged user, and the project's git history is replaced by a single commit
-so the fix cannot be recovered from `git log`. Any way around this is a
-security bug; see [SECURITY.md](SECURITY.md).
-
 ### Difficulty levels
 
 The difficulty level decides which checks `test_patch` runs for the agent while
-it works. Final grading always runs every check the task has.
+it works, that is, how much feedback the policy gets during an episode. Final
+grading always runs every check the task has.
 
 | Level | Name | `test_patch` runs |
 |---|---|---|
