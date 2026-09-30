@@ -144,6 +144,10 @@ def docker_build_case(task_path: Path, image: str, platform: str | None = None) 
             f"SSEBENCH_REGISTRY={REGISTRY}",
             "--label",
             f"{FILES_LABEL}={task_files_digest(task_path)}",
+            # A provenance attestation records the build's time, so with the containerd image store
+            # every build, even a fully cached one, gets a new image ID, and `ssebench dataset verify`
+            # cannot tell that its two runs graded the same image.
+            "--provenance=false",
             "-t",
             image,
             "--load",

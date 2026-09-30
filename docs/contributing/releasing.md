@@ -333,7 +333,9 @@ that verifies a task publishes it, in the same job:
 - The image is the one that both runs graded, not a rebuild. The verifier
   records the ID of the local image after each run and fails the task when they
   differ; `ssebench dataset publish` refuses an image whose ID is not the
-  recorded one, and one that is not `amd64`.
+  recorded one, and one that is not `amd64`. Case images are built without a
+  provenance attestation: it records the time of the build, so with the
+  containerd image store every rebuild, even a cached one, would get a new ID.
 - The image is pushed as `pilot-v1-<commit>` (the dataset version and the first
   seven characters of the commit), and then as `pilot-v1`, so that the moving
   tag never leads the record. The tasks are `linux/amd64` only. A task that

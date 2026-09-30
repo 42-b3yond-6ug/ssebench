@@ -117,6 +117,18 @@ def test_the_case_image_is_built_with_the_digest_as_a_label(task: LocalTask, mon
     assert f"{FILES_LABEL}={task_files_digest(task.task_path)}" in build
 
 
+def test_the_case_image_is_built_without_a_provenance_attestation(
+    task: LocalTask, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    docker = Docker()
+    install(monkeypatch, docker)
+
+    docker_build_case(task.task_path, task.docker_image_name)
+
+    [build] = docker.builds
+    assert "--provenance=false" in build
+
+
 # ==================== build-case ====================
 
 
