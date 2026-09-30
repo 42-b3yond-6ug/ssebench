@@ -10,6 +10,7 @@ from typing import Literal
 
 from ssebench import arch, doctor, paths, settings, stack
 from ssebench.agents import Agent
+from ssebench.backends import Egress
 from ssebench.errors import UserError
 from ssebench.extensions import (
     DEFAULT_BACKEND,
@@ -40,6 +41,8 @@ logger = logging.getLogger(__name__)
 KEYLESS_AGENTS = ("dummy", REFERENCE_AGENT)
 
 PREBUILT_ENV = "SSEBENCH_PREBUILT"
+EGRESS_ENV = "SSEBENCH_EGRESS"
+EGRESS_POLICIES: tuple[Egress, ...] = ("restricted", "open")
 
 BUILTIN_COMMANDS = ("run", "build-case", "dataset", "tasks", "runs", "proxy", "doctor", "init", "demo")
 
@@ -58,7 +61,7 @@ class RunArgs(argparse.Namespace):
         self.timeout: int
         self.difficulty: int
         self.keep_container: bool
-        self.egress: Literal["restricted", "open"]
+        self.egress: Egress | None
         self.plugin: list[str]
         self.run_id: str | None
         self.backend: str | None
@@ -70,6 +73,15 @@ def run_id_arg(value: str) -> str:
         return check_run_id(value)
     except ValueError as e:
         raise argparse.ArgumentTypeError(str(e)) from e
+
+
+def egress_policy(requested: Egress | None) -> Egress:
+    """The `--egress` option, else `SSEBENCH_EGRESS`, else restricted."""
+    name = requested or settings.get(EGRESS_ENV) or "restricted"
+    for policy in EGRESS_POLICIES:
+        if name == policy:
+            return policy
+    raise UserError(f"{EGRESS_ENV}={name!r} is not a network egress policy; use one of: {', '.join(EGRESS_POLICIES)}")
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -87,6 +99,11 @@ def cmd_run(args: argparse.Namespace) -> int:
     if args.mode == "sidecar":
         logger.warning("Sidecar mode is experimental; see 'Sandbox and sidecar' in the documentation for its limits")
     tool_layer = args.tool_layer or DEFAULT_TOOL_LAYER
+    try:
+        egress = egress_policy(args.egress)
+    except UserError as e:
+        logger.error(e)
+        return 1
     prebuilt = bool(getattr(args, "prebuilt", False)) or settings.flag(PREBUILT_ENV)
     if prebuilt and (args.tool_layer is not None or getattr(args, "plugin", None) or getattr(args, "build", False)):
         logger.error("--prebuilt uses images that are already built, so it excludes --tool-layer, --plugin and --build")
@@ -171,7 +188,6 @@ def cmd_run(args: argparse.Namespace) -> int:
     timeout = args.timeout
     difficulty = args.difficulty
     keep_container = args.keep_container
-    egress = args.egress
     runner: BenchmarkSandboxRunner | BenchmarkSidecarRunner
     match args.mode:
         case "sandbox":
@@ -407,12 +423,13 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
     )
     run_parser.add_argument(
         "--egress",
-        choices=["restricted", "open"],
-        default="restricted",
+        choices=EGRESS_POLICIES,
+        default=None,
         metavar="POLICY",
         help=(
             "Network egress of the run container: restricted reaches the LiteLLM proxy but not the internet; "
-            "open also has internet access, for tasks that need network at test time (default: restricted)"
+            "open also has internet access, for tasks that need network at test time "
+            f"(default: ${EGRESS_ENV}, else restricted)"
         ),
     )
 
