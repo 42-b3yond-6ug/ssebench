@@ -1,3 +1,4 @@
+import json
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
@@ -8,6 +9,7 @@ import yaml
 
 from ssebench.runner import RunOutcome
 from ssebench.runner.result import PatchResult, PerTaskEvaluationResult
+from ssebench.tasks.catalog import IMAGES_LOCK_ENV
 
 DOCKERFILE = """\
 ARG SSEBENCH_REGISTRY=registry.test/ssebench
@@ -147,3 +149,13 @@ def docker(monkeypatch: pytest.MonkeyPatch) -> FakeDocker:
     monkeypatch.setattr(subprocess, "run", fake.run)
     monkeypatch.setattr(subprocess, "Popen", fake.popen)
     return fake
+
+
+@pytest.fixture
+def unpinned_pilot(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Point the CLI at an images lock that pins no pilot task, so case images are pulled by tag
+    whatever the committed lock holds."""
+    manifest = json.loads((Path(__file__).resolve().parents[2] / "datasets" / "pilot" / "manifest.json").read_text())
+    lock = tmp_path / "images.lock.json"
+    _ = lock.write_text(json.dumps({"dataset": manifest["dataset"], "version": manifest["version"], "images": {}}))
+    monkeypatch.setenv(IMAGES_LOCK_ENV, str(lock))
