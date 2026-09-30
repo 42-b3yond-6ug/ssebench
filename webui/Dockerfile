@@ -1,5 +1,5 @@
 # The web UI: the client, the API server, the terminal helper (pty-proxy), the
-# ssebench CLI and the docker CLI. Build from the repository root:
+# ssebench CLI with its Kubernetes client, and the docker and kubectl CLIs. Build from the repository root:
 #
 #   docker buildx build -f webui/Dockerfile --build-arg VERSION="$(cat VERSION)" -t ssebench-webui .
 #
@@ -10,6 +10,9 @@
 # container's IP address. Run it on the host network with the socket mounted:
 #
 #   docker run --rm --network host -v /var/run/docker.sock:/var/run/docker.sock ssebench-webui
+#
+# On Kubernetes, SSEBENCH_BACKEND=kubernetes needs neither the socket nor the
+# host network; see deploy/helm/ssebench.
 #
 # Most build steps run on the build platform, so a multi-platform build needs
 # little emulation; the CLI is pure Python and installs on the target platform.
@@ -49,15 +52,21 @@ RUN uv build --package ssebench --wheel --out-dir /wheel
 FROM docker:29.8.1-cli AS docker-cli
 
 
+FROM registry.k8s.io/kubectl:v1.35.4@sha256:e8bc9c71a813d90d5f7689fa57516b2aacd7a02bb9d70d3ab6664ed6d202fc10 AS kubectl
+
+
 FROM oven/bun:1.3.13-slim
 COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/docker
+# `ssebench runs endpoint` and `runs exec` run kubectl on the Kubernetes backend.
+COPY --from=kubectl /bin/kubectl /usr/local/bin/kubectl
 # The ssebench CLI, in an environment of its own with its own Python, at
-# /usr/local/bin/ssebench.
+# /usr/local/bin/ssebench. The kubernetes extra is the Python client of the
+# Kubernetes backend.
 COPY --from=uv /uv /usr/local/bin/uv
 COPY --from=cli-wheel /wheel/ /tmp/wheel/
 RUN UV_TOOL_DIR=/opt/ssebench/tool UV_TOOL_BIN_DIR=/usr/local/bin \
     UV_PYTHON_INSTALL_DIR=/opt/ssebench/python \
-    uv tool install --python 3.12 /tmp/wheel/*.whl && \
+    uv tool install --python 3.12 "ssebench[kubernetes] @ file://$(ls /tmp/wheel/*.whl)" && \
     rm -rf /tmp/wheel /root/.cache/uv
 # The server serves ./dist and runs ../pty-proxy/pty-proxy relative to its own
 # directory.
@@ -65,6 +74,9 @@ WORKDIR /app
 COPY --from=web /src/webui/dist/ dist/
 COPY --from=web /out/server/ server/
 COPY --from=pty-proxy /pty-proxy pty-proxy/pty-proxy
+# The launch wizard lists the models and agents by reading these directories.
+COPY models/ models/
+COPY agents/ agents/
 # Runs as root: whoever can use the Docker socket is root on its host anyway,
 # and the socket's group differs between hosts.
 # The CLI runs in /app, so its results/ is /app/results.

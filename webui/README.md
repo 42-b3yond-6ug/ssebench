@@ -62,7 +62,7 @@ Tests: `bun test` for the server, `go test ./...` in `pty-proxy/`.
 ### In a container
 
 [`Dockerfile`](Dockerfile) builds an image with the client, the server, the
-terminal helper, the `ssebench` CLI and the `docker` CLI. From the repository root:
+terminal helper, the `ssebench` CLI and the `docker` and `kubectl` CLIs. From the repository root:
 
 ```bash
 docker buildx build -f webui/Dockerfile --build-arg VERSION="$(cat VERSION)" -t ssebench-webui .
@@ -76,10 +76,12 @@ does outside a container, and the variables below apply (pass them with
 `-e`). Whoever controls the container controls the host's Docker daemon, so
 the security notes below apply twice over.
 
-The image watches runs but cannot launch them: it has no SSEBench checkout, so
-no models, agents or local tasks to choose from. Start runs with
-`ssebench run --keep-container`, or run the web UI from a checkout as above to
-launch them from the browser. It reads finished runs from `/app/results`; mount
+The image has no SSEBench checkout, so its launcher offers the models and agents
+copied into it and the tasks of `SSEBENCH_CATALOG`, but no local tasks. On the Docker
+backend, start runs with `ssebench run --keep-container`, or run the web UI from a
+checkout as above to launch them from the browser. The image also carries the
+Kubernetes client and `kubectl`: with `SSEBENCH_BACKEND=kubernetes` it works on a
+cluster, and the Helm chart in `deploy/helm/ssebench` deploys it that way. It reads finished runs from `/app/results`; mount
 your `results/` there. Add `-e SSEBENCH_WEBUI_HOSTED=1` for a read-only viewer.
 
 ## Configuration
