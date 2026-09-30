@@ -355,8 +355,7 @@ const MAX_TIMEOUT_SECONDS = 7 * 24 * 60 * 60
 const MAX_DIFFICULTY = 4
 
 export type LaunchValidation =
-  | { ok: true; config: LaunchConfig }
-  | { ok: false; error: string }
+  { ok: true; config: LaunchConfig } | { ok: false; error: string }
 
 /**
  * Validate a launch request body. Models, agents and local tasks must be
