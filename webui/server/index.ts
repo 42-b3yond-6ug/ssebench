@@ -13,6 +13,9 @@ import { cors } from "hono/cors"
 import { logger } from "hono/logger"
 import { serveStatic } from "hono/bun"
 import { version } from "../package.json"
+import type { EvaluationResultResponse } from "../src/types/container"
+import { gradeOf } from "./results"
+import { getDoctorReport } from "./doctor"
 import {
   listContainers,
   getContainer,
@@ -38,6 +41,7 @@ import {
   shutdownOpenCode,
 } from "./opencode"
 import {
+  ptyProxyBuilt,
   createPTYSession,
   handleMessage,
   handleClose,
@@ -60,6 +64,7 @@ import {
   getRemoteTasks,
   getModels,
   getAgents,
+  getPlugins,
   hasLocalBenchmarks,
   isCatalogConfigured,
   CATALOG,
@@ -148,14 +153,22 @@ app.use("/api/containers/:id/*", async (c, next) => {
   await next()
 })
 
+const TERMINAL_HINT =
+  "The terminal needs the pty-proxy helper: run `bun run build:pty` in webui/ (it needs Go), then restart the server."
+
 // Health check
 app.get("/api/health", async (c) => {
   const dockerOk = await checkDockerAccess()
+  // The terminal needs the pty-proxy helper as well as the switch
+  const terminalBuilt = ptyProxyBuilt()
   return c.json({
     status: "ok",
     version,
     docker: dockerOk,
-    terminal: security.terminalEnabled,
+    terminal: security.terminalEnabled && terminalBuilt,
+    ...(security.terminalEnabled && !terminalBuilt
+      ? { terminalHint: TERMINAL_HINT }
+      : {}),
     timestamp: new Date().toISOString(),
   })
 })
@@ -186,12 +199,15 @@ app.get("/api/containers/:id", async (c) => {
   }
 })
 
-// Stop a container
+// Stop a container: kill it if it is running. Idempotent.
 app.post("/api/containers/:id/stop", async (c) => {
   const id = c.req.param("id")
   try {
-    const stopped = await stopContainer(id)
-    if (!stopped) {
+    const outcome = await stopContainer(id)
+    if (outcome === "refused") {
+      return c.json({ error: "Container not found" }, 404)
+    }
+    if (outcome === "failed") {
       return c.json({ error: "Failed to stop container" }, 500)
     }
     return c.json({ stopped: true })
@@ -201,12 +217,15 @@ app.post("/api/containers/:id/stop", async (c) => {
   }
 })
 
-// Remove a stopped container
+// Remove a container, running or exited. Idempotent.
 app.post("/api/containers/:id/remove", async (c) => {
   const id = c.req.param("id")
   try {
-    const removed = await removeContainer(id)
-    if (!removed) {
+    const outcome = await removeContainer(id)
+    if (outcome === "refused") {
+      return c.json({ error: "Container not found" }, 404)
+    }
+    if (outcome === "failed") {
       return c.json({ error: "Failed to remove container" }, 500)
     }
     return c.json({ removed: true })
@@ -333,10 +352,15 @@ app.get("/api/containers/:id/agent/dialog", async (c) => {
   return c.json(data, status as 200 | 500 | 503 | 504)
 })
 
-// Get evaluation result (after agent finishes)
+// Get evaluation result (after agent finishes): the daemon's, else the run's
+// results directory on the host, which also serves sidecar runs and stopped
+// containers.
 app.get("/api/containers/:id/result", async (c) => {
   const id = c.req.param("id")
   const { data, status } = await proxyToSDK(id, "/result")
+  const fromDaemon = status === 200 ? (data as EvaluationResultResponse) : null
+  const grade = await gradeOf(id, fromDaemon)
+  if (grade?.available) return c.json(grade)
   return c.json(data, status as 200 | 500 | 503 | 504)
 })
 
@@ -508,7 +532,13 @@ app.get("/api/launch/config", (c) => {
     hasLocalBenchmarks: hasLocalBenchmarks(),
     catalogConfigured: isCatalogConfigured(),
     modes: ["sandbox", "sidecar"],
+    plugins: getPlugins(),
   })
+})
+
+// The CLI's checks: Docker, .env, and the provider keys each model lacks
+app.get("/api/launch/doctor", async (c) => {
+  return c.json(await getDoctorReport())
 })
 
 // Launch a new task (supports multiple concurrent launches)

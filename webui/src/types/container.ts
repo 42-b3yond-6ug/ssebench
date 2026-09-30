@@ -10,6 +10,8 @@ export interface DockerContainer {
   agent: string
   /** The reference agent applied the task's known fix: the grade rates the task, not a model */
   referenceRun: boolean
+  /** The `--run-id` the run was started with, if any */
+  runId: string | null
   status: "running" | "exited" | "paused" | "created"
   image: string
   ports: ContainerPort[]

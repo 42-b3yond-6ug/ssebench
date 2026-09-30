@@ -10,6 +10,7 @@
 
 import type { ServerWebSocket } from "bun"
 import { getSDKUrl, checkSDKHealth } from "./docker"
+import { gradeOf } from "./results"
 import type {
   ProjectInfo,
   ChangedFile,
@@ -266,10 +267,13 @@ async function pollSDK(conn: SDKConnection): Promise<void> {
 
     // 3. Check evaluation result (only if not already available)
     if (!conn.result?.available) {
-      const resultData = (await fetchSDKData(
-        conn.sdkUrl,
-        "/result"
-      )) as EvaluationResultResponse | null
+      const resultData = await gradeOf(
+        conn.containerId,
+        (await fetchSDKData(
+          conn.sdkUrl,
+          "/result"
+        )) as EvaluationResultResponse | null
+      )
 
       if (resultData) {
         // Always update result data (might have partial info before available=true)
@@ -325,10 +329,9 @@ async function fetchInitialData(conn: SDKConnection): Promise<void> {
       fetchSDKData(conn.sdkUrl, "/agent/dialog") as Promise<{
         entries?: DialogEntry[]
       } | null>,
-      fetchSDKData(
-        conn.sdkUrl,
-        "/result"
-      ) as Promise<EvaluationResultResponse | null>,
+      fetchSDKData(conn.sdkUrl, "/result").then((result) =>
+        gradeOf(conn.containerId, result as EvaluationResultResponse | null)
+      ),
       fetchSDKData(conn.sdkUrl, "/version") as Promise<{
         version?: string
       } | null>,
