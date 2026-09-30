@@ -260,7 +260,7 @@ the repository `42-b3yond-6ug/ssebench`.
 
    ```sh
    gh api -X POST repos/42-b3yond-6ug/ssebench/pages -f build_type=workflow
-   gh api -X PUT repos/42-b3yond-6ug/ssebench/pages -f cname=docs.ssebench.com
+   gh api -X PUT repos/42-b3yond-6ug/ssebench/pages -f cname=ssebench.b3yond.ai
    gh workflow run docs.yml --ref main
    ```
 
@@ -268,11 +268,12 @@ the repository `42-b3yond-6ug/ssebench`.
    the site, so the custom domain is a Pages setting and `docs/public/CNAME`
    is not needed. The site is built for the root of the domain, so set the
    domain before anyone links to the `github.io` address.
-7. **DNS.** In the DNS zone of `ssebench.com`, point `docs` at GitHub Pages
-   with a `CNAME` record for `docs.ssebench.com` with the value
-   `42-b3yond-6ug.github.io`, replacing the record that serves the site today.
-   Leave the record unproxied until GitHub has issued the certificate, then
-   enforce HTTPS:
+7. **DNS.** In the DNS zone of `b3yond.ai`, point `ssebench` at GitHub Pages
+   with a `CNAME` record for `ssebench.b3yond.ai` with the value
+   `42-b3yond-6ug.github.io`. Verify `b3yond.ai` for GitHub Pages in the
+   organization's settings first, so that no other account can claim the
+   name. Leave the record unproxied until GitHub has issued the certificate,
+   then enforce HTTPS:
 
    ```sh
    gh api -X PUT repos/42-b3yond-6ug/ssebench/pages -F https_enforced=true
@@ -298,7 +299,7 @@ the repository `42-b3yond-6ug/ssebench`.
     ssebench-sdk==<version>` and `ssebench --version`; `docker pull
     ghcr.io/42-b3yond-6ug/ssebench/runtime:<version>`; download the release
     assets and run `sha256sum --check SHA256SUMS`; open
-    `https://docs.ssebench.com` and check the version in the navigation bar.
+    `https://ssebench.b3yond.ai` and check the version in the navigation bar.
 
 ## Case images
 
