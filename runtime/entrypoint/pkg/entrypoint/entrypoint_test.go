@@ -2,6 +2,7 @@ package entrypoint
 
 import (
 	"errors"
+	"maps"
 	"net"
 	"net/http"
 	"os"
@@ -411,5 +412,53 @@ func TestKeepAliveIsANoOpWithoutTheOption(t *testing.T) {
 
 	if rt.keptAlive.Load() {
 		t.Error("a run that is not kept alive must not treat a stop as normal")
+	}
+}
+
+// modelHome is the home the agent must get: the user database's when it has a
+// "model" user, as an image does, else the default.
+func modelHome() string {
+	if a, err := lookupAccount(agentUser); err == nil && a.home != "" {
+		return a.home
+	}
+	return agentHome
+}
+
+func TestAgentEnvironmentReplacesRootsHomeAndKeepsTheRest(t *testing.T) {
+	env := agentEnvironment([]string{"HOME=/root", "USER=root", "LOGNAME=root", "SSE_DIFFICULTY=2", "PATH=/usr/bin"})
+
+	// A child gets the last value of a repeated key.
+	got := map[string]string{}
+	for _, entry := range env {
+		if key, value, ok := strings.Cut(entry, "="); ok {
+			got[key] = value
+		}
+	}
+	want := map[string]string{
+		"HOME": modelHome(), "USER": "model", "LOGNAME": "model", "SSE_DIFFICULTY": "2", "PATH": "/usr/bin",
+	}
+	if !maps.Equal(got, want) {
+		t.Errorf("environment = %v, want %v", got, want)
+	}
+}
+
+func TestTheAgentStartsWithTheHomeOfTheModelUser(t *testing.T) {
+	t.Setenv("HOME", "/root")
+	t.Setenv("USER", "root")
+	dir := t.TempDir()
+	seen := filepath.Join(dir, "seen")
+	agentCmd := "echo \"$HOME $USER $LOGNAME\" > " + seen
+	rt, _ := testRuntime(t, newAdminServer(t), time.Minute, agentCmd)
+
+	if _, err := rt.RunAgent(); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(seen)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := strings.TrimSpace(string(data)), modelHome()+" model model"; got != want {
+		t.Errorf("the agent saw HOME, USER and LOGNAME %q, want %q", got, want)
 	}
 }

@@ -363,7 +363,7 @@ arguments, and it runs them as `model`. What the agent gets:
 | Command | The `CMD` words joined by spaces and run with `su -p -s /bin/bash model -c`. Words that need quoting lose it: `["bash", "-c", "echo 'a b'"]` prints an empty line. Use a script, or a program with simple arguments: `["./run.sh"]`, `["/app/.venv/bin/python", "main.py"]`. |
 | User | `model`, uid 1000, with no root and no `sudo`. It can write to its home, `/tmp`, the source tree and `$SSE_ARCHIVE`. `/app`, `/opt` and `/usr/local` belong to root: `chown` what the agent must write when you build the image. |
 | Working directory | The last `WORKDIR` of the image, which is the case image's (the project's directory, `/src/gjson` for `gjson-196-bf4efcb`) unless your Dockerfile sets one. Set your own, and find the source through `sse.project.source`. |
-| `HOME` | `/root`, which `model` cannot read: `su -p` keeps root's environment, and `git` and `uv` fail on it. Set `HOME` first, to the home that the user database gives `model` (`pwd.getpwuid(os.getuid()).pw_dir` in Python, `getent passwd model` in a shell). It holds the git identity, `SSEBench <bench@ssebench.local>`. Do not assume `/home/model`: in the Ubuntu-based images `model` is the renamed `ubuntu` user, with the home `/home/ubuntu`, and `/home/model` is an empty directory where `git commit` fails with `Author identity unknown`. |
+| Environment | `HOME=/home/model`, `USER=model` and `LOGNAME=model`, set by the entrypoint over root's environment, which `su -p` would otherwise keep: `/root` is unreadable to `model`. The rest of the entrypoint's environment is kept. `/home/model` holds the git identity, `SSEBench Agent <agent@ssebench.invalid>`, so `git commit` works without setup; the identity is neutral, and a wrapper may set another with `git config`. |
 | Input and output | Standard input is `/dev/null`. Standard output and error go to `agent.log` in the results directory. |
 | Session | Its own session and process group. |
 | Ready | The daemon's socket and the MCP server answer before the agent starts. In sandbox mode the entrypoint also starts the OpenCode server, on port 4096, without waiting for it. |
@@ -601,8 +601,8 @@ containers.
 | `agents/<name>/agent.yaml is not a valid agent config: <key>: Extra inputs are not permitted` | `agent.yaml` has a key that is not `name` or `version`. The message also reports a missing `name` and text that is not YAML. |
 | `Building the image of agent '<name>' failed: ...` | The agent's `docker build` failed; Docker's output is above the message. |
 | `The lockfile at uv.lock needs to be updated, but --frozen was provided: Missing workspace member` | A new wrapper package is not in `uv.lock`. Run `uv lock`. |
-| `warning: unable to access '/root/.gitconfig': Permission denied`, or `uv` cannot create `/root/.cache/uv` | `HOME` is still `/root`. Set it to the home of `model`. |
-| `Author identity unknown` | `HOME` points at a directory without a git identity. Use the home from the user database, or `git -c user.name=… -c user.email=… commit`. |
+| `warning: unable to access '/root/.gitconfig': Permission denied`, or `uv` cannot create `/root/.cache/uv` | `HOME` is `/root` again: the wrapper changed it, or a child ran with a cleared environment. Use `/home/model`. |
+| `Author identity unknown` | `HOME` is not `/home/model`, or the wrapper removed `/home/model/.gitconfig`. Restore it, or use `git -c user.name=… -c user.email=… commit`. |
 | `Could not resolve host`, `Failed to download`, `dns error` | The agent reaches for the network at run time. Install it in the image. |
 | The agent's arguments arrive without their quotes | The entrypoint joins `CMD` with spaces. Put the command in a script. |
 | `agent.log` is empty | The agent printed nothing, or exited before it did. Print to standard error and check the exit status in the entrypoint's log. |

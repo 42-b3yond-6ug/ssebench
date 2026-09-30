@@ -221,6 +221,9 @@ func (r *pluginRunner) run(p Plugin, h Hook) pluginResult {
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 	cmd.Env = r.pluginEnv(p)
+	if asModel {
+		cmd.Env = agentEnvironment(cmd.Env)
+	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 
 	logger.Info("Plugin start", "plugin", p.Name, "hook", h.String(), "user", pluginUser(asModel), "timeout_min", p.Timeout)

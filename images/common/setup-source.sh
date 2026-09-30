@@ -39,8 +39,8 @@ install -d -m 0700 /var/lib/ssebench
 find "${SOURCE_DIR}" -name ".git" -type d -exec rm -rf {} + 2>/dev/null || true
 
 su model -c "
-    git config --global user.name 'SSEBench'
-    git config --global user.email 'bench@ssebench.local'
+    git config --global user.name 'SSEBench Agent'
+    git config --global user.email 'agent@ssebench.invalid'
     cd '${SOURCE_DIR}'
     git init
     git add -A

@@ -281,6 +281,29 @@ func TestLLMEnvOnlyForLLMPlugins(t *testing.T) {
 	}
 }
 
+func TestPluginsOfTheAgentPhaseGetTheHomeOfTheModelUser(t *testing.T) {
+	t.Setenv("HOME", "/root")
+
+	r, pdir, archive := newTestRunner(t)
+	writePlugin(t, pdir, "beside", "echo $HOME > "+filepath.Join(archive, "beside.home"))
+	writePlugin(t, pdir, "grader", "echo $HOME > "+filepath.Join(archive, "grader.home"))
+	r.byHook[Hook{Before, PhaseAgent}] = []Plugin{{Name: "beside", Hook: "before-agent", Timeout: 1}}
+	r.byHook[Hook{After, PhaseGrading}] = []Plugin{{Name: "grader", Hook: "after-grading", Timeout: 1}}
+	r.runBlocking(Hook{Before, PhaseAgent})
+	r.runBlocking(Hook{After, PhaseGrading})
+	r.finish()
+
+	for name, want := range map[string]string{"beside": modelHome(), "grader": "/root"} {
+		data, err := os.ReadFile(filepath.Join(archive, name+".home"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := strings.TrimSpace(string(data)); got != want {
+			t.Errorf("plugin %s saw HOME %q, want %q", name, got, want)
+		}
+	}
+}
+
 func readReport(t *testing.T, archive string) map[string]pluginResult {
 	t.Helper()
 	data, err := os.ReadFile(filepath.Join(archive, "plugins", "results.json"))

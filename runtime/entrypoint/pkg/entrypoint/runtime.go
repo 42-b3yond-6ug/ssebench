@@ -406,6 +406,7 @@ func (rt *Runtime) startAgent() (*exec.Cmd, time.Time, error) {
 
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
+	cmd.Env = agentEnvironment(os.Environ())
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 
 	if err := cmd.Start(); err != nil {
