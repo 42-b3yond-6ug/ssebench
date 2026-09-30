@@ -46,7 +46,7 @@ export function AIView({ containerId }: AIViewProps) {
 
   // Track when we start a conversation to trigger aggressive refresh
   const conversationStartedRef = useRef(false)
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Refresh sessions when project source becomes available
   useEffect(() => {

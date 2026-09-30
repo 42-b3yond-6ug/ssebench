@@ -59,11 +59,13 @@ export function StepTask({
     loadTasks()
   }, [catalogConfigured])
 
-  // Clear selection when source changes
-  useEffect(() => {
+  // A selection only makes sense within one source
+  const selectSource = (next: TaskSource) => {
+    if (next === source) return
     onTasksChange([])
     setTaskSearch("")
-  }, [source, onTasksChange])
+    onSourceChange(next)
+  }
 
   // Derive current tasks from source
   const tasks = source === "remote" ? remoteTasks : localTasks
@@ -134,7 +136,7 @@ export function StepTask({
       {/* Source tabs */}
       <div className="border-border-subtle mb-4 flex rounded-lg border">
         <button
-          onClick={() => onSourceChange("remote")}
+          onClick={() => selectSource("remote")}
           disabled={!catalogConfigured}
           className={`flex-1 rounded-l-lg px-4 py-2 text-sm font-medium transition-colors ${
             !catalogConfigured
@@ -155,7 +157,7 @@ export function StepTask({
           </span>
         </button>
         <button
-          onClick={() => onSourceChange("local")}
+          onClick={() => selectSource("local")}
           disabled={!hasLocalBenchmarks}
           className={`flex-1 rounded-r-lg px-4 py-2 text-sm font-medium transition-colors ${
             !hasLocalBenchmarks

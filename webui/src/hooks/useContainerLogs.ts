@@ -25,17 +25,15 @@ export function useContainerLogs(
   const wsRef = useRef<WebSocket | null>(null)
 
   // Clear logs when container changes
-  useEffect(() => {
+  const [logsContainerId, setLogsContainerId] = useState(containerId)
+  if (containerId !== logsContainerId) {
+    setLogsContainerId(containerId)
     setLogs([])
     setError(null)
-  }, [containerId])
+  }
 
   useEffect(() => {
-    // Don't connect if no container ID
-    if (!containerId) {
-      setIsConnected(false)
-      return
-    }
+    if (!containerId) return
 
     const wsPath = `/api/containers/${containerId}/logs-ws`
     console.log("[useContainerLogs] Connecting to:", wsPath)
@@ -90,5 +88,5 @@ export function useContainerLogs(
     setLogs([])
   }, [])
 
-  return { logs, isConnected, error, clearLogs }
+  return { logs, isConnected: !!containerId && isConnected, error, clearLogs }
 }

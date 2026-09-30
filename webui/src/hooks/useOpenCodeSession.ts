@@ -4,7 +4,7 @@
  * Manages OpenCode chat session state and operations with real-time streaming
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { OpenCodeClient, transformToDialogEntries } from "../lib/opencodeClient"
 import type {
   OpenCodeMessage,
@@ -78,6 +78,8 @@ interface UseOpenCodeSessionResult {
 /**
  * Hook to manage OpenCode session
  */
+const MISSING_API_KEY = "Please set your Anthropic API key in Settings"
+
 export function useOpenCodeSession({
   containerId,
   workingDir,
@@ -112,7 +114,11 @@ export function useOpenCodeSession({
   const [isStreaming, setIsStreaming] = useState(false)
 
   // Track pending user message to avoid showing it as assistant message
-  const pendingUserMessageRef = useRef<string | null>(null)
+  const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(
+    null
+  )
+  // When the stream last changed; dates the messages that exist only in it
+  const [lastStreamUpdate, setLastStreamUpdate] = useState(0)
 
   // Tool execution state
   const [toolExecutions, setToolExecutions] = useState<
@@ -138,47 +144,47 @@ export function useOpenCodeSession({
   // The proxy needs no key of the user's
   const needsApiKey = !hasApiKey && !proxyModel && !sessionId && !isInitializing
 
+  const applyMessages = useCallback((msgs: OpenCodeMessage[]) => {
+    console.log("[OpenCode] Messages refreshed:", msgs.length)
+    setMessages(msgs)
+
+    // A provider error is not an HTTP error: OpenCode answers with an
+    // assistant message that carries it, and nothing else to show.
+    const last = msgs[msgs.length - 1]
+    if (last?.info.role === "assistant" && isReportable(last.info.error)) {
+      setError(describeOpenCodeError(last.info.error!))
+      setRetryNotice(null)
+    }
+
+    // Clear pending user message after refresh
+    setPendingUserMessage(null)
+
+    // Check if we should reset streaming state
+    // If there are no streaming messages left, we're done streaming
+    setStreamingMessages((prev) => {
+      if (prev.size === 0) {
+        setIsStreaming(false)
+        setStreamingMessageId(null)
+      }
+      return prev
+    })
+  }, [])
+
   const refreshMessagesInternal = useCallback(
-    async (sid: string) => {
-      try {
-        const msgs = await client.getMessages(sid)
-        console.log("[OpenCode] Messages refreshed:", msgs.length)
-        setMessages(msgs)
-
-        // A provider error is not an HTTP error: OpenCode answers with an
-        // assistant message that carries it, and nothing else to show.
-        const last = msgs[msgs.length - 1]
-        if (last?.info.role === "assistant" && isReportable(last.info.error)) {
-          setError(describeOpenCodeError(last.info.error!))
-          setRetryNotice(null)
-        }
-
-        // Clear pending user message after refresh
-        pendingUserMessageRef.current = null
-
-        // Check if we should reset streaming state
-        // If there are no streaming messages left, we're done streaming
-        setStreamingMessages((prev) => {
-          if (prev.size === 0) {
-            setIsStreaming(false)
-            setStreamingMessageId(null)
-          }
-          return prev
-        })
-      } catch (err) {
+    (sid: string): Promise<void> =>
+      client.getMessages(sid).then(applyMessages, (err: unknown) => {
         const errorMessage =
           err instanceof Error ? err.message : "Failed to refresh messages"
         console.error("[OpenCode] Refresh messages failed:", errorMessage)
         throw err
-      }
-    },
-    [client]
+      }),
+    [client, applyMessages]
   )
 
   const sendMessageInternal = useCallback(
     async (sid: string, message: string) => {
       // Track the user message to avoid showing it as assistant message in streaming
-      pendingUserMessageRef.current = message
+      setPendingUserMessage(message)
 
       // Clear previous streaming state for new message
       setToolExecutions(new Map())
@@ -221,7 +227,7 @@ export function useOpenCodeSession({
             setStreamingMessages(new Map())
             setToolExecutions(new Map()) // Clear tool executions after completion
             setReasoningContent(new Map()) // Clear reasoning after completion
-            pendingUserMessageRef.current = null
+            setPendingUserMessage(null)
 
             // Refresh messages to get the final state with real IDs
             refreshMessagesInternal(sid)
@@ -234,7 +240,7 @@ export function useOpenCodeSession({
             setStreamingMessages(new Map())
             setToolExecutions(new Map()) // Clear tool executions on error
             setReasoningContent(new Map()) // Clear reasoning on error
-            pendingUserMessageRef.current = null
+            setPendingUserMessage(null)
 
             // Remove optimistic message on error
             setMessages((prev) =>
@@ -264,7 +270,7 @@ export function useOpenCodeSession({
 
   const createSessionInternal = useCallback(async () => {
     if (!hasApiKey && !proxyModel) {
-      setError("Please set your Anthropic API key in Settings")
+      setError(MISSING_API_KEY)
       return
     }
 
@@ -313,6 +319,7 @@ export function useOpenCodeSession({
 
       setStreamingMessageId(messageId)
       setIsStreaming(true)
+      setLastStreamUpdate(Date.now())
 
       setStreamingMessages((prev) => {
         const updated = new Map(prev)
@@ -399,6 +406,7 @@ export function useOpenCodeSession({
   // Handle tool execution updates
   const handleToolUpdate = useCallback((tool: ToolExecution) => {
     console.log(`[OpenCode] Tool update: ${tool.tool} (${tool.status})`)
+    setLastStreamUpdate(Date.now())
     setToolExecutions((prev) => {
       const updated = new Map(prev)
       updated.set(tool.id, tool)
@@ -464,7 +472,7 @@ export function useOpenCodeSession({
   // Check health on mount and poll while connecting
   useEffect(() => {
     let mounted = true
-    let pollInterval: NodeJS.Timeout | null = null
+    let pollInterval: ReturnType<typeof setInterval> | null = null
 
     const checkHealth = async () => {
       try {
@@ -514,11 +522,17 @@ export function useOpenCodeSession({
     }
   }, [client])
 
+  // Adopt the existing session when the caller switches to another one
+  const [adoptedSessionId, setAdoptedSessionId] = useState(existingSessionId)
+  if (existingSessionId !== adoptedSessionId) {
+    setAdoptedSessionId(existingSessionId)
+    if (existingSessionId) setSessionId(existingSessionId)
+  }
+
   // Load messages for existing session
   useEffect(() => {
     if (existingSessionId && isHealthy) {
       console.log("[OpenCode] Loading existing session:", existingSessionId)
-      setSessionId(existingSessionId)
 
       // Try to load messages, if session doesn't exist, clear it
       refreshMessagesInternal(existingSessionId).catch((err) => {
@@ -535,23 +549,13 @@ export function useOpenCodeSession({
   }, [existingSessionId, isHealthy, refreshMessagesInternal])
 
   // Create session on mount if autoCreate is enabled
+  const wantsSession = autoCreate && !sessionId && isHealthy && !isInitializing
+  const canCreate = hasApiKey || !!proxyModel
   useEffect(() => {
-    if (!autoCreate || sessionId || !isHealthy || isInitializing) return
-    if (!hasApiKey && !proxyModel) {
-      setError("Please set your Anthropic API key in Settings")
-      return
-    }
-
-    createSessionInternal()
-  }, [
-    autoCreate,
-    sessionId,
-    isHealthy,
-    isInitializing,
-    hasApiKey,
-    proxyModel,
-    createSessionInternal,
-  ])
+    // Creating the session shows its loading state before the request starts
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (wantsSession && canCreate) createSessionInternal()
+  }, [wantsSession, canCreate, createSessionInternal])
 
   const createSession = useCallback(async () => {
     await createSessionInternal()
@@ -692,7 +696,7 @@ export function useOpenCodeSession({
           output: tool.output,
           error: tool.error,
           time: {
-            start: tool.startTime || Date.now(),
+            start: tool.startTime || lastStreamUpdate,
             end: tool.endTime,
           },
         },
@@ -767,8 +771,10 @@ export function useOpenCodeSession({
         const streamingText = Array.from(streamingParts.values()).join("")
 
         // Skip if this looks like the user's pending message
-        const pendingMsg = pendingUserMessageRef.current
-        if (pendingMsg && streamingText.trim() === pendingMsg.trim()) {
+        if (
+          pendingUserMessage &&
+          streamingText.trim() === pendingUserMessage.trim()
+        ) {
           console.log(
             "[OpenCode] Skipping synthetic message - matches pending user message"
           )
@@ -789,7 +795,7 @@ export function useOpenCodeSession({
             id: messageId,
             sessionID: sessionId || "",
             role: "assistant" as const,
-            time: { created: Date.now() },
+            time: { created: lastStreamUpdate },
           },
           parts,
         })
@@ -798,7 +804,14 @@ export function useOpenCodeSession({
 
     // Append streaming-only messages at the end
     return [...updatedMessages, ...streamingOnlyMessages]
-  }, [messages, streamingMessages, toolsByMessage, sessionId])
+  }, [
+    messages,
+    streamingMessages,
+    toolsByMessage,
+    sessionId,
+    pendingUserMessage,
+    lastStreamUpdate,
+  ])
 
   // Transform messages to dialog entries for rendering
   const dialogEntries = useMemo(
@@ -811,7 +824,7 @@ export function useOpenCodeSession({
     messages: displayMessages,
     dialogEntries,
     isLoading: isLoading || isInitializing,
-    error,
+    error: error ?? (wantsSession && !canCreate ? MISSING_API_KEY : null),
     isHealthy,
     isConnecting,
     isProcessRunning,

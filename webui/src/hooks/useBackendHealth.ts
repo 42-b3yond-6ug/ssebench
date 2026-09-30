@@ -24,6 +24,34 @@ interface HealthResponse {
 
 const HEALTH_CHECK_INTERVAL = 60000 // 60 seconds
 
+async function fetchHealth(): Promise<HealthStatus> {
+  try {
+    const response = await apiFetch("/api/health")
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    const data: HealthResponse = await response.json()
+
+    return {
+      isHealthy: data.status === "ok",
+      runner: data.runner,
+      backend: data.backend,
+      lastCheck: new Date(),
+      error: null,
+    }
+  } catch (err) {
+    return {
+      isHealthy: false,
+      runner: false,
+      backend: null,
+      lastCheck: new Date(),
+      error: err instanceof Error ? err.message : "Connection failed",
+    }
+  }
+}
+
 export function useBackendHealth() {
   const [health, setHealth] = useState<HealthStatus>({
     isHealthy: false,
@@ -34,40 +62,18 @@ export function useBackendHealth() {
   })
 
   const checkHealth = useCallback(async () => {
-    try {
-      const response = await apiFetch("/api/health")
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
-      }
-
-      const data: HealthResponse = await response.json()
-
-      setHealth({
-        isHealthy: data.status === "ok",
-        runner: data.runner,
-        backend: data.backend,
-        lastCheck: new Date(),
-        error: null,
-      })
-    } catch (err) {
-      setHealth({
-        isHealthy: false,
-        runner: false,
-        backend: null,
-        lastCheck: new Date(),
-        error: err instanceof Error ? err.message : "Connection failed",
-      })
-    }
+    setHealth(await fetchHealth())
   }, [])
 
   // Initial check + interval
   useEffect(() => {
-    checkHealth()
-
-    const interval = setInterval(checkHealth, HEALTH_CHECK_INTERVAL)
+    const check = () => {
+      fetchHealth().then(setHealth)
+    }
+    check()
+    const interval = setInterval(check, HEALTH_CHECK_INTERVAL)
     return () => clearInterval(interval)
-  }, [checkHealth])
+  }, [])
 
   return { ...health, refresh: checkHealth }
 }
