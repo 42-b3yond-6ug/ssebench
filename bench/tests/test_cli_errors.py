@@ -160,6 +160,88 @@ def test_a_proxy_that_cannot_be_reached_is_an_error(monkeypatch: pytest.MonkeyPa
         _ = Model("beta")
 
 
+# ==================== the provider key ====================
+
+KEYED_MODELS = "- model_name: keyed\n  litellm_params:\n    model: x/keyed\n    api_key: os.environ/OPENAI_API_KEY\n"
+
+
+@pytest.fixture
+def keyed_model(models_dir: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    """A model that needs OPENAI_API_KEY, and an .env without it."""
+    _ = (models_dir / "keyed.yaml").write_text(KEYED_MODELS)
+    env = tmp_path / ".env"
+    _ = env.write_text("LITELLM_MASTER_KEY=k\n")
+    monkeypatch.setattr(paths, "env_file", lambda: env)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    return env
+
+
+def test_a_missing_provider_key_stops_the_run_before_anything_is_built(
+    dataset: Path,
+    agents_dir: Path,
+    keyed_model: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: pytest.fail("nothing may be built"))
+
+    assert run_cli(run_args(dataset, "--agent", "helper", "--model", "keyed")) == 1
+
+    assert errors(caplog) == [
+        "Model 'keyed': OPENAI_API_KEY is not set in .env. "
+        f"Put the key in {keyed_model}; the proxy reads provider keys only from there."
+    ]
+
+
+def test_a_key_set_only_in_the_shell_does_not_count(
+    dataset: Path,
+    agents_dir: Path,
+    keyed_model: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-shell")
+
+    assert run_cli(run_args(dataset, "--agent", "helper", "--model", "keyed")) == 1
+
+    assert "OPENAI_API_KEY is not set in .env" in errors(caplog)[0]
+
+
+def test_a_key_in_dot_env_lets_the_run_go_on(
+    dataset: Path, agents_dir: Path, keyed_model: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _ = keyed_model.write_text("OPENAI_API_KEY=sk-file\n")
+    reached: list[str] = []
+
+    def start(*args: object, **kwargs: object) -> None:
+        reached.append("proxy")
+        raise subprocess.CalledProcessError(1, ["docker", "compose"])
+
+    monkeypatch.setattr(stack, "up", start)
+
+    assert run_cli(run_args(dataset, "--agent", "helper", "--model", "keyed")) == 1
+    assert reached == ["proxy"]
+
+
+@pytest.mark.parametrize("agent", ["dummy", "reference"])
+def test_the_agents_that_make_no_model_calls_need_no_key(
+    agent: str, dataset: Path, agents_dir: Path, keyed_model: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (agents_dir / "reference").mkdir(exist_ok=True)
+    _ = (agents_dir / "reference" / "agent.yaml").write_text("name: reference\n")
+    monkeypatch.setattr("ssebench.cli.cli.reference_patch_path", lambda task: Path("patch.diff"))
+    reached: list[str] = []
+
+    def start(*args: object, **kwargs: object) -> None:
+        reached.append("proxy")
+        raise subprocess.CalledProcessError(1, ["docker", "compose"])
+
+    monkeypatch.setattr(stack, "up", start)
+
+    assert run_cli(run_args(dataset, "--agent", agent, "--model", "keyed")) == 1
+    assert reached == ["proxy"]
+
+
 # ==================== --agent ====================
 
 
