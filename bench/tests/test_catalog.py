@@ -186,6 +186,7 @@ class Docker:
         return subprocess.CompletedProcess(cmd, 0 if self.pull_ok else 1)
 
 
+@pytest.mark.usefixtures("unpinned_pilot")
 def test_pulls_the_case_image(monkeypatch: pytest.MonkeyPatch) -> None:
     docker = Docker(monkeypatch, pull_ok=True)
     task = CatalogTask(load_catalog(), TASK)

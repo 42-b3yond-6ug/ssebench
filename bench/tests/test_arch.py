@@ -174,6 +174,7 @@ def test_the_case_image_is_built_for_the_run_platform(
     assert flag_values(docker.only(), "--platform") == ["linux/amd64"]
 
 
+@pytest.mark.usefixtures("unpinned_pilot")
 def test_the_case_image_is_pulled_for_the_run_platform(monkeypatch: pytest.MonkeyPatch) -> None:
     host(monkeypatch, "aarch64")
     docker = Docker(monkeypatch)
