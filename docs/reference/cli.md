@@ -82,6 +82,14 @@ recorded as `config.egress` in the run summary. `--keep-container` leaves the
 container for the [web UI](/webui/) to inspect; in sidecar mode it leaves both
 containers and their volumes.
 
+Before it starts the proxy or builds an image, `ssebench run` checks the
+arguments: the agent must exist and have a valid `agent.yaml`, `--model` must be
+defined in `models/*.yaml`, and `.env` must hold the provider key that the model
+needs, except for the `dummy` and `reference` agents, which make no model calls.
+Each failure is one line on standard error, with the valid choices where there
+are some, and exit status 1. A failed image build ends the same way, after
+Docker's own output.
+
 Without `--local`, the task comes from the [task catalog](#task-catalog), and
 its case image is pulled from `$SSEBENCH_REGISTRY`. When the pull fails, the CLI
 says so and builds the image from the task's folder instead, if a copy of the

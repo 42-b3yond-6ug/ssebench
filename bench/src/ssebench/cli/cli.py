@@ -31,6 +31,9 @@ from .build import build_case_image, get_tasks
 
 logger = logging.getLogger(__name__)
 
+# These agents make no model calls, so a run with them needs no provider key.
+KEYLESS_AGENTS = ("dummy", REFERENCE_AGENT)
+
 BUILTIN_COMMANDS = ("run", "build-case", "dataset", "tasks", "proxy", "doctor", "init", "demo")
 
 
@@ -101,11 +104,14 @@ def cmd_run(args: argparse.Namespace) -> int:
             logger.error(e)
             return 1
 
-    # Reject an unknown or broken agent and an unknown model before starting the proxy.
+    # Reject an unknown or broken agent, an unknown model and a missing provider key before the
+    # proxy starts or anything is built.
     # A sidecar agent image is built on the task-independent runtime image, so every task shares it.
     agent = Agent(args.agent, task_name=task.name if args.mode == "sandbox" else "sidecar")
     if args.model is not None and not reference_run:
         require_defined(args.model)
+        if args.agent not in KEYLESS_AGENTS:
+            doctor.require_model_key(args.model)
 
     try:
         stack.up()

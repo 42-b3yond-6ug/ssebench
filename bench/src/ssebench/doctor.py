@@ -11,7 +11,7 @@ from pathlib import Path
 import yaml
 
 from ssebench import paths, settings, stack
-from ssebench.models import model_names
+from ssebench.models import ModelError, model_names
 
 GIB = 1024**3
 # Case images of C tasks with their toolchains run to several GiB each.
@@ -230,6 +230,17 @@ def check_model_key(model: str) -> Check:
         f"{', '.join(missing)} is not set in .env",
         f"Put the key in {paths.env_file()}; the proxy reads provider keys only from there.",
     )
+
+
+def require_model_key(model: str) -> None:
+    """Stop before anything is built when `.env` lacks the provider key that `model` needs.
+
+    Raises:
+        ModelError: One line that names the missing variable.
+    """
+    check = check_model_key(model)
+    if check.status is Status.FAIL:
+        raise ModelError(f"Model {model!r}: {check.detail}. {check.fix}")
 
 
 def host_checks() -> list[Check]:
