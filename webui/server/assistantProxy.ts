@@ -12,7 +12,7 @@
 import { existsSync, readFileSync } from "fs"
 import { join } from "path"
 import { ssebenchPath } from "./config"
-import { containerEnv } from "./docker"
+import { containerEnv } from "./runner"
 
 /** What one assistant key may spend, in dollars */
 export const ASSISTANT_BUDGET = 5
@@ -58,7 +58,10 @@ const keys = new Map<string, string>()
 export async function proxyProviderFor(
   containerId: string
 ): Promise<AssistantProvider | null> {
-  const env = await containerEnv(containerId)
+  const env = await containerEnv(containerId, [
+    "SSE_BASE_URL",
+    "SSE_MODEL_NAME",
+  ])
   const baseUrl = env?.SSE_BASE_URL
   const model = env?.SSE_MODEL_NAME
   if (!baseUrl || !model) return null

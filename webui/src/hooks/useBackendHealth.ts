@@ -7,14 +7,18 @@ import { apiFetch } from "../lib/api"
 
 interface HealthStatus {
   isHealthy: boolean
-  docker: boolean
+  /** The runner backend answers */
+  runner: boolean
+  /** The name of the runner backend, when it answers */
+  backend: string | null
   lastCheck: Date | null
   error: string | null
 }
 
 interface HealthResponse {
   status: string
-  docker: boolean
+  runner: boolean
+  backend: string | null
   timestamp: string
 }
 
@@ -23,7 +27,8 @@ const HEALTH_CHECK_INTERVAL = 60000 // 60 seconds
 export function useBackendHealth() {
   const [health, setHealth] = useState<HealthStatus>({
     isHealthy: false,
-    docker: false,
+    runner: false,
+    backend: null,
     lastCheck: null,
     error: null,
   })
@@ -40,14 +45,16 @@ export function useBackendHealth() {
 
       setHealth({
         isHealthy: data.status === "ok",
-        docker: data.docker,
+        runner: data.runner,
+        backend: data.backend,
         lastCheck: new Date(),
         error: null,
       })
     } catch (err) {
       setHealth({
         isHealthy: false,
-        docker: false,
+        runner: false,
+        backend: null,
         lastCheck: new Date(),
         error: err instanceof Error ? err.message : "Connection failed",
       })

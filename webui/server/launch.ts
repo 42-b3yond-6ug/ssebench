@@ -15,7 +15,7 @@ import { readdirSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
 import { loadCatalogTasks, resolveCatalog, type CatalogTask } from "./catalog"
 import { ssebenchPath } from "./config"
-import { listContainers } from "./docker"
+import { listRuns, refreshRuns, runnerCommand, runnerEnv } from "./runner"
 
 // =============================================================================
 // Configuration
@@ -195,13 +195,16 @@ export async function findRunContainer(launchId: string): Promise<boolean> {
   const entry = launches.get(launchId)
   if (!entry || entry.status.status !== "launching") return false
   try {
-    const containers = await listContainers()
-    const match = containers.find((c) => c.runId === launchId)
+    // The list is shared for a moment, and a run that has just started may
+    // not be in it yet
+    refreshRuns()
+    const { runs } = await listRuns()
+    const match = runs.find((run) => run.run_id === launchId)
     if (!match) return false
     console.log(
-      `[launch:${launchId}] Container ready: ${match.id} (task: ${entry.status.taskId})`
+      `[launch:${launchId}] Container ready: ${match.name} (task: ${entry.status.taskId})`
     )
-    setLaunchRunning(launchId, match.id)
+    setLaunchRunning(launchId, match.run_id)
     return true
   } catch (error) {
     console.error(`[launch:${launchId}] Failed to check containers:`, error)
@@ -451,12 +454,12 @@ export function validateLaunchConfig(input: unknown): LaunchValidation {
 }
 
 /**
- * Arguments for `uv` that run one benchmark. Values are attached with `=`
- * so none can be read as an option of its own. `runId` labels the run's
+ * Arguments for `ssebench` that run one benchmark. Values are attached with
+ * `=` so none can be read as an option of its own. `runId` labels the run's
  * containers, so the launch can tell them from every other container.
  */
 export function buildLaunchArgs(config: LaunchConfig, runId: string): string[] {
-  const args = ["run", "ssebench", "run"]
+  const args = ["run"]
   if (config.model !== undefined) args.push(`--model=${config.model}`)
   args.push(
     `--agent=${config.agent}`,
@@ -640,7 +643,7 @@ export async function launchTask(config: LaunchConfig): Promise<LaunchStatus> {
   // The launch ID is also the run ID that labels the run's containers
   const args = buildLaunchArgs(config, launch_id)
   // For display only; the process is spawned from the argument vector
-  const command = `uv ${args.join(" ")}`
+  const command = [...runnerCommand(), ...args].join(" ")
 
   // Initialize launch entry
   const status: LaunchStatus = {
@@ -671,15 +674,11 @@ export async function launchTask(config: LaunchConfig): Promise<LaunchStatus> {
 
   try {
     const proc = spawn({
-      cmd: ["uv", ...args],
+      cmd: [...runnerCommand(), ...args],
       cwd: SSEBENCH_PATH,
       stdout: "pipe",
       stderr: "pipe",
-      env: {
-        ...process.env,
-        NO_COLOR: "1",
-        FORCE_COLOR: "0",
-      },
+      env: runnerEnv(),
     })
 
     entry.process = proc

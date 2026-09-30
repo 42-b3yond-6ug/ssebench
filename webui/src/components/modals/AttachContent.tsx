@@ -8,6 +8,8 @@ import { useState, useMemo, useCallback } from "react"
 import { useContainers } from "../../context/useContainers"
 import type { DockerContainer } from "../../types/container"
 import { removeContainer } from "../../lib/api"
+import { useServerInfo } from "../../lib/serverInfo"
+import { statusLabel } from "../../lib/runStatus"
 
 interface AttachContentProps {
   onAttach: (id: string) => void
@@ -25,7 +27,12 @@ export function AttachContent({ onAttach }: AttachContentProps) {
     getRecentContainers,
   } = useContainers()
 
-  const [activeTab, setActiveTab] = useState<FilterTab>("running")
+  const { readOnly } = useServerInfo()
+
+  // A read-only server has runs to browse, not to watch
+  const [activeTab, setActiveTab] = useState<FilterTab>(
+    readOnly ? "all" : "running"
+  )
   const [search, setSearch] = useState("")
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [removeError, setRemoveError] = useState<string | null>(null)
@@ -75,7 +82,11 @@ export function AttachContent({ onAttach }: AttachContentProps) {
 
   const selected = containers.find((c) => c.id === selectedId)
   // Only a container that has stopped is offered for removal here
-  const canRemove = selected?.status === "exited" && !isAttached(selected.id)
+  const canRemove =
+    !readOnly &&
+    selected?.source === "container" &&
+    selected.status === "exited" &&
+    !isAttached(selected.id)
 
   const handleRemove = useCallback(async () => {
     if (!selectedId) return
@@ -330,13 +341,7 @@ function ContainerRow({
     exited: "bg-gruvbox-red",
     paused: "bg-gruvbox-yellow",
     created: "bg-gruvbox-blue",
-  }
-
-  const statusLabels = {
-    running: "Running",
-    exited: "Exited",
-    paused: "Paused",
-    created: "Created",
+    unknown: "bg-gruvbox-yellow",
   }
 
   return (
@@ -404,7 +409,7 @@ function ContainerRow({
                   : "bg-gruvbox-blue/20 text-gruvbox-blue"
           }`}
         >
-          {statusLabels[container.status]}
+          {statusLabel(container)}
         </span>
       )}
     </button>

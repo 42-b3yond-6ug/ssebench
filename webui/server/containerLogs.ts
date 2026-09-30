@@ -1,14 +1,19 @@
 /**
- * Container Logs Module - Stream docker logs via WebSocket
+ * Container Logs Module - Stream a run's container output via WebSocket
  *
- * Provides real-time container log streaming using `docker logs -f`.
- * Unlike the launch logs (which capture Python subprocess output),
- * this streams logs directly from the Docker container.
+ * Provides real-time log streaming through `ssebench runs logs --follow`,
+ * which reads the container's output from whatever backend runs it. Unlike
+ * the launch logs (which capture Python subprocess output), this is the
+ * container's own. A run whose container is gone shows the logs its run
+ * directory kept.
  */
 
 import { spawn, type Subprocess } from "bun"
 import type { ServerWebSocket } from "bun"
-import { resolveContainer } from "./docker"
+import { readLogText } from "./pastRuns"
+import { runnerCommand, runnerEnv } from "./runner"
+import { resolveRun } from "./runs"
+import { ssebenchPath } from "./config"
 
 // Track active log streams per WebSocket connection
 const activeStreams: Map<ServerWebSocket<unknown>, Subprocess> = new Map()
@@ -16,7 +21,7 @@ const activeStreams: Map<ServerWebSocket<unknown>, Subprocess> = new Map()
 /**
  * Start streaming logs for a container to a WebSocket client
  *
- * @param containerId - Docker container ID
+ * @param containerId - the run's ID
  * @param ws - WebSocket connection to stream logs to
  */
 export async function startContainerLogStream(
@@ -31,17 +36,27 @@ export async function startContainerLogStream(
   )
 
   try {
-    const container = await resolveContainer(containerId)
-    if (!container) {
-      throw new Error(`Container ${containerId} not found`)
+    const run = await resolveRun(containerId)
+    if (!run) {
+      throw new Error(`Run ${containerId} not found`)
     }
-    // The client may have gone away while the container was being resolved
+    // The client may have gone away while the run was being resolved
     if (ws.readyState !== WebSocket.OPEN) return
 
-    // Spawn docker logs with follow mode
-    // No --tail limit to fetch ALL logs
+    if (run.source === "results") {
+      const text = run.resultsDir ? readLogText(run.resultsDir) : ""
+      for (const line of text.split("\n")) {
+        if (line.trim()) ws.send(JSON.stringify({ type: "log", data: line }))
+      }
+      ws.send(JSON.stringify({ type: "end", data: { exitCode: 0 } }))
+      return
+    }
+
+    // Follow mode, with no limit on how much is read
     const proc = spawn({
-      cmd: ["docker", "logs", "-f", container.id],
+      cmd: [...runnerCommand(), "runs", "logs", "--follow", run.id],
+      cwd: ssebenchPath(),
+      env: runnerEnv(),
       stdout: "pipe",
       stderr: "pipe",
     })
@@ -83,7 +98,7 @@ export async function startContainerLogStream(
       })()
     }
 
-    // Stream stderr (docker logs outputs to stderr for container stderr)
+    // Stream stderr: the CLI's own complaints
     const stderr = proc.stderr
     if (stderr && typeof stderr !== "number") {
       const reader = stderr.getReader()
@@ -118,7 +133,7 @@ export async function startContainerLogStream(
     // Monitor process exit
     proc.exited.then((exitCode) => {
       console.log(
-        `[containerLogs] docker logs exited with code ${exitCode} for ${containerId}`
+        `[containerLogs] logs exited with code ${exitCode} for ${containerId}`
       )
 
       // Clean up

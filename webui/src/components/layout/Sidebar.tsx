@@ -19,6 +19,7 @@ import { useNewPanel, useSettingsPanel } from "../../context/usePanels"
 import { DetachModal } from "../DetachModal"
 import { ResizeHandle } from "../ui/ResizeHandle"
 import { stopContainer, removeContainer } from "../../lib/api"
+import { statusLabel } from "../../lib/runStatus"
 import type { DockerContainer } from "../../types/container"
 
 interface SidebarProps {
@@ -44,8 +45,8 @@ export function Sidebar({ width, onResizeStart, isResizing }: SidebarProps) {
     refreshContainers,
   } = useContainers()
   const { openNewPanel } = useNewPanel()
-  const { isHealthy, docker, error } = useBackendHealth()
-  const { terminalHint } = useServerInfo()
+  const { isHealthy, runner, backend, error } = useBackendHealth()
+  const { terminalHint, readOnly } = useServerInfo()
   const {
     allLaunches,
     cancel: cancelLaunch,
@@ -145,7 +146,8 @@ export function Sidebar({ width, onResizeStart, isResizing }: SidebarProps) {
           <div className="mt-3">
             <HealthIndicator
               isHealthy={isHealthy}
-              docker={docker}
+              runner={runner}
+              backend={backend}
               error={error}
             />
             {terminalHint && (
@@ -211,13 +213,15 @@ export function Sidebar({ width, onResizeStart, isResizing }: SidebarProps) {
           </button>
 
           {/* Launch button - Opens New Panel (Primary action) */}
-          <button
-            onClick={() => openNewPanel("launch")}
-            className="text-fg-4 hover:bg-bg-1 hover:text-gruvbox-yellow flex w-full items-center gap-2 px-4 py-3 text-sm transition-colors"
-          >
-            <RocketIcon />
-            <span className="font-medium">Launch New Test</span>
-          </button>
+          {!readOnly && (
+            <button
+              onClick={() => openNewPanel("launch")}
+              className="text-fg-4 hover:bg-bg-1 hover:text-gruvbox-yellow flex w-full items-center gap-2 px-4 py-3 text-sm transition-colors"
+            >
+              <RocketIcon />
+              <span className="font-medium">Launch New Test</span>
+            </button>
+          )}
 
           {/* Attach button - Opens New Panel (Secondary action) */}
           <button
@@ -225,7 +229,9 @@ export function Sidebar({ width, onResizeStart, isResizing }: SidebarProps) {
             className="text-fg-4 hover:bg-bg-1 hover:text-gruvbox-aqua flex w-full items-center gap-2 px-4 py-3 text-sm transition-colors"
           >
             <ContainerIcon />
-            <span className="font-medium">Attach to Container</span>
+            <span className="font-medium">
+              {readOnly ? "Browse Runs" : "Attach to Container"}
+            </span>
           </button>
 
           {/* Divider */}
@@ -268,13 +274,7 @@ function ContainerCard({
     exited: "border-l-gruvbox-red",
     paused: "border-l-gruvbox-yellow",
     created: "border-l-gruvbox-blue",
-  }
-
-  const statusLabels = {
-    running: "Running",
-    exited: "Stopped",
-    paused: "Paused",
-    created: "Created",
+    unknown: "border-l-gruvbox-yellow",
   }
 
   return (
@@ -302,7 +302,7 @@ function ContainerCard({
               isActive ? "text-gruvbox-aqua/60" : "text-fg-4"
             }`}
           >
-            {statusLabels[container.status]}
+            {statusLabel(container, "Stopped")}
           </span>
         </div>
 
@@ -414,40 +414,42 @@ function LaunchingCard({
  */
 function HealthIndicator({
   isHealthy,
-  docker,
+  runner,
+  backend,
   error,
 }: {
   isHealthy: boolean
-  docker: boolean
+  runner: boolean
+  backend: string | null
   error: string | null
 }) {
   const getTitle = () => {
     if (!isHealthy) return `Backend offline${error ? `: ${error}` : ""}`
-    if (!docker) return "Backend online, Docker unavailable"
-    return "Backend online, Docker connected"
+    if (!runner) return "Server online, runner unavailable"
+    return `Server online, runner backend: ${backend}`
   }
 
   const getColor = () => {
     if (!isHealthy) return "bg-gruvbox-red"
-    if (!docker) return "bg-gruvbox-yellow"
+    if (!runner) return "bg-gruvbox-yellow"
     return "bg-gruvbox-green"
   }
 
   const getText = () => {
     if (!isHealthy) return "Backend Offline"
-    if (!docker) return "Docker Unavailable"
+    if (!runner) return "Runner Unavailable"
     return "Backend Ready"
   }
 
   const getBorderColor = () => {
     if (!isHealthy) return "border-gruvbox-red/30"
-    if (!docker) return "border-gruvbox-yellow/30"
+    if (!runner) return "border-gruvbox-yellow/30"
     return "border-gruvbox-green/30"
   }
 
   const getBgColor = () => {
     if (!isHealthy) return "bg-gruvbox-red/5"
-    if (!docker) return "bg-gruvbox-yellow/5"
+    if (!runner) return "bg-gruvbox-yellow/5"
     return "bg-gruvbox-green/5"
   }
 

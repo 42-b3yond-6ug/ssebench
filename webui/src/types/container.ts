@@ -1,7 +1,12 @@
 /**
- * Docker container types for SSEBench WebUI
+ * Run types for SSEBench WebUI
  */
 
+/**
+ * A run as the server lists it: the container of a run on the backend, or a
+ * finished run that only its results directory remembers. `id` is the run ID,
+ * whichever backend carries it.
+ */
 export interface DockerContainer {
   id: string
   name: string
@@ -10,31 +15,16 @@ export interface DockerContainer {
   agent: string
   /** The reference agent applied the task's known fix: the grade rates the task, not a model */
   referenceRun: boolean
-  /** The `--run-id` the run was started with, if any */
-  runId: string | null
-  status: "running" | "exited" | "paused" | "created"
+  /** The run ID: `--run-id`, or the one the CLI made */
+  runId: string
+  status: "running" | "exited" | "paused" | "created" | "unknown"
   image: string
-  ports: ContainerPort[]
   createdAt: string
-}
-
-export interface ContainerPort {
-  host: number
-  container: number
-  protocol: "tcp" | "udp"
-}
-
-/**
- * Raw Docker JSON output from `docker ps --format json`
- */
-export interface DockerPsJson {
-  ID: string
-  Names: string
-  Image: string
-  Status: string
-  Ports: string
-  Labels: string
-  CreatedAt: string
+  /**
+   * `container` for a run the backend has; `results` for a finished run read
+   * from its run directory, which has no container to stop, open or ask.
+   */
+  source: "container" | "results"
 }
 
 /**
@@ -42,6 +32,8 @@ export interface DockerPsJson {
  */
 export interface ContainersResponse {
   containers: DockerContainer[]
+  /** Why the backend's runs are missing, when the server could not list them */
+  runnerError?: string
 }
 
 /**

@@ -1,15 +1,16 @@
 /**
- * PTY Session Management for Docker Container Terminals
+ * PTY Session Management for run container terminals
  *
- * Manages pseudo-terminal sessions that connect to Docker containers
- * via Go PTY proxy subprocess. The proxy provides true PTY support
- * using creack/pty library and communicates via stdin/stdout JSON.
+ * Manages pseudo-terminal sessions that connect to run containers via a Go
+ * PTY proxy subprocess. The proxy provides true PTY support using the
+ * creack/pty library and communicates via stdin/stdout JSON.
  *
  * Architecture:
  * - Bun server handles WebSocket connections from frontend
- * - Spawns Go PTY proxy subprocess per container session
+ * - Spawns Go PTY proxy subprocess per terminal session
  * - Bridges WebSocket ↔ subprocess stdin/stdout (JSON messages)
- * - Go subprocess creates real PTY for `docker exec -it <container> bash`
+ * - Go subprocess creates a real PTY for `ssebench runs exec --tty <run> bash`,
+ *   which the runner backend turns into `docker exec -it` or its equivalent
  *
  * Features:
  * - True PTY support with proper resize handling
@@ -22,7 +23,9 @@
 import type { ServerWebSocket } from "bun"
 import { existsSync } from "fs"
 import { join } from "path"
-import { resolveContainer } from "./docker"
+import { ssebenchPath } from "./config"
+import { execCommand, listRuns, runnerEnv } from "./runner"
+import { resolveRun } from "./runs"
 
 // =============================================================================
 // Configuration
@@ -153,11 +156,11 @@ function updateActivity(session: PTYSession): void {
 // =============================================================================
 
 /**
- * Create a new PTY session for a container
+ * Create a new PTY session for a run
  *
- * Spawns `docker exec -it <containerId> <command...>` and sets up stream
- * handling. `command` is an argument vector (default: bash); it is never
- * parsed by a shell.
+ * Runs `<command...>` in the run's container through the runner backend, in a
+ * terminal, and sets up stream handling. `command` is an argument vector
+ * (default: bash); it is never parsed by a shell.
  */
 export async function createPTYSession(
   containerId: string,
@@ -167,20 +170,29 @@ export async function createPTYSession(
   command: string[] = [],
   workDir?: string
 ): Promise<PTYSession | null> {
-  // Validate container exists and is running
-  const container = await resolveContainer(containerId)
-  if (!container) {
+  // Validate the run exists, has a container, and is running
+  const run = await resolveRun(containerId)
+  if (!run || run.source !== "container") {
     sendMessage(ws, {
       type: "error",
-      message: `Container ${containerId} not found`,
+      message: `Run ${containerId} has no container`,
     })
     return null
   }
 
-  if (container.status !== "running") {
+  if (run.status !== "running") {
     sendMessage(ws, {
       type: "error",
-      message: `Container is not running (status: ${container.status}). Start it with: docker start ${containerId}`,
+      message: `The run is not running (status: ${run.status})`,
+    })
+    return null
+  }
+
+  const list = await listRuns().catch(() => null)
+  if (!list?.supports_exec) {
+    sendMessage(ws, {
+      type: "error",
+      message: `Terminal unavailable: the ${list?.backend ?? "runner"} backend cannot run commands in a run`,
     })
     return null
   }
@@ -201,20 +213,22 @@ export async function createPTYSession(
     // Spawn Go PTY proxy as subprocess
     // The Go binary creates a real PTY using creack/pty library
     // Communication is via stdin/stdout with JSON messages
-    const args = [PTY_PROXY_BIN]
-    if (workDir) {
-      args.push("--workdir", workDir)
-    }
-    args.push(container.id, ...command)
+    const args = [
+      PTY_PROXY_BIN,
+      "--",
+      ...execCommand(run.id, command.length > 0 ? command : ["bash"], {
+        tty: true,
+        workdir: workDir,
+      }),
+    ]
 
     const proc = Bun.spawn({
       cmd: args,
+      cwd: ssebenchPath(),
       stdin: "pipe",
       stdout: "pipe",
       stderr: "pipe",
-      env: {
-        ...Bun.env,
-      },
+      env: runnerEnv(),
     })
 
     const session: PTYSession = {

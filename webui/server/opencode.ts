@@ -15,7 +15,10 @@
  * - Lifecycle management: Cleans up processes on shutdown
  */
 
-import { getSDKUrl, resolveContainer } from "./docker"
+import { endpointOf, execCommand, runnerEnv } from "./runner"
+import { resolveRun } from "./runs"
+import { isHosted } from "./security"
+import { ssebenchPath } from "./config"
 import {
   buildAssistantConfig,
   proxyProviderFor,
@@ -195,7 +198,7 @@ async function streamOutput(
 /**
  * Start OpenCode server in a container using Bun.spawn
  *
- * Spawns docker exec without -d flag so we can manage the process.
+ * Runs the server through the runner backend's exec, and keeps the process so it can be managed.
  * If OpenCode is already running in the container (orphaned), connects to it.
  *
  * @param containerId Container ID
@@ -234,9 +237,14 @@ async function startOpenCode(containerId: string): Promise<boolean> {
     // No existing server, proceed with spawn
   }
 
-  const container = await resolveContainer(containerId)
-  if (!container) {
-    console.error(`${logPrefix} Not an SSEBench container`)
+  // The assistant runs commands in the container, which a hosted server never allows
+  if (isHosted()) {
+    console.error(`${logPrefix} The assistant is off on a hosted server`)
+    return false
+  }
+  const container = await resolveRun(containerId)
+  if (!container || container.source !== "container") {
+    console.error(`${logPrefix} Not a run with a container`)
     return false
   }
 
@@ -251,33 +259,35 @@ async function startOpenCode(containerId: string): Promise<boolean> {
     console.log(
       `${logPrefix} Assistant model: ${provider ? `${provider.model} through the LiteLLM proxy` : "the user's provider key"}`
     )
-    const env: Record<string, string | undefined> = { ...Bun.env }
+    const env = runnerEnv()
     if (provider) {
       env.OPENCODE_CONFIG_CONTENT = JSON.stringify(
         buildAssistantConfig(provider)
       )
     }
 
-    // Spawn docker exec (without -d flag)
+    // The server listens on the run network, which other containers share,
+    // so it gets the agent's privileges, not root's.
     const proc = spawn({
-      cmd: [
-        "docker",
-        "exec",
-        "-i", // Keep stdin open (even though we don't use it)
-        ...(provider ? ["-e", "OPENCODE_CONFIG_CONTENT"] : []),
-        // It listens on the run network, which other containers share, so
-        // it gets the agent's privileges, not root's.
-        "--user",
-        "model",
+      cmd: execCommand(
         container.id,
-        "opencode",
-        "serve",
-        "--port",
-        String(port),
-        "--hostname",
-        "0.0.0.0",
-        "--print-logs",
-      ],
+        [
+          "opencode",
+          "serve",
+          "--port",
+          String(port),
+          "--hostname",
+          "0.0.0.0",
+          "--print-logs",
+        ],
+        {
+          user: "model",
+          // Keep stdin open (even though we don't use it)
+          stdin: true,
+          envNames: provider ? ["OPENCODE_CONFIG_CONTENT"] : [],
+        }
+      ),
+      cwd: ssebenchPath(),
       stdin: "ignore",
       stdout: "pipe",
       stderr: "pipe",
@@ -388,14 +398,8 @@ async function ensureOpenCodeRunning(containerId: string): Promise<boolean> {
  * OpenCode server runs on port 4096, similar to SDK on port 4263
  */
 async function getOpenCodeUrl(containerId: string): Promise<string | null> {
-  // Reuse SDK URL discovery logic, but change the port
-  const sdkUrl = await getSDKUrl(containerId)
-  if (!sdkUrl) return null
-
-  // Replace SDK port (4263) with the assistant's OpenCode port
-  // Example: http://172.17.0.2:4263 -> http://172.17.0.2:4096
   const { port } = await assistantTarget(containerId)
-  return sdkUrl.replace(":4263", `:${port}`)
+  return endpointOf(containerId, port)
 }
 
 /**

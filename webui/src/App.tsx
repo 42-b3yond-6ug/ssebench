@@ -209,8 +209,13 @@ function ContainerLayout({ containerId }: { containerId: string }) {
   // Dock visibility
   const { isDockVisible } = useDock()
 
-  // The server may run with the container terminal switched off
-  const { terminal: terminalEnabled } = useServerInfo()
+  // The server may run with the container terminal or the assistant switched
+  // off, and a finished run that has no container has neither
+  const serverInfo = useServerInfo()
+  const { activeContainer } = useContainers()
+  const hasContainer = activeContainer?.source !== "results"
+  const terminalEnabled = serverInfo.terminal && hasContainer
+  const assistantEnabled = serverInfo.assistant && hasContainer
 
   // Panel resize hooks
   const agentPanel = useResizableRight({
@@ -271,9 +276,11 @@ function ContainerLayout({ containerId }: { containerId: string }) {
             <Dock.Panel id="files" name="Files" icon={<FilesIcon />}>
               <FileListView />
             </Dock.Panel>
-            <Dock.Panel id="ai" name="AI" icon={<AIIcon />}>
-              <AIView containerId={containerId} />
-            </Dock.Panel>
+            {assistantEnabled && (
+              <Dock.Panel id="ai" name="AI" icon={<AIIcon />}>
+                <AIView containerId={containerId} />
+              </Dock.Panel>
+            )}
             {terminalEnabled && (
               <Dock.Panel id="terminal" name="Terminal" icon={<TerminalIcon />}>
                 <TerminalContent containerId={containerId} showToolbar />

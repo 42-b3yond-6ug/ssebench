@@ -18,15 +18,16 @@ const report = {
   models: { claude: { keys: ["ANTHROPIC_API_KEY"], missing: [] } },
 }
 
-function fakeUv(script: string) {
-  writeFileSync(join(fakes.binDir, "uv"), `#!/bin/sh\n${script}\n`, {
-    mode: 0o755,
-  })
+/** A CLI that runs `script` instead of the fake runner */
+function fakeCli(script: string) {
+  const cli = join(fakes.dir, "cli.sh")
+  writeFileSync(cli, `#!/bin/sh\n${script}\n`, { mode: 0o755 })
+  process.env.SSEBENCH_CLI = cli
 }
 
 describe("getDoctorReport", () => {
   test("returns the report that the CLI prints", async () => {
-    fakeUv(`echo '${JSON.stringify(report)}'`)
+    fakeCli(`echo '${JSON.stringify(report)}'`)
     expect(await getDoctorReport()).toEqual({
       available: true,
       report,
@@ -34,20 +35,20 @@ describe("getDoctorReport", () => {
   })
 
   test("still returns it when a required check made the CLI exit 1", async () => {
-    fakeUv(`echo '${JSON.stringify(report)}'; exit 1`)
+    fakeCli(`echo '${JSON.stringify(report)}'; exit 1`)
     expect((await getDoctorReport()).available).toBe(true)
   })
 
   test("says so when there is no report", async () => {
-    fakeUv("echo 'not json'; exit 2")
+    fakeCli("echo 'not json'; exit 2")
     const result = await getDoctorReport()
     expect(result.available).toBe(false)
   })
 
   test("reuses a recent report", async () => {
-    fakeUv(`echo '${JSON.stringify(report)}'`)
+    fakeCli(`echo '${JSON.stringify(report)}'`)
     const first = await getDoctorReport()
-    fakeUv("exit 2")
+    fakeCli("exit 2")
     expect(await getDoctorReport()).toBe(first)
   })
 })
