@@ -168,6 +168,23 @@ done
 probe_daemon "ls /ssebench-repo" "list /ssebench-repo"
 probe_daemon "timeout 5 bash -c '</dev/tcp/github.com/443'" "reach the internet"
 
+# --- The bash tool runs as the agent does, not as the daemon -----------------
+# It must have the agent's uid, no supplementary groups (root's group 0 in
+# particular), the agent's home and none of the daemon's root-only paths, so
+# that git, uv and the toolchains work in it as they do in the agent's shell.
+tool_stdout=$(curl -s -m 60 --unix-socket "$SOCK" -X POST "http://d/tool/bash?action=execute" \
+	-H 'Content-Type: application/json' \
+	-d '{"command":"echo $(id -u) $(id -G) $HOME $USER ${SSE_ADMIN_SOCKET-unset}"}' |
+	sed -n 's/.*"stdout":"\([^"]*\)".*/\1/p')
+tool_stdout="${tool_stdout%\\n}"
+want="$(id -u) $(id -G) $HOME $(id -un) unset"
+[ "$tool_stdout" = "$want" ] && ok "bash tool runs as the agent ($tool_stdout)" \
+	|| bad "bash tool runs as: '$tool_stdout' (want '$want')"
+case " ${tool_stdout#* } " in
+*" 0 "*) bad "bash tool has group 0" ;;
+*) ok "bash tool has no group 0" ;;
+esac
+
 # --- Allowed tooling still works ---------------------------------------------
 code=$(curl -s -o /dev/null -w '%{http_code}' --unix-socket "$SOCK" \
 	-X POST "http://d/tool/bash?action=execute" \

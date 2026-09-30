@@ -1,13 +1,14 @@
 use std::io::{BufRead, BufReader, Write};
-use std::os::unix::process::CommandExt;
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 use anyhow::{Result, anyhow};
 use serde::Deserialize;
+
+use crate::isolation::agent_account;
 
 use super::Tool;
 use super::response::{ScriptResult, ToolResult};
@@ -62,11 +63,10 @@ impl Bash {
         let working_dir = working_directory.as_ref().to_path_buf();
 
         // Spawn bash process synchronously to properly propagate errors
-        let mut child = Command::new("bash")
+        let mut child = agent_account()
+            .command("bash")
             .current_dir(&working_dir)
             .arg("-i")
-            .uid(1000)
-            .gid(1000)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -203,7 +203,7 @@ impl Bash {
     /// # Security Note
     /// Commands run in the current shell context, so environment changes (cd, export, etc.)
     /// persist across invocations. The `exit` command will terminate the bash session.
-    /// Command injection is possible but acceptable because the bash process runs as uid 1000
+    /// Command injection is possible but acceptable because the bash process runs as the agent's user
     /// (a regular, unprivileged user) which limits potential damage.
     fn execute(&mut self, command: &str) -> Result<BashResult> {
         let command_string = format!(
