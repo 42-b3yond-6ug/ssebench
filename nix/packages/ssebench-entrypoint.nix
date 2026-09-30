@@ -11,7 +11,7 @@ pkgs.buildGo126Module {
     inherit root;
     fileset = lib.fileset.difference root (root + "/examples");
   };
-  vendorHash = "sha256-HsKWWol+gLYab4BaOBu5f1M9OgtnViACEiMnrbDkrgA=";
+  vendorHash = "sha256-SMJbmRGIDk80KyRN+EkFncMBzrrQy1BGpP0UlUfnIag=";
 
   env.CGO_ENABLED = 0;
   ldflags = [
