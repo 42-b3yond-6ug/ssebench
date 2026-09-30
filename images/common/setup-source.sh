@@ -32,6 +32,8 @@ usermod -G "" sse-runner
 find / -xdev \( -path /proc -o -path /sys -o -path /dev \) -prune -o \
 	-perm -o+w ! -type l ! \( -type d -perm -1000 \) -exec chmod o-w {} +
 
+"$(dirname "$0")/share-build-caches.sh"
+
 # Parent of the run's results directory, which the CLI mounts at
 # /var/lib/ssebench/results: only root may reach it.
 install -d -m 0700 /var/lib/ssebench

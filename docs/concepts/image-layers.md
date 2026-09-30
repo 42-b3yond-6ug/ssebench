@@ -88,8 +88,12 @@ on top of the case image:
    (uid 1000) fresh with no supplementary groups, removing a base image's
    uid-1000 user (such as `ubuntu`) if one clashes; creates the unprivileged
    `sse-runner` user the daemon runs task scripts as; removes world-writable
-   bits from files a check must not change; deletes every `.git` directory in
-   the source and commits the tree again as a single commit, `buggy commit`;
+   bits from files a check must not change; makes the toolchains and
+   dependency caches that `CARGO_HOME`, `RUSTUP_HOME` and `GOPATH` name
+   readable by every user (`share-build-caches.sh`), because the runner cannot
+   read a crate file that was unpacked as mode 0640; deletes every `.git`
+   directory in the source and commits the tree again as a single commit,
+   `buggy commit`;
 4. adds the runtime:
 
 | Path | Component |
