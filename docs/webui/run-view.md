@@ -46,7 +46,8 @@ uv run ssebench run --local datasets/pilot --task gjson-196-bf4efcb \
 
 Stop the container with `docker stop`. The CLI takes that as the normal end of
 the run and writes the summary; it logs an error only when the container ends
-some other way, or is stopped before the grade was written.
+some other way, or is stopped before the grade was written. A SIGTERM or SIGINT
+to the CLI stops the container the same way, and the summary is still written.
 
 ## Layout
 
@@ -138,8 +139,11 @@ time limit, and the evaluator's error message, with the error log behind
 On a [reference run](/reference/cli#reference-runs) the card carries a note that
 the grade checks the task, not a model.
 
-In sidecar mode this tab stays empty. The grade is written where the daemon
-cannot read it, so read `result.json` in `results/` instead.
+The grade comes from the container's daemon. When the daemon has none, or the
+container has stopped, the web UI reads `result.json` from the run's results
+directory on the host instead: the directory that the container's
+`ssebench.results` label names, else `results/<task>/<model>/<agent>` in the web
+UI's checkout.
 
 ## Logs
 
@@ -155,10 +159,11 @@ results in `$SSE_ARCHIVE` (`/tmp/sse-archive`) and the task files under
 `/ssebench`. The toolbar changes the font size, searches, clears and restarts
 the shell.
 
-- It needs a helper that `just webui` does not build. From `webui/`, run
-  `bun run build:pty`, which needs Go; the [container image](/webui/#in-a-container)
-  includes it. Without the helper, the terminal prints `Terminal unavailable:
-  pty-proxy is not built`, while the rest of the run view works.
+- It needs the `pty-proxy` helper. `just webui` builds it when Go is installed;
+  otherwise run `bun run build:pty` in `webui/` yourself, which needs Go. The
+  [container image](/webui/#in-a-container) includes it. Without the helper,
+  `/api/health` reports `terminal: false` with a hint, the sidebar shows the hint,
+  and the terminal tabs are hidden, while the rest of the run view works.
 - The container has to be running.
 - `SSEBENCH_WEBUI_TERMINAL=0` turns the terminal off and hides its tabs; see
   [Security model](/webui/security#terminal).
@@ -170,16 +175,29 @@ the shell.
 
 The **AI** tab runs [OpenCode](https://opencode.ai/) in the container as a
 debugging assistant. It comes with prompts for comparing the agent's fix with the
-reference patch, for reviewing the changes, and for looking for problems. The
-assistant works with your own Anthropic API key, which you enter under
-**Settings**, and it can run commands in the container. Read
+reference patch, for reviewing the changes, and for looking for problems. 
+The assistant can run commands in the container. Read
 [the key and the assistant](/webui/security#provider-api-key-and-the-assistant)
-before you use it.
+before you use it. Which model it uses depends on the run:
 
-The assistant calls Anthropic from inside the container. A container on the
-default `restricted` network cannot reach the internet, so the assistant cannot
-answer there: the message you send stays without a reply, and the browser shows
-no error. Use the assistant on a run started with `--egress open`.
+- **A run with a model** (any agent but `reference`, in sandbox mode): the
+  assistant uses that model through the run's LiteLLM proxy, which a container on
+  the default `restricted` network can reach. You need no key. It runs as a second
+  OpenCode server in the container, on port 4098, and has a proxy key of its own
+  with a budget of 5 dollars, made with the master key from `.env`, so what it
+  spends does not count as the run's spend in the summary. The header of the tab
+  names the model.
+- **A run without a model** (the `reference` agent, or a sidecar run's task
+  container), or a web UI that cannot make that key: the assistant works with
+  your own Anthropic API key, which you enter under **Settings**, and calls
+  Anthropic from inside the container. A container on the `restricted` network
+  cannot reach the internet, so it cannot answer there; use a run started with
+  `--egress open`.
+
+When the model cannot answer, the tab shows why instead of staying silent: the
+provider's error, for example a missing key at the proxy, or, while OpenCode
+retries, a banner that says it is waiting for the provider. An error that looks
+like an unreachable provider says so and suggests the two fixes above.
 
 ## Containers
 
@@ -189,12 +207,17 @@ Container?**:
 | Choice | Does |
 |---|---|
 | **Detach** | Closes the tab. The container keeps running, and you can attach again |
-| **Detach + Stop** | Closes the tab, kills the container and removes it. Only offered for a running container |
+| **Detach + Stop** | Closes the tab, kills the container and removes it. Offered for a running container |
+| **Detach + Remove** | Closes the tab and removes the container. Offered for a container that has stopped |
 | **Cancel** | Does nothing |
 
 The web UI only touches containers with the label `ssebench.webui`. A container
-that stops by itself, or by `docker stop`, stays on the list as **Exited**. The
-web UI cannot remove it; use `docker rm <container>`.
+that stops by itself, or by `docker stop`, stays on the list as **Exited**. You
+can remove it with **Detach + Remove** once it is attached, or with **Remove** in
+the **Attach to Container** list. Stopping and removing can be repeated: stopping
+a container that has already stopped, or removing one that is already gone,
+succeeds without doing anything. Removing a container does not touch its
+`results/` directory.
 
 A kept container serves its daemon API, including the reference patch, for as
 long as it runs. Stop kept containers when you are done, and do not keep

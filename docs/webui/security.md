@@ -159,6 +159,16 @@ depend on `SSEBENCH_WEBUI_TERMINAL`, and no setting turns the assistant off.
 Anyone who can use the API can start a session, with the key from Settings or
 with one of their own, and can approve what it asks.
 
+For a run that has a model, the assistant does not use your key. It uses the run's
+model through the [LiteLLM proxy](/concepts/litellm-proxy), with a key that the
+web UI server makes for it with the proxy's master key from `.env` (or the
+environment) and a budget of 5 dollars. The server starts a second OpenCode server
+in the container, on port 4098, and hands it that key in its environment. Anyone
+with a shell in the container can read the key; it is limited to the run's model
+and that budget, and it is separate from the run's own key, so its spending is not
+part of the run's recorded spend. Without a model in the container, or without the
+master key, the assistant falls back to your key:
+
 ![The Settings dialog, with the field for the API key](/images/webui/settings.png)
 
 The key is an Anthropic API key, entered under **Settings**:
@@ -170,11 +180,11 @@ The key is an Anthropic API key, entered under **Settings**:
   `~/.local/share/opencode/auth.json` of the container's user, readable only by
   that user, and keeps it after the session ends. Anyone with a shell in that
   container can read it.
-- It is your key, not a per-run key of the [LiteLLM proxy](/concepts/litellm-proxy).
-  OpenCode calls Anthropic directly from the container, so the assistant works
+- It is your key, not a key of the [LiteLLM proxy](/concepts/litellm-proxy).
+  OpenCode calls Anthropic directly from the container, so this assistant works
   only where the container can reach the internet, that is, on a run started with
   `--egress open`. The prompts for comparing an agent's fix with the reference
-  patch put that patch in the request.
+  patch put that patch in the request, whichever model answers.
 
 Use a key you can revoke and that has a spending limit. Clear the field in
 Settings when you are done, and remove the containers you used the assistant in.

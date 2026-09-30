@@ -29,7 +29,7 @@ with two services:
 
 | Service | Image | Role |
 |---|---|---|
-| `litellm` | `$SSEBENCH_REGISTRY/litellm:<version>`, built from `images/litellm/` | The proxy. It publishes port 4000 on the host as `LITELLM_PORT` (default 4000). |
+| `litellm` | `$SSEBENCH_REGISTRY/litellm:<version>`, built from `images/litellm/` | The proxy. It publishes port 4000 on the host as `LITELLM_PORT` (default 4000), on `127.0.0.1` unless `LITELLM_BIND` says otherwise. |
 | `litellm_db` | `postgres:16` | LiteLLM's database: the per-run keys, their budgets and their spend. Its data is in the `postgres_data` volume, which `down` keeps. |
 
 The proxy reads `LITELLM_MASTER_KEY` and the Postgres password from the
@@ -83,7 +83,9 @@ The CLI does that for you. It hashes `models/*.yaml`, `models/*.yml` and the
 files in `images/litellm/`, and stores the hash in the image's
 `ssebench.litellm-config` label. `proxy up`, `proxy build` and `ssebench run`
 compare the label with the current files and rebuild the image when they
-differ, and Compose then recreates the proxy container. Provider keys are not
+differ, and Compose then recreates the proxy container. The published image
+carries the same label, computed from the files it was built from, so a pulled
+image that matches your `models/` is used as it is. Provider keys are not
 part of the image: after changing them in `.env`, run `just launch` so the
 proxy restarts with them.
 

@@ -25,7 +25,7 @@ in the [demo](#the-demo-stack), which adds them.
 
 | Service | Image | Role |
 |---|---|---|
-| `litellm` | `$SSEBENCH_REGISTRY/litellm:<version>`, built from `images/litellm/` | The proxy. It publishes container port 4000 on the host at `LITELLM_PORT` |
+| `litellm` | `$SSEBENCH_REGISTRY/litellm:<version>`, built from `images/litellm/` | The proxy. It publishes container port 4000 on the host at `LITELLM_BIND`:`LITELLM_PORT`, and is `healthy` once `/health/liveliness` answers |
 | `litellm_db` | `postgres:16` | LiteLLM's database: the per-run keys, their budgets and spend. It has no published port, and restarts with the Docker daemon |
 
 The proxy image contains the model list from `models/*.yaml`, so a change to the
@@ -48,9 +48,11 @@ host: run containers join it by default and reach the proxy and nothing else.
 and the `--egress` option that chooses between them.
 
 ::: warning
-Docker publishes the proxy's port on every interface of the host, not only on
-loopback, and the master key is the only thing that guards it. On a host that other
-machines can reach, firewall `LITELLM_PORT`.
+The proxy holds the master key and the provider keys, so its port is published on
+`127.0.0.1` only. Set `LITELLM_BIND=0.0.0.0` to publish it on every interface, and
+then the master key is the only thing that guards it: firewall `LITELLM_PORT` on a
+host that other machines can reach. Run containers reach the proxy over the Docker
+network, not through this port.
 :::
 
 ## Settings
@@ -73,6 +75,7 @@ uvx ssebench init   # without a clone
 | `POSTGRES_USER` | `litellm` | The database user |
 | `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY` | unset | Provider keys that the models in `models/` refer to. The proxy reads them from `.env` only, when its container starts |
 | `LITELLM_PORT` | `4000` | The host port of the proxy |
+| `LITELLM_BIND` | `127.0.0.1` | The host address the proxy's port is published on |
 | `COMPOSE_PROJECT_NAME` | `ssebench` | The project, which names the containers, networks and volume |
 | `SSEBENCH_REGISTRY` | `ghcr.io/42-b3yond-6ug/ssebench` | The registry prefix of the proxy image |
 | `SSEBENCH_ENV_FILE` | `.env` in the workspace | The file the proxy container reads the provider keys from. The CLI sets it; set it yourself only when you run `docker compose` directly |

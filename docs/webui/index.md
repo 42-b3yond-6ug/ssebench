@@ -20,8 +20,9 @@ This is the same as `cd webui && bun install && bun run prod`: it installs the
 dependencies, builds the front end and starts the server. Then open
 `http://localhost:3001`. Set `PORT` to use a different port.
 
-The terminal needs a helper that this does not build. To use it, run
-`bun run build:pty` in `webui/` once; it needs Go. See
+The recipe also builds the terminal helper, `pty-proxy`, when Go is installed.
+Without it the web UI starts with the terminal off, and says how to build it; run
+`bun run build:pty` in `webui/` once, which needs Go. See
 [Watching a run](/webui/run-view#terminal).
 
 ::: warning
