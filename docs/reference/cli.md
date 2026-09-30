@@ -65,6 +65,7 @@ ssebench run [-h] [--model NAME] --agent NAME --task ID [--local DIR]
 | `--task ID` | *(required)* | Task ID, the name of the task's folder |
 | `--local DIR` |  | Dataset directory that contains the task folder, for example `datasets/pilot`; the case image is built from the folder |
 | `--catalog PATH\|URL` | `$SSEBENCH_CATALOG`, else the bundled pilot manifest | Task catalog: a `manifest.json` path or URL, a dataset directory, or the URL of a catalog service; used when `--local` is not given |
+| `--build` | off | Build the task's case image from its folder instead of pulling the published one; needs a checkout or `--catalog` with the task folder next to it. With `--local` the image is always built |
 | `--mode MODE` | `sandbox` | Execution mode: sandbox, or sidecar (experimental) |
 | `--tool-layer NAME` | `sandbox` | Tool layer to build in sandbox mode; installed extensions can add more |
 | `--plugin NAME` | `[]` | Run a plugin in this run (repeatable), instead of those `plugins.yaml` enables; sandbox mode only |

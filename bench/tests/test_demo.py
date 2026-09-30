@@ -10,7 +10,7 @@ from ssebench import demo, doctor, paths, settings, stack
 from ssebench.doctor import Status
 from ssebench.middleware.tools import RUNTIME_IMAGE_ENV
 from ssebench.pipe import REGISTRY, TAG
-from ssebench.tasks import load_catalog
+from ssebench.tasks import Catalog, load_catalog
 from ssebench.tasks.manifest import ManifestTask
 
 CHECKOUT = Path(__file__).resolve().parents[2]
@@ -37,8 +37,13 @@ def isolated_env(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
-def entry() -> ManifestTask:
-    return load_catalog(str(CHECKOUT / "datasets" / "pilot" / "manifest.json")).task(TASK)
+def catalog() -> Catalog:
+    return load_catalog(str(CHECKOUT / "datasets" / "pilot" / "manifest.json"))
+
+
+@pytest.fixture
+def entry(catalog: Catalog) -> ManifestTask:
+    return catalog.task(TASK)
 
 
 class FakeDocker:
@@ -187,24 +192,26 @@ def test_down_needs_no_secrets(fake: FakeDocker, monkeypatch: pytest.MonkeyPatch
     assert demo.os.environ["LITELLM_MASTER_KEY"] == "unused"
 
 
-def test_images_are_pulled_and_a_pulled_case_image_needs_no_base(fake: FakeDocker, entry: ManifestTask) -> None:
+def test_images_are_pulled_and_a_pulled_case_image_needs_no_base(
+    fake: FakeDocker, catalog: Catalog, entry: ManifestTask
+) -> None:
     runtime = f"{REGISTRY}/runtime:{TAG}"
-    fake.pullable = {f"{REGISTRY}/catalog:{TAG}", f"{REGISTRY}/webui:{TAG}", f"{REGISTRY}/{entry.image}", runtime}
+    fake.pullable = {f"{REGISTRY}/catalog:{TAG}", f"{REGISTRY}/webui:{TAG}", catalog.case_image(entry), runtime}
 
-    assert demo.prepare_images(entry, build=False) == runtime
+    assert demo.prepare_images(catalog, entry, build=False) == runtime
 
     assert fake.compose("build") == []
     assert fake.matching("make") == []
     assert [cmd[-1] for cmd in fake.matching("docker", "pull")] == [
         f"{REGISTRY}/catalog:{TAG}",
         f"{REGISTRY}/webui:{TAG}",
-        f"{REGISTRY}/{entry.image}",
+        catalog.case_image(entry),
         runtime,
     ]
 
 
-def test_images_the_registry_lacks_are_built(fake: FakeDocker, entry: ManifestTask) -> None:
-    assert demo.prepare_images(entry, build=False) is None
+def test_images_the_registry_lacks_are_built(fake: FakeDocker, catalog: Catalog, entry: ManifestTask) -> None:
+    assert demo.prepare_images(catalog, entry, build=False) is None
 
     [build] = fake.compose("build")
     assert build[-2:] == ["catalog", "webui"]
@@ -212,10 +219,10 @@ def test_images_the_registry_lacks_are_built(fake: FakeDocker, entry: ManifestTa
     assert make[-2:] == ["generic-go", f"SSEBENCH_REGISTRY={REGISTRY}"]
 
 
-def test_only_the_missing_images_are_pulled_or_built(fake: FakeDocker, entry: ManifestTask) -> None:
+def test_only_the_missing_images_are_pulled_or_built(fake: FakeDocker, catalog: Catalog, entry: ManifestTask) -> None:
     fake.images = {f"{REGISTRY}/catalog:{TAG}", f"{REGISTRY}/{entry.base}"}
 
-    _ = demo.prepare_images(entry, build=False)
+    _ = demo.prepare_images(catalog, entry, build=False)
 
     [build] = fake.compose("build")
     assert build[-1] == "webui"
@@ -223,15 +230,15 @@ def test_only_the_missing_images_are_pulled_or_built(fake: FakeDocker, entry: Ma
     assert fake.matching("make") == []
 
 
-def test_build_skips_every_pull(fake: FakeDocker, entry: ManifestTask) -> None:
+def test_build_skips_every_pull(fake: FakeDocker, catalog: Catalog, entry: ManifestTask) -> None:
     fake.pullable = {
         f"{REGISTRY}/catalog:{TAG}",
         f"{REGISTRY}/webui:{TAG}",
-        f"{REGISTRY}/{entry.image}",
+        catalog.case_image(entry),
         f"{REGISTRY}/runtime:{TAG}",
     }
 
-    assert demo.prepare_images(entry, build=True) is None
+    assert demo.prepare_images(catalog, entry, build=True) is None
 
     assert fake.matching("docker", "pull") == []
     [build] = fake.compose("build")
@@ -240,12 +247,12 @@ def test_build_skips_every_pull(fake: FakeDocker, entry: ManifestTask) -> None:
 
 
 def test_building_a_base_image_needs_make(
-    fake: FakeDocker, entry: ManifestTask, monkeypatch: pytest.MonkeyPatch
+    fake: FakeDocker, catalog: Catalog, entry: ManifestTask, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(demo.shutil, "which", lambda name: None)
 
     with pytest.raises(demo.DemoError, match="needs make"):
-        _ = demo.prepare_images(entry, build=False)
+        _ = demo.prepare_images(catalog, entry, build=False)
 
 
 def test_the_run_builds_its_tool_layer_from_the_published_runtime(

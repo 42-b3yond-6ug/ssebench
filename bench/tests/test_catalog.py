@@ -10,17 +10,21 @@ import pytest
 
 from ssebench import paths, settings
 from ssebench.cli import main
+from ssebench.cli.cli import build_parser
 from ssebench.dataset.generate import build_manifest, render_manifest
+from ssebench.dataset.publish import render_lock
 from ssebench.pipe import REGISTRY
 from ssebench.tasks import catalog
 from ssebench.tasks.catalog import (
     CATALOG_ENV,
+    IMAGES_LOCK_ENV,
     CatalogError,
     CatalogTask,
     catalog_location,
     load_catalog,
     manifest_location,
 )
+from ssebench.tasks.manifest import ImagesLock, LockedImage, files_digest
 
 # This checkout: bench/tests/ is two levels below the repository root.
 CHECKOUT = Path(__file__).resolve().parents[2]
@@ -33,6 +37,7 @@ Serve = Callable[[dict[str, bytes]], str]
 @pytest.fixture(autouse=True)
 def isolated_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv(CATALOG_ENV, raising=False)
+    monkeypatch.delenv(IMAGES_LOCK_ENV, raising=False)
     monkeypatch.setenv(paths.HOME_ENV, str(CHECKOUT))
     monkeypatch.setattr(settings, "dotenv", dict)
 
@@ -155,21 +160,25 @@ def test_missing_manifest_file(tmp_path: Path) -> None:
 def test_catalog_task(serve: Serve) -> None:
     task = CatalogTask(load_catalog(serve({"/manifest.json": BUNDLED.read_bytes()})), TASK)
 
-    assert task.docker_image_name == f"{REGISTRY}/case/pilot/{TASK}"
+    assert task.docker_image_name == f"{REGISTRY}/case/pilot/{TASK}:pilot-v1"
     assert task.get_task_metadata().id == TASK
 
 
 class Docker:
-    """Stands in for `docker pull` and the local case image build."""
+    """Stands in for `docker pull`, `docker tag` and the local case image build."""
 
     def __init__(self, monkeypatch: pytest.MonkeyPatch, pull_ok: bool):
         self.pulled: list[str] = []
+        self.tagged: list[tuple[str, str]] = []
         self.built: list[tuple[Path, str]] = []
         self.pull_ok: bool = pull_ok
         monkeypatch.setattr(catalog.subprocess, "run", self.run)
         monkeypatch.setattr(catalog, "docker_build_case", lambda folder, image: self.built.append((folder, image)))
 
     def run(self, cmd: list[str], **_: Any) -> subprocess.CompletedProcess[bytes]:
+        if cmd[:2] == ["docker", "tag"]:
+            self.tagged.append((cmd[2], cmd[3]))
+            return subprocess.CompletedProcess(cmd, 0)
         assert cmd[:2] == ["docker", "pull"]
         self.pulled.append(cmd[2])
         return subprocess.CompletedProcess(cmd, 0 if self.pull_ok else 1)
@@ -179,8 +188,9 @@ def test_pulls_the_case_image(monkeypatch: pytest.MonkeyPatch) -> None:
     docker = Docker(monkeypatch, pull_ok=True)
     task = CatalogTask(load_catalog(), TASK)
 
-    assert task.docker_image(None) == task.docker_image_name
+    assert task.docker_image(None) == f"{REGISTRY}/case/pilot/{TASK}:pilot-v1"
     assert docker.pulled == [task.docker_image_name]
+    assert docker.tagged == []
     assert docker.built == []
 
 
@@ -202,7 +212,7 @@ def test_builds_from_the_folder_next_to_the_manifest(
 
     task = CatalogTask(load_catalog(str(tmp_path / "demo")), "demo-task")
     _ = task.docker_image(None)
-    assert docker.built == [(folder, f"{REGISTRY}/case/demo/demo-task")]
+    assert docker.built == [(folder, f"{REGISTRY}/case/demo/demo-task:demo-v1")]
 
     # A folder that no longer matches the manifest would build a different task.
     _ = (folder / "sse" / "build.sh").write_text("#!/bin/sh\nmake all\n")
@@ -217,6 +227,160 @@ def test_fails_without_a_local_copy(serve: Serve, tmp_path: Path, monkeypatch: p
 
     with pytest.raises(CatalogError, match="no local copy"):
         _ = task.docker_image(None)
+
+
+DIGEST = "sha256:" + "ab" * 32
+COMMIT = "c" * 40
+
+
+def locked_dataset(
+    root: Path, make_task: Callable[..., Path], pinned: bool = True, stale: bool = False
+) -> tuple[Path, Path]:
+    """A dataset of one task, with a manifest and an images lock that pins the task, and the task folder."""
+    dataset = root / "demo"
+    folder = make_task(dataset, "demo-task")
+    manifest = build_manifest(dataset)
+    _ = (dataset / "manifest.json").write_text(render_manifest(manifest))
+    [entry] = manifest.tasks
+    assert entry.files is not None
+    files = files_digest(entry.files)[::-1] if stale else files_digest(entry.files)
+    images = {"demo-task": LockedImage(digest=DIGEST, files_sha256=files, revision=COMMIT)} if pinned else {}
+    lock = ImagesLock(dataset="demo", version=manifest.version, images=images)
+    _ = (dataset / "images.lock.json").write_text(render_lock(lock))
+    return dataset, folder
+
+
+def test_pulls_the_digest_that_the_lock_pins(
+    tmp_path: Path, make_task: Callable[..., Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dataset, _ = locked_dataset(tmp_path, make_task)
+    docker = Docker(monkeypatch, pull_ok=True)
+
+    task = CatalogTask(load_catalog(str(dataset)), "demo-task")
+
+    assert task.docker_image(None) == f"{REGISTRY}/case/demo/demo-task:demo-v1"
+    assert docker.pulled == [f"{REGISTRY}/case/demo/demo-task@{DIGEST}"]
+    # The image is tagged as the runs name it, so that they use exactly the pinned image.
+    assert docker.tagged == [(f"{REGISTRY}/case/demo/demo-task@{DIGEST}", task.docker_image_name)]
+    assert docker.built == []
+
+
+def test_a_pinned_image_that_cannot_be_pulled_is_built(
+    tmp_path: Path, make_task: Callable[..., Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dataset, folder = locked_dataset(tmp_path, make_task)
+    docker = Docker(monkeypatch, pull_ok=False)
+
+    task = CatalogTask(load_catalog(str(dataset)), "demo-task")
+    _ = task.docker_image(None)
+
+    assert docker.pulled == [f"{REGISTRY}/case/demo/demo-task@{DIGEST}"]
+    assert docker.built == [(folder, task.docker_image_name)]
+
+
+def test_a_lock_for_other_task_files_is_ignored(
+    tmp_path: Path, make_task: Callable[..., Path], monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    dataset, _ = locked_dataset(tmp_path, make_task, stale=True)
+    docker = Docker(monkeypatch, pull_ok=True)
+
+    task = CatalogTask(load_catalog(str(dataset)), "demo-task")
+    _ = task.docker_image(None)
+
+    assert docker.pulled == [task.docker_image_name]
+    assert "built from other files" in caplog.text
+
+
+def test_a_task_the_lock_does_not_list_is_pulled_by_tag(
+    tmp_path: Path, make_task: Callable[..., Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dataset, _ = locked_dataset(tmp_path, make_task, pinned=False)
+    docker = Docker(monkeypatch, pull_ok=True)
+
+    task = CatalogTask(load_catalog(str(dataset)), "demo-task")
+    _ = task.docker_image(None)
+
+    assert docker.pulled == [task.docker_image_name]
+
+
+def test_a_lock_for_another_dataset_version_is_ignored(
+    tmp_path: Path, make_task: Callable[..., Path], caplog: pytest.LogCaptureFixture
+) -> None:
+    dataset, _ = locked_dataset(tmp_path, make_task)
+    lock = ImagesLock(dataset="demo", version="demo-v0", images={})
+    _ = (dataset / "images.lock.json").write_text(render_lock(lock))
+
+    task = CatalogTask(load_catalog(str(dataset)), "demo-task")
+
+    assert task.digest is None
+    assert "demo-v0" in caplog.text
+
+
+def test_the_lock_setting_names_another_lock(
+    tmp_path: Path, make_task: Callable[..., Path], serve: Serve, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dataset, _ = locked_dataset(tmp_path, make_task, pinned=False)
+    pinned, _ = locked_dataset(tmp_path / "other", make_task)
+    lock = (pinned / "images.lock.json").read_bytes()
+
+    monkeypatch.setenv(IMAGES_LOCK_ENV, str(pinned / "images.lock.json"))
+    assert CatalogTask(load_catalog(str(dataset)), "demo-task").digest == DIGEST
+
+    monkeypatch.setenv(IMAGES_LOCK_ENV, serve({"/images.lock.json": lock}) + "/images.lock.json")
+    assert CatalogTask(load_catalog(str(dataset)), "demo-task").digest == DIGEST
+
+
+def test_a_catalog_service_has_no_lock_of_its_own(serve: Serve) -> None:
+    task = CatalogTask(load_catalog(serve({"/manifest.json": BUNDLED.read_bytes()})), TASK)
+
+    assert task.digest is None
+
+
+@pytest.mark.parametrize("text", ["not json", '{"dataset": "demo"}'])
+def test_an_invalid_lock_is_an_error(tmp_path: Path, make_task: Callable[..., Path], text: str) -> None:
+    dataset, _ = locked_dataset(tmp_path, make_task)
+    _ = (dataset / "images.lock.json").write_text(text)
+
+    with pytest.raises(CatalogError, match="not a valid images lock"):
+        _ = CatalogTask(load_catalog(str(dataset)), "demo-task")
+
+
+def test_a_missing_lock_named_by_the_setting_is_an_error(
+    tmp_path: Path, make_task: Callable[..., Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dataset, _ = locked_dataset(tmp_path, make_task)
+    monkeypatch.setenv(IMAGES_LOCK_ENV, str(tmp_path / "missing.json"))
+
+    with pytest.raises(CatalogError, match="Cannot read the images lock"):
+        _ = CatalogTask(load_catalog(str(dataset)), "demo-task")
+
+
+def test_build_skips_the_pull(tmp_path: Path, make_task: Callable[..., Path], monkeypatch: pytest.MonkeyPatch) -> None:
+    dataset, folder = locked_dataset(tmp_path, make_task)
+    docker = Docker(monkeypatch, pull_ok=True)
+
+    task = CatalogTask(load_catalog(str(dataset)), "demo-task", build_locally=True)
+
+    assert task.docker_image(None) == f"{REGISTRY}/case/demo/demo-task:demo-v1"
+    assert docker.pulled == []
+    assert docker.built == [(folder, task.docker_image_name)]
+
+
+def test_build_needs_the_task_folder(serve: Serve, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(paths.HOME_ENV, str(tmp_path))
+    docker = Docker(monkeypatch, pull_ok=True)
+
+    with pytest.raises(CatalogError, match="no local copy"):
+        _ = CatalogTask(load_catalog(serve({"/manifest.json": BUNDLED.read_bytes()})), TASK, build_locally=True)
+    assert docker.pulled == docker.built == []
+
+
+def test_run_takes_build() -> None:
+    parser, _ = build_parser()
+    run = ["run", "--agent", "dummy", "--task", TASK]
+
+    assert parser.parse_args(run).build is False
+    assert parser.parse_args([*run, "--build"]).build is True
 
 
 def run_cli(*argv: str) -> int:
