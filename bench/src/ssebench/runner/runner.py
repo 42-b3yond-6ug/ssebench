@@ -492,7 +492,8 @@ class BenchmarkSidecarRunner(BenchmarkRunner):
                 docker_cmd += [*reference_patch_mount(self.agent.agent_name, patch), self.sidecar_agentrt_image]
                 run_container(docker_cmd)
         except subprocess.CalledProcessError as e:
-            logger.error(f"Sidecar run failed: {e}")
+            # The exception's text is the docker command line, which carries the run's proxy key.
+            logger.error(f"Sidecar run failed: `docker run` exited with status {e.returncode}")
         finally:
             if self.keep_container:
                 logger.info(f"Kept the containers and volumes labelled ssebench.run={pair.run_id}")
