@@ -106,14 +106,20 @@ class Agent(DockerLayerMixin):
     def describe(self) -> str:
         return f"image of agent {self.agent_name!r}"
 
+    @property
+    def image_name(self) -> str:
+        """The name of the agent image: `agent-<agent>/<task>:<version>` under the registry, lowercase.
+
+        `<task>` is the task ID in sandbox mode and `sidecar` in sidecar mode, where every task shares the image.
+        """
+        return f"{REGISTRY}/agent-{self.agent_config.name}/{self.task_name}:{self.agent_config.version}".lower()
+
     @override
     def docker_image(self, base: str | None) -> str:
         if base is None:
             raise RuntimeError("Agent layer requires a base image")
 
-        docker_image_name = (
-            f"{REGISTRY}/agent-{self.agent_config.name}/{self.task_name}:{self.agent_config.version}"
-        ).lower()
+        docker_image_name = self.image_name
 
         subprocess.run(
             [

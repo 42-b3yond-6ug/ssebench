@@ -2,7 +2,6 @@
 apart, the summary beside them, and the reference patch added from the task folder once the run is over."""
 
 import json
-import subprocess
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -10,20 +9,16 @@ from typing import Any
 import pytest
 
 from ssebench.agents import Agent
+from ssebench.backends import ARCHIVE_PATH, RESULTS_LABEL, RESULTS_PATH, DockerBackend, Images
 from ssebench.errors import UserError
 from ssebench.models import NoModel
 from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
 from ssebench.runner.layout import LATEST
 from ssebench.runner.result import RunConfig
-from ssebench.runner.runner import (
-    ARCHIVE_PATH,
-    RESULTS_LABEL,
-    RESULTS_PATH,
-    prepare_run_directory,
-    record_results,
-    save_reference_patch,
-)
+from ssebench.runner.runner import prepare_run_directory, record_results, save_reference_patch
 from ssebench.tasks import LocalTask
+
+from .conftest import FakeDocker
 
 TASK = "demo-1"
 
@@ -64,10 +59,10 @@ def test_the_sandbox_container_gets_the_results_root_only_and_the_archive_apart(
     task: LocalTask, tmp_path: Path
 ) -> None:
     runner = BenchmarkSandboxRunner(NoModel(), Agent("dummy", task_name=TASK), task, 60, 2)
-    runner.sandbox_image = "registry.test/image"
+    runner.images = Images(agent="registry.test/image")
     run_dir = tmp_path / "run"
 
-    cmd = runner.docker_command(run_dir)
+    cmd = DockerBackend().run_command(runner.run_spec(run_dir, None))
 
     assert options(cmd, "-v") == [f"{run_dir}:{RESULTS_PATH}", f"{run_dir / 'archive'}:{ARCHIVE_PATH}"]
     assert f"{RESULTS_LABEL}={run_dir}" in options(cmd, "--label")
@@ -107,23 +102,15 @@ def test_the_result_is_replaced_not_rewritten(task: LocalTask, tmp_path: Path, m
 
 
 def test_both_sidecar_containers_mount_the_results(
-    task: LocalTask, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    task: LocalTask, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, docker: FakeDocker
 ) -> None:
-    commands: list[list[str]] = []
-
-    def fake(cmd: list[str], **_: object) -> subprocess.CompletedProcess[str]:
-        commands.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0, "", "")
-
-    monkeypatch.setattr(subprocess, "run", fake)
     monkeypatch.chdir(tmp_path)
     runner = BenchmarkSidecarRunner(NoModel(), Agent("dummy", task_name=TASK), task, 60, 2, run_id="r1")
-    runner.sidecar_agentrt_image = "registry.test/agent"
-    runner.sidecar_environ_image = "registry.test/environment"
+    runner.images = Images(agent="registry.test/agent", environment="registry.test/environment")
 
     runner.run()
 
-    runs = [cmd for cmd in commands if cmd[:2] == ["docker", "run"]]
+    runs = docker.runs()
     assert len(runs) == 2
     run_dir = tmp_path / "results" / TASK / "none" / "dummy" / "r1"
     for cmd in runs:
@@ -133,33 +120,35 @@ def test_both_sidecar_containers_mount_the_results(
 
 
 class Containers:
-    """A stand-in for docker in which each task container writes the grade the test chose for it."""
+    """The task containers of a run, each writing the grade the test chose for it."""
 
     def __init__(self, *grades: bool) -> None:
         self.grades = list(grades)
         self.finished = 0
 
-    def __call__(self, cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
-        # The agent's container; a sidecar run also starts a detached environment container.
-        if cmd[:2] == ["docker", "run"] and "--detach" not in cmd:
-            [mount] = [v for v in options(cmd, "-v") if v.endswith(f":{RESULTS_PATH}")]
-            run_dir = Path(mount.removesuffix(f":{RESULTS_PATH}"))
-            self.finished += 1
-            _ = (run_dir / "final.patch").write_text(f"patch {self.finished}\n")
-            passed = self.grades[self.finished - 1]
-            grade: dict[str, Any] = {
-                "patch_result": {"build_success": True, "pov_passed": int(passed), "pov_total": 1},
-                "runtime_result": {"agent_duration": 1, "agent_timeout": False, "evaluator_timeout": False},
-            }
-            _ = (run_dir / "result.json").write_text(json.dumps(grade))
-        return subprocess.CompletedProcess(cmd, 0, "", "")
+    def __call__(self, cmd: list[str]) -> int:
+        [mount] = [v for v in options(cmd, "-v") if v.endswith(f":{RESULTS_PATH}")]
+        run_dir = Path(mount.removesuffix(f":{RESULTS_PATH}"))
+        self.finished += 1
+        _ = (run_dir / "final.patch").write_text(f"patch {self.finished}\n")
+        passed = self.grades[self.finished - 1]
+        grade: dict[str, Any] = {
+            "patch_result": {"build_success": True, "pov_passed": int(passed), "pov_total": 1},
+            "runtime_result": {"agent_duration": 1, "agent_timeout": False, "evaluator_timeout": False},
+        }
+        _ = (run_dir / "result.json").write_text(json.dumps(grade))
+        return 0
 
 
 def run_twice(
-    task: LocalTask, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, make_runner: Callable[..., object]
+    task: LocalTask,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    make_runner: Callable[..., object],
+    docker: FakeDocker,
 ) -> Path:
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(subprocess, "run", Containers(False, True))
+    docker.on_run = Containers(False, True)
     for run_id in ("first", "second"):
         make_runner(run_id).run()  # pyright: ignore[reportAttributeAccessIssue]
     return tmp_path / "results" / TASK / "none" / "dummy"
@@ -167,14 +156,13 @@ def run_twice(
 
 def sandbox(task: LocalTask, run_id: str | None = None) -> BenchmarkSandboxRunner:
     runner = BenchmarkSandboxRunner(NoModel(), Agent("dummy", task_name=TASK), task, 60, 2, run_id=run_id)
-    runner.sandbox_image = "registry.test/image"
+    runner.images = Images(agent="registry.test/image")
     return runner
 
 
 def sidecar(task: LocalTask, run_id: str | None = None) -> BenchmarkSidecarRunner:
     runner = BenchmarkSidecarRunner(NoModel(), Agent("dummy", task_name=TASK), task, 60, 2, run_id=run_id)
-    runner.sidecar_agentrt_image = "registry.test/agent"
-    runner.sidecar_environ_image = "registry.test/environment"
+    runner.images = Images(agent="registry.test/agent", environment="registry.test/environment")
     return runner
 
 
@@ -184,8 +172,9 @@ def test_two_runs_of_the_same_task_model_and_agent_both_keep_their_results(
     task: LocalTask,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    docker: FakeDocker,
 ) -> None:
-    group = run_twice(task, monkeypatch, tmp_path, lambda run_id: make_runner(task, run_id))
+    group = run_twice(task, monkeypatch, tmp_path, lambda run_id: make_runner(task, run_id), docker)
 
     assert sorted(p.name for p in group.iterdir()) == ["first", LATEST, "second"]
     for run_id, passed, patch in (("first", 0, "patch 1\n"), ("second", 1, "patch 2\n")):
@@ -207,8 +196,9 @@ def test_latest_points_at_the_newest_run_and_can_be_replaced_by_the_host_user(
     task: LocalTask,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    docker: FakeDocker,
 ) -> None:
-    group = run_twice(task, monkeypatch, tmp_path, lambda run_id: make_runner(task, run_id))
+    group = run_twice(task, monkeypatch, tmp_path, lambda run_id: make_runner(task, run_id), docker)
 
     assert (group / LATEST).is_symlink()
     assert (group / LATEST).readlink() == Path("second")
@@ -216,10 +206,10 @@ def test_latest_points_at_the_newest_run_and_can_be_replaced_by_the_host_user(
 
 
 def test_a_second_run_with_the_same_id_is_refused_and_leaves_the_first_alone(
-    task: LocalTask, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    task: LocalTask, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, docker: FakeDocker
 ) -> None:
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(subprocess, "run", Containers(True, True))
+    docker.on_run = Containers(True, True)
     sandbox(task, "same").run()
     before = (tmp_path / "results" / TASK / "none" / "dummy" / "same" / "summary.json").read_text()
 

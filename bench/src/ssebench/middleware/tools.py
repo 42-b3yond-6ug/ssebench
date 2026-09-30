@@ -16,6 +16,17 @@ DOCKER_IMAGE_PREFIX_SIDECAR_ENVIRON = f"{REGISTRY}/tool-sidecar"
 
 RUNTIME_IMAGE_ENV = "SSEBENCH_RUNTIME_IMAGE"
 
+
+def sandbox_image_name(task_name: str) -> str:
+    """The tool image of a sandbox run: the case image with the runtime, before the agent is added."""
+    return f"{DOCKER_IMAGE_PREFIX_SANDBOX}/{task_name.lower()}:{TAG}"
+
+
+def sidecar_environment_image_name(task_name: str) -> str:
+    """The environment image of a sidecar run: the case image with the daemon."""
+    return f"{DOCKER_IMAGE_PREFIX_SIDECAR_ENVIRON}/{task_name.lower()}:{TAG}"
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -78,7 +89,7 @@ class SandboxToolLayer(ToolLayer):
         if base is None:
             raise RuntimeError("SandboxToolLayer requires a case image as base")
 
-        docker_image_name = f"{DOCKER_IMAGE_PREFIX_SANDBOX}/{self.context.task_name.lower()}:{TAG}"
+        docker_image_name = sandbox_image_name(self.context.task_name)
 
         logger.info(f"Building sandbox image {docker_image_name}...")
         docker_file = self.context.build_root / "images/sandbox/Dockerfile"
@@ -154,7 +165,7 @@ class SidecarToolLayerEnvironment(ToolLayer):
         if base is None:
             raise RuntimeError("SidecarToolLayerEnvironment requires a case image as base")
 
-        docker_image_name = f"{DOCKER_IMAGE_PREFIX_SIDECAR_ENVIRON}/{self.context.task_name.lower()}:{TAG}"
+        docker_image_name = sidecar_environment_image_name(self.context.task_name)
 
         logger.info(f"Building sidecar environment image {docker_image_name}...")
         docker_file = self.context.build_root / "images/sidecar-case/Dockerfile"

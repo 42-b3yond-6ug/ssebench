@@ -16,12 +16,17 @@ from typing import cast, override
 import pytest
 
 from ssebench.agents import Agent
+from ssebench.backends import docker as docker_module
 from ssebench.cli.cli import main, requested_extensions
 from ssebench.extensions import (
+    Backend,
+    DockerBackend,
     ExtensionError,
     SandboxToolLayer,
     ToolLayer,
+    backend_names,
     command_names,
+    get_backend,
     get_tool_layer,
     load_commands,
     tool_layer_names,
@@ -29,7 +34,6 @@ from ssebench.extensions import (
 from ssebench.models import Model
 from ssebench.pipe import DockerLayerMixin
 from ssebench.runner import BenchmarkSandboxRunner
-from ssebench.runner import runner as runner_module
 from ssebench.tasks import Task
 from ssebench.tasks.metadata import Files, Scripts, TaskDescription, TaskMetadata
 
@@ -174,7 +178,7 @@ def test_sandbox_runner_builds_the_selected_layer(example: Path, monkeypatch: py
         pipelines.append(pipeline)
         return "image"
 
-    monkeypatch.setattr(runner_module, "build_pipe", record)
+    monkeypatch.setattr(docker_module, "build_pipe", record)
     task = FakeTask()
     agent = Agent("dummy", task_name=task.name)
     runner = BenchmarkSandboxRunner(cast(Model, None), agent, task, 60, 2, tool_layer="example")
@@ -187,6 +191,72 @@ def test_sandbox_runner_builds_the_selected_layer(example: Path, monkeypatch: py
     assert isinstance(layer, get_tool_layer("example"))
     assert layer.context.task_name == task.name
     assert layer.context.source_dir == "/src/example"
+
+
+# ==================== backends ====================
+
+
+def test_builtin_backend() -> None:
+    backend = get_backend("docker")
+
+    assert isinstance(backend, DockerBackend)
+    assert backend_names() == ["docker"]
+
+
+def test_example_backend_is_selectable(example: Path) -> None:
+    assert backend_names() == ["docker", "logging"]
+
+    backend = get_backend("logging")
+
+    assert isinstance(backend, Backend) and isinstance(backend, DockerBackend)
+    assert type(backend).__module__ == EXAMPLE_MODULE
+
+
+def test_unknown_backend() -> None:
+    with pytest.raises(ExtensionError, match=r"Unknown backend 'nope'\. Available: docker\."):
+        _ = get_backend("nope")
+
+
+def test_backend_cannot_shadow_a_builtin(example: Path) -> None:
+    install(example, "shadow", {"ssebench.backends": {"docker": f"{EXAMPLE_MODULE}:LoggingBackend"}})
+
+    with pytest.raises(ExtensionError, match=r"'docker' is registered more than once: the built-in backend; .*shadow"):
+        _ = get_backend("docker")
+
+
+def test_backend_registered_twice(example: Path) -> None:
+    install(example, "copycat", {"ssebench.backends": {"logging": f"{EXAMPLE_MODULE}:LoggingBackend"}})
+
+    with pytest.raises(ExtensionError, match=r"'logging' is registered more than once") as error:
+        _ = get_backend("logging")
+    assert "ssebench-example-ext" in str(error.value) and "copycat" in str(error.value)
+
+
+def test_backend_must_be_a_backend(example: Path) -> None:
+    install(example, "wrong", {"ssebench.backends": {"wrong": f"{EXAMPLE_MODULE}:HelloCommand"}})
+
+    with pytest.raises(ExtensionError, match="not a subclass of ssebench.extensions.Backend"):
+        _ = get_backend("wrong")
+
+
+def test_backend_that_cannot_be_created(site: Path) -> None:
+    _ = (site / "abstract_ext.py").write_text(
+        "from ssebench.extensions import Backend\n\nclass Incomplete(Backend):\n    name = 'incomplete'\n"
+    )
+    install(site, "incomplete", {"ssebench.backends": {"incomplete": "abstract_ext:Incomplete"}})
+
+    with pytest.raises(
+        ExtensionError, match=r"Cannot create backend 'incomplete' \(abstract_ext:Incomplete from incomplete\)"
+    ):
+        _ = get_backend("incomplete")
+    _ = sys.modules.pop("abstract_ext", None)
+
+
+def test_backend_that_fails_to_import(site: Path) -> None:
+    install(site, "missing", {"ssebench.backends": {"missing": "no_such_module:Backend"}})
+
+    with pytest.raises(ExtensionError, match=r"Cannot load backend 'missing' \(no_such_module:Backend from missing\)"):
+        _ = get_backend("missing")
 
 
 # ==================== commands ====================

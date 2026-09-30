@@ -1,6 +1,5 @@
 import argparse
 import json
-import subprocess
 from collections.abc import Callable
 from pathlib import Path
 
@@ -8,6 +7,7 @@ import pytest
 
 from ssebench import paths, stack
 from ssebench.agents import Agent
+from ssebench.backends import DockerBackend, Images
 from ssebench.cli import cli
 from ssebench.models import NoModel
 from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
@@ -15,36 +15,18 @@ from ssebench.runner.reference import (
     REFERENCE_AGENT,
     REFERENCE_PATCH_PATH,
     REFERENCE_RUN_LABEL,
-    reference_patch_mount,
+    reference_artifacts,
+    reference_run_labels,
 )
 from ssebench.runner.result import RunConfig
 from ssebench.runner.runner import record_results
 from ssebench.tasks import LocalTask
 
+from .conftest import FakeDocker
+
 AGENTS = sorted(p.parent.name for p in paths.agents_dir().glob("*/agent.yaml"))
 OTHER_AGENTS = [name for name in AGENTS if name != REFERENCE_AGENT]
 TASK = "demo-1"
-
-
-class Docker:
-    """Records docker commands instead of running them; `docker cp` writes the destination file."""
-
-    def __init__(self) -> None:
-        self.commands: list[list[str]] = []
-
-    def __call__(self, cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
-        self.commands.append(cmd)
-        if cmd[:2] == ["docker", "create"]:
-            return subprocess.CompletedProcess(cmd, 0, "container-id\n", "")
-        if cmd[:2] == ["docker", "cp"]:
-            _ = Path(cmd[-1]).write_text("diff --git a/f b/f\n")
-        return subprocess.CompletedProcess(cmd, 0, "", "")
-
-    def runs(self) -> list[list[str]]:
-        return [cmd for cmd in self.commands if cmd[:2] == ["docker", "run"]]
-
-    def mentioning(self, text: str) -> list[list[str]]:
-        return [cmd for cmd in self.commands if any(text in arg for arg in cmd)]
 
 
 @pytest.fixture
@@ -54,24 +36,20 @@ def task(tmp_path: Path, make_task: Callable[..., Path]) -> LocalTask:
     return LocalTask(TASK, dataset)
 
 
-@pytest.fixture
-def docker(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Docker:
-    fake = Docker()
-    monkeypatch.setattr(subprocess, "run", fake)
+@pytest.fixture(autouse=True)
+def in_tmp_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
-    return fake
 
 
 def sandbox_runner(agent: str, task: LocalTask) -> BenchmarkSandboxRunner:
     runner = BenchmarkSandboxRunner(NoModel(), Agent(agent, task_name=task.name), task, 60, 2, run_id="r1")
-    runner.sandbox_image = "registry.test/agent-image"
+    runner.images = Images(agent="registry.test/agent-image")
     return runner
 
 
 def sidecar_runner(agent: str, task: LocalTask) -> BenchmarkSidecarRunner:
     runner = BenchmarkSidecarRunner(NoModel(), Agent(agent, task_name=task.name), task, 60, 2, run_id="r1")
-    runner.sidecar_agentrt_image = "registry.test/agent-image"
-    runner.sidecar_environ_image = "registry.test/environment-image"
+    runner.images = Images(agent="registry.test/agent-image", environment="registry.test/environment-image")
     return runner
 
 
@@ -86,11 +64,13 @@ def test_the_agents_are_found() -> None:
 
 @pytest.mark.parametrize("agent", [*OTHER_AGENTS, "reference-like", "Reference"])
 def test_no_other_agent_gets_the_patch_mount(agent: str) -> None:
-    assert reference_patch_mount(agent, Path("/tmp/patch.diff")) == []
+    assert reference_artifacts(agent, Path("/tmp/patch.diff")) == ()
+    assert reference_run_labels(agent) == {}
 
 
 def test_the_reference_agent_gets_a_read_only_mount() -> None:
-    assert reference_patch_mount(REFERENCE_AGENT, Path("/tmp/x/patch.diff")) == [
+    [artifact] = reference_artifacts(REFERENCE_AGENT, Path("/tmp/x/patch.diff"))
+    assert DockerBackend._mount_options([artifact]) == [  # pyright: ignore[reportPrivateUsage]
         "--mount",
         f"type=bind,source=/tmp/x/patch.diff,target={REFERENCE_PATCH_PATH},readonly",
     ]
@@ -98,7 +78,7 @@ def test_the_reference_agent_gets_a_read_only_mount() -> None:
 
 @pytest.mark.parametrize("agent", OTHER_AGENTS)
 def test_sandbox_command_withholds_a_patch_from_other_agents(agent: str, task: LocalTask, tmp_path: Path) -> None:
-    cmd = sandbox_runner(agent, task).docker_command(tmp_path, Path("/tmp/patch.diff"))
+    cmd = DockerBackend().run_command(sandbox_runner(agent, task).run_spec(tmp_path, Path("/tmp/patch.diff")))
 
     assert not [arg for arg in cmd if REFERENCE_PATCH_PATH in arg or "patch.diff" in arg or REFERENCE_RUN_LABEL in arg]
 
@@ -109,7 +89,7 @@ def test_other_agents_run_without_the_reference_patch(
     agent: str,
     make_runner: Callable[..., BenchmarkSandboxRunner | BenchmarkSidecarRunner],
     task: LocalTask,
-    docker: Docker,
+    docker: FakeDocker,
 ) -> None:
     make_runner(agent, task).run()
 
@@ -124,7 +104,7 @@ def test_other_agents_run_without_the_reference_patch(
 
 @pytest.mark.parametrize("make_runner", [sandbox_runner, sidecar_runner])
 def test_reference_run_mounts_the_patch_from_the_case_image(
-    make_runner: Callable[..., BenchmarkSandboxRunner | BenchmarkSidecarRunner], task: LocalTask, docker: Docker
+    make_runner: Callable[..., BenchmarkSandboxRunner | BenchmarkSidecarRunner], task: LocalTask, docker: FakeDocker
 ) -> None:
     make_runner(REFERENCE_AGENT, task).run()
 
@@ -146,7 +126,7 @@ def test_reference_run_mounts_the_patch_from_the_case_image(
 
 @pytest.mark.parametrize("make_runner", [sandbox_runner, sidecar_runner])
 def test_reference_run_results_are_labelled(
-    make_runner: Callable[..., BenchmarkSandboxRunner | BenchmarkSidecarRunner], task: LocalTask, docker: Docker
+    make_runner: Callable[..., BenchmarkSandboxRunner | BenchmarkSidecarRunner], task: LocalTask, docker: FakeDocker
 ) -> None:
     make_runner(REFERENCE_AGENT, task).run()
 
@@ -160,7 +140,7 @@ def test_reference_run_results_are_labelled(
     assert summary["spend"] == 0
 
 
-def test_record_results_adds_the_config_to_result_json(task: LocalTask, tmp_path: Path, docker: Docker) -> None:
+def test_record_results_adds_the_config_to_result_json(task: LocalTask, tmp_path: Path) -> None:
     grade = {
         "patch_result": {"build_success": True, "pov_passed": 1, "pov_total": 1, "func_test_success": True},
         "runtime_result": {"agent_duration": 3, "agent_timeout": False, "evaluator_timeout": False},

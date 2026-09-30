@@ -12,12 +12,13 @@ import pytest
 from ssebench import arch, stack
 from ssebench.agents import Agent
 from ssebench.arch import Arch
+from ssebench.backends import DockerBackend, Images, Mount, NetworkPolicy, RunSpec, SidecarPair
+from ssebench.backends import docker as docker_module
 from ssebench.cli import cli
 from ssebench.dataset.generate import build_manifest, render_manifest
 from ssebench.middleware import ToolLayer
 from ssebench.models import NoModel
-from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner, SidecarPair
-from ssebench.runner import runner as runner_module
+from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
 from ssebench.tasks import CatalogTask, LocalTask, load_catalog
 
 TASK = "demo-1"
@@ -187,7 +188,7 @@ def test_every_image_and_container_of_a_sandbox_run_uses_the_platform(
     host(monkeypatch, "aarch64")
     task = LocalTask(TASK, dataset_with(make_task, tmp_path, ["amd64"]))
     pipelines: list[list[object]] = []
-    monkeypatch.setattr(runner_module, "build_pipe", lambda pipeline: pipelines.append(list(pipeline)) or "image")
+    monkeypatch.setattr(docker_module, "build_pipe", lambda pipeline: pipelines.append(list(pipeline)) or "image")
     agent = Agent("dummy", task_name=TASK, platform=task.platform)
     runner = BenchmarkSandboxRunner(NoModel(), agent, task, 60, 2)
 
@@ -196,8 +197,8 @@ def test_every_image_and_container_of_a_sandbox_run_uses_the_platform(
     [[_, layer, built_agent]] = pipelines
     assert cast(ToolLayer, layer).context.platform == "linux/amd64"
     assert cast(Agent, built_agent).platform == "linux/amd64"
-    runner.sandbox_image = "registry.test/image"
-    assert flag_values(runner.docker_command(tmp_path), "--platform") == ["linux/amd64"]
+    runner.images = Images(agent="registry.test/image")
+    assert flag_values(DockerBackend().run_command(runner.run_spec(tmp_path, None)), "--platform") == ["linux/amd64"]
 
 
 def test_every_image_and_container_of_a_sidecar_run_uses_the_platform(
@@ -206,7 +207,7 @@ def test_every_image_and_container_of_a_sidecar_run_uses_the_platform(
     host(monkeypatch, "aarch64")
     task = LocalTask(TASK, dataset_with(make_task, tmp_path, ["amd64"]))
     pipelines: list[list[object]] = []
-    monkeypatch.setattr(runner_module, "build_pipe", lambda pipeline: pipelines.append(list(pipeline)) or "image")
+    monkeypatch.setattr(docker_module, "build_pipe", lambda pipeline: pipelines.append(list(pipeline)) or "image")
     runner = BenchmarkSidecarRunner(NoModel(), Agent("dummy", task_name="sidecar", platform=task.platform), task, 60, 2)
 
     runner.build()
@@ -214,24 +215,31 @@ def test_every_image_and_container_of_a_sidecar_run_uses_the_platform(
     [[agent_runtime, _], [_, environment]] = pipelines
     assert cast(ToolLayer, agent_runtime).context.platform == "linux/amd64"
     assert cast(ToolLayer, environment).context.platform == "linux/amd64"
-    pair = SidecarPair(
-        task_name=TASK,
-        source_dir="/src/demo",
-        results="r",
-        archive="a",
-        network="n",
-        difficulty=2,
-        platform=task.platform,
-    )
-    for options in (pair.environment_options(), pair.agent_options()):
+    runner.images = Images(agent="registry.test/agent", environment="registry.test/environment")
+    spec = runner.run_spec(tmp_path, None)
+    backend = DockerBackend()
+    for options in (backend.environment_options(spec), backend.agent_options(spec)):
         assert flag_values(options, "--platform") == ["linux/amd64"]
 
 
-def test_the_run_platform_is_left_to_docker_when_none_is_given(tmp_path: Path) -> None:
-    pair = SidecarPair(task_name=TASK, source_dir="/src/demo", results="r", archive="a", network="n", difficulty=2)
+def test_the_run_platform_is_left_to_docker_when_none_is_given() -> None:
+    pair = SidecarPair(task_name=TASK, source_dir="/src/demo", environment_image="e", difficulty=2)
+    spec = RunSpec(
+        run_id="r",
+        mode="sidecar",
+        task_name=TASK,
+        image="a",
+        env={},
+        results=Mount(source="r", target="/r"),
+        archive=Mount(source="a", target="/a"),
+        network=NetworkPolicy(),
+        labels={},
+        timeout=60,
+        sidecar=pair,
+    )
 
-    assert "--platform" not in pair.environment_options()
-    assert "--platform" not in pair.agent_options()
+    assert "--platform" not in DockerBackend().environment_options(spec)
+    assert "--platform" not in DockerBackend().agent_options(spec)
 
 
 def test_an_agent_is_built_for_the_platform_of_its_base(monkeypatch: pytest.MonkeyPatch) -> None:

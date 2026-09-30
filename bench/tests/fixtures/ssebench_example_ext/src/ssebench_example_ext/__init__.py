@@ -1,10 +1,19 @@
-"""An SSEBench extension that adds the `example` tool layer and the `hello` command."""
+"""An SSEBench extension that adds the `example` tool layer, the `logging` backend and the `hello` command."""
 
 import argparse
 import subprocess
 from typing import override
 
-from ssebench.extensions import REGISTRY, TAG, Command, SandboxToolLayer, ToolLayer
+from ssebench.extensions import (
+    REGISTRY,
+    TAG,
+    Command,
+    DockerBackend,
+    RunHandle,
+    RunSpec,
+    SandboxToolLayer,
+    ToolLayer,
+)
 
 # Builds on the standard runtime rather than replacing it: the agent layer and the
 # entrypoint still need the daemon, the MCP server and the evaluator it installs.
@@ -40,6 +49,17 @@ class ExampleToolLayer(ToolLayer):
             check=True,
         )
         return image
+
+
+class LoggingBackend(DockerBackend):
+    """The Docker backend, announcing each run it starts."""
+
+    name = "logging"
+
+    @override
+    def start(self, spec: RunSpec) -> RunHandle:
+        print(f"starting run {spec.run_id} of {spec.task_name} in {spec.mode} mode")
+        return super().start(spec)
 
 
 class HelloCommand(Command):
