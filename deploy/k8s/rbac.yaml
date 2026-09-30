@@ -6,7 +6,8 @@
 #
 # A Job, its pod and the run's Secret and NetworkPolicy are all the backend creates. It reads the
 # results out of the pod with `pods/exec`, as `kubectl cp` does, and needs no storage. `get` on
-# `pods/exec` is for clusters before 1.30, which authorize the WebSocket exec that way.
+# `pods/exec` and `pods/portforward` is for clusters before 1.30, which authorize the WebSocket
+# streams that way. `pods/portforward` is only for `ssebench runs endpoint`, which the web UI uses.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -28,6 +29,9 @@ rules:
     verbs: ["get"]
   - apiGroups: [""]
     resources: ["pods/exec"]
+    verbs: ["create", "get"]
+  - apiGroups: [""]
+    resources: ["pods/portforward"]
     verbs: ["create", "get"]
   - apiGroups: [""]
     resources: ["secrets"]
