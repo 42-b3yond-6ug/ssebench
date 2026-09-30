@@ -41,9 +41,9 @@ RUN mkdir -p /plugins && \
 FROM --platform=$BUILDPLATFORM alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8 AS opencode-downloader
 RUN apk add --no-cache wget ca-certificates
 ARG TARGETARCH
-ARG OPENCODE_VERSION=1.2.10
-ARG OPENCODE_SHA256_AMD64=ebcc24012e8f067b10d7416430c88e9c429115ecfbccf8da9eb59db3b629a358
-ARG OPENCODE_SHA256_ARM64=d9a9d4f0bc1ed246258c0e8846e80593755a72bf4afd3940c4071d6f0b7b7775
+ARG OPENCODE_VERSION=1.18.33
+ARG OPENCODE_SHA256_AMD64=e546123213ae47909a4268692aa4b94950d011afe9cac9938753a2194f1c16d5
+ARG OPENCODE_SHA256_ARM64=c63486624621924bf43be5c01abd252885661a734814224f6d70188a33aea858
 RUN case "${TARGETARCH}" in \
       amd64) asset=x64; sha256="${OPENCODE_SHA256_AMD64}" ;; \
       arm64) asset=arm64; sha256="${OPENCODE_SHA256_ARM64}" ;; \
@@ -103,9 +103,13 @@ ARG SOURCE_DIR
 RUN mv "${SOURCE_DIR}" /ssebench-repo && chmod 700 /ssebench-repo && chmod 700 /ssebench
 COPY --from=case-image-builder --chown=1000:1000 ${SOURCE_DIR}/ ${SOURCE_DIR}/
 
-# Create model user, init clean git repo
+# Create model user, init clean git repo, and install what OpenCode needs
+# before it starts
+COPY --from=opencode-downloader /usr/local/bin/opencode /usr/local/bin/opencode
 COPY --chmod=755 images/common/ /tmp/image-setup/
-RUN /tmp/image-setup/setup-source.sh "${SOURCE_DIR}" && rm -r /tmp/image-setup
+RUN /tmp/image-setup/setup-source.sh "${SOURCE_DIR}" && \
+    /tmp/image-setup/seed-opencode.sh && \
+    rm -r /tmp/image-setup
 
 COPY --from=python-builder /root/.local/share/uv/python /root/.local/share/uv/python
 COPY --from=python-builder /evaluator /evaluator
@@ -113,7 +117,6 @@ COPY --from=python-builder /ssebench/mcp /ssebench/mcp
 # Root-owned and not writable by the agent, so a plugin's code cannot be
 # tampered with before a grading-phase plugin runs it as root.
 COPY --from=python-builder /plugins /plugins
-COPY --from=opencode-downloader /usr/local/bin/opencode /usr/local/bin/opencode
 COPY --from=runtime /ssebench/ssebench-daemon /ssebench/ssebench-daemon
 
 COPY --from=runtime /usr/local/bin/entrypoint /usr/local/bin/entrypoint

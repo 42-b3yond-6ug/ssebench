@@ -183,6 +183,9 @@ def build_opencode_config(
             }
         },
         "model": f"ssebench/{model_name}",
+        # A tool that asks for permission (reading outside the project, for one)
+        # blocks the session until someone answers, and nobody does.
+        "permission": "allow",
         "mcp": {
             "ssebench": {
                 "type": "remote",
@@ -241,8 +244,8 @@ class OpenCodeClient:
 
     The agent starts its own OpenCode server (via start_opencode_server)
     that is pre-configured with the LiteLLM provider, model, auth, and
-    MCP. This client only needs to create sessions, send prompts, handle
-    permissions, and subscribe to SSE events.
+    MCP. This client only needs to create sessions, send prompts, and
+    subscribe to SSE events.
 
     All requests include the x-opencode-directory header, which tells
     OpenCode where the project source code lives.
@@ -307,20 +310,6 @@ class OpenCodeClient:
         print(f"[opencode] Prompt sent to session {session_id}")
         return True
 
-    async def reply_permission(
-        self, session_id: str, permission_id: str, response: str = "always"
-    ):
-        """Reply to a permission request. Default: always allow."""
-        resp = await self.client.post(
-            f"/session/{session_id}/permissions/{permission_id}",
-            json={"response": response},
-        )
-        if resp.status_code >= 400:
-            print(
-                f"[opencode] Permission reply failed: {resp.status_code}",
-                file=sys.stderr,
-            )
-
     async def close(self):
         await self.client.aclose()
 
@@ -343,7 +332,6 @@ class EventProcessor:
     - message.part.updated (tool)      -> dialog "tool" (start/result)
     - message.part.updated (step-finish) -> flush buffered text, track tokens
     - message.updated (assistant)      -> track turns and tokens
-    - permission.updated               -> auto-approve
     - session.idle                     -> dialog "complete"
     - session.error                    -> dialog "complete" (error)
     """
@@ -415,8 +403,6 @@ class EventProcessor:
             self._handle_part_updated(props)
         elif event_type == "message.updated":
             self._handle_message_updated(props)
-        elif event_type == "permission.updated":
-            self._handle_permission(props)
         elif event_type in ("session.idle", "session.status"):
             self._handle_session_status(event_type, props)
         elif event_type == "session.error":
@@ -497,17 +483,6 @@ class EventProcessor:
             self.dialog.turns += 1
             self.counted_messages.add(msg_id)
             self._flush_buffered()
-
-    def _handle_permission(self, props: dict[str, Any]):
-        """Auto-approve permission requests (we're in a sandboxed container)."""
-        session_id = props.get("sessionID", "")
-        permission_id = props.get("id", "")
-        if session_id == self.session_id and permission_id:
-            title = props.get("title", "unknown")
-            print(f"[opencode] Auto-approving permission: {title}")
-            asyncio.create_task(
-                self.client.reply_permission(session_id, permission_id, "always")
-            )
 
     def _handle_session_status(self, event_type: str, props: dict[str, Any]):
         """Handle session.idle and session.status events."""
