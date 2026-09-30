@@ -128,7 +128,7 @@ these jobs:
 | Build the dataset manifest | Runs `ssebench dataset manifest` on `datasets/pilot`, recording the commit it was generated from. Produces the artifact `pilot-manifest`. |
 | Package the Helm chart | Lints the chart, packages it with `helm package`, and checks that its `version` and `appVersion` are `VERSION`. Produces the artifact `helm-chart`. |
 | Publish the Helm chart | Runs after the chart is packaged. Pushes it to `oci://ghcr.io/42-b3yond-6ug/ssebench/charts/ssebench`, tagged with `VERSION`, with the workflow's token, which has `packages: write` in this job only. A version that is published already is left alone. |
-| Publish to PyPI | Runs after all the jobs above have passed, so a build that fails publishes nothing. Uploads `python-dist` with PyPI trusted publishing, in the `pypi` environment; no PyPI token is stored anywhere. Files that PyPI already has are skipped. |
+| Publish to PyPI | Runs after all the jobs above have passed, so a build that fails publishes nothing. Uploads `python-dist` with PyPI trusted publishing, one job per package: `ssebench` in the `pypi` environment and `ssebench-sdk` in the `pypi-sdk` environment, because PyPI accepts a pending trusted publisher for only one project per environment. No PyPI token is stored anywhere. Files that PyPI already has are skipped. |
 | Create the GitHub release | Runs after PyPI. Checks the `SHA256SUMS` file against the binaries and creates a published (not draft) release named after the tag, with notes generated from the titles of the merged pull requests since the previous release. Attaches the eight binaries, `SHA256SUMS` and `pilot-manifest.json`. |
 | Docs | Runs after the release and deploys the [docs](#docs) from the tagged commit. |
 
@@ -213,7 +213,7 @@ choose "Re-run all jobs" instead.
 |---|---|
 | A tag was pushed while the repository was private | Nothing was published, and re-running does not change that, because a re-run keeps the state of the repository from when the tag was pushed. Once the repository is public, delete the tag on `origin` and push it again. |
 | Plan fails: the tag does not match `VERSION`, or is not on `main` | Nothing was built or published. Delete the tag locally and on `origin` (`git tag -d v1.2.0`, `git push --delete origin v1.2.0`), fix `VERSION` through a pull request, and tag again. |
-| Publish to PyPI fails with an authentication error | The trusted publisher on PyPI does not match. It must name this repository, the workflow `release.yml` and the environment `pypi`, for both `ssebench` and `ssebench-sdk`. Correct it and re-run the failed jobs. |
+| Publish to PyPI fails with an authentication error | The trusted publisher on PyPI does not match. It must name this repository, the workflow `release.yml` and the environment: `pypi` for `ssebench`, `pypi-sdk` for `ssebench-sdk`. Correct it and re-run the failed jobs. |
 | A different job fails after PyPI succeeded | Re-run the failed jobs. The packages are on PyPI and stay there. |
 | The release is missing an asset or has wrong notes | Re-run the release job to upload the assets again, or edit the release on GitHub. |
 | The Images workflow fails | Re-run its failed jobs; it is independent of the Release workflow. |
@@ -229,10 +229,10 @@ nothing until then, so only the first step can happen earlier. Commands assume
 the repository `42-b3yond-6ug/ssebench`.
 
 1. **PyPI pending publishers.** On pypi.org, under the maintaining account's
-   Publishing settings, add a pending trusted publisher for each of the
-   project names `ssebench` and `ssebench-sdk` with owner `42-b3yond-6ug`,
-   repository `ssebench`, workflow `release.yml` and environment `pypi`. The
-   first upload creates the project.
+   Publishing settings, add a pending trusted publisher with owner
+   `42-b3yond-6ug`, repository `ssebench` and workflow `release.yml` for each
+   project: `ssebench` with environment `pypi`, and `ssebench-sdk` with
+   environment `pypi-sdk`. The first upload creates the project.
 2. **Make the repository public.**
 3. **Rulesets.** Apply a ruleset to `main`: require pull requests, require a
    linear history, block force pushes and deletion, and require the `ci-ok`
@@ -243,7 +243,7 @@ the repository `42-b3yond-6ug/ssebench`.
    release tag can publish to PyPI:
 
    ```sh
-   for env in pypi github-pages; do
+   for env in pypi pypi-sdk github-pages; do
      gh api -X PUT repos/42-b3yond-6ug/ssebench/environments/$env --input - <<< \
        '{"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}'
      gh api -X POST repos/42-b3yond-6ug/ssebench/environments/$env/deployment-branch-policies \
