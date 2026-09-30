@@ -352,8 +352,12 @@
           "type": "string"
         },
         "language": {
-          "description": "Language of the project, lowercase: c, go, rust.",
-          "pattern": "^[a-z][a-z0-9+]*$",
+          "description": "Language of the project. The case image builds on the base image of that language.",
+          "enum": [
+            "c",
+            "go",
+            "rust"
+          ],
           "title": "Language",
           "type": "string"
         },

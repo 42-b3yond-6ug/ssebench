@@ -93,7 +93,9 @@ class TaskMetadata(_Config):
     id: str = Field(pattern=TASK_ID_PATTERN, max_length=128, description="Task ID, equal to the task's folder name.")
     project: Text = Field(description="Name of the upstream project.")
     repository: str = Field(pattern=r"^https://\S+$", description="URL of the upstream repository.")
-    language: str = Field(pattern=r"^[a-z][a-z0-9+]*$", description="Language of the project, lowercase: c, go, rust.")
+    language: Literal["c", "go", "rust"] = Field(
+        description="Language of the project. The case image builds on the base image of that language."
+    )
     source: str = Field(pattern=r"^/\S*$", description="Absolute path of the project's source tree in the case image.")
     task_description: TaskDescription
     scripts: Scripts
