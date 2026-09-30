@@ -134,11 +134,12 @@ func (rt *Runtime) LogPath(name string) string {
 // host owner, so the host user can clear it for the next run; only root in the
 // container writes into it.
 //
-// The archive directory is made writable by the agent only when the mode says
-// the agent writes there ([Config.AgentWritesArchive]); it is given to the
-// agent's user, not opened to everyone, and handed back to its owner when the
-// agent phase ends (see [Runtime.EndAgentPhase]). A mode whose agent does not
-// write an archive leaves it root-owned.
+// The archive directory is created if it is missing. It is made writable by the
+// agent only when the mode says the agent writes there
+// ([Config.AgentWritesArchive]); it is given to the agent's user, not opened to
+// everyone, and handed back to its owner when the agent phase ends (see
+// [Runtime.EndAgentPhase]). A mode whose agent does not write an archive leaves
+// it root-owned.
 func (rt *Runtime) setupArchive() error {
 	results := rt.cfg.ResultsPath
 	if err := os.MkdirAll(results, 0o755); err != nil {
@@ -157,10 +158,13 @@ func (rt *Runtime) setupArchive() error {
 	}
 	os.Setenv("SSE_RESULTS", results)
 
+	archive := rt.cfg.ArchivePath
+	if err := os.MkdirAll(archive, 0o755); err != nil {
+		return err
+	}
 	if !rt.cfg.AgentWritesArchive {
 		return nil
 	}
-	archive := rt.cfg.ArchivePath
 	info, err := os.Stat(archive)
 	if err != nil {
 		return err
@@ -194,8 +198,9 @@ func (rt *Runtime) returnArchive() {
 
 // initLogFiles pre-creates all log files so tails can start before the
 // processes they track. It does not truncate them: in sidecar mode the daemon
-// in the case container may already be writing its log, and every process
-// started here truncates its own log when it starts.
+// in the case container may already be writing its log, and a second run of
+// the entrypoint in the same container keeps the logs of the first. Every
+// process started here appends to its own log.
 func (rt *Runtime) initLogFiles() {
 	for name, path := range rt.logFiles {
 		f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0o644)
@@ -235,7 +240,7 @@ func (rt *Runtime) StartDaemon() error {
 		return err
 	}
 
-	rt.sm.startLogTail(rt.logFiles["daemon"])
+	rt.sm.startLogTail(rt.logFiles["daemon"], info.logStart)
 
 	if err := waitForSocket(
 		rt.cfg.DaemonSocketPath,
@@ -256,7 +261,7 @@ func (rt *Runtime) StartDaemon() error {
 // the daemon's log from the shared archive directory and waits until its
 // socket exists.
 func (rt *Runtime) WaitForDaemon() error {
-	rt.sm.startLogTail(rt.logFiles["daemon"])
+	rt.sm.startLogTail(rt.logFiles["daemon"], -1)
 
 	logger.Info("Waiting for external daemon socket...")
 	if err := waitForSocket(
@@ -399,9 +404,9 @@ func (rt *Runtime) startAgent() (*exec.Cmd, time.Time, error) {
 
 	cmd := agentCommand(strings.Join(rt.agentCmd, " "))
 
-	logFile, err := os.Create(rt.logFiles["agent"])
+	logFile, _, err := openLog(rt.logFiles["agent"])
 	if err != nil {
-		return nil, time.Time{}, fmt.Errorf("failed to create agent log: %w", err)
+		return nil, time.Time{}, fmt.Errorf("failed to open agent log: %w", err)
 	}
 
 	cmd.Stdout = logFile
@@ -495,14 +500,12 @@ func (rt *Runtime) Evaluate(result AgentResult) {
 
 	logger.Info("Running evaluators...")
 
-	tailProc := rt.sm.startLogTail(rt.logFiles["evaluator"])
-
-	logFile, err := os.Create(rt.logFiles["evaluator"])
+	logFile, logStart, err := openLog(rt.logFiles["evaluator"])
 	if err != nil {
-		logger.Error("Failed to create evaluator log", "err", err)
-		rt.sm.stopLogTail(tailProc)
+		logger.Error("Failed to open evaluator log", "err", err)
 		return
 	}
+	tailProc := rt.sm.startLogTail(rt.logFiles["evaluator"], logStart)
 
 	cmd := exec.Command(evaluatorArgv[0], evaluatorArgv[1:]...)
 	cmd.Dir = rt.cfg.EvaluatorPath

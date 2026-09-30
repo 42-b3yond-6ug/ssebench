@@ -207,9 +207,9 @@ func (r *pluginRunner) run(p Plugin, h Hook) pluginResult {
 		logger.Warn("Failed to create plugin log directory", "err", err)
 	}
 	logPath := filepath.Join(r.logDir, p.Name+".log")
-	logFile, err := os.Create(logPath)
+	logFile, _, err := openLog(logPath)
 	if err != nil {
-		logger.Warn("Failed to create plugin log", "plugin", p.Name, "err", err)
+		logger.Warn("Failed to open plugin log", "plugin", p.Name, "err", err)
 		res.Status = "error"
 		res.Error = err.Error()
 		return res

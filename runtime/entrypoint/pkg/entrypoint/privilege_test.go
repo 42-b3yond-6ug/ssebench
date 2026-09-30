@@ -109,3 +109,19 @@ func TestSetupArchiveLeavesTheArchiveAloneWhenTheModeDoesNotWriteIt(t *testing.T
 		t.Error("archiveOwner recorded for a mode that does not write the archive")
 	}
 }
+
+func TestSetupArchiveCreatesAMissingArchive(t *testing.T) {
+	for _, agentWrites := range []bool{true, false} {
+		archive := filepath.Join(t.TempDir(), "missing", "archive")
+		cfg := Config{ArchivePath: archive, ResultsPath: filepath.Join(t.TempDir(), "results"), AgentWritesArchive: agentWrites}
+		rt := newRuntime(cfg, []string{"true"})
+
+		if err := rt.setupArchive(); err != nil {
+			t.Fatalf("AgentWritesArchive=%v: %v", agentWrites, err)
+		}
+
+		if info, err := os.Stat(archive); err != nil || !info.IsDir() || info.Mode().Perm() != 0o755 {
+			t.Errorf("AgentWritesArchive=%v: archive = %v, %v; want a 0755 directory", agentWrites, info, err)
+		}
+	}
+}
