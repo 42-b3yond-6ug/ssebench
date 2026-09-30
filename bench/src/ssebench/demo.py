@@ -26,7 +26,7 @@ from pathlib import Path
 
 import httpx
 
-from ssebench import doctor, paths, settings, stack
+from ssebench import arch, doctor, paths, settings, stack
 from ssebench.agents.agent import get_agent_path
 from ssebench.doctor import Status
 from ssebench.middleware.tools import RUNTIME_IMAGE_ENV, runtime_image
@@ -211,11 +211,11 @@ def image_exists(ref: str) -> bool:
     return docker("image", "inspect", "--format", "{{.Id}}", ref).returncode == 0
 
 
-def pull(ref: str) -> bool:
-    """Pull an image; False when the registry does not have it or cannot be reached."""
+def pull(ref: str, platform: str | None = None) -> bool:
+    """Pull an image, for `platform` if given; False when the registry does not have it or cannot be reached."""
     say(f"  pulling {ref}")
     began = time.monotonic()
-    result = docker("pull", "--quiet", ref)
+    result = docker("pull", "--quiet", *arch.platform_args(platform), ref)
     if result.returncode == 0:
         say(f"  pulled in {format_duration(time.monotonic() - began)}")
         return True
@@ -224,8 +224,11 @@ def pull(ref: str) -> bool:
     return False
 
 
-def build_base(base: str) -> None:
-    """Build a base image, given its manifest name such as `base-generic-go:1.0.0`, and every tag a dataset pins."""
+def build_base(base: str, platform: str | None = None) -> None:
+    """Build a base image, given its manifest name such as `base-generic-go:1.0.0`, and every tag a dataset pins.
+
+    `platform` is what the case images built on it use; None builds for the Docker host's own.
+    """
     target = base.split(":")[0].removeprefix("base-")
     if shutil.which("make") is None:
         raise DemoError(
@@ -236,6 +239,7 @@ def build_base(base: str) -> None:
             "make",
             "-C",
             str(paths.require_checkout(f"Building {base}") / "images" / "base-images"),
+            *([f"BUILD_FLAGS=--platform {platform}"] if platform else []),
             target,
             f"SSEBENCH_REGISTRY={REGISTRY}",
         ],
@@ -266,27 +270,29 @@ def prepare_images(catalog: Catalog, entry: ManifestTask, build: bool) -> str | 
         _ = paths.require_checkout(f"Building the {' and '.join(missing)} image")
         stack.compose("build", *missing, overlays=[paths.demo_compose_file()])
 
-    prepare_case_image(catalog, entry, build)
+    # The run's images all have the platform of the case image; see `Task.platform`.
+    platform = arch.docker_platform(arch.run_arch(entry.arch))
+    prepare_case_image(catalog, entry, build, platform)
 
     runtime = runtime_image()
-    if not build and (image_exists(runtime) or pull(runtime)):
+    if not build and (image_exists(runtime) or pull(runtime, platform)):
         return runtime
     return None
 
 
-def prepare_case_image(catalog: Catalog, entry: ManifestTask, build: bool) -> None:
+def prepare_case_image(catalog: Catalog, entry: ManifestTask, build: bool, platform: str | None = None) -> None:
     """Make sure the run can get the task's case image: pulled, or built on its base image."""
     # The case image already holds its base image's layers. Only a local build of the case image
     # (the run does it when the pull fails) needs the base image. The run pulls the image by the
     # dataset version, as the catalog service's clients do, so this pulls that tag too.
     case = catalog.case_image(entry)
-    if not build and pull(case):
+    if not build and pull(case, platform):
         return
     base = f"{REGISTRY}/{entry.base}"
-    if image_exists(base) or (not build and pull(base)):
+    if image_exists(base) or (not build and pull(base, platform)):
         return
     say(f"Building {base} from this checkout...")
-    build_base(entry.base)
+    build_base(entry.base, platform)
 
 
 def wait_for(url: str, what: str, timeout: float = 120.0) -> None:

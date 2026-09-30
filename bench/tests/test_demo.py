@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from ssebench import demo, doctor, paths, settings, stack
+from ssebench import arch, demo, doctor, paths, settings, stack
 from ssebench.doctor import Status
 from ssebench.middleware.tools import RUNTIME_IMAGE_ENV
 from ssebench.pipe import REGISTRY, TAG
@@ -217,6 +217,27 @@ def test_images_the_registry_lacks_are_built(fake: FakeDocker, catalog: Catalog,
     assert build[-2:] == ["catalog", "webui"]
     [make] = fake.matching("make")
     assert make[-2:] == ["generic-go", f"SSEBENCH_REGISTRY={REGISTRY}"]
+
+
+@pytest.mark.parametrize("machine", ["aarch64", "x86_64"])
+def test_the_task_images_are_pulled_and_built_for_the_platform_of_the_run(
+    fake: FakeDocker, catalog: Catalog, entry: ManifestTask, monkeypatch: pytest.MonkeyPatch, machine: str
+) -> None:
+    monkeypatch.setattr(arch.platform, "machine", lambda: machine)
+    runtime = f"{REGISTRY}/runtime:{TAG}"
+    fake.pullable = {f"{REGISTRY}/catalog:{TAG}", f"{REGISTRY}/webui:{TAG}", runtime}
+
+    _ = demo.prepare_images(catalog, entry, build=False)
+
+    platform_flag = "linux/amd64"  # every pilot task is amd64-only
+    pulls = {cmd[-1]: cmd[:-1] for cmd in fake.matching("docker", "pull")}
+    # The stack's own images are multi-platform and run natively; the task's are pulled for its platform.
+    assert "--platform" not in pulls[f"{REGISTRY}/catalog:{TAG}"]
+    assert pulls[catalog.case_image(entry)][-2:] == ["--platform", platform_flag]
+    assert pulls[f"{REGISTRY}/{entry.base}"][-2:] == ["--platform", platform_flag]
+    assert pulls[runtime][-2:] == ["--platform", platform_flag]
+    [make] = fake.matching("make")
+    assert f"BUILD_FLAGS=--platform {platform_flag}" in make
 
 
 def test_only_the_missing_images_are_pulled_or_built(fake: FakeDocker, catalog: Catalog, entry: ManifestTask) -> None:
