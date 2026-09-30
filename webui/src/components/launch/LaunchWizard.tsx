@@ -149,7 +149,8 @@ export function LaunchWizard({ onLaunch }: LaunchWizardProps) {
     ...(timeoutMinutes !== DEFAULT_TIMEOUT_MINUTES
       ? { timeout: timeoutMinutes * 60 }
       : {}),
-    ...(egress !== DEFAULT_EGRESS ? { egress } : {}),
+    // Always named, because SSEBENCH_EGRESS can change what a launch without it gets.
+    egress,
     ...(pluginsChanged ? { plugins: selectedPlugins } : {}),
   }
 
