@@ -3,6 +3,7 @@ import shutil
 from collections import namedtuple
 from pathlib import Path
 
+import httpx
 import pytest
 
 from ssebench import arch, doctor, paths, stack
@@ -243,3 +244,78 @@ def test_json_output_has_the_checks_and_the_models(healthy_host: Path, capsys: p
     data = json.loads(capsys.readouterr().out)
     assert {"name": "Docker", "status": "ok", "detail": "daemon 29.0.0", "fix": ""} in data["checks"]
     assert data["models"]["gpt"] == {"keys": ["OPENAI_API_KEY"], "missing": ["OPENAI_API_KEY"]}
+
+
+def provider(status: int, seen: list[httpx.Request] | None = None) -> httpx.Client:
+    """A client whose every request is answered with `status`, and recorded in `seen`."""
+
+    def answer(request: httpx.Request) -> httpx.Response:
+        if seen is not None:
+            seen.append(request)
+        return httpx.Response(status, json={"data": []})
+
+    return httpx.Client(transport=httpx.MockTransport(answer))
+
+
+def test_keys_are_not_sent_to_providers_unless_asked(healthy_host: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(httpx, "Client", lambda *a, **k: pytest.fail("no request may be made"))
+
+    assert not [check for check in doctor.run_checks() if check.name.startswith("Provider key ")]
+
+
+def test_a_key_the_provider_accepts_is_ok(healthy_host: Path) -> None:
+    seen: list[httpx.Request] = []
+
+    [anthropic, openai] = doctor.check_provider_key_values(provider(200, seen))
+
+    assert (anthropic.name, anthropic.status) == ("Provider key ANTHROPIC_API_KEY", Status.OK)
+    assert (openai.name, openai.status) == ("Provider key OPENAI_API_KEY", Status.OK)
+    # The model-list endpoints, which are free, and the key in the header each provider reads.
+    assert [(r.method, r.url.host, r.url.path) for r in seen] == [
+        ("GET", "api.anthropic.com", "/v1/models"),
+        ("GET", "api.openai.com", "/v1/models"),
+    ]
+    assert seen[0].headers["x-api-key"] == "a" and seen[1].headers["authorization"] == "Bearer o"
+
+
+@pytest.mark.parametrize("status", [401, 403])
+def test_a_rejected_key_is_a_warning_with_a_fix(healthy_host: Path, status: int) -> None:
+    check = doctor.check_key_accepted("ANTHROPIC_API_KEY", "a", provider(status))
+
+    assert check.status is Status.WARN
+    assert f"HTTP {status}" in check.detail and "api.anthropic.com" in check.detail
+    assert "ANTHROPIC_API_KEY" in check.fix
+
+
+def test_a_provider_that_errors_leaves_the_key_unverified(healthy_host: Path) -> None:
+    check = doctor.check_key_accepted("OPENAI_API_KEY", "o", provider(503))
+
+    assert check.status is Status.WARN and "not verified" in check.detail
+
+
+def test_a_provider_that_cannot_be_reached_is_a_warning(healthy_host: Path) -> None:
+    def refuse(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("no route", request=request)
+
+    check = doctor.check_key_accepted("OPENAI_API_KEY", "o", httpx.Client(transport=httpx.MockTransport(refuse)))
+
+    assert check.status is Status.WARN and "could not ask api.openai.com" in check.detail
+
+
+def test_only_the_keys_that_env_sets_are_tried(healthy_host: Path) -> None:
+    _ = (healthy_host / ".env").write_text(SECRETS + "OPENAI_API_KEY=o\n")
+
+    [openai] = doctor.check_provider_key_values(provider(200))
+
+    assert openai.name == "Provider key OPENAI_API_KEY"
+
+
+def test_verify_keys_adds_the_checks_to_the_report(
+    healthy_host: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(
+        doctor, "check_provider_key_values", lambda: [doctor.Check("Provider key X", Status.WARN, "bad")]
+    )
+
+    assert doctor.main(verify_keys=True) == 0
+    assert "Provider key X" in capsys.readouterr().out
