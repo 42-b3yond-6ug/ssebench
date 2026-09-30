@@ -50,6 +50,11 @@ def require(name: str) -> str:
     return value
 
 
+def flag(name: str) -> bool:
+    """Whether the setting `name` is on: `1`, `true`, `yes` or `on`, in any case."""
+    return get(name).lower() in ("1", "true", "yes", "on")
+
+
 def litellm_master_key() -> str:
     return require("LITELLM_MASTER_KEY")
 

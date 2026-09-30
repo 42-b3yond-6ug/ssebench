@@ -54,9 +54,9 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent <agent> --mo
 
 ```sh
 ssebench run [-h] [--model NAME] --agent NAME --task ID [--local DIR]
-             [--catalog PATH|URL] [--build] [--mode MODE] [--tool-layer NAME]
-             [--plugin NAME] [--run-id ID] [--timeout SECONDS] [--difficulty LEVEL]
-             [--keep-container] [--egress POLICY]
+             [--catalog PATH|URL] [--build] [--mode MODE] [--backend NAME] [--prebuilt]
+             [--tool-layer NAME] [--plugin NAME] [--run-id ID] [--timeout SECONDS]
+             [--difficulty LEVEL] [--keep-container] [--egress POLICY]
 ```
 
 | Option | Default | Description |
@@ -68,6 +68,8 @@ ssebench run [-h] [--model NAME] --agent NAME --task ID [--local DIR]
 | `--catalog PATH\|URL` | `$SSEBENCH_CATALOG`, else the bundled pilot manifest | Task catalog: a `manifest.json` path or URL, a dataset directory, or the URL of a catalog service; used when `--local` is not given |
 | `--build` | off | Build the task's case image from its folder instead of pulling the published one; needs a checkout or `--catalog` with the task folder next to it. With `--local` the image is always built |
 | `--mode MODE` | `sandbox` | Execution mode: sandbox, or sidecar (experimental) |
+| `--backend NAME` | docker, or `$SSEBENCH_BACKEND` | Where the run's containers execute; installed extensions can add more |
+| `--prebuilt` | off | Use the published agent images of the task under `$SSEBENCH_REGISTRY`, pulling them, instead of building the case, tool and agent layers; excludes `--tool-layer`, `--plugin` and `--build`. Also enabled by `SSEBENCH_PREBUILT`=1 |
 | `--tool-layer NAME` | `sandbox` | Tool layer to build in sandbox mode; installed extensions can add more |
 | `--plugin NAME` | `[]` | Run a plugin in this run (repeatable), instead of those `plugins.yaml` enables; sandbox mode only |
 | `--run-id ID` |  | Name the run: its directory is `results/TASK/MODEL/AGENT/ID`, and its containers get the label `ssebench.run-id=ID`, so a tool that starts the run can find them. 1 to 64 letters, digits, '.', '_' or '-', and not `latest`. The run is refused if that directory exists. Default: the UTC time the command started and six random hex digits, such as 20260929-153012-a1b2c3 |
@@ -81,7 +83,9 @@ ssebench run [-h] [--model NAME] --agent NAME --task ID [--local DIR]
 `--model` is optional with `--agent reference`; see [Reference runs](#reference-runs).
 `--mode` is explained in [Sandbox and sidecar](/concepts/sandbox-and-sidecar),
 `--difficulty` in [Difficulty levels](/concepts/difficulty-levels), `--tool-layer`
-in [Extension points](/guides/extension-points#tool-layers), and `--egress` in
+in [Extension points](/guides/extension-points#tool-layers), `--backend` in
+[Runner backends](/concepts/runner-backends), `--prebuilt` in
+[Prebuilt images](/concepts/runner-backends#prebuilt-images), and `--egress` in
 [Integrity and egress](/deployment/integrity-and-egress); the egress policy is
 recorded as `config.egress` in the run summary. `--keep-container` leaves the
 container for the [web UI](/webui/) to inspect; in sidecar mode it leaves both

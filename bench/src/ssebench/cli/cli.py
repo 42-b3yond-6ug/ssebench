@@ -12,10 +12,12 @@ from ssebench import arch, doctor, paths, settings, stack
 from ssebench.agents import Agent
 from ssebench.errors import UserError
 from ssebench.extensions import (
+    DEFAULT_BACKEND,
     DEFAULT_TOOL_LAYER,
     Command,
     ExtensionError,
     command_names,
+    get_backend,
     get_tool_layer,
     load_commands,
 )
@@ -35,6 +37,9 @@ logger = logging.getLogger(__name__)
 
 # These agents make no model calls, so a run with them needs no provider key.
 KEYLESS_AGENTS = ("dummy", REFERENCE_AGENT)
+
+PREBUILT_ENV = "SSEBENCH_PREBUILT"
+BACKEND_ENV = "SSEBENCH_BACKEND"
 
 BUILTIN_COMMANDS = ("run", "build-case", "dataset", "tasks", "proxy", "doctor", "init", "demo")
 
@@ -56,6 +61,8 @@ class RunArgs(argparse.Namespace):
         self.egress: Literal["restricted", "open"]
         self.plugin: list[str]
         self.run_id: str | None
+        self.backend: str | None
+        self.prebuilt: bool
 
 
 def run_id_arg(value: str) -> str:
@@ -80,9 +87,14 @@ def cmd_run(args: argparse.Namespace) -> int:
     if args.mode == "sidecar":
         logger.warning("Sidecar mode is experimental; see 'Sandbox and sidecar' in the documentation for its limits")
     tool_layer = args.tool_layer or DEFAULT_TOOL_LAYER
-    # Reject an unknown or broken layer before starting the proxy.
+    prebuilt = bool(getattr(args, "prebuilt", False)) or settings.flag(PREBUILT_ENV)
+    if prebuilt and (args.tool_layer is not None or getattr(args, "plugin", None) or getattr(args, "build", False)):
+        logger.error("--prebuilt uses images that are already built, so it excludes --tool-layer, --plugin and --build")
+        return 1
+    # Reject an unknown or broken layer or backend before starting the proxy.
     try:
         _ = get_tool_layer(tool_layer)
+        backend = get_backend(getattr(args, "backend", None) or settings.get(BACKEND_ENV) or DEFAULT_BACKEND)
     except ExtensionError as e:
         logger.error(e)
         return 1
@@ -99,6 +111,12 @@ def cmd_run(args: argparse.Namespace) -> int:
         logger.error(e)
         return 1
     plugin_names = [p.name for p in plugins]
+    if prebuilt and plugin_names:
+        logger.warning(
+            f"Prebuilt images carry the plugins they were built with; {', '.join(plugin_names)} (enabled in "
+            "plugins.yaml) are not installed by this run"
+        )
+        plugin_names = []
 
     task: Task
     try:
@@ -166,10 +184,21 @@ def cmd_run(args: argparse.Namespace) -> int:
                 plugins=plugin_names,
                 select_plugins=requested is not None,
                 run_id=run_id,
+                backend=backend,
+                prebuilt=prebuilt,
             )
         case "sidecar":
             runner = BenchmarkSidecarRunner(
-                model, agent, task, timeout, difficulty, keep_container, egress, run_id=run_id
+                model,
+                agent,
+                task,
+                timeout,
+                difficulty,
+                keep_container,
+                egress,
+                run_id=run_id,
+                backend=backend,
+                prebuilt=prebuilt,
             )
         case _:
             logger.error(f"Unknown mode: {args.mode}")
@@ -319,6 +348,21 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
         default="sandbox",
         metavar="MODE",
         help="Execution mode: sandbox, or sidecar (experimental)",
+    )
+    run_parser.add_argument(
+        "--backend",
+        type=str,
+        default=None,
+        metavar="NAME",
+        help=f"Where the run's containers execute (default: {DEFAULT_BACKEND}, or $SSEBENCH_BACKEND); installed "
+        "extensions can add more",
+    )
+    run_parser.add_argument(
+        "--prebuilt",
+        action="store_true",
+        help="Use the published agent images of the task under $SSEBENCH_REGISTRY, pulling them, instead of "
+        "building the case, tool and agent layers; excludes --tool-layer, --plugin and --build. "
+        "Also enabled by SSEBENCH_PREBUILT=1",
     )
     run_parser.add_argument(
         "--tool-layer",

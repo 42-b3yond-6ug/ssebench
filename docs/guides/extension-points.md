@@ -9,11 +9,13 @@ it:
 
 - a **tool layer** changes the runtime image that the agent runs in, and is
   selected with `ssebench run --tool-layer NAME`;
+- a **runner backend** changes where a run's containers execute, and is
+  selected with `ssebench run --backend NAME`;
 - a **command** adds a subcommand, `ssebench NAME`;
 - a **container mode** changes how the entrypoint orchestrates the task
   container, and is selected with `entrypoint --mode NAME`.
 
-A Python package registers tool layers and commands as
+A Python package registers tool layers, runner backends and commands as
 [entry points](https://packaging.python.org/en/latest/specifications/entry-points/)
 and imports everything it needs from `ssebench.extensions`. A Go program adds
 container modes by importing the entrypoint as a library; a tool layer then
@@ -37,6 +39,9 @@ dependencies = ["ssebench"]
 [project.entry-points."ssebench.tool_layers"]
 example = "my_ssebench_ext:ExampleToolLayer"
 
+[project.entry-points."ssebench.backends"]
+logging = "my_ssebench_ext:LoggingBackend"
+
 [project.entry-points."ssebench.commands"]
 hello = "my_ssebench_ext:HelloCommand"
 
@@ -58,12 +63,13 @@ not in `uv.lock`, so install the extension again after it, or run
 `uv sync --inexact`.
 
 `bench/tests/fixtures/ssebench_example_ext` is a complete extension with the
-tool layer and the command shown below. The tests in
+tool layer, the backend and the command shown below. The tests in
 `bench/tests/test_extensions.py` install it and use both.
 
 | Group | Name selects | Object |
 |-------|--------------|--------|
 | `ssebench.tool_layers` | `ssebench run --tool-layer NAME` | a subclass of `ToolLayer` |
+| `ssebench.backends` | `ssebench run --backend NAME` | a subclass of `Backend`, created without arguments |
 | `ssebench.commands` | `ssebench NAME` | an object that implements `Command`, or a class whose instances do |
 
 ## Tool layers
@@ -149,6 +155,48 @@ uv run ssebench run --local datasets/pilot --task gjson-196-bf4efcb \
   also a built-in name, and when the selected object cannot be imported or is
   not a `ToolLayer` subclass.
 - Only the selected layer is imported.
+
+## Runner backends
+
+A backend carries out the run that the runner describes: it prepares the
+images, starts the containers, streams their output, collects the results and
+cleans up. The built-in backend is `docker`. An extension can add one that
+runs the same run elsewhere, for example on a cluster. The
+[Runner backends](/concepts/runner-backends) page specifies the run
+specification and every method of the interface; this section shows how to
+register one.
+
+```python
+from ssebench.extensions import Backend, DockerBackend, RunHandle, RunSpec
+```
+
+- `ssebench run --backend NAME`, or `SSEBENCH_BACKEND=NAME`, creates the class
+  without arguments, once for the run.
+- Subclass `Backend` and implement all of its methods, or subclass
+  `DockerBackend` and override the ones you change.
+- Set `builds_images = True` only if `prepare_images` can build the layers of a
+  run. Otherwise `ssebench run` requires `--prebuilt`, and `prepare_images` only
+  makes the [prebuilt images](/concepts/runner-backends#prebuilt-images)
+  available. `prebuilt_images(request)` gives their names.
+
+This backend announces each run and leaves the rest to Docker:
+
+```python
+from typing import override
+
+from ssebench.extensions import DockerBackend, RunHandle, RunSpec
+
+
+class LoggingBackend(DockerBackend):
+    name = "logging"
+
+    @override
+    def start(self, spec: RunSpec) -> RunHandle:
+        print(f"starting run {spec.run_id} of {spec.task_name} in {spec.mode} mode")
+        return super().start(spec)
+```
+
+Run it with `uv run ssebench run --backend logging ...`.
 
 ## Commands
 
