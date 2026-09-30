@@ -19,8 +19,14 @@ Runner ---------> Backend ---------> containers
    ^                 |
    |  exit status,   |  prepare_images   start   wait   logs
    |  results        |  collect_results  stop    cleanup   list_runs
-   +-----------------+
+   +-----------------+  endpoint         exec_argv
+                          ^
+ssebench runs, web UI ----+   find, watch, stop and reach runs that exist
 ```
+
+The same interface serves the tools that watch runs. [`ssebench runs`](#watching-runs)
+lists, stops and removes runs, and finds the address of a running run's daemon,
+by calling the backend, so the [web UI](/webui/) works with every backend.
 
 The Docker backend is built in and is the default. Others are installed as
 [extensions](/guides/extension-points#runner-backends) and selected with
@@ -94,10 +100,13 @@ by their labels.
 | `cleanup(handle)` | Remove what the run left: containers, volumes, other objects. Best effort. Does nothing for a run started with `keep`. |
 | `list_runs(labels) -> list[RunInfo]` | The runs that carry every label in `labels`, running or not. |
 | `inspect_run(run_id) -> RunInfo \| None` | The run with that `ssebench.run-id` label. It has a default implementation on top of `list_runs`. |
+| `endpoint(handle, port) -> str` | `http://host:port`, at which the machine that calls this reaches `port` of the run's container. Optional; see [Reaching a run](#reaching-a-run). |
+| `exec_argv(handle, command, ...) -> list[str]` | The argument vector of a local command that runs `command` in the run's container. Optional; see [Reaching a run](#reaching-a-run). |
 
 `RunInfo` has the run ID, the name, a `state` (`created`, `running`, `exited` or
-`unknown`), the exit code once it exited, the image, the labels and a
-`RunHandle` that the other methods accept. Errors a caller can act on are
+`unknown`), the exit code once it exited, the image, the labels, when the
+container was created (`created_at`, an ISO 8601 string, if the backend knows)
+and a `RunHandle` that the other methods accept. Errors a caller can act on are
 `BackendError` (a run that cannot be started or watched), `UserError` and
 `ImageUnavailableError` (an image that cannot be prepared). Messages must not
 contain the run's environment.
@@ -105,6 +114,59 @@ contain the run's environment.
 `Backend.builds_images` says whether `prepare_images` can build layers. A backend
 that cannot, such as one that only runs prebuilt images on a cluster, leaves it
 `False`, and `ssebench run` then requires `--prebuilt`.
+
+### Reaching a run
+
+A tool that watches a run needs to talk to what runs in its container. The
+[web UI](/webui/run-view) reads the SSEBench daemon (port 4263) and the OpenCode
+server (port 4096) of a running run, and opens a shell in it. Two methods of the
+backend cover that. Neither is abstract, so a backend that does not implement
+them still works for everything else; they raise `BackendError`.
+
+`endpoint(handle, port)` returns a URL, `http://host:port`, at which **the
+machine that calls it** reaches `port` of the run's container. What that is
+depends on the platform:
+
+- On Docker it is the container's address on its Docker network. It is
+  routable from a Linux host, not from Docker Desktop.
+- On a cluster it is a Service or a pod address when the caller is inside the
+  cluster, and a forwarded port on `127.0.0.1` when it is not.
+
+The URL has to stay valid after the call returns, and after the process that
+made it exits, because the tools that call it are short-lived commands
+(`ssebench runs endpoint`). A backend that needs a port-forward therefore runs
+one that outlives the call and reuses it on the next call. The URL carries no
+credentials: the daemon's agent-facing API is unauthenticated, so it has to be
+reachable only by the caller. Raise `BackendError` if the run is not running.
+
+`exec_argv(handle, command, user=, workdir=, tty=, stdin=, env_names=)` returns
+the argument vector of a command that the caller runs locally with its standard
+streams attached, for example `docker exec ...` or `kubectl exec ...`. `command`
+reaches the container as separate arguments and is never parsed by a shell.
+`env_names` are variables that the container's process gets with the values they
+have in the caller's environment; their values must not appear in the vector,
+which a process listing shows, so a backend that cannot pass them otherwise
+raises. A backend that implements it sets `supports_exec = True`. The web UI
+opens its terminal and starts its assistant only on such a backend.
+
+### Watching runs
+
+`ssebench runs` is the command-line and JSON front of the interface above, for
+people and for tools. It selects the backend as `ssebench run` does
+(`--backend`, or `SSEBENCH_BACKEND`), and names a run by its run ID:
+
+| Command | Does |
+|---|---|
+| `runs list [--json]` | Lists the runs the backend has, running or not. `--json` prints `{"backend", "supports_exec", "runs"}`. |
+| `runs inspect ID [--json]` | Shows one run. Exits with status 3 if there is none, and 4 if several runs have that ID. |
+| `runs logs ID [--follow]` | Prints the container's output. |
+| `runs stop ID [--grace SECONDS]` | Stops the run's containers and leaves them in place. |
+| `runs remove ID` | Removes what the run left, running or not. |
+| `runs endpoint ID PORT [--json]` | Prints the URL from `endpoint`. |
+| `runs exec ID [options] -- COMMAND...` | Replaces the process with the command from `exec_argv`. |
+| `runs results [--json] [--dir DIR]` | Lists the finished runs in `results/`, whether or not their containers still exist. It reads files and needs no backend. |
+
+See [CLI](/reference/cli#ssebench-runs) for the options.
 
 ### What the runner does around it
 
@@ -160,7 +222,8 @@ A tool finds the runs of `ssebench run` by label, through `list_runs` and
 | `ssebench.reference-run` | `true` for a reference run only |
 
 A backend that has no labels on its objects, such as a Job, can use its own
-equivalent, as long as `list_runs` accepts these keys.
+equivalent, as long as `list_runs` accepts these keys. `ssebench runs list` asks
+for `ssebench.webui=true`, which the runner puts on every run.
 
 ## Prebuilt images
 
@@ -237,6 +300,10 @@ class ClusterBackend(Backend):
         ...                   # create the Job; stream its pod's log to stdout
 
     # ... wait, logs, collect_results, stop, cleanup, list_runs, copy_from_image
+
+    # Optional, for the web UI: reach the daemon, and open a terminal
+    # def endpoint(self, handle, port): ...
+    # def exec_argv(self, handle, command, **options): ...
 ```
 
 To test one, run the runner against it in a unit test, as

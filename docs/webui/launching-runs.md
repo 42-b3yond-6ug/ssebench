@@ -6,14 +6,20 @@ outline: deep
 
 The launch wizard starts runs from the browser. It collects a task, an agent, a
 model, an execution mode and a few run options, then runs
-`uv run ssebench run --keep-container` once per task, in the SSEBench checkout
-that the web UI serves. What a launched
+`ssebench run --keep-container` once per task (as `uv run ssebench`, unless
+`SSEBENCH_CLI` says otherwise), in the SSEBench checkout that the web UI serves. What a launched
 run does is what [`ssebench run`](/reference/cli#ssebench-run) does, so
 everything on that page applies.
 
 The wizard needs the web UI to run from a checkout, as in `just webui`. The
-[container image](/webui/#in-a-container) has no checkout and no `uv`, so it
-can show runs but not launch them.
+[container image](/webui/#in-a-container) has no checkout, so it has no models,
+agents or local tasks to offer and can show runs but not launch them. A [hosted
+server](/webui/security#hosted-mode) refuses launches.
+
+A launch runs on the runner backend that `SSEBENCH_BACKEND` names, like
+`ssebench run` on the command line. A backend that cannot build images needs
+`SSEBENCH_PREBUILT=1` in the server's environment; see [Runner
+backends](/concepts/runner-backends#prebuilt-images).
 
 ## Before you launch
 
@@ -133,7 +139,7 @@ a run](/webui/run-view#runs-from-the-command-line).
 Each launched task runs
 
 ```sh
-uv run ssebench run --model=<model> --agent=<agent> --task=<task> \
+ssebench run --model=<model> --agent=<agent> --task=<task> \
     --mode=<mode> --run-id=<launch id> --keep-container --local=<directory>
 ```
 
@@ -146,7 +152,8 @@ in that environment or in `.env` decide which proxy stack and images the run
 uses. The arguments are passed as an argument vector, never through a shell.
 
 `--run-id` sets the label `ssebench.run-id` on the run's container, and the web
-UI finds the container by it. The launch ID is a fresh UUID for every launch.
+UI finds the run by it through the backend (`ssebench runs list`). The launch ID
+is a fresh UUID for every launch, and the run's ID everywhere in the UI.
 
 The server accepts only a model from `models/`, an agent from `agents/`, plugins
 from `plugins.yaml` and a local task from the local dataset. It rejects anything

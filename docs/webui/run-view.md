@@ -4,12 +4,16 @@ outline: deep
 
 # Watching a run
 
-The run view shows one run's container: what the agent said and did, the diff it
-left, the grade, the container's logs, and a shell in the container. The dialog,
-the diff, the grade and the reference patch come from the container's own
-[daemon](/reference/daemon-api), which the web UI reaches at the container's IP
-address on port 4263. The web UI therefore has to run on a host that can route to
-container addresses, as a Linux Docker host does.
+The run view shows one run: what the agent said and did, the diff it left, the
+grade, the container's logs, and a shell in the container. While the run's
+container exists, the dialog, the diff and the grade come from its own
+[daemon](/reference/daemon-api), which the web UI reaches at the address that
+the [runner backend](/concepts/runner-backends#reaching-a-run) gives for port
+4263. With the Docker backend that is the container's IP address, so the web UI
+has to run on a host that can route to container addresses, as a Linux Docker
+host does. Once the container has stopped, or has been removed, the same views
+come from the run's directory in `results/`; see [Finished
+runs](#finished-runs).
 
 ![The run view of a reference run: the agent dialog, the diff, and the logs](/images/webui/run-view.png)
 
@@ -20,18 +24,19 @@ and the agent, and whether the container is running.
 
 - When the page loads, the web UI attaches **every running container** that
   carries the label `ssebench.webui`. Containers that exited are not attached.
-- **Attach to Container** lists all such containers in four tabs: **Running**,
-  **Exited**, **All**, and **Recent** for the last ten you attached in this
-  browser. Filter by task, model, agent, image or container name, select a row
-  and click **Attach**.
+- **Attach to Container** lists all such containers, and the finished runs in
+  `results/` that have no container any more (marked **Finished**), in four
+  tabs: **Running**, **Exited**, **All**, and **Recent** for the last ten you
+  attached in this browser. Filter by task, model, agent, image or container
+  name, select a row and click **Attach**.
 - A container you launch from the wizard is attached for you; see
   [Launching runs](/webui/launching-runs).
 - A run started with `ssebench run --keep-container` appears in the list too,
   whoever started it.
 
-The list is every container with that label on the Docker daemon, whoever
-started it and whichever Compose project it belongs to. On a shared daemon you
-see other people's runs, and can stop them.
+The list is every run with that label on the backend, whoever started it and
+whichever Compose project it belongs to. On a shared daemon you see other
+people's runs, and can stop them.
 
 ### Runs from the command line
 
@@ -44,7 +49,7 @@ uv run ssebench run --local datasets/pilot --task gjson-196-bf4efcb \
     --agent reference --keep-container
 ```
 
-Stop the container with `docker stop`. The CLI takes that as the normal end of
+Stop the container with `ssebench runs stop <run-id>` (or `docker stop`). The CLI takes that as the normal end of
 the run and writes the summary; it logs an error only when the container ends
 some other way, or is stopped before the grade was written. A SIGTERM or SIGINT
 to the CLI stops the container the same way, and the summary is still written.
@@ -60,7 +65,7 @@ bottom areas.
 | Area | Contents |
 |---|---|
 | Left | [Agent dialog](#agent-dialog) |
-| Center | [Changes](#changes-and-files), [Files](#changes-and-files), [AI](#ai-assistant), [Terminal](#terminal), [Evaluation Result](#evaluation-result) |
+| Center | [Changes](#changes-and-files), [Files](#changes-and-files), [AI](#ai-assistant), [Terminal](#terminal), [Evaluation Result](#evaluation-result); the AI and Terminal tabs only for a run with a container, on a server that allows them |
 | Bottom | [Terminal](#terminal) and [Logs](#logs) |
 
 The dividers between the areas can be dragged. **Settings** in the sidebar moves
@@ -142,20 +147,21 @@ the grade checks the task, not a model.
 The grade comes from the container's daemon. When the daemon has none, or the
 container has stopped, the web UI reads `result.json` from the run's results
 directory on the host instead: the run's own directory, which the container's
-`ssebench.results` label names. For a container made before that label existed,
-it is `results/<task>/<model>/<agent>` in the web UI's checkout, the layout
-before [run directories](/concepts/results#results-of-earlier-versions).
+`ssebench.results` label names.
 
 ## Logs
 
-The **Logs** tab streams `docker logs -f` of the container from its start: the
-entrypoint, the daemon, the MCP server, the agent and the evaluator. It follows
-the end unless you scroll up; **Bottom** jumps back.
+The **Logs** tab streams the container's output from its start
+(`ssebench runs logs --follow`): the entrypoint, the daemon, the MCP server, the
+agent and the evaluator. It follows the end unless you scroll up; **Bottom**
+jumps back. A finished run without a container shows the `agent.log` and
+`evaluator.log` that its run directory kept.
 
 ## Terminal
 
-The terminal is a shell in the container, started with `docker exec -it` as the
-image's default user, which is `root`. Use it to look at the project, the
+The terminal is a shell in the container, started with `ssebench runs exec
+--tty`, which the Docker backend turns into `docker exec -it`, as the image's
+default user, which is `root`. Use it to look at the project, the
 results in `$SSE_ARCHIVE` (`/tmp/sse-archive`) and the task files under
 `/ssebench`. The toolbar changes the font size, searches, clears and restarts
 the shell.
@@ -165,8 +171,11 @@ the shell.
   [container image](/webui/#in-a-container) includes it. Without the helper,
   `/api/health` reports `terminal: false` with a hint, the sidebar shows the hint,
   and the terminal tabs are hidden, while the rest of the run view works.
-- The container has to be running.
-- `SSEBENCH_WEBUI_TERMINAL=0` turns the terminal off and hides its tabs; see
+- The container has to be running, and the backend has to be able to run commands
+  in it (`supports_exec`). Otherwise `/api/health` reports `terminal: false` and
+  the tabs are hidden.
+- `SSEBENCH_WEBUI_TERMINAL=0` turns the terminal off and hides its tabs, and so
+  does [hosted mode](/webui/security#hosted-mode); see
   [Security model](/webui/security#terminal).
 - A terminal process is cleaned up after five minutes without activity; the
   `PTY_*` variables in [Environment variables](/reference/environment#web-ui)
@@ -179,7 +188,8 @@ debugging assistant. It comes with prompts for comparing the agent's fix with th
 reference patch, for reviewing the changes, and for looking for problems. 
 The assistant can run commands in the container. Read
 [the key and the assistant](/webui/security#provider-api-key-and-the-assistant)
-before you use it. Which model it uses depends on the run:
+before you use it. The tab is missing on a run without a container, on a backend
+that cannot run commands in a run, and in [hosted mode](/webui/security#hosted-mode). Which model it uses depends on the run:
 
 - **A run with a model** (any agent but `reference`, in sandbox mode): the
   assistant uses that model through the run's LiteLLM proxy, which a container on
@@ -200,6 +210,34 @@ provider's error, for example a missing key at the proxy, or, while OpenCode
 retries, a banner that says it is waiting for the provider. An error that looks
 like an unreachable provider says so and suggests the two fixes above.
 
+## Finished runs
+
+`ssebench run` writes every run to `results/<task>/<model>/<agent>/<run-id>/` and,
+when the run ends, `summary.json` in it. The web UI lists each such run that no
+container backs any more, marked **Finished**, and shows what the directory holds
+(see [Results format](/concepts/results)):
+
+| View | Read from |
+|---|---|
+| Task bar, **More Details** | The task in `summary.json` |
+| Agent dialog | `archive/dialog.jsonl` |
+| Changes and Files | `final.patch`, the patch the grader applied |
+| Truth, Split | `reference.patch`, else the task folder of the local dataset |
+| Evaluation Result | `result.json` |
+| Logs | `agent.log` and `evaluator.log` |
+
+The terminal and the AI assistant need a container and are missing. The same
+views come from the directory for a container that has stopped, so a kept
+container that you stop does not lose them. No container is needed, and no
+backend: a server that only has a `results/` directory, such as [hosted
+mode](/webui/security#hosted-mode) on a machine without Docker, shows the finished
+runs in it.
+
+The web UI reads `results/` in `SSEBENCH_PATH`, where the runs it launches write.
+`ssebench runs results` prints the same list. The files are read as plain files
+only: a link in `archive/`, which the agent can write to, is not followed. Two
+runs that reuse one run ID show as one, the newest.
+
 ## Containers
 
 Hover over the tab of a container and click its cross to open **Detach
@@ -210,10 +248,14 @@ Container?**:
 | **Detach** | Closes the tab. The container keeps running, and you can attach again |
 | **Detach + Stop** | Closes the tab, kills the container and removes it. Offered for a running container |
 | **Detach + Remove** | Closes the tab and removes the container. Offered for a container that has stopped |
+
+A finished run that has no container, and every run on a hosted server, offers
+only **Detach**.
 | **Cancel** | Does nothing |
 
-The web UI only touches containers with the label `ssebench.webui`. A container
-that stops by itself, or by `docker stop`, stays on the list as **Exited**. You
+The web UI only touches runs with the label `ssebench.webui`, named by run ID.
+A container that stops by itself, or by `docker stop`, stays on the list as
+**Exited**. You
 can remove it with **Detach + Remove** once it is attached, or with **Remove** in
 the **Attach to Container** list. Stopping and removing can be repeated: stopping
 a container that has already stopped, or removing one that is already gone,
