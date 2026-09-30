@@ -38,9 +38,11 @@ forms below are accepted, because each has exactly one PEP 440 spelling:
 | Tool layer, sidecar runtime and agent images | image tag | the CLI, from its own version |
 | Base images | image tags | `images/base-images/Makefile` tags them with the version and with `latest`; local builds also carry the versions that the datasets pin |
 | Published images | image tags | the Images workflow, from `VERSION`; see [Images](#images) |
+| Published case images | image tags | the Dataset workflow, from `version` in `dataset.yaml`; see [Case images](#case-images) |
 
-Case images are named after the dataset and task and are not tagged with the
-SSEBench version. Task Dockerfiles build on the base images of one release,
+Case images are named after the dataset and task and are tagged with the
+dataset's version, not the SSEBench version; see [Case images](#case-images).
+Task Dockerfiles build on the base images of one release,
 named by its version tag (the `pilot` tasks use `1.0.0`), so a release does
 not change the tasks; see [Base images](/dataset/manifest#base-images).
 
@@ -112,8 +114,9 @@ pre-release and is never the latest release, and its images do not move
 
 ## What a tag does
 
-Pushing a `v*` tag starts two workflows. The Images workflow publishes the
-[images](#images). The Release workflow (`.github/workflows/release.yml`) runs
+Pushing a `v*` tag starts three workflows. The Images workflow publishes the
+[images](#images), and the Dataset workflow the [case images](#case-images) of
+the pilot tasks. The Release workflow (`.github/workflows/release.yml`) runs
 these jobs:
 
 | Job | What it does |
@@ -130,8 +133,8 @@ The jobs that publish or deploy something (PyPI, the GitHub release and the
 docs deployment) are skipped while the repository is private, so a tag then
 only produces the artifacts. Do not push a release tag before the repository is
 public: the Images workflow also builds every image for both platforms on a
-tag, which takes a long time, and publishes nothing. Use a
-[dry run](#dry-runs) instead.
+tag, which takes a long time, and publishes nothing, while the Dataset workflow
+skips the tag. Use a [dry run](#dry-runs) instead.
 
 Every workflow action is pinned to a commit SHA. `TWINE_VERSION` in
 `release.yml` pins the version of Twine that checks the packages; update it by
@@ -167,6 +170,8 @@ gh run download <run-id>
 
 `gh workflow run docs.yml --ref my-branch -f dry_run=true` builds only the site.
 A manual run of the Images workflow builds the images and never pushes them.
+A manual run of the Dataset workflow verifies the tasks and pushes nothing
+unless you set `publish`, which needs a public repository.
 
 ## Docs
 
@@ -275,7 +280,10 @@ the repository `42-b3yond-6ug/ssebench`.
    private packages. GitHub has no API for this: for each package, open its
    Package settings on GitHub and change the visibility to Public, which
    cannot be undone. Check that an unauthenticated `docker pull` works for
-   each.
+   each. The [case images](#case-images) are one package per pilot task, named
+   `ssebench/case/pilot/<task>`; publish them by hand once
+   (`gh workflow run dataset.yml --ref main -f publish=true`), which creates the
+   packages, and make each of them public the same way.
 9. **Rehearse.** Run `gh workflow run release.yml --ref main` and check the
    artifacts of the [dry run](#dry-runs).
 10. **Release.** Cut the first version as a pre-release such as `1.0.0-rc.1`
@@ -286,6 +294,78 @@ the repository `42-b3yond-6ug/ssebench`.
     ghcr.io/42-b3yond-6ug/ssebench/runtime:<version>`; download the release
     assets and run `sha256sum --check SHA256SUMS`; open
     `https://docs.ssebench.com` and check the version in the navigation bar.
+
+## Case images
+
+The Dataset workflow (`.github/workflows/dataset.yml`) verifies the pilot tasks
+with `ssebench dataset verify`, and pushes the case image of each task that
+passes to `ghcr.io/42-b3yond-6ug/ssebench/case/pilot/<task>`:
+
+| Trigger | Verifies | Publishes |
+|---|---|---|
+| Pull request | the tasks it changes | nothing |
+| `v*` tag | every task | every task that passes, and attaches the images lock to the release |
+| Weekly run | every task | every task that passes |
+| Manual run | the tasks named, else every task | the same, when `publish` is set, and only from `main` |
+
+```sh
+gh workflow run dataset.yml --ref main -f publish=true
+gh workflow run dataset.yml --ref main -f publish=true -f tasks="gjson-196-bf4efcb dns-745-501e858"
+```
+
+Nothing is published from a private repository, from a branch other than `main`
+or from a pull request; a tag must be `v` and `VERSION`, on `main`. The job
+that verifies a task publishes it, in the same job:
+
+- `packages: write` is granted to this job only, and the login to GHCR comes
+  after the verification, so the task's own scripts never run with the
+  credentials. A pull request from a fork gets a read-only token whatever the
+  workflow declares.
+- The image is the one that both runs graded, not a rebuild. The verifier
+  records the ID of the local image after each run and fails the task when they
+  differ; `ssebench dataset publish` refuses an image whose ID is not the
+  recorded one, and one that is not `amd64`.
+- The image is pushed as `pilot-v1-<commit>` (the dataset version and the first
+  seven characters of the commit), and then as `pilot-v1`, so that the moving
+  tag never leads the record. The tasks are `linux/amd64` only. A task that
+  fails is not pushed, and keeps the image it was last published with.
+
+### Pinning the images
+
+Each publishing job uploads a record with the digest it pushed. The `lock` job
+merges the records into `images.lock.json`, together with the entries of the
+lock in the checkout whose task files are unchanged, and uploads it as the
+artifact `images-lock`, kept for 90 days. On a release tag, the `attach-lock`
+job (the only one with `contents: write`) also attaches it to the GitHub release
+as `images.lock.json`. The output depends only on those inputs, so the same
+records always give the same file.
+
+`ssebench run` pulls a task by the digest in `datasets/pilot/images.lock.json`,
+which the wheel carries, or in the file that `SSEBENCH_IMAGES_LOCK` names, for
+example the release asset; see [Case images](/reference/cli#case-images). The
+committed lock is not updated by the workflow, so refresh it in a pull request
+after a publishing run:
+
+```sh
+gh run download <run-id> --name images-lock --dir datasets/pilot
+git add datasets/pilot/images.lock.json
+```
+
+Commit it as `chore(dataset): pin the published pilot images`. CI checks the
+file with `ssebench dataset lock --check`. To ship a wheel that pins its images,
+refresh the lock from a manual publishing run on `main` before you tag; without
+that, the wheel's lock is empty or older and the CLI pulls by tag. The tag's own
+run then pushes new images, which the release asset pins, and the lock in the
+wheel keeps pinning the earlier ones, which stay in the registry.
+
+A change to a task drops its entry from the lock on the next `ssebench dataset
+lock` (the CLI already skips an entry whose task files changed). Changing
+`version` in `dataset.yaml` starts a lock of its own, so a new dataset version
+begins with `ssebench dataset lock`, which writes an empty one.
+
+Never delete a published case image or move a `pilot-v1-<commit>` tag. A broken
+image is fixed forward: change the task, and the next publishing run moves
+`pilot-v1` to the fix and pins it in a new lock.
 
 ## Python packages
 

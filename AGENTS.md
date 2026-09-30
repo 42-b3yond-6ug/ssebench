@@ -57,7 +57,7 @@ agents/                claude-code, codex, opencode, dummy, reference; each has 
 models/                LiteLLM model definitions, one YAML file per provider
 catalog/               task catalog service (Go)
 webui/                 web UI: Vite + React client, Bun/Hono server, pty-proxy (Go)
-datasets/pilot/        the pilot dataset, one folder per task, with dataset.yaml and the generated manifest.json
+datasets/pilot/        the pilot dataset, one folder per task, with dataset.yaml, the generated manifest.json and images.lock.json (digests of the published case images)
 datasets/schema/       JSON Schemas of the task config and the manifest, exported from bench/src/ssebench/tasks/
 tools/bear/            compile_commands.json generation for C tasks
 tools/dataset/         third_party.py: generates datasets/pilot/THIRD_PARTY.md from third_party.json and the task configs, or checks it with --check

@@ -97,8 +97,12 @@ files:
   `ssebench dataset manifest` generates it, and `--check` fails when the
   committed file is out of date.
 
-The JSON Schemas of the task config, `dataset.yaml` and the manifest are in
-`datasets/schema/`, exported from the Pydantic models by
+- `images.lock.json` pins the published case image of each task by digest, so
+  that a run pulls exactly the image its release was published with. See the
+  [images lock](/dataset/manifest#images-lock).
+
+The JSON Schemas of the task config, `dataset.yaml`, the manifest and the images
+lock are in `datasets/schema/`, exported from the Pydantic models by
 `ssebench dataset schema`.
 
 ## Where a run gets its task
@@ -112,7 +116,9 @@ The JSON Schemas of the task config, `dataset.yaml` and the manifest are in
 task folder on disk                 task entry in a manifest
         |                                    |
         | docker build in the folder         | docker pull $SSEBENCH_REGISTRY/case/<dataset>/<id>
-        |                                    | (or build from a matching local folder)
+        |                                    | by digest or by version tag (or, with
+        |                                    | --build or when the pull fails, build
+        |                                    | from a matching local folder)
         v                                    v
         +---------> case image <-------------+
 ```
@@ -124,9 +130,11 @@ task folder on disk                 task entry in a manifest
   `SSEBENCH_CATALOG`.
 - **From a catalog** (the default without `--local`). The CLI reads a
   manifest from a file, a directory or a URL, finds the task in it and pulls
-  the case image from `$SSEBENCH_REGISTRY`. When the pull fails, it builds the
-  image from a local copy of the task folder whose checksums match the
-  manifest, if there is one.
+  the [prebuilt case image](/dataset/pilot#prebuilt-images) from
+  `$SSEBENCH_REGISTRY`, by the digest in the dataset's images lock when it has
+  one, and otherwise by the dataset version tag. When the pull fails, or with
+  `--build`, it builds the image from a local copy of the task folder whose
+  checksums match the manifest, if there is one.
 
 `ssebench tasks list` prints the tasks of a catalog, and
 `ssebench tasks list --local DIR` those of a dataset folder. See

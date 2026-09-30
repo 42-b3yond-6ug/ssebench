@@ -239,9 +239,45 @@ the task folders and committed next to them:
 | `tasks[].files` | SHA-256 of every file in the task folder, by path relative to the folder. |
 | `tasks[].metadata` | The task config, validated, with every key present. |
 
-Image names carry no registry. To pull a task's case image, prefix it with
-`$SSEBENCH_REGISTRY`, for example
-`ghcr.io/42-b3yond-6ug/ssebench/case/pilot/gjson-196-bf4efcb`.
+Image names carry no registry and no tag. To pull a task's case image, prefix
+it with `$SSEBENCH_REGISTRY` and tag it with the dataset's `version`, for
+example `ghcr.io/42-b3yond-6ug/ssebench/case/pilot/gjson-196-bf4efcb:pilot-v1`.
+The [pilot dataset page](/dataset/pilot#prebuilt-images) describes the
+published images.
+
+## Images lock
+
+`images.lock.json`, next to `manifest.json`, pins the published case image of
+each task by digest. `ssebench dataset lock` writes it, and
+`datasets/schema/images-lock.schema.json` describes it:
+
+```json
+{
+  "dataset": "pilot",
+  "version": "pilot-v1",
+  "images": {
+    "gjson-196-bf4efcb": {
+      "digest": "sha256:9c4f…",
+      "files_sha256": "5d1e…",
+      "revision": "0123456789abcdef0123456789abcdef01234567"
+    }
+  }
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `dataset`, `version` | The dataset and version of the manifest that the lock goes with. A lock for another version is ignored. |
+| `images` | One entry per published task, sorted by ID; a task without an entry is pulled by tag. |
+| `images[].digest` | Digest of the image in the registry. `docker pull <registry>/<image>@<digest>` pulls exactly that image, from any registry that holds a copy with its digests. |
+| `images[].files_sha256` | SHA-256 of the task's `files` in the manifest that the image was built from. The entry applies only while the manifest lists the same files. |
+| `images[].revision` | Commit of the repository that the image was built and verified at. |
+
+A publishing run of the Dataset workflow produces the lock; see
+[Releasing and versioning](/contributing/releasing#case-images) for how it gets
+into the repository and the release. A lock that lags behind a task that changed
+is harmless: `ssebench run` skips the entries whose files changed, and
+`ssebench dataset lock` drops them.
 
 ## Commands
 
@@ -249,6 +285,7 @@ Image names carry no registry. To pull a task's case image, prefix it with
 uv run ssebench dataset validate [DIR]
 uv run ssebench dataset manifest [DIR] [-o FILE] [--check] [--generated-from COMMIT]
 uv run ssebench dataset schema [-o DIR] [--check]
+uv run ssebench dataset lock [DIR] [--records DIR] [-o FILE] [--check]
 ```
 
 `DIR` defaults to `datasets/pilot`; see the [CLI reference](/reference/cli#ssebench-dataset).
@@ -260,6 +297,10 @@ uv run ssebench dataset schema [-o DIR] [--check]
   every task file, regenerate it after changing anything in a task folder;
   `--check` fails, with a diff, when the committed file is out of date.
 - `schema` writes the JSON Schemas; `--check` fails when they are out of date.
+- `lock` writes the [images lock](#images-lock): the images of the current lock
+  whose task files are unchanged, and those of the publication records that
+  `ssebench dataset publish` wrote. `--check` fails when the lock is missing,
+  is for another dataset version or pins a task the dataset does not have.
 
 The JSON Schemas also work with other validators, for example:
 
