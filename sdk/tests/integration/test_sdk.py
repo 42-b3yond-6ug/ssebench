@@ -9,6 +9,7 @@ It starts the daemon, runs various SDK functions, and reports results.
 from __future__ import annotations
 
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -20,6 +21,12 @@ from dataclasses import dataclass
 # before importing the SDK.
 SOCKET_PATH = "/tmp/ssebench-test.sock"
 ADMIN_SOCKET_PATH = "/tmp/ssebench-test-admin.sock"
+# The daemon writes its log here. A pipe that nobody reads has a small capacity
+# (the kernel shrinks pipes when a user holds many), and a full one blocks the
+# daemon's logging, including during shutdown.
+DAEMON_LOG = "/tmp/ssebench-test-daemon.log"
+# The daemon stops within seconds of SIGTERM; this covers a loaded host.
+STOP_TIMEOUT = 15
 os.environ["SSE_DAEMON_SOCKET"] = ADMIN_SOCKET_PATH
 
 
@@ -30,24 +37,69 @@ class TestResult:
     message: str
 
 
+def read_daemon_log(tail: int = 40) -> str:
+    """The end of the daemon's log."""
+    try:
+        with open(DAEMON_LOG, errors="replace") as f:
+            return "".join(f.readlines()[-tail:])
+    except OSError as e:
+        return f"<no daemon log: {e}>"
+
+
+def describe_process(pid: int) -> str:
+    """What the daemon's threads are doing, for a daemon that did not stop."""
+    lines = []
+    try:
+        with open(f"/proc/{pid}/status") as f:
+            lines += [ln.rstrip() for ln in f if ln.startswith(("State:", "Threads:", "SigCgt:"))]
+        for task in sorted(os.listdir(f"/proc/{pid}/task"), key=int):
+            base = f"/proc/{pid}/task/{task}"
+            with open(f"{base}/comm") as f:
+                comm = f.read().strip()
+            with open(f"{base}/wchan") as f:
+                wchan = f.read().strip()
+            if wchan not in ("futex_do_wait", "do_epoll_wait", "0"):
+                lines.append(f"thread {task} ({comm}) waits in {wchan}")
+    except OSError as e:
+        lines.append(f"<cannot inspect process {pid}: {e}>")
+    return "\n".join(lines)
+
+
+def stop_daemon(daemon: subprocess.Popen) -> None:
+    """SIGTERM the daemon and require it to exit; on timeout, report its state."""
+    daemon.terminate()
+    try:
+        daemon.wait(timeout=STOP_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        state = describe_process(daemon.pid)
+        daemon.kill()
+        daemon.wait()
+        print(f"Daemon still running {STOP_TIMEOUT}s after SIGTERM:\n{state}")
+        print(f"Daemon log (tail):\n{read_daemon_log()}")
+        sys.exit(1)
+    if daemon.returncode not in (0, -signal.SIGTERM):
+        print(f"Daemon exited with status {daemon.returncode}")
+        print(f"Daemon log (tail):\n{read_daemon_log()}")
+        sys.exit(1)
+
+
 def start_daemon() -> subprocess.Popen:
     """Start the ssebench-daemon in the background."""
     print("Starting daemon...")
-    proc = subprocess.Popen(
-        ["ssebench-daemon"],
-        env={**os.environ, "SSE_DAEMON_SOCKET": SOCKET_PATH, "SSE_ADMIN_SOCKET": ADMIN_SOCKET_PATH},
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
+    with open(DAEMON_LOG, "wb") as log:
+        proc = subprocess.Popen(
+            ["ssebench-daemon"],
+            env={**os.environ, "SSE_DAEMON_SOCKET": SOCKET_PATH, "SSE_ADMIN_SOCKET": ADMIN_SOCKET_PATH},
+            stdout=log,
+            stderr=subprocess.STDOUT,
+        )
     # Wait for daemon to be ready
     time.sleep(2)
 
     # Check if daemon started successfully
     if proc.poll() is not None:
-        stdout, stderr = proc.communicate()
         print("Daemon failed to start!")
-        print(f"stdout: {stdout.decode()}")
-        print(f"stderr: {stderr.decode()}")
+        print(read_daemon_log())
         sys.exit(1)
 
     print(f"Daemon started (PID: {proc.pid})")
@@ -503,8 +555,7 @@ def main():
     finally:
         # Clean up daemon
         print("\nStopping daemon...")
-        daemon.terminate()
-        daemon.wait(timeout=5)
+        stop_daemon(daemon)
         print("Daemon stopped.")
 
 

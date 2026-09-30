@@ -14,7 +14,7 @@ mod runner;
 mod task_files;
 
 pub use account::{Account, agent_account, effective_uid, is_root, parse_passwd};
-pub use exec::{kill_all_processes_of, processes_of, run_captured};
+pub use exec::{TrackedGroup, kill_all_processes_of, kill_live_groups, processes_of, run_captured};
 pub use fs::{copy_file, copy_tree, remove_tree};
 pub use runner::{TaskRunner, Workspace, pristine_dir};
 pub use task_files::TaskFiles;
