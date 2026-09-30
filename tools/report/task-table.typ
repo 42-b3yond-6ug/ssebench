@@ -39,6 +39,15 @@
   table.cell[#box(_icon) #model]
 }
 
+// A task that ran more than once for this model and agent has a row for each
+// run, numbered from the earliest.
+#let cell-id(result, preset: "default") = {
+  let id = get-short-hash(result.task.id, preset: preset)
+  if result.at("trials", default: 1) > 1 {
+    [#id #text(fill: gray)[\##result.trial]]
+  } else { id }
+}
+
 #let cell-status(condition, label: auto) = {
   let (bg, text-content) = if condition == true {
     (c-pass, "Pass")
@@ -135,7 +144,7 @@
       .map(r => {
         let pr = r.patch_result
         (
-          get-short-hash(r.task.id, preset: preset),
+          cell-id(r, preset: preset),
           [\$#calc.round(decimal(r.spend), digits: 2)],
           cell-time(r),
           cell-status(pr.build_success),

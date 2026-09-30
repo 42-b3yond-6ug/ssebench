@@ -59,8 +59,8 @@ extraPaths = ["sdk/python"]
 
 [tool.pytest.ini_options]
 testpaths = ["bench/tests", "sdk/python/tests", "runtime/evaluator/tests", "runtime/mcp/tests", "tools/docs", "tools/report"]
-# The reference docs generators (tools/docs/refdocs) are not a package; their tests import them from here.
-pythonpath = ["tools/docs"]
+# The reference docs generators (tools/docs/refdocs) and tools/report/collect.py are not packages; their tests import them from here.
+pythonpath = ["tools/docs", "tools/report"]
 addopts = ["--import-mode=importlib"]
 markers = [
   "integrity: benchmark-integrity bypass tests; need Docker and the images of a sandbox or sidecar run",
