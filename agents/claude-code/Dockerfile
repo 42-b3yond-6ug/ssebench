@@ -5,11 +5,11 @@ RUN useradd -m -u 1000 model
 USER model
 ENV HOME=/home/model
 ARG TARGETARCH
-ARG CLAUDE_CODE_VERSION=2.1.277
+ARG CLAUDE_CODE_VERSION=2.1.285
 # Checksums of the linux-x64 and linux-arm64 builds, from the release's
 # manifest.json; update both when bumping the version.
-ARG CLAUDE_CODE_SHA256_AMD64=722210f05ba494d8f6df69423c4d4f2960900f7a007d0532851c7a36e375cab7
-ARG CLAUDE_CODE_SHA256_ARM64=242c4d743beabc822edd8f247101bb800b4036c69e74b9e2a1adb120dfe46f5d
+ARG CLAUDE_CODE_SHA256_AMD64=33dad1ec615a2e08cc78b494f05c110e49916de2c79d78ec8799ebf46b233d29
+ARG CLAUDE_CODE_SHA256_ARM64=24fac77749bed3d91365d6b6915aa4b824e14318ecb6bc17adbc192f01c9173d
 # `claude install` sets up the launcher in ~/.local/bin for this version.
 RUN case "${TARGETARCH}" in \
       amd64) platform=linux-x64; sha256="${CLAUDE_CODE_SHA256_AMD64}" ;; \
