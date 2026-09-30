@@ -9,7 +9,9 @@
 #  - It runs inside an SSEBench container, as root, at the grading phase.
 #  - The run's model is reachable through LiteLLM, configured by SSE_MODEL_NAME,
 #    SSE_BASE_URL and SSE_API_KEY (the plugin declares `llm: true`).
-#  - The agent's patch is committed on top of the buggy commit.
+#  - The agent's patch is read from the daemon's admin socket (`/final_diff`), not
+#    with git: the repository belongs to the agent's user, and git refuses to run
+#    in it as root.
 #
 # Fuzzing (review then fuzz) is opt-in with SSE_ORACLE_FUZZ=1: it installs and
 # runs AFL++, so it needs `--egress open`. By default the plugin only produces
