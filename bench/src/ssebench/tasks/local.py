@@ -5,9 +5,13 @@ from pathlib import Path
 from typing import final, override
 
 from ssebench.pipe import REGISTRY
+from ssebench.tasks.manifest import task_files_digest
 from ssebench.tasks.metadata import TaskMetadata, load_task_metadata
 
 from .task import Task
+
+FILES_LABEL = "ssebench.task-files"
+"""Label of a case image: the digest of the task folder it was built from."""
 
 
 @final
@@ -60,6 +64,26 @@ class LocalTask(Task):
         return self.task_path
 
     @override
+    def case_image_matches(self) -> bool | None:
+        """Compare the label of the existing case image with the digest of the task folder now."""
+        result = subprocess.run(
+            [
+                "docker",
+                "image",
+                "inspect",
+                "--format",
+                f'{{{{ index .Config.Labels "{FILES_LABEL}" }}}}',
+                self.docker_image_name,
+            ],
+            capture_output=True,
+            text=True,
+        )
+        built = result.stdout.strip()
+        if result.returncode != 0 or not built or built == "<no value>":
+            return None
+        return built == task_files_digest(self.task_path)
+
+    @override
     def get_task_metadata(self) -> TaskMetadata:
         metadata_filepath = self.task_path / "sse" / "config.yaml"
         if not metadata_filepath.exists():
@@ -96,6 +120,8 @@ def docker_build_case(task_path: Path, image: str) -> None:
             "build",
             "--build-arg",
             f"SSEBENCH_REGISTRY={REGISTRY}",
+            "--label",
+            f"{FILES_LABEL}={task_files_digest(task_path)}",
             "-t",
             image,
             "--load",

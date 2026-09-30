@@ -30,6 +30,13 @@ class Task(DockerLayerMixin, ABC):
         """
         pass
 
+    def case_image_matches(self) -> bool | None:
+        """
+        Return whether the existing case image was built from the task's current files,
+        or None when that cannot be told, for example because the image carries no record of them.
+        """
+        return None
+
     @abstractmethod
     def case_image_exists(self) -> bool:
         """

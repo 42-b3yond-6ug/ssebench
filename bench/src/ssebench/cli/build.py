@@ -67,14 +67,24 @@ def build_case_image(task: Task, force: bool = False) -> bool:
 
     Args:
         task: The Task to build.
-        force: If True, rebuild even if image exists.
+        force: If True, rebuild even if the image is up to date.
 
     Returns:
         True if successful, False otherwise.
     """
     if not force and task.case_image_exists():
-        logger.info(f"Skipping {task.name} - case image already exists (use --force to rebuild)")
-        return True
+        match task.case_image_matches():
+            case True:
+                logger.info(f"Skipping {task.name} - case image is up to date (use --force to rebuild)")
+                return True
+            case None:
+                logger.warning(
+                    f"Skipping {task.name} - case image exists but records no task files, so it may be stale "
+                    "(use --force to rebuild)"
+                )
+                return True
+            case False:
+                logger.warning(f"Rebuilding {task.name} - its files changed since the case image was built")
 
     try:
         logger.info(f"Building case image for {task.name}...")
