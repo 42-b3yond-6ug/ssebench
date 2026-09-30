@@ -24,11 +24,13 @@ COPY runtime/evaluator/pyproject.toml runtime/evaluator/*.py /evaluator/
 COPY runtime/mcp/pyproject.toml runtime/mcp/*.py /mcp/
 
 
-FROM golang:1.26-bookworm AS entrypoint-builder
+# Cross-compiled on the build platform, as in images/runtime, so building for
+# another architecture needs no emulation here.
+FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS entrypoint-builder
 COPY runtime/entrypoint/ /build/
 WORKDIR /build
-ARG VERSION=dev
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${VERSION}" -o /entrypoint ./cmd/ssebench-entrypoint
+ARG TARGETOS TARGETARCH VERSION=dev
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-s -w -X main.version=${VERSION}" -o /entrypoint ./cmd/ssebench-entrypoint
 
 
 # The entrypoint, laid out like the runtime image (images/runtime). Passing

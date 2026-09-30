@@ -1,17 +1,29 @@
-FROM rust:1.98.1-alpine AS daemon-builder
-RUN apk add --no-cache musl-dev
+# Cross-compiled on the build platform, as in images/runtime, so building for
+# another architecture needs no emulation here.
+FROM --platform=$BUILDPLATFORM rust:1.98.1-alpine AS daemon-builder
+# zig is the C compiler and linker for the musl targets.
+RUN apk add --no-cache cargo-zigbuild musl-dev
+ARG TARGETARCH
+RUN case "$TARGETARCH" in \
+      amd64) echo x86_64-unknown-linux-musl ;; \
+      arm64) echo aarch64-unknown-linux-musl ;; \
+      *) echo "unsupported architecture: $TARGETARCH" >&2; exit 1 ;; \
+    esac > /rust-target && \
+    rustup target add "$(cat /rust-target)"
 WORKDIR /build
 COPY Cargo.toml Cargo.lock ./
 COPY sdk/daemon/Cargo.toml sdk/daemon/
 COPY sdk/daemon/src/ sdk/daemon/src/
-RUN cargo build --release --locked --bin ssebench-daemon
+RUN target="$(cat /rust-target)" && \
+    cargo zigbuild --release --locked --bin ssebench-daemon --target "$target" && \
+    cp "target/$target/release/ssebench-daemon" /ssebench-daemon
 
 
 # The daemon, laid out like the runtime image (images/runtime). Passing
 #   --build-context runtime=docker-image://<registry>/runtime:<version>
 # replaces this stage, and skips the build above.
 FROM scratch AS runtime
-COPY --from=daemon-builder /build/target/release/ssebench-daemon /ssebench/ssebench-daemon
+COPY --from=daemon-builder /ssebench-daemon /ssebench/ssebench-daemon
 
 
 FROM case-image AS case-image-builder
