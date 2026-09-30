@@ -28,6 +28,9 @@ inputs:
   build-args:
     description: More build arguments, one KEY=VALUE per line.
     default: ""
+  labels:
+    description: More image labels, one KEY=VALUE per line.
+    default: ""
   push:
     description: Whether to push the image; the caller logs in to the registry.
     default: "false"
@@ -72,7 +75,9 @@ runs:
           VERSION=${{ inputs.version }}
           ${{ inputs.build-args }}
         tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+        labels: |
+          ${{ steps.meta.outputs.labels }}
+          ${{ inputs.labels }}
         push: false
         provenance: false
         sbom: false
@@ -90,7 +95,9 @@ runs:
           VERSION=${{ inputs.version }}
           ${{ inputs.build-args }}
         tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+        labels: |
+          ${{ steps.meta.outputs.labels }}
+          ${{ inputs.labels }}
         annotations: ${{ steps.meta.outputs.annotations }}
         push: true
         provenance: mode=max

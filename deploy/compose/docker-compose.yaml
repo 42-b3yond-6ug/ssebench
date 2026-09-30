@@ -12,7 +12,9 @@ services:
       context: ../..
       dockerfile: images/litellm/Dockerfile
     ports:
-      - "${LITELLM_PORT:-4000}:4000"
+      # The proxy holds the master key and the provider keys, so it is published
+      # on loopback unless LITELLM_BIND says otherwise.
+      - "${LITELLM_BIND:-127.0.0.1}:${LITELLM_PORT:-4000}:4000"
     environment:
       LITELLM_MASTER_KEY: "${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY is not set; run just setup to write .env}"
       DATABASE_URL: "postgresql://${POSTGRES_USER:-litellm}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set; run just setup to write .env}@litellm_db:5432/litellm"
@@ -32,10 +34,13 @@ services:
     depends_on:
       - litellm_db
     healthcheck:
+      # The image has Python but neither wget nor curl.
       test:
         [
-          "CMD-SHELL",
-          "wget --no-verbose --tries=1 http://localhost:4000/health/liveliness || exit 1",
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness', timeout=5)",
         ]
       interval: 30s
       timeout: 10s
