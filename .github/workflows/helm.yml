@@ -1,109 +1,39 @@
 name: Helm
 
-# Checks the Helm chart in deploy/helm/ssebench.
-#
-# Lint renders the chart with its default values and with the variants in
-# deploy/helm/ssebench/ci and validates the manifests against the Kubernetes
-# schemas. It is quick and runs everywhere.
-#
-# Smoke installs the chart on a kind cluster with Calico, which enforces
-# NetworkPolicy, using images built from the checkout, and passes one pilot
-# task with the `reference` agent on the Kubernetes backend, from `ssebench run`
-# and from the web UI (tests/helm/smoke.sh). It builds several images and a
-# cluster, so it runs only while the repository is public, where minutes are
-# free. Publishing the chart is a job of release.yml.
+# Installs the Helm chart in deploy/helm/ssebench on a kind cluster with
+# Calico, which enforces NetworkPolicy, using images built from the checkout,
+# and passes one pilot task with the `reference` agent on the Kubernetes
+# backend, from `ssebench run` and from the web UI (tests/helm/smoke.sh). It
+# builds several images and a cluster, so it runs for release tags, every week
+# on main and on demand (`gh workflow run helm.yml`), and only while the
+# repository is public, where minutes are free. `just verify kind` does the
+# same on your machine. Pull requests get the quick chart checks (lint,
+# kubeconform, packaging) from the CI workflow. Publishing the chart is a job of
+# release.yml.
 
 on:
-  pull_request:
-    paths:
-      - .github/workflows/helm.yml
-      - .github/actions/setup-helm/**
-      - VERSION
-      - deploy/helm/**
-      - deploy/k8s/**
-      - tests/helm/**
-      - models/**
-      - images/litellm/**
-      - images/common/**
-      - images/sandbox/**
-      - catalog/**
-      - webui/**
-      - bench/src/ssebench/backends/**
   push:
-    branches: [main]
-    paths:
-      - .github/workflows/helm.yml
-      - .github/actions/setup-helm/**
-      - VERSION
-      - deploy/helm/**
-      - deploy/k8s/**
-      - tests/helm/**
-      - models/**
-      - images/litellm/**
-      - images/common/**
-      - images/sandbox/**
-      - catalog/**
-      - webui/**
-      - bench/src/ssebench/backends/**
+    tags: ["v*"]
+  schedule:
+    - cron: "17 4 * * 1"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
-  KUBECONFORM_VERSION: 0.7.0
-  KUBECONFORM_SHA256: c31518ddd122663b3f3aa874cfe8178cb0988de944f29c74a0b9260920d115d3
   KIND_VERSION: 0.31.0
   KIND_SHA256: eb244cbafcc157dff60cf68693c14c9a75c4e6e6fedaf9cd71c58117cb93e3fa
-  # The Kubernetes version of the kind node image in KIND_VERSION, and of the schemas.
-  KUBERNETES_VERSION: 1.35.0
   CALICO_VERSION: 3.31.0
   CHART: deploy/helm/ssebench
 
 jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup-helm
-      - name: Install kubeconform
-        run: |
-          curl -fsSL -o "$RUNNER_TEMP/kubeconform.tar.gz" \
-            "https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
-          echo "${KUBECONFORM_SHA256}  $RUNNER_TEMP/kubeconform.tar.gz" | sha256sum -c -
-          tar -xzf "$RUNNER_TEMP/kubeconform.tar.gz" -C "$RUNNER_TEMP" kubeconform
-          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
-      - name: helm lint
-        run: |
-          helm lint "$CHART" --strict
-          for values in "$CHART"/ci/*.yaml; do
-            helm lint "$CHART" --strict --values "$values"
-          done
-      - name: kubeconform
-        # Every variant renders to manifests that the Kubernetes schemas accept.
-        run: |
-          render() { helm template ssebench "$CHART" --namespace ssebench "$@" | kubeconform -strict -summary -kubernetes-version "$KUBERNETES_VERSION"; }
-          render
-          for values in "$CHART"/ci/*.yaml; do
-            echo "== $values"
-            render --values "$values"
-          done
-      - name: The chart packages at the repository version
-        run: |
-          helm package "$CHART" --destination "$RUNNER_TEMP/chart" --version "$(cat VERSION)" --app-version "$(cat VERSION)"
-          ls "$RUNNER_TEMP/chart"
-
   smoke:
     name: Install on kind and run a task
-    needs: lint
     # Builds several images and starts a cluster: a job for the public repository's free minutes.
     if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-24.04
