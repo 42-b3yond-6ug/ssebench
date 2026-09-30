@@ -1,6 +1,7 @@
 use std::io::{self, Read};
 use std::os::unix::process::CommandExt;
 use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -19,6 +20,11 @@ const KILL_ROUNDS: usize = 20;
 /// when it stops, since it cannot wait for them.
 static LIVE_GROUPS: Mutex<Vec<i32>> = Mutex::new(Vec::new());
 
+/// Set by [`kill_live_groups`]. A tool call that waited for the tool lock
+/// starts its child only after the daemon began to stop; that child is killed
+/// as soon as it is tracked.
+static STOPPING: AtomicBool = AtomicBool::new(false);
+
 /// A child's process group, listed in [`kill_live_groups`] until dropped.
 #[derive(Debug)]
 pub struct TrackedGroup(i32);
@@ -28,7 +34,14 @@ impl TrackedGroup {
     /// waits for and started with `process_group(0)`.
     pub fn new(pgid: u32) -> Option<Self> {
         let pgid = i32::try_from(pgid).ok()?;
-        LIVE_GROUPS.lock().unwrap().push(pgid);
+        let mut groups = LIVE_GROUPS.lock().unwrap();
+        groups.push(pgid);
+        if STOPPING.load(Ordering::SeqCst) {
+            // SAFETY: see kill_process_group.
+            unsafe {
+                libc::kill(-pgid, libc::SIGKILL);
+            }
+        }
         Some(Self(pgid))
     }
 }
@@ -44,7 +57,9 @@ impl Drop for TrackedGroup {
 
 /// Kill every tracked process group. The waiters see their children exit.
 pub fn kill_live_groups() {
-    for pgid in LIVE_GROUPS.lock().unwrap().iter() {
+    let groups = LIVE_GROUPS.lock().unwrap();
+    STOPPING.store(true, Ordering::SeqCst);
+    for pgid in groups.iter() {
         // SAFETY: see kill_process_group.
         unsafe {
             libc::kill(-pgid, libc::SIGKILL);

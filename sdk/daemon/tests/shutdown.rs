@@ -43,6 +43,41 @@ fn exits_on_sigterm_with_keep_alive_clients_and_a_running_script() {
 }
 
 #[test]
+fn exits_on_sigterm_with_a_running_and_a_waiting_build() {
+    let mut daemon = start(Stdio::null(), &[], SLEEPING_BUILD);
+    let (_build, script) = start_build(&daemon);
+    // Waits for the tool lock that the build holds.
+    let waiting = {
+        let socket = daemon.agent_socket();
+        thread::spawn(move || {
+            common::post_to(
+                &socket,
+                "/tool/bencher?action=build",
+                r#"{"grading": false}"#,
+            )
+        })
+    };
+    thread::sleep(Duration::from_millis(300));
+
+    daemon.signal(libc::SIGTERM);
+    let (status, took) = daemon.wait_exit(EXIT_WITHIN);
+
+    assert!(status.success(), "exit status {status:?} after {took:?}");
+    // Neither the running build nor the one that waited leaves a script.
+    let latest: i32 = std::fs::read_to_string(daemon.dir.path().join("build.pid"))
+        .unwrap()
+        .trim()
+        .parse()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while is_running(script) || is_running(latest) {
+        assert!(Instant::now() < deadline, "a build script is still running");
+        thread::sleep(Duration::from_millis(20));
+    }
+    let _ = waiting.join();
+}
+
+#[test]
 fn exits_on_sigint() {
     let mut daemon = start(Stdio::null(), &[], SLEEPING_BUILD);
     let _clients = idle_clients(&daemon);

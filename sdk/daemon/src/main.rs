@@ -16,10 +16,10 @@ use ssebench::shutdown;
 /// Default HTTP port for WebUI access
 const DEFAULT_HTTP_PORT: u16 = 4263;
 
-/// Workers per listener (`SSE_DAEMON_WORKERS`). A tool call blocks its worker
-/// until the command ends, so a few keep read-only routes answering during a
-/// build. actix's default is one worker per host CPU for each listener, which
-/// is 144 threads on a 48-core host, all of them idle.
+/// Workers per listener (`SSE_DAEMON_WORKERS`). Tool calls run on the blocking
+/// pool, so the workers only parse requests and answer the light routes.
+/// actix's default is one worker per host CPU for each listener, which is 144
+/// threads on a 48-core host, almost all of them idle.
 const DEFAULT_WORKERS: usize = 4;
 
 fn workers() -> usize {
