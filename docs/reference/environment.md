@@ -165,7 +165,7 @@ defaults:
 | `SSE_ORACLE_FUZZ` | unset | oracle plugin | `1` makes the oracle plugin fuzz the patched project after its review; it installs AFL++, so the run needs `--egress open`. |
 | `SSE_BENCH_PATH` | `/ssebench` | daemon | Directory with the task's `config.yaml`, scripts and files. |
 | `SSE_HTTP_PORT` | `4263` | daemon | The daemon's agent-facing HTTP port. |
-| `SSE_DAEMON_WORKERS` | `4` | daemon | Worker threads for each of the daemon's listeners. A tool call occupies its worker until the command ends. Without a limit, actix starts one worker per host CPU for every listener. |
+| `SSE_DAEMON_WORKERS` | `4` | daemon | Worker threads for each of the daemon's listeners. Tool calls run on separate blocking threads, so a long build does not keep a worker from answering other requests. Without a limit, actix starts one worker per host CPU for every listener. |
 | `SSE_REPO_PATH` | `/ssebench-repo` | daemon | Clean clone of the project that grading applies the agent's diff to and builds. |
 | `SSE_AGENT_DOCKER` | unset | SDK | `host:port` of the daemon's HTTP listener, used when `SSE_DAEMON_SOCKET` is not set. |
 | `MCP_LOG_DIR` | `/tmp/mcp/logs` | MCP server | Where the MCP server writes the full logs of long check results; see [Long logs](/reference/mcp-server#long-logs). |

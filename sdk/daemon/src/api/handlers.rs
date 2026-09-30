@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use actix_web::{HttpResponse, web};
-use anyhow::Context;
+use anyhow::{Context, anyhow};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -82,10 +84,12 @@ async fn tool(
         })));
     }
 
-    let mut tool_router = state.tool_router.lock().unwrap();
-
-    tool_router
-        .route(&name, &action, &arg)
+    // The lock and the command run on the blocking pool: a worker that waits
+    // for either would not answer the read-only routes.
+    let router = Arc::clone(&state.tool_router);
+    web::block(move || router.lock().unwrap().route(&name, &action, &arg))
+        .await
+        .map_err(|e| anyhow!("the tool call did not finish: {e}"))?
         .map(|result| HttpResponse::Ok().json(result))
         .map_err(AppError::from)
 }
@@ -325,7 +329,11 @@ async fn prepare_grading_handler(
         return Ok(forbidden_privileged());
     }
 
-    state.tool_router.lock().unwrap().start_grading()?;
+    // Waits for a running tool call, so it does not hold a worker.
+    let router = Arc::clone(&state.tool_router);
+    web::block(move || router.lock().unwrap().start_grading())
+        .await
+        .map_err(|e| anyhow!("starting the grading session did not finish: {e}"))??;
     prepare_grading(baseline()?, &results_dir())?;
 
     Ok(HttpResponse::Ok().json(json!({ "success": true })))
