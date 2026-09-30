@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:0.12.20@sha256:100047e74f30778ab704942321a09750d6158739573ff58bf3924085cc6cd2d8 AS uv
+FROM ghcr.io/astral-sh/uv:0.12.21@sha256:a7aed3216253ee804de3e2d8afa5073baa1a177335345d43845cd4165e43b711 AS uv
 
 # The runtime of the agent container in sidecar mode: the entrypoint, the MCP
 # server and the evaluator. It holds no task files; the project's source tree
@@ -8,7 +8,7 @@ FROM ghcr.io/astral-sh/uv:0.12.20@sha256:100047e74f30778ab704942321a09750d615873
 # repository root. Each venv is synced from a copy of just the workspace files
 # it needs, directly at its final location; --no-editable installs the SDK into
 # the venv, so /src is not needed at run time.
-FROM ubuntu:24.04 AS python-builder
+FROM ubuntu:26.04 AS python-builder
 COPY --from=uv /uv /bin/
 WORKDIR /src
 COPY pyproject.toml uv.lock ./
@@ -26,7 +26,7 @@ COPY runtime/mcp/pyproject.toml runtime/mcp/*.py /mcp/
 
 # Cross-compiled on the build platform, as in images/runtime, so building for
 # another architecture needs no emulation here.
-FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS entrypoint-builder
+FROM --platform=$BUILDPLATFORM golang:1.27-bookworm AS entrypoint-builder
 COPY runtime/entrypoint/ /build/
 WORKDIR /build
 ARG TARGETOS TARGETARCH VERSION=dev
@@ -40,7 +40,7 @@ FROM scratch AS runtime
 COPY --from=entrypoint-builder /entrypoint /usr/local/bin/entrypoint
 
 
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \

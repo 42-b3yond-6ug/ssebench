@@ -17,7 +17,7 @@
 # Most build steps run on the build platform, so a multi-platform build needs
 # little emulation; the CLI is pure Python and installs on the target platform.
 
-FROM --platform=$BUILDPLATFORM oven/bun:1.3.13 AS web
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.2 AS web
 WORKDIR /src
 COPY package.json bun.lock bunfig.toml ./
 COPY webui/package.json webui/
@@ -28,7 +28,7 @@ RUN bun run --cwd webui build && \
     bun build webui/server/index.ts --target=bun --outfile=/out/server/index.js
 
 
-FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS pty-proxy
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS pty-proxy
 WORKDIR /build
 COPY webui/pty-proxy/go.mod webui/pty-proxy/go.sum ./
 RUN go mod download
@@ -38,15 +38,15 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /pty-proxy .
 
 
-FROM ghcr.io/astral-sh/uv:0.12.20@sha256:100047e74f30778ab704942321a09750d6158739573ff58bf3924085cc6cd2d8 AS uv
+FROM ghcr.io/astral-sh/uv:0.12.21@sha256:a7aed3216253ee804de3e2d8afa5073baa1a177335345d43845cd4165e43b711 AS uv
 
 
 # The uv of the build platform: the target's uv would run under emulation and
 # fetch a Python for the target, which the build stage cannot run.
-FROM --platform=$BUILDPLATFORM ghcr.io/astral-sh/uv:0.12.20@sha256:100047e74f30778ab704942321a09750d6158739573ff58bf3924085cc6cd2d8 AS build-uv
+FROM --platform=$BUILDPLATFORM ghcr.io/astral-sh/uv:0.12.21@sha256:a7aed3216253ee804de3e2d8afa5073baa1a177335345d43845cd4165e43b711 AS build-uv
 
 
-FROM --platform=$BUILDPLATFORM oven/bun:1.3.13-slim AS cli-wheel
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.2-slim AS cli-wheel
 # The wheel of the CLI carries the assets it needs (see bench/hatch_build.py).
 COPY --from=build-uv /uv /usr/local/bin/uv
 WORKDIR /repo
@@ -60,7 +60,7 @@ FROM docker:29.8.1-cli AS docker-cli
 FROM registry.k8s.io/kubectl:v1.35.4@sha256:e8bc9c71a813d90d5f7689fa57516b2aacd7a02bb9d70d3ab6664ed6d202fc10 AS kubectl
 
 
-FROM oven/bun:1.3.13-slim
+FROM oven/bun:1.4.2-slim
 COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/docker
 # `ssebench runs endpoint` and `runs exec` run kubectl on the Kubernetes backend.
 COPY --from=kubectl /bin/kubectl /usr/local/bin/kubectl
