@@ -5,7 +5,7 @@
  * User can Allow, Deny, or Always Allow (for this session only).
  */
 
-import { useEffect, useRef, useCallback } from "react"
+import { useEffect, useRef, useCallback, type JSX } from "react"
 import type { PendingPermission } from "../../types/opencode"
 
 interface PermissionDialogProps {
