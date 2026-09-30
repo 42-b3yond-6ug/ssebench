@@ -15,7 +15,7 @@ import { resolveContainer } from "./docker"
 import { RESULTS_LABEL } from "./reference"
 
 const MAX_RESULT_BYTES = 8 * 1024 * 1024
-/** A results directory is results/<task>/<model>/<agent>; each part is a name */
+/** The parts of a run's results path, results/<task>/<model>/<agent>, are names */
 const NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
 
 /** Split a model name such as `provider/model` into path-safe parts */
@@ -26,11 +26,12 @@ function parts(value: string | undefined): string[] | null {
 }
 
 /**
- * Where the run of a container wrote its results: the directory its label
- * names, else results/<task>/<model>/<agent> in the checkout, which is where
- * a run started from the web UI writes them (for a container made before the
- * label existed). Null when the labels do not say, or say something that is
- * not a plain path.
+ * Where the run of a container wrote its results: its own run directory,
+ * results/<task>/<model>/<agent>/<run-id>, which the label names. For a
+ * container made before the label existed, results/<task>/<model>/<agent> in
+ * the checkout, where runs wrote their results before every run had a
+ * directory of its own. Null when the labels do not say, or say something
+ * that is not a plain path.
  */
 export function resultsDir(
   labels: Record<string, string>,
