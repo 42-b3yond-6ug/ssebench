@@ -4,5 +4,6 @@ use (
 	./catalog
 	./runtime/entrypoint
 	./runtime/entrypoint/examples/hello-mode
+	./runtime/entrypoint/examples/stdio-mode
 	./webui/pty-proxy
 )
