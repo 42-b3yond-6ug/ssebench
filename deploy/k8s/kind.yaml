@@ -1,0 +1,11 @@
+# A kind cluster for trying the Kubernetes backend. kind's default network plugin does not enforce
+# NetworkPolicy, so this turns it off and the cluster gets Calico, which does:
+#
+#   kind create cluster --name ssebench --config deploy/k8s/kind.yaml
+#   kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.31.0/manifests/calico.yaml
+#   kubectl -n kube-system rollout status daemonset/calico-node
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  disableDefaultCNI: true
+  podSubnet: 192.168.0.0/16

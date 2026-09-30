@@ -1,0 +1,49 @@
+# The identity that runs `ssebench run --backend kubernetes` and what it may do in one namespace.
+#
+# Apply it to the namespace the runs go to:
+#   kubectl create namespace ssebench
+#   kubectl apply -n ssebench -f deploy/k8s/rbac.yaml
+#
+# A Job, its pod and the run's Secret and NetworkPolicy are all the backend creates. It reads the
+# results out of the pod with `pods/exec`, as `kubectl cp` does, and needs no storage. `get` on
+# `pods/exec` is for clusters before 1.30, which authorize the WebSocket exec that way.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ssebench-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ssebench-controller
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "get", "list", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["create", "get", "list", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create", "get"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create", "patch", "delete"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["create", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ssebench-controller
+subjects:
+  - kind: ServiceAccount
+    name: ssebench-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ssebench-controller
