@@ -4,41 +4,69 @@ outline: deep
 
 # Results format
 
-Every `ssebench run` writes two things under `results/` in the working
-directory: a **run directory** with everything the container produced, and a
-**summary** that combines the grade with the run's settings and cost.
+Every `ssebench run` writes a **run directory** of its own under `results/` in
+the working directory. It holds everything the container produced, and the
+**summary**, which combines the grade with the run's settings and cost.
 
 ```
 results/
-├── <task>-<agent>-<model>.json          the summary
-└── <task>/<model>/<agent>/              the run directory (root-only inside the container)
-    ├── result.json                      the grade
-    ├── final.patch                      the agent's changes
-    ├── commits.log                      the agent's commit messages
-    ├── source.tar.gz                    the agent's source tree
-    ├── reference.patch                  the reference patch (added after the run, if the task has one)
-    ├── agent.log  daemon.log  mcp.log  evaluator.log  opencode.log
-    ├── scriptrunner-<ms>.log            one per script the daemon ran
-    ├── patch-<ms>.log                   one per test diff the daemon applied
-    ├── plugins/                         plugin logs and outcomes, when plugins ran
-    └── archive/                         the agent's own directory (SSE_ARCHIVE)
-        └── dialog.jsonl                 the agent's session
+└── <task>/<model>/<agent>/
+    ├── latest -> <run-id>               link to the newest run directory
+    └── <run-id>/                        the run directory (root-only inside the container)
+        ├── summary.json                 the summary
+        ├── result.json                  the grade
+        ├── final.patch                  the agent's changes
+        ├── commits.log                  the agent's commit messages
+        ├── source.tar.gz                the agent's source tree
+        ├── reference.patch              the reference patch (added after the run, if the task has one)
+        ├── agent.log  daemon.log  mcp.log  evaluator.log  opencode.log
+        ├── scriptrunner-<ms>.log        one per script the daemon ran
+        ├── patch-<ms>.log               one per test diff the daemon applied
+        ├── plugins/                     plugin logs and outcomes, when plugins ran
+        └── archive/                     the agent's own directory (SSE_ARCHIVE)
+            └── dialog.jsonl             the agent's session
 ```
 
 A run of the `dummy` agent on `gjson-196-bf4efcb` with `claude-sonnet-4-6`
-writes `results/gjson-196-bf4efcb-dummy-claude-sonnet-4-6.json` and
-`results/gjson-196-bf4efcb/claude-sonnet-4-6/dummy/`. A
+writes `results/gjson-196-bf4efcb/claude-sonnet-4-6/dummy/<run-id>/`. A
 [reference run](#reference-runs) has the model `none`.
+
+## Run IDs and repeated runs
+
+Every run has an ID, which is the name of its run directory and the value of
+the `ssebench.run-id` label on its containers. `--run-id` sets it, with 1 to 64
+letters, digits, `.`, `_` or `-`, and not `latest`. Without it, the CLI makes
+one from the UTC time the command started and six random hex digits, such as
+`20260929-153012-a1b2c3`; such IDs sort in the order the commands started.
+
+A run never writes into a directory that exists, so results are never replaced:
+`ssebench run --run-id <id>` with an ID that the task, model and agent already
+used stops before it starts anything. Run the same command again for another
+trial, or start several at once:
+
+```bash
+for trial in 1 2 3; do
+  uv run ssebench run --local datasets/pilot --task gjson-196-bf4efcb \
+    --agent claude-code --model claude-sonnet-4-6 --run-id "trial-$trial"
+done
+```
+
+`latest`, beside the run directories, is a relative symbolic link to the run
+that started last, finished or not, so
+`results/<task>/<model>/<agent>/latest/result.json` is the grade of the newest
+run. The CLI replaces it when a run starts. It is outside the run directories,
+which the container writes as root, so you can also move or delete it as
+yourself; nothing reads it but you. If the file system has no symbolic links,
+the run goes on without it.
 
 ## The run directory
 
 The CLI mounts the run directory into the container root-only, at `SSE_RESULTS`
 (`/var/lib/ssebench/results`), and its `archive/` subdirectory as the agent's
-`SSE_ARCHIVE` (`/tmp/sse-archive`). It empties the run directory at the start of
-each run. Running the same task, model and agent again replaces the previous
-results; move them elsewhere first to keep them. Root writes the grade and the
-logs; the agent writes only inside `archive/`, so a file it plants there cannot
-redirect a root write.
+`SSE_ARCHIVE` (`/tmp/sse-archive`). Root writes the grade and the logs; the
+agent writes only inside `archive/`, so a file it plants there cannot redirect
+a root write. The CLI writes `summary.json` when the container exits, so the
+`artifact` plugin's manifest does not list it.
 
 | File | Written by | Contents |
 |---|---|---|
@@ -118,10 +146,9 @@ While a container runs, the web UI reads the evaluator's document, without
 
 ## The summary
 
-When the container exits, the CLI writes
-`results/<task>-<agent>-<model>.json`. Its `patch_result` and `runtime_result`
-are copied from `result.json`; the rest comes from the CLI. For the dummy run
-(the task config shortened):
+When the container exits, the CLI writes `summary.json` in the run directory.
+Its `patch_result` and `runtime_result` are copied from `result.json`; the rest
+comes from the CLI. For the dummy run (the task config shortened):
 
 ```json
 {
@@ -147,7 +174,9 @@ are copied from `result.json`; the rest comes from the CLI. For the dummy run
   },
   "patch_result": { "status": "failed", "build_success": true, "pov_passed": 0, "pov_total": 1, "…": "…" },
   "runtime_result": { "agent_duration": 0, "agent_timeout": false, "evaluator_timeout": false },
-  "spend": 0.0
+  "spend": 0.0,
+  "run_id": "20260929-153012-a1b2c3",
+  "started_at": "2026-09-29T15:30:12.418613Z"
 }
 ```
 
@@ -165,6 +194,8 @@ are copied from `result.json`; the rest comes from the CLI. For the dummy run
 | `config.reference_run` | `true` when the `reference` agent applied the task's known fix; see [Reference runs](#reference-runs). |
 | `patch_result`, `runtime_result` | As in `result.json`. |
 | `spend` | What the run's model calls cost, in US dollars, as the [LiteLLM proxy](/concepts/litellm-proxy#one-key-per-run) recorded it. |
+| `run_id` | The run's ID, the name of its directory. |
+| `started_at` | When the run's container was started, in UTC. It orders the runs of one task, model and agent; [the report](#reports) takes the latest. |
 
 When the container leaves `result.json` empty, for example because it failed to
 start, the CLI still writes it and the summary, with `status` `error`, every
@@ -181,21 +212,57 @@ rates the task and the grader, so the results say so wherever they go:
 
 - `config.agent` is `reference` and `config.reference_run` is `true`, in
   `result.json` and in the summary;
-- the model is `none` and the spend 0, so the results are
-  `results/<task>-reference-none.json` and `results/<task>/none/reference/`;
+- the model is `none` and the spend 0, so the results are in
+  `results/<task>/none/reference/<run-id>/`;
 - the container carries the label `ssebench.reference-run=true`, and the web
   UI marks its evaluation result as a reference run;
 - `just report` leaves reference runs out of the scores.
 
 ## Reports
 
-`just report` collects every summary in `results/*.json` and builds a PDF
-report with Typst (`tools/report/`; it needs jq and Typst). For each agent and
+`just report` collects the `summary.json` of the runs in `results/` and builds a
+PDF report with Typst (`tools/report/`; it needs Typst). For each agent and
 model it shows the average spend and time, and the share of runs that built,
 stopped every proof of concept, passed the functional tests and passed the
 intent tests, followed by a table of every task. It leaves
 [reference runs](#reference-runs) out and says how many it left out.
 `just report anonymous` replaces the task IDs with short hashes.
+
+A task, model and agent can have many runs, so the report needs a rule for
+which it counts:
+
+- **The latest run** is the default. For each task, model and agent, the run
+  with the latest `started_at` counts; a tie goes to the later run ID, and a
+  summary without `started_at` counts as older than any that has one. Earlier
+  trials are left out, and the command says how many.
+- **Every run** with `just report default all`. Each run is a sample of its own,
+  so the percentages are shares of runs, and a task that ran more than once has
+  a row for each run, numbered `#1`, `#2`, ... from the earliest.
+
+`tools/report/collect.py` applies the rule and writes the JSON that the
+report reads (`--runs latest|all`, `--results`, `--output`).
+
+The report reads only `<task>/<model>/<agent>/<run-id>/summary.json`, and only
+where the summary's own task, model and agent match the directories it is in.
+A run directory without a summary, from a run that is still going or was
+killed, is not a run yet.
+
+## Results of earlier versions
+
+Before run directories, a run wrote its files straight into
+`results/<task>/<model>/<agent>/` and its summary to
+`results/<task>-<agent>-<model>.json`, replacing those of the run before. The
+tools do not read that layout:
+
+- `just report` ignores the old summaries, and says how many;
+- `ssebench dataset verify` runs into a directory of its own;
+- the web UI still shows the grade of a container that was started with the old
+  layout, because it reads the directory that the container's
+  `ssebench.results` label names.
+
+To bring an old run into a report, move its summary to
+`results/<task>/<model>/<agent>/<run-id>/summary.json`. A summary without
+`started_at` counts as older than any run that has one.
 
 ## Next steps
 

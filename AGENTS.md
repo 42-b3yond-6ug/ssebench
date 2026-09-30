@@ -99,7 +99,7 @@ Every recipe runs without prompts, except the fzf pickers that `just run` and
 | `just run --task <id> --agent <agent> --model <model>` | Run an agent × model × task on the pilot dataset; other options go to `ssebench run`. Without arguments it opens the fzf pickers (`just pick`). |
 | `just run-all --agent <agent> --model <model>` | Run one agent × model on every pilot task, one after the other. Costs real money with a real agent. |
 | `just launch` / `just stop` | Start (rebuilding when `models/` changed) or stop the LiteLLM proxy. |
-| `just report [preset]` | Build the PDF report from `results/` (needs jq and Typst; reference runs are left out of the scores). |
+| `just report [preset] [runs]` | Build the PDF report from `results/` (needs Typst). It counts the latest run of each task, model and agent, or every run with `all`; reference runs are left out of the scores. |
 | `just test [components]` | Unit tests: pytest, `cargo test`, `go test`, `bun test` in webui. |
 | `just lint [components]` | ruff, basedpyright, cargo fmt and clippy, gofmt and go vet, webui Prettier check, typecheck and eslint. |
 | `just fmt [components]` | ruff, cargo fmt, gofmt, prettier. |
@@ -161,8 +161,10 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent dummy --mode
 uv run ssebench run --local datasets/pilot --task <task-id> --agent reference
 ```
 
-Run results land in `results/<task>/<model>/<agent>/` under the working
-directory. The CLI finds `agents/`, `images/`, `datasets/` and the Compose file
+Each run writes a directory of its own, `results/<task>/<model>/<agent>/<run-id>/`,
+under the working directory (`latest` there links to the newest); the summary is
+`summary.json` in it, and `ssebench.runner.layout` is the one place that knows
+the paths. The CLI finds `agents/`, `images/`, `datasets/` and the Compose file
 through `ssebench.paths`: `SSEBENCH_HOME` if set, otherwise the checkout that
 contains the working directory, otherwise the checkout it was installed from,
 otherwise the copy that the wheel carries (`uvx ssebench`, with no checkout).

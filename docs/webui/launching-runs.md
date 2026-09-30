@@ -119,13 +119,10 @@ Launching several tasks starts all their `ssebench run` processes at once, with
 no limit. Each builds images and starts a container, so a large selection can
 exhaust the host's CPU, memory or disk.
 
-::: warning
-Runs of the same task, model and agent write the same `results/<task>/<model>/<agent>/`
-directory and the same summary file, so the later run replaces the earlier
-one's results. Launching a task twice with one agent and model is therefore only
-useful to see that each launch gets its own container; vary the model or the
-agent to keep both results.
-:::
+Each launch has an ID, which the web UI passes to `ssebench run --run-id`, and
+the run writes `results/<task>/<model>/<agent>/<id>/`. Launching a task twice
+with one agent and model therefore keeps both results, as two trials.
+
 
 The wizard does not offer `--tool-layer`. To change it, start the run from the
 command line with `--keep-container` and attach to it, as described in [Watching
@@ -187,9 +184,10 @@ The container of a launched run stays after grading, because of
 the background of the web UI server until the container stops. Then it does what
 it does for every run:
 
-- `results/<task>/<model>/<agent>/` in the checkout has `result.json`,
-  `dialog.jsonl`, `final.patch` and the logs, which the container writes;
-- `results/<task>-<agent>-<model>.json`, the run summary, records the run's
+- `results/<task>/<model>/<agent>/<id>/` in the checkout, where `<id>` is the
+  launch's ID, has `result.json`, `archive/dialog.jsonl`, `final.patch` and the
+  logs, which the container writes;
+- `summary.json` in that directory, the run summary, records the run's
   settings, the grade and the model spend. [Results format](/concepts/results)
   describes both.
 

@@ -156,9 +156,10 @@ uvx ssebench run --task gjson-196-bf4efcb --agent claude-code --model claude-son
 
 From a clone, `just run --task gjson-196-bf4efcb --agent claude-code --model
 claude-sonnet-4-6` does the same, and `just run` alone opens interactive
-pickers. Results land in `results/<task>/<model>/<agent>/`: `result.json` (the
-grade), the agent dialog (`dialog.jsonl`), a snapshot of the final source tree,
-and the logs of every component.
+pickers. Each run writes `results/<task>/<model>/<agent>/<run-id>/`, so repeated
+runs keep their results: `summary.json`, `result.json` (the grade), the agent
+dialog (`archive/dialog.jsonl`), a snapshot of the final source tree, and the
+logs of every component.
 
 A real run calls a model with your key and costs money. When something does not
 work, start with `ssebench doctor` and

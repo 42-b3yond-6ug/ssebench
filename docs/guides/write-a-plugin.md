@@ -84,7 +84,7 @@ the run directory, `results/gjson-196-bf4efcb/claude-sonnet-4-6/dummy/`:
 ]
 ```
 
-The summary, `results/gjson-196-bf4efcb-dummy-claude-sonnet-4-6.json`, lists it
+The summary, `summary.json` in the run directory, lists it
 in `config.plugins`. `result.json` is the same as without the plugin.
 
 To run it in every run, set `enabled: true`.

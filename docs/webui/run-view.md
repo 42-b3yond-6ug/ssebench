@@ -141,9 +141,10 @@ the grade checks the task, not a model.
 
 The grade comes from the container's daemon. When the daemon has none, or the
 container has stopped, the web UI reads `result.json` from the run's results
-directory on the host instead: the directory that the container's
-`ssebench.results` label names, else `results/<task>/<model>/<agent>` in the web
-UI's checkout.
+directory on the host instead: the run's own directory, which the container's
+`ssebench.results` label names. For a container made before that label existed,
+it is `results/<task>/<model>/<agent>` in the web UI's checkout, the layout
+before [run directories](/concepts/results#results-of-earlier-versions).
 
 ## Logs
 

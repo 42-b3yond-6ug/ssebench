@@ -184,30 +184,32 @@ describes what the package carries and what it pulls.
 
 ## Read the results
 
-Every run writes to `results/` in the working directory:
+Every run writes its own directory under `results/` in the working directory:
 
 ```text
 results/
-├── gjson-196-bf4efcb-reference-none.json      the summary: the grade, the settings, the spend
-└── gjson-196-bf4efcb/none/reference/          the run directory: everything the container produced
-    ├── result.json                            the grade
-    ├── dialog.jsonl                           the agent's session
-    ├── final.patch                            the patch that was graded
-    ├── source.tar.gz                          the source tree after grading
-    └── agent.log  daemon.log  mcp.log  evaluator.log  …
+└── gjson-196-bf4efcb/none/reference/
+    ├── latest -> 20260929-153012-a1b2c3       the newest run
+    └── 20260929-153012-a1b2c3/                the run directory: everything the container produced
+        ├── summary.json                       the summary: the grade, the settings, the spend
+        ├── result.json                        the grade
+        ├── final.patch                        the patch that was graded
+        ├── source.tar.gz                      the source tree after grading
+        ├── agent.log  daemon.log  mcp.log  evaluator.log  …
+        └── archive/dialog.jsonl               the agent's session
 ```
 
-The run directory is `results/<task>/<model>/<agent>/`. A reference run has the
-model `none`; the run of `claude-code` above writes
-`results/gjson-196-bf4efcb/claude-sonnet-4-6/claude-code/` and
-`results/gjson-196-bf4efcb-claude-code-claude-sonnet-4-6.json`. Running the same
-combination again replaces the earlier results, so move them first to keep
-them.
+The run directory is `results/<task>/<model>/<agent>/<run-id>/`. A reference run
+has the model `none`; the run of `claude-code` above writes
+`results/gjson-196-bf4efcb/claude-sonnet-4-6/claude-code/<run-id>/`. The run ID
+is the time in UTC and six random hex digits, or the `--run-id` you give.
+Running the same combination again makes another directory, so repeated trials
+keep their results.
 
-`result.json` is the evaluator's grade:
+`result.json` is the evaluator's grade; `latest` is the newest run:
 
 ```sh
-jq .patch_result results/gjson-196-bf4efcb/none/reference/result.json
+jq .patch_result results/gjson-196-bf4efcb/none/reference/latest/result.json
 ```
 
 ```json
@@ -251,7 +253,9 @@ After `just demo`, the run's container is still alive for the web UI, so its
 `just demo-down` removes the container.
 
 `just report` combines the summaries in `results/` into a PDF report; it needs
-jq and [Typst](https://typst.app/). It leaves reference runs out of the scores.
+[Typst](https://typst.app/). It counts the latest run of each task, model and
+agent, and leaves reference runs out of the scores; `just report default all`
+counts every run. See [Reports](/concepts/results#reports).
 
 ## Next steps
 

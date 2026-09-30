@@ -9,7 +9,7 @@ the repository root.
 | [`dataset/`](dataset/) | `third_party.py` generates `datasets/pilot/THIRD_PARTY.md` from the task configs and `datasets/pilot/third_party.json`. | `python3 tools/dataset/third_party.py`, or `--check` |
 | [`docs/`](docs/) | `reference.py` regenerates the generated parts of `docs/reference/` from the code. | `just docs-gen`, or `just docs-check` |
 | [`release/`](release/) | `bump.py` sets the version of every component. | `just release <version>`, or `uv run tools/release/bump.py --check` |
-| [`report/`](report/) | A Typst report built from `results/`. | `just report` (needs jq and Typst) |
+| [`report/`](report/) | `collect.py` picks the runs of `results/` to report, and a Typst report is built from them. | `just report`, or `just report default all` for every run (needs Typst) |
 
 The scripts that generate a file are the only way to change it: do not edit
 `THIRD_PARTY.md`, the generated regions of `docs/reference/` or a version field
