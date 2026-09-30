@@ -3,25 +3,22 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"os/exec"
 	"os/signal"
-	"regexp"
+	"strings"
 	"syscall"
 
 	"github.com/creack/pty"
 )
 
-const usage = "Usage: pty-proxy [--workdir WORKDIR] <container-id> [command [arg...]]"
+const usage = "Usage: pty-proxy [--] command [arg...]"
 
 // version is set at build time: -ldflags "-X main.version=<version>".
 var version = "dev"
-
-var containerIDPattern = regexp.MustCompile(`^[a-f0-9]{12,64}$`)
 
 // Message types - must match frontend/backend
 type ClientMessage struct {
@@ -38,36 +35,21 @@ type ServerMessage struct {
 	Code    *int   `json:"code,omitempty"`
 }
 
-// parseArgs reads the command line. Flags stop at the container ID, so the
-// command and its arguments reach docker exec verbatim and are never parsed
-// by a shell.
-func parseArgs(argv []string) (dockerArgs []string, err error) {
-	fs := flag.NewFlagSet("pty-proxy", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
-	workdir := fs.String("workdir", "", "working directory inside the container")
-	if err := fs.Parse(argv); err != nil {
-		return nil, err
+// parseArgs reads the command line: the command to run in the terminal and
+// its arguments, after an optional `--`. They are passed to the program as
+// separate arguments and are never parsed by a shell; the caller decides what
+// the command is, for example a runner's `exec` for one container.
+func parseArgs(argv []string) (name string, args []string, err error) {
+	if len(argv) > 0 && argv[0] == "--" {
+		argv = argv[1:]
 	}
-
-	args := fs.Args()
-	if len(args) == 0 {
-		return nil, fmt.Errorf("missing container ID")
+	if len(argv) == 0 {
+		return "", nil, fmt.Errorf("missing command")
 	}
-	containerID := args[0]
-	if !containerIDPattern.MatchString(containerID) {
-		return nil, fmt.Errorf("invalid container ID %q", containerID)
+	if strings.HasPrefix(argv[0], "-") {
+		return "", nil, fmt.Errorf("unknown option %q", argv[0])
 	}
-	command := args[1:]
-	if len(command) == 0 {
-		command = []string{"bash"}
-	}
-
-	dockerArgs = []string{"exec", "-it"}
-	if *workdir != "" {
-		dockerArgs = append(dockerArgs, "-w", *workdir)
-	}
-	dockerArgs = append(dockerArgs, containerID)
-	return append(dockerArgs, command...), nil
+	return argv[0], argv[1:], nil
 }
 
 func main() {
@@ -80,16 +62,15 @@ func main() {
 		return
 	}
 
-	dockerArgs, err := parseArgs(os.Args[1:])
+	name, args, err := parseArgs(os.Args[1:])
 	if err != nil {
 		sendError(fmt.Sprintf("%v. %s", err, usage))
 		os.Exit(1)
 	}
 
-	log.Printf("Starting PTY session: docker %q", dockerArgs)
+	log.Printf("Starting PTY session: %s", name)
 
-	// Start docker exec with PTY
-	cmd := exec.Command("docker", dockerArgs...)
+	cmd := exec.Command(name, args...)
 	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
 
 	// Start with PTY

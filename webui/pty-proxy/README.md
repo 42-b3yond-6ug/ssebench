@@ -1,30 +1,31 @@
 # PTY Proxy
 
-A small Go program that gives the webui terminal a real pseudo-terminal inside
-a Docker container. The Bun backend starts one proxy process per terminal
-session.
+A small Go program that gives the webui terminal a real pseudo-terminal for a
+command. The Bun backend starts one proxy process per terminal session, with
+the command that runs a shell in the run's container (`ssebench runs exec --tty`),
+so the proxy does not know which container platform it serves.
 
 ## Why?
 
-Bun has no native PTY support (no equivalent of node-pty), and piping
-`docker exec -it` through a wrapper does not give proper terminal control,
-especially resize. The proxy:
+Bun has no native PTY support (no equivalent of node-pty), and piping an
+interactive `docker exec -it` through a wrapper does not give proper terminal
+control, especially resize. The proxy:
 
 - creates a **real PTY** with `github.com/creack/pty`;
 - handles **terminal resize** (`TIOCSWINSZ`);
 - talks to the backend over **stdin/stdout** with JSON lines;
-- exits when the container process exits or it receives `SIGINT`/`SIGTERM`.
+- exits when the command exits or it receives `SIGINT`/`SIGTERM`.
 
 ## Architecture
 
 ```
 Frontend (xterm.js)
-    ↕ WebSocket (ws://<host>:3001/api/pty/:containerId)
+    ↕ WebSocket (ws://<host>:3001/api/pty/:runId)
 Bun backend (server/pty.ts)
     ↕ stdin/stdout, JSON lines
 pty-proxy (this program)
-    ↕ PTY running `docker exec -it`
-Docker container shell
+    ↕ PTY running `ssebench runs exec --tty <run> -- bash`
+Container shell (`docker exec -it`, or the backend's equivalent)
 ```
 
 ## Building
@@ -48,14 +49,13 @@ missing, terminal sessions report an error instead of starting.
 ## Usage
 
 ```bash
-pty-proxy [--workdir WORKDIR] <container-id> [command [arg...]]
+pty-proxy [--] command [arg...]
 ```
 
-- `<container-id>`: hexadecimal container ID (12 to 64 characters).
-- `command [arg...]`: what to run in the container (default `bash`). The
-  words are passed to `docker exec` as separate arguments; nothing is parsed
-  by a shell.
-- `--workdir`: working directory inside the container (`docker exec -w`).
+- `command [arg...]`: the program to run in the terminal, with its arguments,
+  passed as separate arguments; nothing is parsed by a shell. There are no
+  options: the backend, the container and the working directory are the
+  arguments of the command it is given.
 
 There is no standalone server mode; the program is meant to be run by the
 backend.
@@ -82,4 +82,4 @@ Logs go to stderr with a `[PTY-PROXY]` prefix.
 ## Dependencies
 
 - `github.com/creack/pty`, the only dependency.
-- The `docker` CLI on `PATH` at run time.
+- Whatever the command needs at run time, such as the `ssebench` CLI.
