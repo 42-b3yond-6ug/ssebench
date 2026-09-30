@@ -233,6 +233,15 @@ listens on `127.0.0.1`, which on the host network is the host's loopback, and th
 token and origin rules apply as outside a container. Run the image only on a
 machine you control.
 
+On Kubernetes, the [Helm chart](/deployment/kubernetes#install-with-helm) runs the image
+with a service account bound to the [role](/deployment/kubernetes#rbac) that the
+Kubernetes backend needs, and not with the Docker socket. The server listens on all
+addresses of its pod, so the chart gives it a token, and it starts in hosted mode:
+read-only, with no terminal and no assistant. With `webui.hosted=false` the token holder
+launches runs that spend the proxy's provider keys, and the service account can run
+commands in every pod of the runs' namespace. See
+[Security notes for the chart](/deployment/kubernetes#security-notes-for-the-chart).
+
 ## Exposing the web UI
 
 If you must serve the web UI to other machines, in order of preference:
