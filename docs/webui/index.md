@@ -64,10 +64,11 @@ read-only, add `-e SSEBENCH_WEBUI_HOSTED=1`; see [Hosted mode](#hosted-mode).
 a finished run in it; see [Try the demo](/getting-started/demo).
 
 The image carries the `ssebench` CLI, which the server uses to find and reach
-runs (`SSEBENCH_CLI=ssebench`). It has no SSEBench checkout, so its launch wizard
-has no models, agents or local tasks to offer: start runs with
-`ssebench run --keep-container`, or start the web UI from a checkout to launch
-runs from the browser. Finished runs are read from `results/` in the image's
+runs (`SSEBENCH_CLI=ssebench`), and the `docker` and `kubectl` CLIs. It has no
+SSEBench checkout, so its launch wizard offers the models and agents that were
+copied into the image and the tasks of `SSEBENCH_CATALOG`, but no local tasks. On the
+Docker backend, start runs with `ssebench run --keep-container`, or start the web UI
+from a checkout to launch runs from the browser. Finished runs are read from `results/` in the image's
 `/app`; mount your results directory there with `-v "$PWD/results:/app/results"`
 to see them. To build the image yourself, run
 `docker buildx build -f webui/Dockerfile .` from the repository root.
@@ -113,7 +114,10 @@ once a second at most, and keeps the address of a run's daemon for 30 seconds.
 
 A backend that has to be given prebuilt images needs them for a launch too:
 start the server with `SSEBENCH_PREBUILT=1`, and the launched `ssebench run` uses
-`--prebuilt`.
+`--prebuilt`. The image also carries the Python client and `kubectl` of the
+[Kubernetes backend](/deployment/kubernetes), and the
+[Helm chart](/deployment/kubernetes#install-with-helm) runs it there with
+`SSEBENCH_BACKEND=kubernetes`, in [hosted mode](#hosted-mode) unless you turn it off.
 
 ## Hosted mode
 
