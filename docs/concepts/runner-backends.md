@@ -28,8 +28,9 @@ The same interface serves the tools that watch runs. [`ssebench runs`](#watching
 lists, stops and removes runs, and finds the address of a running run's daemon,
 by calling the backend, so the [web UI](/webui/) works with every backend.
 
-The Docker backend is built in and is the default. Others are installed as
-[extensions](/guides/extension-points#runner-backends) and selected with
+The Docker backend is built in and is the default; the [Kubernetes
+backend](/deployment/kubernetes) is built in too. Others are installed as
+[extensions](/guides/extension-points#runner-backends). All are selected with
 `ssebench run --backend NAME` or `SSEBENCH_BACKEND`.
 
 ## The run specification
@@ -224,7 +225,9 @@ A tool finds the runs of `ssebench run` by label, through `list_runs` and
 
 A backend that has no labels on its objects, such as a Job, can use its own
 equivalent, as long as `list_runs` accepts these keys. `ssebench runs list` asks
-for `ssebench.webui=true`, which the runner puts on every run.
+for `ssebench.webui=true`, which the runner puts on every run. The Kubernetes backend puts
+the values Kubernetes accepts into labels, and the others, such as the run
+directory's path, into annotations.
 
 ## Prebuilt images
 
@@ -278,6 +281,15 @@ with `docker run`:
   another network;
 - in sidecar mode the environment container starts detached first, with its
   volumes, and is removed together with them when the run ends.
+
+## The Kubernetes backend
+
+`KubernetesBackend` runs each run as a Job, from prebuilt images only
+(`builds_images` is `False`). It keeps the run's environment in a Secret and its
+network policy in a NetworkPolicy, keeps the results in `emptyDir` volumes of the
+pod, and reads them out through the API in `collect_results`. It supplies its own
+LiteLLM proxy endpoint through `proxy()`, and refuses sidecar mode. See
+[Kubernetes](/deployment/kubernetes).
 
 ## Write a backend
 

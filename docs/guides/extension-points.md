@@ -160,8 +160,8 @@ uv run ssebench run --local datasets/pilot --task gjson-196-bf4efcb \
 
 A backend carries out the run that the runner describes: it prepares the
 images, starts the containers, streams their output, collects the results and
-cleans up. The built-in backend is `docker`. An extension can add one that
-runs the same run elsewhere, for example on a cluster. The
+cleans up. The built-in backends are `docker` and [`kubernetes`](/deployment/kubernetes).
+An extension can add one that runs the same run elsewhere. The
 [Runner backends](/concepts/runner-backends) page specifies the run
 specification and every method of the interface; this section shows how to
 register one.

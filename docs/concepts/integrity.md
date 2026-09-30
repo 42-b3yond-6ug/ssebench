@@ -267,7 +267,9 @@ reach:
   the reference patch, or any grading route, so a concurrent or kept run cannot
   read another run's answer through it. It still exposes that run's public view
   and its live diff; give each experiment its own Compose project if even that
-  should be private.
+  should be private. On
+  [Kubernetes](/deployment/kubernetes#security-properties), each run's pod admits no
+  ingress at all.
 - **`--egress open` gives the agent the internet**, and with it the upstream
   repository and its fix. Use it only for tasks that need the network, and do
   not compare its results with restricted runs.
