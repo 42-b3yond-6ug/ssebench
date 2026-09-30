@@ -17,10 +17,13 @@ model="${SSEBENCH_SMOKE_MODEL:-claude-sonnet-4-6}"
 
 cd "$(dirname "$0")/../.."
 
-uv run ssebench run --model "$model" --agent dummy --task "$task" --mode "$mode" --local datasets/pilot
+# Every run has a directory of its own, so a repeated smoke run needs a new ID.
+run_id="smoke-$mode-$(date -u +%Y%m%d-%H%M%S)-$$"
+uv run ssebench run --model "$model" --agent dummy --task "$task" --mode "$mode" --local datasets/pilot --run-id "$run_id"
 
-result="results/$task/$model/dummy/result.json"
-summary="results/$task-dummy-$model.json"
+run_dir="results/$task/$model/dummy/$run_id"
+result="$run_dir/result.json"
+summary="$run_dir/summary.json"
 jq . "$result"
 jq -e '.patch_result.build_success and .patch_result.pov_total > 0 and .patch_result.pov_passed == 0' "$result" >/dev/null ||
 	{ echo "smoke run ($mode): unexpected grade in $result" >&2; exit 1; }

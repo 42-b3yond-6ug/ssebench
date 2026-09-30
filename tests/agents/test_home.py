@@ -46,6 +46,7 @@ def test_the_agent_can_commit_as_model_from_its_home(
     from ssebench.agents import Agent
     from ssebench.models import NoModel
     from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
+    from ssebench.runner.layout import run_dir
     from ssebench.tasks import LocalTask
 
     agents = tmp_path / "agents"
@@ -69,7 +70,7 @@ def test_the_agent_can_commit_as_model_from_its_home(
     monkeypatch.chdir(tmp_path)
     runner.run()
 
-    log = (tmp_path / "results" / TASK / "none" / "homecheck" / "agent.log").read_text()
+    log = (run_dir(TASK, "homecheck", "none", runner.run_id, tmp_path / "results") / "agent.log").read_text()
     seen = log.splitlines()
     for line in (
         "user=model uid=1000",

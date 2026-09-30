@@ -417,10 +417,10 @@ jobs:
               -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(secret)|" \
               .env.example > .env
       - name: Run the dummy agent in the sandbox
-        run: uv run ssebench run --model "$MODEL" --agent dummy --task "$TASK" --mode sandbox --local datasets/pilot
+        run: uv run ssebench run --model "$MODEL" --agent dummy --task "$TASK" --mode sandbox --local datasets/pilot --run-id e2e-sandbox
       - name: Check the graded result
         run: |
-          result="results/$TASK/$MODEL/dummy/result.json"
+          result="results/$TASK/$MODEL/dummy/e2e-sandbox/result.json"
           jq . "$result"
           # The unpatched project must build and its PoC must still fail.
           jq -e '.patch_result.build_success and .patch_result.pov_total > 0 and .patch_result.pov_passed == 0' "$result"

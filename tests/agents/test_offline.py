@@ -150,6 +150,7 @@ def test_agent_runs_offline(
     from ssebench import paths, stack
     from ssebench.agents import Agent
     from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
+    from ssebench.runner.layout import run_dir
     from ssebench.tasks import LocalTask
 
     network, model_requests = offline_network
@@ -165,7 +166,7 @@ def test_agent_runs_offline(
     with caplog.at_level(logging.WARNING, logger="ssebench.runner.runner"):
         runner.run()
 
-    run = tmp_path / "results" / TASK / case.model / case.agent
+    run = run_dir(TASK, case.agent, case.model, runner.run_id, tmp_path / "results")
     requests = model_requests()
     calls = [r for r in requests if r["method"] == "POST"]
     report = f"stub requests: {requests}\nagent.log:\n{(run / 'agent.log').read_text()[-3000:]}"
