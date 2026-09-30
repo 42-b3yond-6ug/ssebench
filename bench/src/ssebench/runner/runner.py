@@ -1,6 +1,7 @@
 import logging
 import shutil
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -46,6 +47,7 @@ from ssebench.runner.result import (
     PerTaskEvaluationResult,
     RunConfig,
     RuntimeResult,
+    model_never_answered,
 )
 from ssebench.tasks import Task
 
@@ -123,8 +125,14 @@ def record_results(
     evaluator_file: Path,
     run_id: str | None = None,
     started_at: datetime | None = None,
+    settled_spend: Callable[[], float] | None = None,
 ) -> PerTaskEvaluationResult:
-    """Complete the run's result.json with the run settings, write the summary beside it, and return it."""
+    """Complete the run's result.json with the run settings, write the summary beside it, and return it.
+
+    When the agent failed and the proxy has booked no spend, `settled_spend` is asked once more, after the
+    proxy's delay in booking it, before the run is recorded as an error for which the model is not to blame.
+    A run with no `settled_spend` uses no model.
+    """
     content = evaluator_file.read_text().strip()
     if content:
         container_result = EvaluationResult.model_validate_json(content)
@@ -134,6 +142,13 @@ def record_results(
             patch_result=PatchResult(error_msg="No result: evaluator did not produce output"),
             runtime_result=RuntimeResult(agent_duration=0, agent_timeout=False, evaluator_timeout=False),
         )
+    if settled_spend is not None and container_result.runtime_result.agent_exit_code not in (None, 0):
+        spend = spend or settled_spend()
+        if (reason := model_never_answered(container_result, spend)) is not None:
+            logger.error(reason)
+            patch = container_result.patch_result
+            patch.error_msg = f"{reason}; grading said: {patch.error_msg}" if patch.error_msg else reason
+            patch.status = "error"
     container_result.config = run_config
     replace_file(evaluator_file, container_result.model_dump_json())
 
@@ -242,7 +257,13 @@ class BenchmarkRunner(ABC):
         save_reference_patch(self.task, results_path)
 
         summary = record_results(
-            self.task, self._run_config(), self.model.get_spend(), evaluator_file, self.run_id, started_at
+            self.task,
+            self._run_config(),
+            self.model.get_spend(),
+            evaluator_file,
+            self.run_id,
+            started_at,
+            settled_spend=None if isinstance(self.model, NoModel) else self.model.settled_spend,
         )
         return RunOutcome(results_path, summary)
 

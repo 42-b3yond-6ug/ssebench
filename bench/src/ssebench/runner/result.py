@@ -62,6 +62,8 @@ class RuntimeResult(BaseModel):
     agent_duration: int
     agent_timeout: bool
     evaluator_timeout: bool
+    # The agent's exit status, 124 after a timeout. None when the evaluator did not record one.
+    agent_exit_code: int | None = None
 
 
 class RunConfig(BaseModel):
@@ -83,6 +85,22 @@ class EvaluationResult(BaseModel):
     patch_result: PatchResult
     runtime_result: RuntimeResult
     config: RunConfig | None = None
+
+
+def model_never_answered(result: EvaluationResult, spend: float) -> str | None:
+    """Why the run says nothing about the model, or None when it does.
+
+    An agent that exits non-zero while the proxy booked no spend for the run was not answered by the
+    model: the provider key may be invalid, or the provider down. Its grade is that of the unmodified
+    project, which a model that tried and failed also gets, so the run is an error, not a failure.
+    """
+    code = result.runtime_result.agent_exit_code
+    if code is None or code == 0 or spend > 0:
+        return None
+    return (
+        f"The agent exited with status {code} and the model answered no call (spend {spend}), so this run does "
+        "not show what the model can do; check the provider key and the agent's log"
+    )
 
 
 class FrameworkResult(BaseModel):

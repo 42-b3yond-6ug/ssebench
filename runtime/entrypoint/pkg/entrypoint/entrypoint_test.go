@@ -376,6 +376,9 @@ func TestRunAgentEndsTheAgentPhaseAfterTheAgentExits(t *testing.T) {
 	if env["AGENT_DURATION"] != "0" {
 		t.Errorf("AGENT_DURATION = %q, want 0", env["AGENT_DURATION"])
 	}
+	if env["AGENT_EXIT_STATUS"] != "3" {
+		t.Errorf("AGENT_EXIT_STATUS = %q, want 3", env["AGENT_EXIT_STATUS"])
+	}
 	if _, ok := env["SSE_METRIC_AGENT_TIMEOUT"]; ok {
 		t.Error("SSE_METRIC_AGENT_TIMEOUT is set without a timeout")
 	}
@@ -401,8 +404,9 @@ func TestRunAgentKillsTheAgentAtItsTimeLimit(t *testing.T) {
 
 	rt.Evaluate(result)
 	env := readEnv(t, graded)
-	if env["SSE_METRIC_AGENT_TIMEOUT"] != "true" || env["AGENT_DURATION"] != "1" {
-		t.Errorf("evaluator env: SSE_METRIC_AGENT_TIMEOUT=%q AGENT_DURATION=%q", env["SSE_METRIC_AGENT_TIMEOUT"], env["AGENT_DURATION"])
+	if env["SSE_METRIC_AGENT_TIMEOUT"] != "true" || env["AGENT_DURATION"] != "1" || env["AGENT_EXIT_STATUS"] != "124" {
+		t.Errorf("evaluator env: SSE_METRIC_AGENT_TIMEOUT=%q AGENT_DURATION=%q AGENT_EXIT_STATUS=%q",
+			env["SSE_METRIC_AGENT_TIMEOUT"], env["AGENT_DURATION"], env["AGENT_EXIT_STATUS"])
 	}
 }
 

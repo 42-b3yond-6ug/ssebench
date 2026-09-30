@@ -543,7 +543,10 @@ func (rt *Runtime) Evaluate(result AgentResult) {
 	// evaluator's SDK at the privileged admin socket instead of the gated
 	// agent-facing one.
 	env := replaceEnv(os.Environ(), "SSE_DAEMON_SOCKET", rt.cfg.AdminSocketPath)
-	env = append(env, fmt.Sprintf("AGENT_DURATION=%d", int(result.Duration.Seconds())))
+	env = append(env,
+		fmt.Sprintf("AGENT_DURATION=%d", int(result.Duration.Seconds())),
+		fmt.Sprintf("AGENT_EXIT_STATUS=%d", result.ExitStatus),
+	)
 	if result.TimedOut {
 		env = append(env, "SSE_METRIC_AGENT_TIMEOUT=true")
 	}
