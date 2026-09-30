@@ -4,10 +4,12 @@ import json
 import os
 import shutil
 import subprocess
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from enum import Enum
 from pathlib import Path
 
+import httpx
 import yaml
 
 from ssebench import arch, paths, settings, stack
@@ -17,6 +19,22 @@ GIB = 1024**3
 # Case images of C tasks with their toolchains run to several GiB each.
 DISK_FAIL_GIB = 10
 DISK_WARN_GIB = 50
+
+
+KEY_PROBE_SECONDS = 15
+# How each provider key is tried: the provider's model-list endpoint, which lists what the key may use
+# and is not billed. Keys of providers that are not here are not verified.
+KEY_PROBES: dict[str, tuple[str, Callable[[str], dict[str, str]]]] = {
+    "ANTHROPIC_API_KEY": (
+        "https://api.anthropic.com/v1/models?limit=1",
+        lambda key: {"x-api-key": key, "anthropic-version": "2023-06-01"},
+    ),
+    "OPENAI_API_KEY": ("https://api.openai.com/v1/models", lambda key: {"Authorization": f"Bearer {key}"}),
+    "GOOGLE_API_KEY": (
+        "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1",
+        lambda key: {"x-goog-api-key": key},
+    ),
+}
 
 
 class Status(Enum):
@@ -231,6 +249,35 @@ def check_provider_keys() -> Check:
     )
 
 
+def check_key_accepted(name: str, key: str, client: httpx.Client) -> Check:
+    """Whether the provider accepts `key`, asking its model-list endpoint, which no call is billed for."""
+    url, headers = KEY_PROBES[name]
+    label = f"Provider key {name}"
+    host = httpx.URL(url).host
+    try:
+        response = client.get(url, headers=headers(key))
+    except httpx.HTTPError as e:
+        return Check(label, Status.WARN, f"could not ask {host}: {e.__class__.__name__}", "Check your network.")
+    if response.is_success:
+        return Check(label, Status.OK, f"accepted by {host}")
+    if response.status_code in (400, 401, 403):
+        return Check(
+            label,
+            Status.WARN,
+            f"rejected by {host} (HTTP {response.status_code})",
+            f"Replace {name} in .env and restart the proxy with `ssebench proxy up`: model calls with it fail.",
+        )
+    return Check(label, Status.WARN, f"{host} answered HTTP {response.status_code}, so the key is not verified")
+
+
+def check_provider_key_values(client: httpx.Client | None = None) -> list[Check]:
+    """One check for each key that `.env` sets and that `models/` uses, for the providers with a probe."""
+    in_file = settings.dotenv()
+    names = [name for name in sorted(provider_keys()) if name in KEY_PROBES and in_file.get(name, "").strip()]
+    with client or httpx.Client(timeout=KEY_PROBE_SECONDS) as http:
+        return [check_key_accepted(name, in_file[name].strip(), http) for name in names]
+
+
 def check_model_key(model: str) -> Check:
     """Whether `.env` holds the provider key that `model` needs. A key set only in the shell does not
     count: the proxy container reads its keys from `.env`."""
@@ -278,7 +325,8 @@ def host_checks() -> list[Check]:
     ]
 
 
-def run_checks() -> list[Check]:
+def run_checks(verify_keys: bool = False) -> list[Check]:
+    """The checks of `ssebench doctor`. With `verify_keys`, the provider keys in .env are also tried at their providers."""
     checks = [check_docker(), check_buildx(), check_compose(), check_cpu()]
     try:
         home = paths.home()
@@ -291,7 +339,15 @@ def run_checks() -> list[Check]:
         )
     else:
         home_check = Check("SSEBench home", Status.OK, str(home))
-    return [home_check, *checks, check_disk(paths.workspace()), check_env_file(), check_proxy(), check_provider_keys()]
+    checks = [
+        home_check,
+        *checks,
+        check_disk(paths.workspace()),
+        check_env_file(),
+        check_proxy(),
+        check_provider_keys(),
+    ]
+    return [*checks, *check_provider_key_values()] if verify_keys else checks
 
 
 def render(checks: list[Check]) -> str:
@@ -323,7 +379,7 @@ def render_json(checks: list[Check]) -> str:
     )
 
 
-def main(as_json: bool = False) -> int:
-    checks = run_checks()
+def main(as_json: bool = False, verify_keys: bool = False) -> int:
+    checks = run_checks(verify_keys)
     print(render_json(checks) if as_json else render(checks))
     return 1 if any(check.status is Status.FAIL for check in checks) else 0

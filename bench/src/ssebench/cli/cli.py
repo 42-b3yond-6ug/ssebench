@@ -514,6 +514,12 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
         action="store_true",
         help="Print the checks as JSON, with the provider keys that each model in models/ needs and .env lacks",
     )
+    doctor_parser.add_argument(
+        "--verify-keys",
+        action="store_true",
+        help="Also send each provider key in .env to its provider's model-list endpoint, which is not billed, "
+        "to see whether the provider accepts it; needs internet access",
+    )
 
     extensions: dict[str, Command] = {}
     for command in commands:
@@ -554,7 +560,7 @@ def main(argv: Sequence[str] | None = None):
         elif args.command == "proxy":
             sys.exit(cmd_proxy(args))
         elif args.command == "doctor":
-            sys.exit(doctor.main(as_json=args.json))
+            sys.exit(doctor.main(as_json=args.json, verify_keys=args.verify_keys))
         elif args.command in extensions:
             sys.exit(extensions[args.command].run(args))
         else:
