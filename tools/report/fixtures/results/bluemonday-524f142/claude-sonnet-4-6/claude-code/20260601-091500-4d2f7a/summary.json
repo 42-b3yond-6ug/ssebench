@@ -1,14 +1,13 @@
 {
   "task": {
-    "id": "gjson-196-bf4efcb",
-    "project": "gjson",
-    "repository": "https://github.com/tidwall/gjson",
+    "id": "bluemonday-524f142",
+    "project": "bluemonday",
+    "repository": "https://github.com/microcosm-cc/bluemonday",
     "language": "go",
-    "source": "/src/gjson",
+    "source": "/src/bluemonday",
     "task_description": {
       "issue": null,
       "crash_report": [
-        "reports/crash_report_1.txt",
         "reports/issue.md"
       ],
       "bug_description": null
@@ -28,14 +27,14 @@
       ]
     },
     "sanitizer": null,
-    "type": "Slice bounds out of range",
+    "type": "Improper Validation of Syntactic Correctness of Input",
     "binary": null,
-    "trigger_commit": "9f58baa7a613f89dfdc764c39e47fd3a15606153",
-    "patch_commit": "bf4efcb3c18d1825b2988603dea5909140a5302b",
+    "trigger_commit": "3cce251c9ed2a9ee66c8f8984fff3d19d45999df",
+    "patch_commit": "524f142fe46e945b7dcd291d7805c4b7dcf75bee",
     "reference": [
-      "https://github.com/tidwall/gjson",
-      "https://github.com/tidwall/gjson/commit/bf4efcb3c18d1825b2988603dea5909140a5302b",
-      "https://github.com/tidwall/gjson/issues/196"
+      "https://github.com/microcosm-cc/bluemonday.git",
+      "https://github.com/microcosm-cc/bluemonday/issues/111",
+      "https://github.com/microcosm-cc/bluemonday/commit/524f142fe46e945b7dcd291d7805c4b7dcf75bee"
     ],
     "originality": "public"
   },
@@ -51,17 +50,19 @@
   },
   "patch_result": {
     "build_success": true,
-    "pov_passed": 1,
+    "pov_passed": 0,
     "pov_total": 1,
-    "func_test_success": true,
-    "intent_test_success": true,
+    "func_test_success": false,
+    "intent_test_success": false,
     "error_msg": null,
     "error_log": null
   },
   "runtime_result": {
-    "agent_duration": 300,
+    "agent_duration": 900,
     "agent_timeout": false,
     "evaluator_timeout": false
   },
-  "spend": 0.42
+  "spend": 1.1,
+  "run_id": "20260601-091500-4d2f7a",
+  "started_at": "2026-06-01T09:15:00Z"
 }

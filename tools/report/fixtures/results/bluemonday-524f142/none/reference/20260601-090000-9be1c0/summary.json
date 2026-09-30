@@ -39,28 +39,30 @@
     "originality": "public"
   },
   "config": {
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "reference",
+    "model": "none",
     "mode": "sandbox",
     "timeout": 3600,
     "difficulty": 0,
     "tool_layer": "generic",
     "egress": "restricted",
-    "reference_run": false
+    "reference_run": true
   },
   "patch_result": {
     "build_success": true,
-    "pov_passed": 0,
+    "pov_passed": 1,
     "pov_total": 1,
-    "func_test_success": false,
-    "intent_test_success": false,
+    "func_test_success": true,
+    "intent_test_success": true,
     "error_msg": null,
     "error_log": null
   },
   "runtime_result": {
-    "agent_duration": 900,
+    "agent_duration": 20,
     "agent_timeout": false,
     "evaluator_timeout": false
   },
-  "spend": 1.1
+  "spend": 0.0,
+  "run_id": "20260601-090000-9be1c0",
+  "started_at": "2026-06-01T09:00:00Z"
 }

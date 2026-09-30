@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from collect import Selection, collect, find_summaries
 
 from ssebench.runner.result import PerTaskEvaluationResult
 
@@ -16,15 +17,12 @@ TYPST = shutil.which("typst")
 needs_typst = pytest.mark.skipif(TYPST is None, reason="typst is not installed")
 
 
-def fixture_results() -> list[Path]:
-    return sorted(FIXTURE_RESULTS.glob("*.json"))
-
-
 def test_fixtures_match_the_result_schema():
-    paths = fixture_results()
-    assert paths
+    paths = find_summaries(FIXTURE_RESULTS)
+    assert len(paths) == 4
     results = [PerTaskEvaluationResult.model_validate_json(path.read_text()) for path in paths]
     assert any(r.config.reference_run for r in results)
+    assert all(r.run_id == path.parent.name and r.started_at for r, path in zip(results, paths, strict=True))
 
 
 def plain_text(content) -> str:
@@ -44,7 +42,7 @@ def plain_text(content) -> str:
             return '"' if content.get("double") else "'"
         case "footnote":
             return ""
-    return "".join(plain_text(content[key]) for key in ("body", "children") if key in content)
+    return "".join(plain_text(content[key]) for key in ("body", "children", "child") if key in content)
 
 
 def table_rows(table: dict) -> list[list[str]]:
@@ -61,13 +59,12 @@ def table_rows(table: dict) -> list[list[str]]:
     return [texts[i : i + width] for i in range(0, len(texts), width)]
 
 
-def render(tmp_path: Path, preset: str) -> list[list[list[str]]]:
+def render(tmp_path: Path, preset: str, runs: Selection = "latest") -> list[list[list[str]]]:
     """Compile the report in a copy of tools/report and return its tables."""
     report = tmp_path / "report"
     shutil.copytree(REPORT_DIR, report, ignore=shutil.ignore_patterns("fixtures", "__pycache__", "*.py", "*.pdf"))
-    # `just report` combines the summaries with `jq -s '.' results/*.json`.
-    combined = [json.loads(path.read_text()) for path in fixture_results()]
-    (report / "result.json").write_text(json.dumps(combined))
+    # `just report` combines the summaries with tools/report/collect.py.
+    (report / "result.json").write_text(json.dumps(collect(FIXTURE_RESULTS, runs)))
 
     assert TYPST is not None
     args = ["--input", f"preset={preset}"]
@@ -105,3 +102,23 @@ def test_anonymous_report_hides_the_task_ids(tmp_path: Path):
     ids = [row[0] for row in task_table[1:-1]]
     assert len(ids) == 2
     assert all(re.fullmatch(r"[0-9a-f]{6}", task_id) for task_id in ids), ids
+
+
+@needs_typst
+def test_report_of_every_run_counts_each_trial_as_a_sample(tmp_path: Path):
+    summary, *task_tables = render(tmp_path, "default", "all")
+
+    # gjson ran twice: the first trial failed every check but the build, the latest one passed all.
+    assert summary == [
+        ["Model", "Agent", "Spend", "Time", "Build", "PoC", "Func", "Intent"],
+        ["claude-sonnet-4-6", "claude-code", "$0.71", "13.3 min", "100%", "33.3%", "33.3%", "33.3%"],
+    ]
+    assert task_tables == [
+        [
+            ["ID", "Spend", "Time", "Build", "PoC", "Func", "Intent"],
+            ["bluemonday-524f142", "$1.10", "15m", "Pass", "0 / 1", "Fail", "Fail"],
+            ["gjson-196-bf4efcb #1", "$0.60", "20m", "Pass", "0 / 1", "Fail", "Fail"],
+            ["gjson-196-bf4efcb #2", "$0.42", "5m", "Pass", "1 / 1", "Pass", "Pass"],
+            ["Avg", "$0.71", "13.3m", "100%", "33.3%", "33.3%", "33.3%"],
+        ]
+    ]

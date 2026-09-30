@@ -55,10 +55,10 @@ launch:
 stop:
     uv run ssebench proxy down
 
-# Build the PDF report from results/ (presets: default, anonymous)
+# Build the PDF report from results/ (presets: default, anonymous; runs: latest, all)
 [group('run')]
-report preset="default":
-    jq -s '.' results/*.json > tools/report/result.json
+report preset="default" runs="latest":
+    uv run tools/report/collect.py --runs {{runs}} --output tools/report/result.json
     cd tools/report && typst compile main.typ --input preset={{preset}}
 
 # Choose a task, model, agent and mode with fzf and run them; `just pick remote` uses the catalog

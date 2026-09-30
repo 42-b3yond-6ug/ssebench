@@ -54,6 +54,12 @@ over #tasks.len() testcases.
   instead of a model's patch, are left out.
 ]
 
+#if results.any(r => r.at("trials", default: 1) > 1) [
+  Every run is included: a task that ran more than once for the same model and
+  agent has a row for each run, and each run counts as a sample of its own.
+  Percentages are shares of runs.
+]
+
 #line(length: 100%)
 
 == Summary
