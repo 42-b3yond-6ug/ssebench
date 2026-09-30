@@ -94,7 +94,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         task = (
             LocalTask(args.task, Path(args.local)) if args.local else CatalogTask(load_catalog(args.catalog), args.task)
         )
-    except (CatalogError, LookupError) as e:
+    except (CatalogError, LookupError, FileNotFoundError) as e:
         logger.error(e)
         return 1
     if reference_run:

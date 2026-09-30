@@ -160,6 +160,16 @@ def test_a_proxy_that_cannot_be_reached_is_an_error(monkeypatch: pytest.MonkeyPa
         _ = Model("beta")
 
 
+def test_unknown_task_is_one_error_line(
+    dataset: Path, agents_dir: Path, models_dir: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    argv = ["run", "--task", "no-such-task", "--local", str(dataset), "--agent", "dummy", "--model", "beta"]
+
+    assert run_cli(argv) == 1
+
+    assert errors(caplog) == ["Benchmark task no-such-task does not exist."]
+
+
 # ==================== the provider key ====================
 
 KEYED_MODELS = "- model_name: keyed\n  litellm_params:\n    model: x/keyed\n    api_key: os.environ/OPENAI_API_KEY\n"
