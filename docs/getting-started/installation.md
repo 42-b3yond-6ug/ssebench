@@ -24,6 +24,7 @@ registry. Skip to [Without a clone](#without-a-clone).
 | [uv](https://docs.astral.sh/uv/) | Running the `ssebench` CLI; it installs Python for you |
 | [just](https://just.systems/) | The recipes in the `Justfile`; only in a clone |
 | git | Cloning the repository |
+| make (optional) | `just base-images`, and `just demo` when the registry does not have the base image of the task, as before a release; the image is then built from the checkout |
 | fzf (optional) | The interactive task, model and agent pickers in `just` recipes |
 | jq and [Typst](https://typst.app/) (optional) | Reading results and building a report from them |
 | [Bun](https://bun.sh/) (optional) | The web UI and these docs; `just demo` does not need it |
@@ -69,9 +70,10 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # just
 curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/.local/bin
+# Open a new shell afterwards, so that ~/.local/bin is on your PATH
 
 # Optional tools
-sudo apt-get install -y fzf jq
+sudo apt-get install -y fzf jq make
 ```
 
 ```sh [macOS]
@@ -89,7 +91,7 @@ sudo systemctl enable --now docker
 sudo usermod -aG docker "$USER"   # then log in again
 
 # Optional tools
-sudo pacman -S fzf jq typst
+sudo pacman -S fzf jq make typst
 ```
 
 :::
