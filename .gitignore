@@ -61,3 +61,6 @@ result-*
 *~
 .DS_Store
 Thumbs.db
+
+# Logs of `just verify`
+/.verify/

@@ -246,6 +246,7 @@ The catalog service reads these; each has a command-line option too. See
 | `SSEBENCH_INTEGRITY_SIDECAR_ENV_IMAGE` | the task image that `ssebench run --mode sidecar` builds for `gjson-196-bf4efcb` | integrity tests | Sidecar task image, with the daemon, that `tests/integrity` attacks. |
 | `SSEBENCH_INTEGRITY_SIDECAR_AGENT_IMAGE` | the sidecar runtime image of this version | integrity tests | Sidecar agent runtime image that `tests/integrity` runs the fake agent in. |
 | `SSEBENCH_INTEGRITY_PLUGINS` | unset | integrity tests | Plugins the sandbox container of the integrity tests enables, passed as `SSE_PLUGINS`; the image must have them installed. |
+| `SSEBENCH_INTEGRITY_NETWORK` | `ssebench-integrity-testnet` | integrity tests | Name of the internal Docker network that `tests/integrity` creates and removes; set it so that two runs on one daemon do not share it. |
 | `SSEBENCH_INTEGRITY_SOURCE` | `/src/gjson` | integrity tests | Source directory inside those images. |
 | `SSE_DAEMON_HTTP` | `http://localhost:4263` | integrity tests | The daemon's HTTP listener that `tests/integrity/fake_agent.sh` probes; in sidecar mode, the task container's. |
 | `SSEBENCH_SMOKE_TASK` | `gjson-196-bf4efcb` | tests/e2e/smoke.sh | Task of the end-to-end smoke run. |
