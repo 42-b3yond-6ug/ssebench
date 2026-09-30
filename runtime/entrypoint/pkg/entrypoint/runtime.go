@@ -330,6 +330,16 @@ func (rt *Runtime) StartMCPServer() error {
 	return nil
 }
 
+// openCodeOfflineEnv keeps the server off the internet: the run container
+// reaches the LiteLLM proxy only, so its update check, models.dev fetch,
+// default plugin installs and language server downloads can only fail.
+var openCodeOfflineEnv = []string{
+	"OPENCODE_DISABLE_AUTOUPDATE=1",
+	"OPENCODE_DISABLE_MODELS_FETCH=1",
+	"OPENCODE_DISABLE_DEFAULT_PLUGINS=1",
+	"OPENCODE_DISABLE_LSP_DOWNLOAD=1",
+}
+
 // StartOpenCodeServer starts the OpenCode server on port 4096 if opencode is
 // on the PATH. Failure is non-fatal.
 func (rt *Runtime) StartOpenCodeServer() {
@@ -353,7 +363,7 @@ func (rt *Runtime) StartOpenCodeServer() {
 		"OpenCode server",
 		[]string{"opencode", "serve", "--port", "4096", "--hostname", "0.0.0.0"},
 		rt.logFiles["opencode"],
-		"", []string{"HOME=" + agent.home, "USER=" + agentUser},
+		"", append([]string{"HOME=" + agent.home, "USER=" + agentUser}, openCodeOfflineEnv...),
 		cred,
 	)
 	if err != nil {
