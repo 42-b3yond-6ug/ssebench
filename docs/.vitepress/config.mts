@@ -100,7 +100,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
 
 export default defineConfig({
   title: 'SSEBench',
-  description: 'Software Security Benchmark for AI Code Agents',
+  description: 'RL environments and benchmark for AI coding agents on real security vulnerabilities',
   lang: 'en-US',
 
   // Served from the root of a custom domain on GitHub Pages.
