@@ -197,7 +197,7 @@ ssebench build-case [-h] [--benchmarks DIR] [--tasks IDS] [--force]
 |---|---|---|
 | `--benchmarks DIR` | `datasets/pilot` in the SSEBench home | Dataset directory |
 | `--tasks IDS` | every task | Comma-separated task IDs |
-| `--force` | off | Rebuild images that already exist |
+| `--force` | off | Rebuild images even when they are up to date; without it, an image is rebuilt only when the task's files changed since it was built |
 
 <!-- end generated -->
 

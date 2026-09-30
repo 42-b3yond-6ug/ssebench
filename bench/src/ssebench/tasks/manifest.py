@@ -76,3 +76,14 @@ def task_files(task_dir: Path) -> dict[str, str]:
     """The `files` of a task's manifest entry: the SHA-256 of every file in its folder, sorted by path."""
     paths = sorted((p.relative_to(task_dir).as_posix(), p) for p in task_dir.rglob("*") if p.is_file())
     return {name: hashlib.sha256(p.read_bytes()).hexdigest() for name, p in paths}
+
+
+def task_files_digest(task_dir: Path) -> str:
+    """One SHA-256 over the paths and contents of every file in a task folder.
+
+    The case image records it as a label, so that a later build can tell whether the folder changed.
+    """
+    digest = hashlib.sha256()
+    for name, sha256 in task_files(task_dir).items():
+        digest.update(f"{name}\0{sha256}\n".encode())
+    return digest.hexdigest()

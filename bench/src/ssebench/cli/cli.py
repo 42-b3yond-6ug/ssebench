@@ -337,7 +337,8 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
     build_case_parser.add_argument(
         "--force",
         action="store_true",
-        help="Rebuild images that already exist",
+        help="Rebuild images even when they are up to date; without it, an image is rebuilt only when the "
+        "task's files changed since it was built",
     )
 
     # ==================== dataset subcommand ====================

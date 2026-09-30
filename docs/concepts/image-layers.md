@@ -65,9 +65,12 @@ It contains:
   the reports, the proofs of concept and the diffs.
 
 See [Tasks and datasets](/concepts/tasks-and-datasets). With `--local`, the CLI
-runs the build on every run and Docker's build cache makes repeats fast;
-`ssebench build-case` skips tasks whose image exists unless you pass
-`--force`. Tasks from a catalog are pulled instead.
+runs the build on every run and Docker's build cache makes repeats fast.
+`ssebench build-case` compares the digest of the task folder with the label
+`ssebench.task-files` that every case image it builds carries, and rebuilds
+an image whose folder changed. It skips an image that is up to date, and an
+image without the label, which it cannot check and says so; `--force`
+rebuilds every image. Tasks from a catalog are pulled instead.
 
 ### Tool
 
