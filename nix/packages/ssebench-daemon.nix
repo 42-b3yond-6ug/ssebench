@@ -18,6 +18,15 @@ pkgs.pkgsStatic.rustPlatform.buildRustPackage {
   };
   cargoLock.lockFile = root + "/Cargo.lock";
 
+  # The diff tests run git in throwaway repositories.
+  nativeCheckInputs = [ pkgs.git ];
+
+  # The build sandbox refuses to set set-id bits, which this test does.
+  checkFlags = [
+    "--skip"
+    "skips_fifos_and_drops_set_id_bits"
+  ];
+
   cargoBuildFlags = [
     "--bin"
     "ssebench-daemon"
