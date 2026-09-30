@@ -216,8 +216,9 @@ pass, and none was excluded. To run it yourself:
 just dataset-verify
 ```
 
-The Dataset workflow runs it for the tasks a pull request changes, and weekly
-for all of them. See [`ssebench dataset verify`](/reference/cli#ssebench-dataset-verify).
+The Dataset workflow runs it for all of them every week and for each release,
+not for pull requests: run it for the tasks you changed before review with
+`just verify dataset`. See [`ssebench dataset verify`](/reference/cli#ssebench-dataset-verify).
 
 ## Known limitations
 

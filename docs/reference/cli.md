@@ -599,8 +599,9 @@ log of every run in `logs/`, the run directories, one for each attempt, in
 `summary.md` and `summary.json`, a table of every task result in the directory
 by check. It exits 1 when a task does not grade as expected. The
 [Dataset](https://github.com/42-b3yond-6ug/ssebench/blob/main/.github/workflows/dataset.yml)
-workflow runs it for the tasks a pull request changes, and weekly for all of
-them.
+workflow runs it for all of them every week and for each release; before review,
+run it for the tasks a branch changed with `--changed-since origin/main`
+(`just verify dataset`).
 
 <!-- generated: cli dataset verify -->
 

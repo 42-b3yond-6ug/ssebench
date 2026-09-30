@@ -90,6 +90,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
     collapsed: true,
     items: [
       { text: 'How to contribute', link: '/contributing/' },
+      { text: 'Testing and CI', link: '/contributing/testing' },
       { text: 'Project structure', link: '/contributing/project-structure' },
       { text: 'Writing documentation', link: '/contributing/documentation' },
       { text: 'Releasing and versioning', link: '/contributing/releasing' }

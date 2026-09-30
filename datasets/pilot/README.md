@@ -167,7 +167,8 @@ table of task by check, and keeps the log of every run under
 18 minutes, the other C projects 2 to 9, and most Go and Rust tasks under 4.
 `--retries 1` repeats a run whose case image build lost
 the network. The [Dataset workflow](../../.github/workflows/dataset.yml) checks
-the tasks a pull request changes, and every task weekly. See
+every task weekly and for each release; for a pull request, run it for the
+tasks you changed with `just verify dataset`. See
 [`ssebench dataset verify`](../../docs/reference/cli.md#ssebench-dataset-verify).
 
 ## Known limitations

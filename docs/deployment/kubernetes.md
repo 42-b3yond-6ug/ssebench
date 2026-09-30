@@ -158,7 +158,7 @@ task and agent under `runs.registry`, where the nodes can pull them.
 
 ### On kind
 
-The chart's own CI job does this on every change to it. The images are built from the
+`just verify kind` does this on your machine, and the Helm workflow does it every week and for every release. The images are built from the
 checkout and loaded into the nodes, so the chart uses them as they are:
 
 ```sh
