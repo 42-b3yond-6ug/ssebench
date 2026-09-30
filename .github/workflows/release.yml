@@ -1,10 +1,11 @@
 name: Release
 
-# A v* tag builds the Python packages, the binaries and the dataset manifest,
-# publishes the packages to PyPI, creates the GitHub release with the binaries
-# and the manifest attached, and deploys the docs. The images are published by
-# the Images workflow on the same tag, and the pilot case images by the Dataset
-# workflow, which also attaches the images lock to the release.
+# A v* tag builds the Python packages, the binaries, the dataset manifest and
+# the Helm chart, publishes the packages to PyPI and the chart to GHCR as an
+# OCI artifact, creates the GitHub release with the binaries and the manifest
+# attached, and deploys the docs. The images are published by the Images
+# workflow on the same tag, and the pilot case images by the Dataset workflow,
+# which also attaches the images lock to the release.
 #
 # Every publishing job is skipped while the repository is private, so a tag
 # then only produces the workflow artifacts. A manual run does the same on any
@@ -183,6 +184,72 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  chart:
+    name: Package the Helm chart
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-helm
+      - name: Package the chart
+        run: |
+          helm lint deploy/helm/ssebench --strict
+          helm package deploy/helm/ssebench --destination chart
+          ls -l chart
+          # The chart and the images it defaults to carry VERSION.
+          helm show chart "chart/ssebench-$VERSION.tgz" | tee chart.yaml
+          grep -qx "version: $VERSION" chart.yaml
+          grep -qx "appVersion: $VERSION" chart.yaml
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: helm-chart
+          path: chart/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-chart:
+    name: Publish the Helm chart
+    needs: [plan, chart]
+    if: ${{ !github.event.repository.private && needs.plan.outputs.release == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write # push the chart to ghcr.io
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+      REPOSITORY: ${{ github.repository }}
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: helm-chart
+          path: chart
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/actions
+          persist-credentials: false
+      - uses: ./.github/actions/setup-helm
+      - name: Push the chart to GHCR
+        if: ${{ !github.event.repository.private }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          repo=ghcr.io/${REPOSITORY,,}/charts
+          echo "$GH_TOKEN" | helm registry login ghcr.io --username "$ACTOR" --password-stdin
+          # A re-run after a partial failure leaves the chart that was published.
+          if helm show chart "oci://$repo/ssebench" --version "$VERSION" > /dev/null 2>&1; then
+            echo "$repo/ssebench:$VERSION is published already"
+          else
+            helm push "chart/ssebench-$VERSION.tgz" "oci://$repo"
+          fi
+          helm show chart "oci://$repo/ssebench" --version "$VERSION"
+
   publish-pypi:
     name: Publish to PyPI
     needs: [plan, python, binaries, manifest]
@@ -248,7 +315,7 @@ jobs:
 
   docs:
     name: Docs
-    needs: [plan, python, binaries, manifest, publish-pypi, github-release]
+    needs: [plan, python, binaries, manifest, chart, publish-pypi, publish-chart, github-release]
     # The docs follow a release that went out; skipped publishing jobs (a
     # private repository, a manual run) still leave the site to be built.
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}

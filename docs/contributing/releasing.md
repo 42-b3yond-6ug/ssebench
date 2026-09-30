@@ -33,6 +33,7 @@ forms below are accepted, because each has exactly one PEP 440 spelling:
 | `ssebench-daemon` | `[workspace.package] version` in `Cargo.toml`, and `Cargo.lock` | the bump tool |
 | Web UI and docs | `version` in `webui/package.json` and `docs/package.json`, and `bun.lock` | the bump tool |
 | LiteLLM proxy, catalog and web UI images | image tags in `deploy/compose/docker-compose.yaml` and `deploy/compose/demo.yaml` | the bump tool |
+| Helm chart | `version` and `appVersion` in `deploy/helm/ssebench/Chart.yaml`; the chart's images default to the `appVersion` as their tag | the bump tool, in SemVer form as in `VERSION` |
 | Entrypoint, catalog, pty-proxy (Go) | `-ldflags "-X main.version=..."` | the build: the Dockerfiles take a `VERSION` build argument, which the CLI passes when it builds the tool layers, and `bun run build:pty` reads `VERSION`; a plain `go build` reports `dev` |
 | Docs site | version in the navigation bar | read from `VERSION` when the site is built |
 | Tool layer, sidecar runtime and agent images | image tag | the CLI, from its own version |
@@ -125,12 +126,14 @@ these jobs:
 | Build the Python packages | Builds the sdist and the wheel of `ssebench` and `ssebench-sdk` with `uv build`, checks their metadata with `twine check --strict`, installs the wheels in a clean environment, and checks that `ssebench --version` prints `VERSION`, that `import sse` works, that `ssebench init` and `ssebench tasks list` work outside a checkout, and that both packages carry the PEP 440 form of `VERSION`. Produces the artifact `python-dist`. |
 | Binaries | Runs the [Binaries](#binaries) workflow, which produces the artifact `ssebench-binaries-<version>`. |
 | Build the dataset manifest | Runs `ssebench dataset manifest` on `datasets/pilot`, recording the commit it was generated from. Produces the artifact `pilot-manifest`. |
+| Package the Helm chart | Lints the chart, packages it with `helm package`, and checks that its `version` and `appVersion` are `VERSION`. Produces the artifact `helm-chart`. |
+| Publish the Helm chart | Runs after the chart is packaged. Pushes it to `oci://ghcr.io/42-b3yond-6ug/ssebench/charts/ssebench`, tagged with `VERSION`, with the workflow's token, which has `packages: write` in this job only. A version that is published already is left alone. |
 | Publish to PyPI | Runs after all the jobs above have passed, so a build that fails publishes nothing. Uploads `python-dist` with PyPI trusted publishing, in the `pypi` environment; no PyPI token is stored anywhere. Files that PyPI already has are skipped. |
 | Create the GitHub release | Runs after PyPI. Checks the `SHA256SUMS` file against the binaries and creates a published (not draft) release named after the tag, with notes generated from the titles of the merged pull requests since the previous release. Attaches the eight binaries, `SHA256SUMS` and `pilot-manifest.json`. |
 | Docs | Runs after the release and deploys the [docs](#docs) from the tagged commit. |
 
-The jobs that publish or deploy something (PyPI, the GitHub release and the
-docs deployment) are skipped while the repository is private, so a tag then
+The jobs that publish or deploy something (PyPI, the chart, the GitHub release
+and the docs deployment) are skipped while the repository is private, so a tag then
 only produces the artifacts. Do not push a release tag before the repository is
 public: the Images workflow also builds every image for both platforms on a
 tag, which takes a long time, and publishes nothing, while the Dataset workflow
@@ -166,6 +169,7 @@ gh run download <run-id>
 | `python-dist` | the sdists and wheels of `ssebench` and `ssebench-sdk` |
 | `ssebench-binaries-<version>` | the binaries for linux/amd64 and linux/arm64 and `SHA256SUMS` |
 | `pilot-manifest` | `pilot-manifest.json` |
+| `helm-chart` | the packaged Helm chart, `ssebench-<version>.tgz` |
 | `github-pages` | the built documentation site, as a tarball |
 
 `gh workflow run docs.yml --ref my-branch -f dry_run=true` builds only the site.
@@ -277,7 +281,8 @@ the repository `42-b3yond-6ug/ssebench`.
 8. **Container packages.** The first push to `main` after step 2 publishes
    `base-generic-c`, `base-generic-go`, `base-generic-rust`, `runtime`,
    `litellm`, `catalog` and `webui` to `ghcr.io/42-b3yond-6ug/ssebench/` as
-   private packages. GitHub has no API for this: for each package, open its
+   private packages. The first release adds one more, the Helm chart, as
+   `ssebench/charts/ssebench`. GitHub has no API for this: for each package, open its
    Package settings on GitHub and change the visibility to Public, which
    cannot be undone. Check that an unauthenticated `docker pull` works for
    each. The [case images](#case-images) are one package per pilot task, named
@@ -454,6 +459,23 @@ workflow artifact `ssebench-binaries-<version>`. The daemon and the entrypoint
 are built by the runtime image's Dockerfile, so they are the same files as in
 that image. The Release workflow runs it through `workflow_call` and attaches
 the files to the GitHub release; its `artifact` output names the artifact.
+
+## Helm chart
+
+The chart in `deploy/helm/ssebench` is published to GHCR as an OCI artifact by the
+`publish-chart` job of the Release workflow, only from a release tag and only while
+the repository is public:
+
+```sh
+helm install ssebench oci://ghcr.io/42-b3yond-6ug/ssebench/charts/ssebench --version <version> ...
+```
+
+Its version is `VERSION` and so is its `appVersion`, which the chart uses as the tag of
+the images in `image.registry`; `just release` changes both, and `bump.py --check`
+fails when either differs. The Helm workflow (`.github/workflows/helm.yml`) lints the
+chart on every change to it and, in the public repository, installs it on a kind
+cluster with Calico and runs a pilot task; see
+[Kubernetes](/deployment/kubernetes#install-with-helm) for what the chart installs.
 
 ## Datasets
 
