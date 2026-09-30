@@ -27,6 +27,11 @@ type Config struct {
 	// built-in modes set it; a mode where only root writes clears it in
 	// [Configurer.Configure].
 	AgentWritesArchive bool
+	// AgentCommandOptional lets the mode run without an agent command. Without
+	// it, the entrypoint exits with a usage error when it gets none. A mode
+	// that sets it and then calls [Runtime.RunAgent] without a command gets an
+	// error from RunAgent.
+	AgentCommandOptional bool
 	// LogTo is where the entrypoint writes its own log and relays the logs of
 	// the services it starts. It defaults to stdout. A mode that speaks a
 	// protocol over the container's stdin and stdout sets [LogToStderr] or

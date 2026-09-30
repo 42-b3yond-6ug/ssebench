@@ -129,6 +129,65 @@ func TestRunRejectsUnknownModeAndMissingInput(t *testing.T) {
 	}
 }
 
+func TestRunLetsAModeTakeNoAgentCommand(t *testing.T) {
+	t.Setenv("SSE_ARCHIVE", t.TempDir())
+	t.Setenv("SSE_RESULTS", t.TempDir())
+
+	var commands [][]string
+	registerForTest(t, testMode{
+		name:      "no-command",
+		configure: func(c *Config) { c.AgentCommandOptional = true },
+		run: func(rt *Runtime) int {
+			commands = append(commands, rt.AgentCommand())
+			return 5
+		},
+	})
+
+	if status := Run([]string{"entrypoint", "--mode", "no-command"}); status != 5 {
+		t.Errorf("without a command: status %d, want the mode's 5", status)
+	}
+	if status := Run([]string{"entrypoint", "--mode", "no-command", "--", "echo", "hi"}); status != 5 {
+		t.Errorf("with a command: status %d, want the mode's 5", status)
+	}
+	if len(commands) != 2 || len(commands[0]) != 0 || !slices.Equal(commands[1], []string{"echo", "hi"}) {
+		t.Errorf("agent commands = %q, want none and then echo hi", commands)
+	}
+}
+
+func TestRunStillRequiresACommandFromOtherModes(t *testing.T) {
+	t.Setenv("SSE_ARCHIVE", t.TempDir())
+	t.Setenv("SSE_RESULTS", t.TempDir())
+	ran := false
+	registerForTest(t, testMode{
+		name:      "needs-command",
+		configure: func(c *Config) {},
+		run:       func(rt *Runtime) int { ran = true; return 0 },
+	})
+
+	if status := Run([]string{"entrypoint", "--mode", "needs-command"}); status != 1 || ran {
+		t.Errorf("status %d, ran %v; want 1 and a mode that did not run", status, ran)
+	}
+}
+
+func TestRunAgentWithoutACommandFailsBeforeAnythingRuns(t *testing.T) {
+	admin := newAdminServer(t)
+	cfg := defaultConfig()
+	cfg.ArchivePath = t.TempDir()
+	cfg.ResultsPath = t.TempDir()
+	cfg.AdminSocketPath = admin.socket
+	cfg.CleanupWait = 0
+	rt := newRuntime(cfg, nil)
+	rt.initLogFiles()
+	t.Cleanup(rt.sm.cleanup)
+
+	if _, err := rt.RunAgent(); err == nil {
+		t.Fatal("RunAgent without a command succeeded")
+	}
+	if calls := admin.Calls(); len(calls) != 0 {
+		t.Errorf("admin calls = %q, want none: the agent phase must not end for an agent that never started", calls)
+	}
+}
+
 func TestRunPreparesRunsAndCleansUp(t *testing.T) {
 	archive := t.TempDir()
 	results := filepath.Join(t.TempDir(), "results")
