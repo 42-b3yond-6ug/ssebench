@@ -70,13 +70,15 @@ plugin (every image is built with `docker buildx build`) and the Compose plugin
   `docker compose version` must both print a version.
 - **Docker Desktop and other engines that run containers in a VM** have not
   been tested with [the demo](/getting-started/demo), whose web UI container
-  shares the host's network.
+  shares the host's network. On Docker Desktop, turn on Settings > Resources >
+  Network > Enable host networking (4.34 or later); see
+  [macOS and Docker Desktop](/getting-started/installation#macos-and-docker-desktop).
 
 ## CPU architecture
 
 ```text
   warn  CPU            This host is aarch64, so tasks that support only amd64 run under amd64 emulation: their case image, the tool layer and the agent all build and run as linux/amd64. That is slow, and AddressSanitizer may misbehave under QEMU.
-                       fix: Use an x86-64 host. To run here, Docker must be able to run amd64 images: Docker Desktop can, and on Linux `docker run --privileged --rm tonistiigi/binfmt --install amd64` installs QEMU's handlers.
+                       fix: Use an x86-64 host. To run here, Docker must be able to run amd64 images: Docker Desktop can (on Apple silicon, turn on Rosetta in its settings), and on Linux `docker run --privileged --rm tonistiigi/binfmt --install amd64` installs QEMU's handlers.
 ```
 
 All 55 pilot tasks build amd64 images, and many C tasks compile with

@@ -15,10 +15,15 @@ and no API key**. The grade checks the task and the grader: every check passes.
 You need a Linux host with Docker (with the buildx and Compose plugins),
 [uv](https://docs.astral.sh/uv/), [just](https://just.systems/) and a clone of
 the repository; see [Installation](/getting-started/installation). The demo
-does not need Bun, Rust or Go. It uses about 4 GB of disk for images, and about 11 GB more of build cache when the images are built from the checkout (see [Disk space](/getting-started/installation#prerequisites)). Docker
-Desktop and other engines that run containers in a VM have not been tested,
-because the web UI container uses the host's network to reach the run
-containers.
+does not need Bun, Rust or Go. It uses about 4 GB of disk for images, and about 11 GB more of build cache when the images are built from the checkout (see [Disk space](/getting-started/installation#prerequisites)).
+
+The demo is tested on Linux only. Docker Desktop on macOS, and other engines
+that run containers in a VM, have **not been tested**: the web UI container
+uses the host's network to reach the run containers, and Docker Desktop
+supports that only from 4.34 with **Enable host networking** turned on. See
+[macOS and Docker Desktop](/getting-started/installation#macos-and-docker-desktop)
+for what to set and what to expect, and what to expect from amd64 emulation on
+Apple silicon.
 
 ## Run it
 
@@ -175,7 +180,10 @@ their ports differ: `LITELLM_PORT=4001 just demo`.
 - **The web UI does not list the run, or says the Docker daemon is not
   reachable.** The web UI container mounts `/var/run/docker.sock`, so the
   daemon's socket has to be there, and the engine has to run containers on the
-  host's network namespace.
+  host's network namespace. On Docker Desktop, that means turning on **Enable
+  host networking** (4.34 or later) and restarting it; see
+  [macOS and Docker Desktop](/getting-started/installation#macos-and-docker-desktop).
+  The run itself and `results/` do not depend on the web UI.
 - **A pull fails with `denied` or `not found`.** The registry does not have the
   images of this version, as before a release. The demo builds them.
 - **You changed the code and the demo shows the old behavior.** Images that

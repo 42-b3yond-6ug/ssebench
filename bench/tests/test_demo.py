@@ -87,6 +87,33 @@ def fake(monkeypatch: pytest.MonkeyPatch) -> FakeDocker:
     return docker
 
 
+def engine(monkeypatch: pytest.MonkeyPatch, system: str, operating_system: str) -> None:
+    monkeypatch.setattr(demo.platform, "system", lambda: system)
+    monkeypatch.setattr(doctor, "run", lambda cmd: (0, operating_system))
+
+
+@pytest.mark.parametrize("operating_system", ["Ubuntu 24.04.2 LTS", "NixOS 25.05 (Warbler)", ""])
+def test_a_native_linux_engine_needs_no_host_network_warning(
+    monkeypatch: pytest.MonkeyPatch, operating_system: str
+) -> None:
+    engine(monkeypatch, "Linux", operating_system)
+    assert demo.host_network_check() is None
+
+
+@pytest.mark.parametrize(
+    ("system", "operating_system"),
+    [("Darwin", "Docker Desktop"), ("Linux", "Docker Desktop"), ("Windows", "Docker Desktop")],
+)
+def test_a_vm_engine_gets_a_host_network_warning_that_names_the_setting(
+    monkeypatch: pytest.MonkeyPatch, system: str, operating_system: str
+) -> None:
+    engine(monkeypatch, system, operating_system)
+    check = demo.host_network_check()
+    assert check is not None
+    assert check.status is Status.WARN
+    assert "Enable host networking" in check.fix
+
+
 def test_defaults() -> None:
     d = demo.configure()
 

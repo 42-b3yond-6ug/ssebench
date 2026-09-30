@@ -96,7 +96,8 @@ sudo apt-get install -y fzf jq make
 ```
 
 ```sh [macOS]
-# Docker: Docker Desktop, or another engine such as colima
+# Docker: Docker Desktop, or another engine such as colima.
+# Read "macOS and Docker Desktop" below first: it is untested, and needs settings.
 
 brew install uv just
 
@@ -268,6 +269,57 @@ on it:
 ```sh
 make -C images/base-images all BUILD_FLAGS="--platform linux/amd64"
 ```
+
+## macOS and Docker Desktop
+
+**macOS with Docker Desktop has not been tested.** The release was tested on
+Linux only (see [issue 90](https://github.com/42-b3yond-6ug/ssebench/issues/90),
+which asks for reports). What follows comes from reading the code and Docker's
+documentation, not from a run on a Mac.
+
+- **Amd64 emulation.** Every `pilot` task is amd64 only, so on Apple silicon the
+  whole task runs under emulation; see [Architectures](#architectures). In
+  Docker Desktop, turn on **Use Rosetta for x86_64/amd64 emulation on Apple
+  Silicon** (Settings > General; it needs the Apple Virtualization framework as
+  the virtual machine manager, and Docker VMM does not support it), or rely on
+  QEMU. Check with `docker run --rm --platform linux/amd64 alpine uname -m`,
+  which prints `x86_64`. On an Intel Mac the tasks run natively.
+- **Resources.** Docker Desktop runs Docker in a virtual machine that has its
+  own CPU, memory and disk limits (Settings > Resources). The defaults can be
+  too small: raise the memory (Docker's default is half of the Mac's) and the
+  disk image size above what [Prerequisites](#prerequisites) lists, and give it
+  more CPUs, because builds and the task's tests scale with them. A full
+  `pilot` run needs tens of GB of disk in that virtual machine.
+- **Slowness.** Emulated builds, tests and agents run several times slower than
+  native ones, and AddressSanitizer may misbehave under QEMU, so a task can time
+  out or fail that passes on an x86-64 host. Start with
+  `gjson-196-bf4efcb`, which builds in seconds.
+- **The CLI and runs.** `ssebench run` starts containers, runs the agent and
+  grades through the `docker` CLI and Compose. Run containers reach the LiteLLM
+  proxy over a Docker network, and the CLI reaches the proxy on the loopback
+  port that Compose publishes, so none of it depends on the host network. This
+  is expected to work, but is untested.
+- **The web UI and the demo.** The web UI container in [the
+  demo](/getting-started/demo) uses `network_mode: host`, because it reaches the
+  daemon in each run container by the container's address on its Docker
+  network. On Docker Desktop those addresses exist only inside the virtual
+  machine, and `network_mode: host` is the virtual machine's network, not the
+  Mac's. Docker Desktop supports host networking from version 4.34, and only
+  after you turn on **Settings > Resources > Network > Enable host networking**
+  (Docker documents this as a feature that also forwards ports between the
+  container and the Mac at layer 4, TCP and UDP). With it on, the web UI may
+  answer on `http://127.0.0.1:3001` and may be able to reach the run containers;
+  without it, the demo's stack starts but the web UI does not answer or cannot
+  list or open the runs. Whether that works is not known. `ssebench demo up`
+  prints a `Host network` warning on Docker Desktop for this reason. The demo's
+  run and its result in `results/` do not need the web UI.
+  [`ssebench runs endpoint`](/concepts/runner-backends#reaching-a-run) prints an
+  address that the Mac cannot route to.
+- **Other engines** (colima, OrbStack, Rancher Desktop and similar) also run
+  Docker in a virtual machine and are untested too; the same limits apply.
+
+If you try it, please report what worked and what did not in
+[the issue](https://github.com/42-b3yond-6ug/ssebench/issues/90).
 
 ## Next steps
 

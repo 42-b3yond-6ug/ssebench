@@ -185,6 +185,26 @@ def check_ports(demo: Demo) -> None:
             )
 
 
+def host_network_check() -> doctor.Check | None:
+    """A warning when Docker runs in a VM, where the web UI container's host network is not the machine's.
+
+    The web UI reaches the daemon of a run by the container's address, and binds to loopback; both work
+    only when the Docker engine shares the network namespace with the host (a native Linux engine) or
+    Docker Desktop's opt-in host networking is on.
+    """
+    engine = doctor.run(["docker", "info", "--format", "{{.OperatingSystem}}"])[1]
+    if platform.system() == "Linux" and "Docker Desktop" not in engine:
+        return None
+    return doctor.Check(
+        "Host network",
+        Status.WARN,
+        "the web UI container shares the Docker engine's network, which only a Linux engine, or Docker "
+        "Desktop with host networking turned on, makes reachable from this machine",
+        "In Docker Desktop (4.34 or later), turn on Settings > Resources > Network > Enable host networking, "
+        "then restart it. If the web UI still does not answer, run the demo on a Linux host.",
+    )
+
+
 def check_host(model: str | None) -> None:
     """Print the doctor's checks for what the demo needs, and stop if one fails.
 
@@ -192,18 +212,8 @@ def check_host(model: str | None) -> None:
         DemoError: If a required check fails.
     """
     checks = doctor.host_checks()
-    if (
-        platform.system() != "Linux"
-        or "Docker Desktop" in (doctor.run(["docker", "info", "--format", "{{.OperatingSystem}}"])[1])
-    ):
-        checks.append(
-            doctor.Check(
-                "Host network",
-                Status.WARN,
-                "the web UI container shares the host's network, which only a Linux Docker engine supports fully",
-                "If the web UI does not answer, run the demo on a Linux host.",
-            )
-        )
+    if (network := host_network_check()) is not None:
+        checks.append(network)
     if model is not None:
         checks.append(doctor.check_model_key(model))
     say(doctor.render(checks))

@@ -121,6 +121,8 @@ You need Docker with the buildx and Compose plugins, and
 from a clone. An x86-64 Linux host is recommended: the pilot tasks are
 amd64-only, so an arm64 host runs them under emulation, which is slow. Images
 take tens of GB. See [Installation](docs/getting-started/installation.md).
+macOS with Docker Desktop is untested; its requirements and caveats are in
+[Installation](docs/getting-started/installation.md#macos-and-docker-desktop).
 
 **See it work, with no API key**
 
