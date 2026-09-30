@@ -7,3 +7,24 @@
 **/node_modules/
 webui/dist/
 webui/pty-proxy/pty-proxy
+# What `uv build --package ssebench` needs: the workspace and the assets the
+# wheel packages.
+!pyproject.toml
+!uv.lock
+!.env.example
+!bench/
+!agents/
+!models/
+!deploy/compose/
+!images/common/
+!images/litellm/
+!images/sandbox/
+!images/sidecar-agent/
+!images/sidecar-case/
+!runtime/evaluator/
+!runtime/mcp/
+!runtime/plugins/
+!sdk/python/
+!datasets/pilot/manifest.json
+!datasets/pilot/images.lock.json
+!datasets/pilot/LICENSE

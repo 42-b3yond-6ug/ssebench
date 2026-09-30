@@ -1,17 +1,18 @@
-# The web UI: the client, the API server, the terminal helper (pty-proxy) and
-# the docker CLI that the server runs. Build from the repository root:
+# The web UI: the client, the API server, the terminal helper (pty-proxy), the
+# ssebench CLI and the docker CLI. Build from the repository root:
 #
 #   docker buildx build -f webui/Dockerfile --build-arg VERSION="$(cat VERSION)" -t ssebench-webui .
 #
-# The server manages the run containers of the Docker daemon it talks to, so
-# it needs that daemon's socket, and it reaches the SSEBench daemon in each run
-# container by the container's IP address. Run it on the host network with the
-# socket mounted:
+# The server finds and reaches runs through `ssebench runs`, which uses the
+# Docker backend unless SSEBENCH_BACKEND says otherwise. That backend manages the
+# run containers of the Docker daemon it talks to, so it needs that daemon's
+# socket, and it reaches the SSEBench daemon in each run container by the
+# container's IP address. Run it on the host network with the socket mounted:
 #
 #   docker run --rm --network host -v /var/run/docker.sock:/var/run/docker.sock ssebench-webui
 #
-# Every build step runs on the build platform, so a multi-platform build needs
-# no emulation.
+# Most build steps run on the build platform, so a multi-platform build needs
+# little emulation; the CLI is pure Python and installs on the target platform.
 
 FROM --platform=$BUILDPLATFORM oven/bun:1.3.13 AS web
 WORKDIR /src
@@ -34,11 +35,30 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /pty-proxy .
 
 
+FROM ghcr.io/astral-sh/uv:0.12.20@sha256:100047e74f30778ab704942321a09750d6158739573ff58bf3924085cc6cd2d8 AS uv
+
+
+FROM --platform=$BUILDPLATFORM oven/bun:1.3.13-slim AS cli-wheel
+# The wheel of the CLI carries the assets it needs (see bench/hatch_build.py).
+COPY --from=uv /uv /usr/local/bin/uv
+WORKDIR /repo
+COPY . .
+RUN uv build --package ssebench --wheel --out-dir /wheel
+
+
 FROM docker:29.8.1-cli AS docker-cli
 
 
 FROM oven/bun:1.3.13-slim
 COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/docker
+# The ssebench CLI, in an environment of its own with its own Python, at
+# /usr/local/bin/ssebench.
+COPY --from=uv /uv /usr/local/bin/uv
+COPY --from=cli-wheel /wheel/ /tmp/wheel/
+RUN UV_TOOL_DIR=/opt/ssebench/tool UV_TOOL_BIN_DIR=/usr/local/bin \
+    UV_PYTHON_INSTALL_DIR=/opt/ssebench/python \
+    uv tool install --python 3.12 /tmp/wheel/*.whl && \
+    rm -rf /tmp/wheel /root/.cache/uv
 # The server serves ./dist and runs ../pty-proxy/pty-proxy relative to its own
 # directory.
 WORKDIR /app
@@ -47,6 +67,9 @@ COPY --from=web /out/server/ server/
 COPY --from=pty-proxy /pty-proxy pty-proxy/pty-proxy
 # Runs as root: whoever can use the Docker socket is root on its host anyway,
 # and the socket's group differs between hosts.
-ENV PORT=3001
+# The CLI runs in /app, so its results/ is /app/results.
+ENV PORT=3001 \
+    SSEBENCH_CLI=ssebench \
+    SSEBENCH_PATH=/app
 EXPOSE 3001
 CMD ["bun", "server/index.js"]
