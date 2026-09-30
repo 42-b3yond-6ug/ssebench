@@ -13,11 +13,19 @@ with the upstream fix?
 Agents and models are decoupled. Any agent can run against any model, because
 all LLM traffic goes through a LiteLLM proxy.
 
+[Quickstart](docs/getting-started/quickstart.md) ·
+[Try the demo](docs/getting-started/demo.md) ·
+[Documentation](docs/) ·
+[The pilot dataset](docs/dataset/pilot.md) ·
+[Contributing](CONTRIBUTING.md)
+
 ## What's inside
 
 - **The `ssebench` CLI** builds the container images for a task and runs one
   agent × model × task combination, collecting logs, a snapshot of the final
-  source tree and a graded `result.json`.
+  source tree and a graded `result.json`. It also checks your host
+  (`ssebench doctor`), lists the tasks, and runs the local demo. It is on PyPI
+  and runs without a clone of this repository.
 - **A container runtime.** A Go entrypoint orchestrates a Rust daemon (build,
   PoC and test actions), an MCP server that gives the agent a `test_patch` tool,
   the agent itself and the evaluator.
@@ -108,62 +116,54 @@ it works. Final grading always runs every check the task has.
 
 ## Quickstart
 
-**Prerequisites**
+You need Docker with the buildx and Compose plugins, and
+[uv](https://docs.astral.sh/uv/); [just](https://just.systems/) if you work
+from a clone. An x86-64 Linux host is recommended, and images take tens of GB;
+see [Installation](docs/getting-started/installation.md).
 
-- Docker with buildx. An x86-64 host is recommended: many C tasks build with
-  AddressSanitizer for amd64 only.
-- [uv](https://docs.astral.sh/uv/) and [just](https://just.systems/).
-- Optional: [Nix](https://nixos.org/). `nix develop` gives you every toolchain
-  (Python, uv, Rust, Go, Bun, just, Typst, the Docker CLI) in one shell; the
-  Docker engine still comes from your system.
-- To run a real agent: an API key for at least one model provider.
-
-**Set up**
+**See it work, with no API key**
 
 ```sh
 git clone https://github.com/42-b3yond-6ug/ssebench.git
 cd ssebench
 just setup    # install dependencies and write .env with generated local secrets
-just doctor   # check Docker, disk space, .env and the LiteLLM proxy
-```
-
-**See it work**
-
-```sh
-just demo     # apply the known fix to a pilot task, grade it, and show the run in the web UI; no API key needed
+just demo     # apply the known fix to a pilot task, grade it, and open the run in the web UI
 just demo-down
 ```
 
 `just demo` starts the LiteLLM proxy, the task catalog and the web UI with
-Docker Compose, runs the `reference` agent on a fast Go task, and prints the
-address of the web UI, `http://127.0.0.1:3001`, where the run is open: the
-dialog, the diff and the evaluation result. `just demo-down` removes what it
-created. See [Try the demo](docs/getting-started/demo.md).
+Docker Compose, runs the `reference` agent, which applies the task's upstream
+fix instead of asking a model, and prints the address of the web UI,
+`http://127.0.0.1:3001`, where the run is open: the dialog, the diff and the
+evaluation result. See [Try the demo](docs/getting-started/demo.md).
 
-**Run an agent on a pilot task**
-
-Put your provider key in `.env` (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY` or
-`GOOGLE_API_KEY`), then:
+**Run a real agent, without a clone**
 
 ```sh
-just run      # pick a task, an agent and a model interactively
+mkdir ssebench-work && cd ssebench-work
+uvx ssebench init          # writes .env with generated secrets, models/ and results/
 ```
 
-or call the CLI directly:
+Add your provider key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY` or
+`GOOGLE_API_KEY`) to `.env`, then:
 
 ```sh
-uv run ssebench run \
-    --local datasets/pilot \
-    --task <task-id> \
-    --agent claude-code \
-    --model <model-name> \
-    --difficulty 2
+uvx ssebench doctor        # checks Docker, disk space, .env and the provider keys
+uvx ssebench tasks list    # the 55 tasks of the pilot dataset
+uvx ssebench run --task gjson-196-bf4efcb --agent claude-code --model claude-sonnet-4-6
 ```
 
-Model names come from `models/*.yaml`, agent names from `agents/`. Results
-land in `results/<task>/<model>/<agent>/`: `result.json`, the agent dialog
-(`dialog.jsonl`), a snapshot of the final source tree, and the logs of every
-component.
+From a clone, `just run --task gjson-196-bf4efcb --agent claude-code --model
+claude-sonnet-4-6` does the same, and `just run` alone opens interactive
+pickers. Results land in `results/<task>/<model>/<agent>/`: `result.json` (the
+grade), the agent dialog (`dialog.jsonl`), a snapshot of the final source tree,
+and the logs of every component.
+
+A real run calls a model with your key and costs money. When something does not
+work, start with `ssebench doctor` and
+[Troubleshooting](docs/getting-started/troubleshooting.md). The
+[Quickstart](docs/getting-started/quickstart.md) walks through all of this and
+explains how to read the results.
 
 ## Repository map
 
@@ -176,18 +176,29 @@ component.
 | `runtime/plugins/` | Plugins that run before, during or after the agent and grading phases. |
 | `sdk/daemon/` | `ssebench-daemon` (Rust): build, PoC and test actions over a Unix socket and HTTP. |
 | `sdk/python/` | `ssebench-sdk`, imported as `sse`: the Python client used inside task containers. |
-| `images/` | Base images (`generic-c`, `generic-go`, `generic-rust`), the LiteLLM proxy image, and the sandbox and sidecar tool layers. |
+| `images/` | Base images (`generic-c`, `generic-go`, `generic-rust`), the LiteLLM proxy image, the runtime image, and the sandbox and sidecar tool layers. |
 | `agents/` | Agent layers: `claude-code`, `codex`, `opencode`, `dummy`, `reference`. |
 | `models/` | LiteLLM model definitions, one file per provider. |
 | `catalog/` | Task catalog service (Go). |
 | `webui/` | Web UI: Vite + React front end, Bun/Hono server, and `pty-proxy` (Go) for terminals. |
-| `datasets/pilot/` | The pilot dataset, one folder per task. |
+| `datasets/pilot/` | The pilot dataset, one folder per task, with its manifest. |
+| `datasets/schema/` | JSON Schemas of the task config, `dataset.yaml` and the manifest. |
 | `tools/bear/` | Generates `compile_commands.json` for C tasks. |
-| `tools/dataset/` | Generates the third-party license listing of the dataset. |
+| `tools/dataset/` | Generates `datasets/pilot/THIRD_PARTY.md` from the task configs and `third_party.json`. |
+| `tools/docs/` | Regenerates the reference pages in `docs/reference/` from the code, and checks them for drift. |
+| `tools/release/` | Sets the version of every component and checks for drift. |
 | `tools/report/` | Typst report built from `results/`. |
+| `tests/` | End-to-end smoke run, the integrity bypass suite, and the offline test of every agent. |
 | `docs/` | Documentation site (VitePress). |
 | `deploy/compose/` | Docker Compose stack: the LiteLLM proxy and its database, and the demo's catalog and web UI. |
-| `.github/workflows/` | CI (GitHub Actions). |
+| `Justfile`, `just/` | The recipes: `just` lists them. |
+| `flake.nix`, `nix/` | Optional Nix flake: development shell, packages, checks and formatter. |
+| `.github/` | CI and release workflows (GitHub Actions), issue and pull request templates. |
+| `pyproject.toml`, `Cargo.toml`, `go.work`, `package.json`, `VERSION` | Roots of the Python (uv), Rust, Go and Bun workspaces, and the one version every component shares. |
+
+Each top-level component has a README that says what it is and where to look
+next; [Project structure](docs/contributing/project-structure.md) describes the
+layout in more detail.
 
 ## Dataset
 
@@ -204,6 +215,14 @@ A task folder holds a `Dockerfile` for its case image and an `sse/` directory:
 `config.yaml` (task metadata), `build.sh`, `run.sh` and `test.sh`, the PoC
 inputs, the issue or crash report the agent receives, and the reference patch
 and tests used for grading.
+
+The dataset version is `pilot-v1`. `datasets/pilot/manifest.json` lists every
+task with its metadata and a checksum of each of its files; the CLI, the task
+catalog and the web UI read it, and `ssebench tasks list` prints it. Task
+images are built from the folders, or pulled from the registry. Every task
+records its upstream project, license, advisory and fix in
+`datasets/pilot/THIRD_PARTY.md`. See [The pilot dataset](docs/dataset/pilot.md)
+and [Dataset manifest](docs/dataset/manifest.md).
 
 ## Contributing
 
@@ -243,4 +262,4 @@ If you use SSEBench in your research, please cite it:
   reports and tests) is licensed under
   [CC BY 4.0](datasets/pilot/LICENSE).
 - Upstream source code, patches and tests included in the dataset keep their
-  original licenses; see `datasets/pilot/THIRD_PARTY.md`.
+  original licenses; see [THIRD_PARTY.md](datasets/pilot/THIRD_PARTY.md).

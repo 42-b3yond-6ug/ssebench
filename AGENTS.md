@@ -60,16 +60,21 @@ webui/                 web UI: Vite + React client, Bun/Hono server, pty-proxy (
 datasets/pilot/        the pilot dataset, one folder per task, with dataset.yaml and the generated manifest.json
 datasets/schema/       JSON Schemas of the task config and the manifest, exported from bench/src/ssebench/tasks/
 tools/bear/            compile_commands.json generation for C tasks
-tools/dataset/         third_party.py: generates datasets/pilot/THIRD_PARTY.md from third_party.json, or checks it with --check
+tools/dataset/         third_party.py: generates datasets/pilot/THIRD_PARTY.md from third_party.json and the task configs, or checks it with --check
 tools/docs/            reference.py: regenerates the generated parts of docs/reference/, or checks them with --check
 tools/release/         bump.py: sets the version everywhere, or checks for drift with --check
 tools/report/          Typst report from results/
+tests/                 end-to-end smoke run (e2e/), integrity bypass suite (integrity/), offline test of every agent (agents/)
 docs/                  VitePress documentation site
 deploy/compose/        Docker Compose stack (LiteLLM proxy and Postgres); demo.yaml adds the catalog and the web UI for `just demo`
 deploy/helm/           Helm chart (planned)
 pyproject.toml         uv workspace root (every Python project above is a member); uv.lock pins them all
+Cargo.toml, go.work    Cargo workspace (sdk/daemon) and Go workspace (catalog, runtime/entrypoint, webui/pty-proxy)
+package.json           Bun workspace (webui, docs)
+Justfile, just/        the recipes below
+VERSION                the version of every component
 flake.nix, nix/        optional Nix flake (numtide/blueprint): devshell, packages, checks, formatter
-.github/workflows/     CI (GitHub Actions)
+.github/workflows/     CI and release (GitHub Actions)
 ```
 
 A task folder in `datasets/pilot/<task-id>/` contains a `Dockerfile` for the
@@ -83,8 +88,8 @@ regenerate the manifest, which records a checksum of every task file.
 ## Commands
 
 The root `Justfile` is the front door; `just` lists its recipes by group.
-Every recipe runs without prompts. Recipes marked *planned* are not in the
-Justfile yet.
+Every recipe runs without prompts, except the fzf pickers that `just run` and
+`just pick` open when you give them no arguments.
 
 | Recipe | What it does |
 |---|---|
@@ -92,13 +97,16 @@ Justfile yet.
 | `just doctor` | Check Docker, disk, CPU, `.env`, the LiteLLM proxy and provider keys. |
 | `just demo` / `just demo-down` | Start the demo stack (proxy, catalog, web UI), apply the known fix to a pilot task, grade it and show the run in the web UI, without an API key; `--agent <agent> --model <model>` uses your own key. `demo-down` removes what it created. |
 | `just run --task <id> --agent <agent> --model <model>` | Run an agent × model × task on the pilot dataset; other options go to `ssebench run`. Without arguments it opens the fzf pickers (`just pick`). |
+| `just run-all --agent <agent> --model <model>` | Run one agent × model on every pilot task, one after the other. Costs real money with a real agent. |
 | `just launch` / `just stop` | Start (rebuilding when `models/` changed) or stop the LiteLLM proxy. |
+| `just report [preset]` | Build the PDF report from `results/` (needs jq and Typst; reference runs are left out of the scores). |
 | `just test [components]` | Unit tests: pytest, `cargo test`, `go test`, `bun test` in webui. |
-| `just lint [components]` | ruff, basedpyright, cargo fmt and clippy, gofmt and go vet, webui typecheck and eslint (eslint findings are reported, not enforced yet). |
+| `just lint [components]` | ruff, basedpyright, cargo fmt and clippy, gofmt and go vet, webui Prettier check, typecheck and eslint. |
 | `just fmt [components]` | ruff, cargo fmt, gofmt, prettier. |
-| `just images` | Build the base images and the runtime, LiteLLM and catalog images. |
+| `just images` | Build the base images and the runtime, LiteLLM and catalog images (`just base-images`, `just runtime-images`); `just case-build [tasks]` and `just case-clean` build and remove case images. |
 | `just dataset-verify [tasks]` | Grade tasks with the reference agent (every check must pass) and the dummy agent (the PoCs must still trigger), as the Dataset workflow does; `--changed-since origin/main` picks the tasks a branch changed. |
-| `just docs [build]` | Serve or build the documentation site. |
+| `just docs [build]` | Serve or build the documentation site; the build fails on a broken link between pages. |
+| `just webui` | Build and serve the web UI on `http://127.0.0.1:3001`. |
 | `just docs-gen` / `just docs-check` | Regenerate, or check, the reference pages generated from the code (CLI, Python SDK, daemon API, environment variables, config files). |
 | `just release <version>` | Set the version of every component and update the lockfiles. |
 
@@ -156,7 +164,17 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent reference
 Run results land in `results/<task>/<model>/<agent>/` under the working
 directory. The CLI finds `agents/`, `images/`, `datasets/` and the Compose file
 through `ssebench.paths`: `SSEBENCH_HOME` if set, otherwise the checkout that
-contains the working directory, otherwise the checkout it was installed from.
+contains the working directory, otherwise the checkout it was installed from,
+otherwise the copy that the wheel carries (`uvx ssebench`, with no checkout).
+`.env`, `models/` and `results/` live in the workspace: the checkout, or the
+working directory without one. `uv run ssebench doctor` checks the host and
+`uv run ssebench tasks list` lists the tasks, both without a model key.
+
+Several stacks can share one Docker daemon. When you run end to end next to
+other work, give yours its own Compose project (`COMPOSE_PROJECT_NAME`), proxy
+port (`LITELLM_PORT`) and image prefix (`SSEBENCH_REGISTRY`), and remove only
+what you created; the default project's database volume may hold someone's data.
+`just demo` uses a project of its own (`SSEBENCH_DEMO_PROJECT`) for that reason.
 
 ## Conventions
 
@@ -184,8 +202,28 @@ contains the working directory, otherwise the checkout it was installed from.
   checked by `sdk/daemon/tests/openapi.rs`) and every environment variable
   (`docs/reference/env.yaml`). When you add an option, a public SDK name, a
   daemon route or an environment variable, update its source of truth and run
-  `just docs-gen`.
+  `just docs-gen`. Never edit a region between `<!-- generated: ... -->` and
+  `<!-- end generated -->` by hand. `just docs-check`, `uv run pytest` and
+  `cargo test --test openapi` fail on drift.
+- **Other generated files** are rewritten by their tool, never edited by hand:
+  `datasets/pilot/manifest.json` (`uv run ssebench dataset manifest`),
+  `datasets/schema/` (`uv run ssebench dataset schema`),
+  `datasets/pilot/THIRD_PARTY.md` (`python3 tools/dataset/third_party.py`),
+  `uv.lock` (`uv lock`) and every version field (`just release`).
+- **Docs** describe what the code does today: run a command before you document
+  it. Link between pages with root-relative paths without an extension, and add a
+  new page to the sidebar in `docs/.vitepress/config.mts`.
 - Never commit `.env`, API keys or `results/`.
+
+## Before you finish
+
+Run what CI runs for the parts you touched: `just lint`, `just test` and
+`just docs-check`; `bun run docs:build` when you changed `docs/`;
+`uv run ssebench dataset validate`, `uv run ssebench dataset manifest --check`
+and `just dataset-verify <task-id>` when you changed a task; and an end-to-end
+run with the `dummy` or `reference` agent when you changed the runtime or an
+image. Keep each change focused,
+and report unrelated problems you find instead of fixing them in passing.
 
 ## Invariants to preserve
 

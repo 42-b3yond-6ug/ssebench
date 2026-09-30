@@ -32,6 +32,9 @@ just setup
 `just setup` installs the dependencies and writes `.env` with generated local
 secrets for the LiteLLM proxy and its database. Add your provider keys to
 `.env` to run real agents. `.env` is ignored by git; never commit it.
+`just doctor` checks Docker, disk space and `.env`, and says how to fix what is
+wrong; see [Installation](docs/getting-started/installation.md) and
+[Troubleshooting](docs/getting-started/troubleshooting.md).
 
 Each toolchain works from the repository root on its own, too:
 
@@ -68,14 +71,18 @@ The flake covers x86-64 and ARM64 Linux and Apple silicon macOS.
 ## Checks and tests
 
 ```sh
-just fmt     # format all code
-just lint    # all linters and type checkers
-just test    # unit tests for every component
+just fmt         # format all code
+just lint        # all linters and type checkers
+just test        # unit tests for every component
+just docs-check  # generated reference pages, JSON Schemas and the daemon's OpenAPI description
 ```
 
-Each takes component names to narrow it down, for example `just test python`
-or `just lint rust go`. Run `just lint` and `just test` before you open a pull
-request. CI runs the same checks.
+`fmt`, `lint` and `test` take component names to narrow them down (`python`,
+`rust`, `go`, `webui`), for example `just test python` or `just lint rust go`.
+Run `just lint`, `just test` and `just docs-check` before you open a pull
+request; CI runs the same checks, on the parts of the tree your change touches.
+Markdown is not linted, but `bun run docs:build` builds the documentation site
+and fails on a broken link between pages, so run it when you change `docs/`.
 
 While iterating on one component, you can run its tools directly:
 
@@ -87,6 +94,27 @@ While iterating on one component, you can run its tools directly:
 | TypeScript | `webui/` | `bun run lint`, `bun run typecheck`, `bun run build` |
 | Docs | `docs/` | `bun run build`; `just docs-check` checks the generated reference pages and `just docs-gen` rewrites them |
 | Dataset | `datasets/`, `tools/dataset/` | `uv run ssebench dataset validate`, `uv run ssebench dataset manifest --check`, `python3 tools/dataset/third_party.py --check` |
+
+### Generated reference docs
+
+Parts of the reference pages under `docs/reference/` are generated from the code
+so that they cannot drift from it. Do not edit the regions between
+`<!-- generated: ... -->` and `<!-- end generated -->`. Change the source of
+truth, then run `just docs-gen`:
+
+| You change | Edit | Then |
+|---|---|---|
+| A CLI command or option | the help strings of the argument parser in `bench/src/ssebench/cli/` | `just docs-gen` |
+| A public name of the `sse` SDK | its docstring in `sdk/python/sse/` | `just docs-gen` |
+| A daemon route or a response field | `sdk/daemon/openapi.yaml` | `just docs-gen` |
+| An environment variable | `docs/reference/env.yaml` | `just docs-gen` |
+
+`just docs-check`, `uv run pytest` (`tools/docs/test_refdocs.py`) and
+`cargo test --test openapi` fail when a page or the OpenAPI description is out
+of date, so commit the regenerated files with your change.
+[Writing documentation](docs/contributing/documentation.md) has the details.
+
+### End to end
 
 Changes to the runtime, the images or a task should also be tried end to end.
 The `dummy` agent makes no model calls, so a run with it exercises image
@@ -119,10 +147,13 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent reference
 | `models/` | YAML | LiteLLM model definitions. |
 | `catalog/` | Go | Task catalog service. |
 | `webui/` | TypeScript, Go | Web UI and its terminal proxy. |
-| `datasets/pilot/` | mixed | The pilot tasks. |
-| `tools/` | shell, Python, Typst | Task preprocessing (`bear`), reference docs generation (`docs`), reports (`report`), dataset tooling (`dataset`). |
+| `datasets/pilot/` | mixed | The pilot tasks, `dataset.yaml`, the generated `manifest.json`, `third_party.json` and the `THIRD_PARTY.md` generated from it. |
+| `datasets/schema/` | JSON | JSON Schemas of the task config, `dataset.yaml` and the manifest, generated from the CLI's models. |
+| `tests/` | Python, shell | End-to-end smoke run, integrity bypass suite, offline test of every agent. |
 | `docs/` | Markdown | Documentation site (VitePress). |
 | `deploy/` | YAML | Deployment configurations (Docker Compose). |
+| `nix/`, `flake.nix` | Nix | The optional flake: development shell, packages, checks, formatter. |
+| `just/`, `Justfile` | just | The recipes. |
 
 ## Extending SSEBench
 
@@ -148,6 +179,38 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent reference
 - **Write a plugin or extend the runtime:**
   [docs/guides/write-a-plugin.md](docs/guides/write-a-plugin.md).
 
+## Dataset changes
+
+The pilot dataset is a benchmark, so its files are held to a few rules:
+
+- **Only publicly disclosed vulnerabilities with an upstream fix.** Never add a
+  vulnerability that is not public yet, or one whose fix you cannot point to. A
+  task must not contain anything that reveals its reference patch or hidden tests
+  to the agent; see [SECURITY.md](SECURITY.md).
+- **Record where everything comes from.** Add the upstream project, its license,
+  the advisory, the report and the origin of the PoC to
+  `datasets/pilot/third_party.json`, then regenerate
+  `datasets/pilot/THIRD_PARTY.md` with `python3 tools/dataset/third_party.py`.
+  `--check` fails when the file is out of date or when `third_party.json` no
+  longer matches the tasks. Do not edit `THIRD_PARTY.md` by hand.
+- **Keep the manifest current.** `datasets/pilot/manifest.json` records every
+  task and a checksum of every file in its folder, and the CLI, the catalog and
+  the web UI read it. After you change a task, run `uv run ssebench dataset
+  manifest`; `uv run ssebench dataset manifest --check` fails when it is stale.
+  Do not edit it by hand.
+- **Version the dataset.** Change `version` in `datasets/pilot/dataset.yaml`,
+  for example from `pilot-v1` to `pilot-v2`, when tasks are added or removed, or
+  changed in a way that can change their results. A fix to a typo does not need
+  a new version. [Dataset manifest](docs/dataset/manifest.md) describes the
+  files.
+- **Keep the licenses straight.** The task material you write (configuration,
+  scripts, PoCs, reports and tests) is CC BY 4.0. Upstream code, patches and
+  tests that a task includes keep the license of their project, and stay
+  attributed to it.
+- **Change the schema, not just the data.** The task config is defined by the
+  models in `bench/src/ssebench/tasks/`. `uv run ssebench dataset schema`
+  regenerates `datasets/schema/`, and `just docs-check` fails when it is stale.
+
 ## Pull requests
 
 1. For anything larger than a small fix, open an issue first so we can agree on
@@ -162,8 +225,13 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent reference
    changes.
 5. If you used AI tools to write the change, say so in the pull request
    description, or add an `Assisted-by:` trailer naming the tool and model.
-6. Make sure `just lint` and `just test` pass. A maintainer reviews every pull
-   request before it is merged.
+6. Make sure `just lint`, `just test` and `just docs-check` pass, and that
+   `bun run docs:build` does if you changed `docs/`. Commit what
+   `just docs-gen`, `ssebench dataset manifest` and
+   `python3 tools/dataset/third_party.py` regenerate.
+7. Open the pull request against `main`. CI runs on it; fix real failures with
+   new commits. A maintainer reviews every pull request, and merges it by
+   rebasing, so `main` keeps a linear history of focused commits.
 
 Never include API keys, `.env` files or run results in a pull request.
 

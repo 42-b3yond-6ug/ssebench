@@ -29,13 +29,15 @@ ssebench/
 │   └── schema/          # JSON Schemas of the task config and the dataset manifest
 ├── tools/
 │   ├── bear/            # compile_commands.json generation for C tasks
-│   ├── dataset/         # Generator of THIRD_PARTY.md, and its drift check
+│   ├── dataset/         # Generates datasets/pilot/THIRD_PARTY.md
 │   ├── docs/            # Generators of the reference pages, and their drift check
 │   ├── release/         # Version bump and drift check (bump.py)
 │   └── report/          # Typst report built from results/
+├── tests/               # End-to-end smoke run, integrity bypass suite, offline test of every agent
 ├── docs/                # Documentation (this site)
 ├── deploy/
 │   └── compose/         # Docker Compose stack: LiteLLM proxy and Postgres, plus the demo's catalog and web UI
+├── .github/             # CI and release workflows, issue and pull request templates
 ├── just/                # Just recipes, imported by the Justfile
 ├── nix/                 # Nix flake outputs: devshell, packages, checks (optional)
 ├── Justfile             # Task runner entry point
