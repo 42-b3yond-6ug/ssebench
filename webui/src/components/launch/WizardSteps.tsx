@@ -2,7 +2,7 @@
  * WizardSteps - Proxmox-style tab indicator for multi-step wizard
  */
 
-export type StepId = "task" | "model" | "agent" | "mode" | "review"
+export type StepId = "task" | "agent" | "model" | "mode" | "options" | "review"
 
 export interface StepInfo {
   id: StepId

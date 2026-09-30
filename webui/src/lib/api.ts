@@ -48,6 +48,7 @@ import type {
   LaunchConfig,
   LaunchStatus,
   LaunchConfigInfo,
+  DoctorResult,
 } from "../types/launch"
 
 /**
@@ -151,6 +152,17 @@ export async function fetchLaunchConfig(): Promise<LaunchConfigInfo> {
   const response = await apiFetch("/api/launch/config")
   if (!response.ok) {
     throw new Error(`Failed to fetch launch config: ${response.status}`)
+  }
+  return response.json()
+}
+
+/**
+ * Fetch the CLI's checks, with the provider keys each model lacks
+ */
+export async function fetchDoctor(): Promise<DoctorResult> {
+  const response = await apiFetch("/api/launch/doctor")
+  if (!response.ok) {
+    throw new Error(`Failed to fetch the CLI's checks: ${response.status}`)
   }
   return response.json()
 }

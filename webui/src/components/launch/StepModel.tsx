@@ -14,12 +14,18 @@ interface StepModelProps {
   models: string[]
   selectedModel: string
   onModelSelect: (model: string) => void
+  /** The reference agent makes no model calls, so it needs no model */
+  noModelNeeded?: boolean
+  /** By model, the provider keys `.env` lacks; a model missing here is unchecked */
+  missingKeys?: Record<string, string[]>
 }
 
 export function StepModel({
   models,
   selectedModel,
   onModelSelect,
+  noModelNeeded = false,
+  missingKeys = {},
 }: StepModelProps) {
   // Group models by vendor
   const modelGroups = useMemo(() => groupModelsByVendor(models), [models])
@@ -50,6 +56,20 @@ export function StepModel({
     )
   }
 
+  if (noModelNeeded) {
+    return (
+      <div className="h-full overflow-y-auto p-6">
+        <h2 className="text-fg mb-2 text-xl font-semibold">No Model Needed</h2>
+        <p className="text-fg-4 text-sm">
+          The reference agent applies the task&apos;s known fix and makes no
+          model calls, so the run has no model and needs no provider key.
+        </p>
+      </div>
+    )
+  }
+
+  const missingForSelected = missingKeys[selectedModel] ?? []
+
   return (
     <div className="h-full overflow-y-auto p-6">
       {/* Step header */}
@@ -61,6 +81,21 @@ export function StepModel({
           Select the AI model to use for the benchmark task
         </p>
       </div>
+
+      {missingForSelected.length > 0 && (
+        <div
+          role="alert"
+          className="bg-gruvbox-yellow/10 border-gruvbox-yellow text-fg-2 mb-4 rounded-lg border p-3 text-sm"
+        >
+          <span className="text-gruvbox-yellow font-medium">
+            {selectedModel} needs {missingForSelected.join(", ")}
+          </span>{" "}
+          in <code className="font-mono">.env</code>, which has no value for it.
+          The run fails when the agent first calls the model. Add the key and
+          restart the proxy with{" "}
+          <code className="font-mono">ssebench proxy up</code>.
+        </div>
+      )}
 
       {/* Vendor groups */}
       <div className="space-y-4">
@@ -107,6 +142,11 @@ export function StepModel({
                     <OptionCard
                       key={model}
                       name={cleanModelName(model)}
+                      description={
+                        missingKeys[model]?.length
+                          ? `Key missing: ${missingKeys[model].join(", ")}`
+                          : undefined
+                      }
                       isSelected={selectedModel === model}
                       onSelect={() => onModelSelect(model)}
                       size="normal"
