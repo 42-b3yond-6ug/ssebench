@@ -33,7 +33,7 @@ from ssebench.middleware.tools import RUNTIME_IMAGE_ENV, runtime_image
 from ssebench.models import NO_MODEL
 from ssebench.pipe import REGISTRY, TAG
 from ssebench.runner.reference import is_reference_run
-from ssebench.tasks import CatalogError, load_catalog
+from ssebench.tasks import Catalog, CatalogError, load_catalog
 from ssebench.tasks.catalog import bundled_manifest
 from ssebench.tasks.manifest import ManifestTask
 
@@ -243,7 +243,7 @@ def build_base(base: str) -> None:
     )
 
 
-def prepare_images(entry: ManifestTask, build: bool) -> str | None:
+def prepare_images(catalog: Catalog, entry: ManifestTask, build: bool) -> str | None:
     """Get the images of the stack and of the task: pull them, or build them from this checkout.
 
     The LiteLLM image is always built here, as `ssebench proxy up` does: it carries this checkout's
@@ -266,7 +266,7 @@ def prepare_images(entry: ManifestTask, build: bool) -> str | None:
         _ = paths.require_checkout(f"Building the {' and '.join(missing)} image")
         stack.compose("build", *missing, overlays=[paths.demo_compose_file()])
 
-    prepare_case_image(entry, build)
+    prepare_case_image(catalog, entry, build)
 
     runtime = runtime_image()
     if not build and (image_exists(runtime) or pull(runtime)):
@@ -274,11 +274,12 @@ def prepare_images(entry: ManifestTask, build: bool) -> str | None:
     return None
 
 
-def prepare_case_image(entry: ManifestTask, build: bool) -> None:
+def prepare_case_image(catalog: Catalog, entry: ManifestTask, build: bool) -> None:
     """Make sure the run can get the task's case image: pulled, or built on its base image."""
     # The case image already holds its base image's layers. Only a local build of the case image
-    # (the run does it when the pull fails) needs the base image.
-    case = f"{REGISTRY}/{entry.image}"
+    # (the run does it when the pull fails) needs the base image. The run pulls the image by the
+    # dataset version, as the catalog service's clients do, so this pulls that tag too.
+    case = catalog.case_image(entry)
     if not build and pull(case):
         return
     base = f"{REGISTRY}/{entry.base}"
@@ -555,7 +556,8 @@ def up(plan: Plan) -> int:
         raise DemoError(f"--model is required, except with --agent {DEFAULT_AGENT}")
     _ = get_agent_path(plan.agent)
     try:
-        entry = load_catalog(str(bundled_manifest())).task(plan.task)
+        catalog = load_catalog(str(bundled_manifest()))
+        entry = catalog.task(plan.task)
     except (CatalogError, LookupError) as e:
         raise DemoError(str(e)) from e
 
@@ -569,7 +571,7 @@ def up(plan: Plan) -> int:
     say(
         f"Getting the images ({'building them from this checkout' if plan.build else 'pulling them, and building what the registry lacks'})"
     )
-    runtime_image = prepare_images(entry, plan.build)
+    runtime_image = prepare_images(catalog, entry, plan.build)
     images_done = time.monotonic()
 
     say()

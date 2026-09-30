@@ -46,6 +46,7 @@ class RunArgs(argparse.Namespace):
         self.task: str
         self.local: str
         self.catalog: str
+        self.build: bool
         self.mode: Literal["sidecar", "sandbox"]
         self.tool_layer: str | None
         self.timeout: int
@@ -101,7 +102,9 @@ def cmd_run(args: argparse.Namespace) -> int:
     task: Task
     try:
         task = (
-            LocalTask(args.task, Path(args.local)) if args.local else CatalogTask(load_catalog(args.catalog), args.task)
+            LocalTask(args.task, Path(args.local))
+            if args.local
+            else CatalogTask(load_catalog(args.catalog), args.task, build_locally=getattr(args, "build", False))
         )
     except (CatalogError, LookupError, FileNotFoundError) as e:
         logger.error(e)
@@ -290,6 +293,12 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
         default="",
         metavar="PATH|URL",
         help=f"{tasks.CATALOG_HELP}; used when --local is not given",
+    )
+    run_parser.add_argument(
+        "--build",
+        action="store_true",
+        help="Build the task's case image from its folder instead of pulling the published one; needs a checkout "
+        "or --catalog with the task folder next to it. With --local the image is always built",
     )
     run_parser.add_argument(
         "--mode",
