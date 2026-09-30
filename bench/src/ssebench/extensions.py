@@ -24,6 +24,7 @@ from importlib.metadata import EntryPoint, entry_points
 from types import MappingProxyType
 from typing import Final, Protocol, runtime_checkable
 
+from ssebench import settings
 from ssebench.backends import (
     Backend,
     BackendError,
@@ -44,6 +45,7 @@ from ssebench.pipe import REGISTRY, TAG
 
 __all__ = [
     "BACKENDS_GROUP",
+    "BACKEND_ENV",
     "BUILTIN_BACKENDS",
     "BUILTIN_TOOL_LAYERS",
     "COMMANDS_GROUP",
@@ -75,6 +77,7 @@ __all__ = [
     "get_tool_layer",
     "load_commands",
     "prebuilt_images",
+    "resolve_backend",
     "tool_layer_names",
 ]
 
@@ -88,6 +91,7 @@ DEFAULT_TOOL_LAYER: Final = "sandbox"
 BUILTIN_TOOL_LAYERS: Final[Mapping[str, type[ToolLayer]]] = MappingProxyType({DEFAULT_TOOL_LAYER: SandboxToolLayer})
 
 DEFAULT_BACKEND: Final = "docker"
+BACKEND_ENV: Final = "SSEBENCH_BACKEND"
 BUILTIN_BACKENDS: Final[Mapping[str, type[Backend]]] = MappingProxyType({DEFAULT_BACKEND: DockerBackend})
 
 
@@ -207,6 +211,11 @@ def get_backend(name: str) -> Backend:
         return backend()
     except Exception as e:
         raise ExtensionError(f"Cannot create backend {name!r} ({_origin(entry_point)}): {e}") from e
+
+
+def resolve_backend(name: str | None = None) -> Backend:
+    """The backend `name`, else the one `$SSEBENCH_BACKEND` (or `.env`) names, else the default."""
+    return get_backend(name or settings.get(BACKEND_ENV) or DEFAULT_BACKEND)
 
 
 def command_names() -> list[str]:
