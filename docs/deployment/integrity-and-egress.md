@@ -10,8 +10,9 @@ one host without them seeing each other's answers. The
 [integrity model](/concepts/integrity) describes the protections inside the
 container.
 
-It applies to the local Docker setup. The [Kubernetes](/deployment/kubernetes)
-deployment is not available yet.
+It applies to the local Docker setup. On a cluster, the
+[Kubernetes backend](/deployment/kubernetes#egress) enforces the same two policies with
+a NetworkPolicy for each run, which needs a network plugin that enforces policy.
 
 ## Networks
 
