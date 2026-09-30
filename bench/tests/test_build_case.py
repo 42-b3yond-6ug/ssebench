@@ -167,3 +167,19 @@ def test_force_rebuilds_every_image(
 
     assert len(docker.builds) == 1
     assert docker.label == task_files_digest(task.task_path)
+
+
+def test_a_failed_build_is_reported_and_fails_the_command(
+    dataset: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def failing_build(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if cmd[:3] == ["docker", "buildx", "build"]:
+            raise subprocess.CalledProcessError(1, cmd)
+        return Docker()(cmd, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", failing_build)
+
+    assert run_build_case(dataset) == 1
+
+    assert any(f"Failed to build case image for {TASK}" in m for m in caplog.messages)
+    assert f"  - {TASK}" in caplog.messages
