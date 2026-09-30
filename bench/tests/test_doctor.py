@@ -278,6 +278,24 @@ def test_a_key_the_provider_accepts_is_ok(healthy_host: Path) -> None:
     assert seen[0].headers["x-api-key"] == "a" and seen[1].headers["authorization"] == "Bearer o"
 
 
+def test_a_key_for_a_compatible_endpoint_is_tried_there(healthy_host: Path) -> None:
+    # In LiteLLM's order: ANTHROPIC_API_BASE before ANTHROPIC_BASE_URL, OPENAI_BASE_URL before OPENAI_API_BASE.
+    _ = (healthy_host / ".env").write_text(
+        SECRETS
+        + "ANTHROPIC_API_KEY=a\nANTHROPIC_BASE_URL=https://ignored.example\nANTHROPIC_API_BASE=https://router.example/\n"
+        + "OPENAI_API_KEY=o\nOPENAI_API_BASE=https://ignored.example/v1\nOPENAI_BASE_URL=https://router.example/v1\n"
+    )
+    seen: list[httpx.Request] = []
+
+    [anthropic, openai] = doctor.check_provider_key_values(provider(200, seen))
+
+    assert [str(r.url) for r in seen] == [
+        "https://router.example/v1/models?limit=1",
+        "https://router.example/v1/models",
+    ]
+    assert "accepted by router.example" in anthropic.detail and "accepted by router.example" in openai.detail
+
+
 @pytest.mark.parametrize("status", [401, 403])
 def test_a_rejected_key_is_a_warning_with_a_fix(healthy_host: Path, status: int) -> None:
     check = doctor.check_key_accepted("ANTHROPIC_API_KEY", "a", provider(status))

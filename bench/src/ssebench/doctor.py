@@ -23,15 +23,26 @@ DISK_WARN_GIB = 50
 
 KEY_PROBE_SECONDS = 15
 # How each provider key is tried: the provider's model-list endpoint, which lists what the key may use
-# and is not billed. Keys of providers that are not here are not verified.
-KEY_PROBES: dict[str, tuple[str, Callable[[str], dict[str, str]]]] = {
+# and is not billed. The base is the first variable of `.env` that LiteLLM reads for it, in LiteLLM's
+# order, so a key for a compatible endpoint is tried there. Keys of providers that are not here are not
+# verified.
+KEY_PROBES: dict[str, tuple[tuple[str, ...], str, str, Callable[[str], dict[str, str]]]] = {
     "ANTHROPIC_API_KEY": (
-        "https://api.anthropic.com/v1/models?limit=1",
+        ("ANTHROPIC_API_BASE", "ANTHROPIC_BASE_URL"),
+        "https://api.anthropic.com",
+        "/v1/models?limit=1",
         lambda key: {"x-api-key": key, "anthropic-version": "2023-06-01"},
     ),
-    "OPENAI_API_KEY": ("https://api.openai.com/v1/models", lambda key: {"Authorization": f"Bearer {key}"}),
+    "OPENAI_API_KEY": (
+        ("OPENAI_BASE_URL", "OPENAI_API_BASE"),
+        "https://api.openai.com/v1",
+        "/models",
+        lambda key: {"Authorization": f"Bearer {key}"},
+    ),
     "GOOGLE_API_KEY": (
-        "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1",
+        ("GEMINI_API_BASE",),
+        "https://generativelanguage.googleapis.com/v1beta",
+        "/models?pageSize=1",
         lambda key: {"x-goog-api-key": key},
     ),
 }
@@ -251,7 +262,10 @@ def check_provider_keys() -> Check:
 
 def check_key_accepted(name: str, key: str, client: httpx.Client) -> Check:
     """Whether the provider accepts `key`, asking its model-list endpoint, which no call is billed for."""
-    url, headers = KEY_PROBES[name]
+    variables, default, path, headers = KEY_PROBES[name]
+    in_file = settings.dotenv()
+    base = next((in_file[var].strip() for var in variables if in_file.get(var, "").strip()), default)
+    url = base.rstrip("/") + path
     label = f"Provider key {name}"
     host = httpx.URL(url).host
     try:

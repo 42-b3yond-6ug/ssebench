@@ -36,6 +36,9 @@ SSEBench home, and variables set in the environment take precedence over it.
 | `ANTHROPIC_API_KEY` | unset | Key of the Anthropic models in `models/anthropic-claude.yaml`. `sse.ai` also uses it when it runs OpenCode outside a task container. |
 | `OPENAI_API_KEY` | unset | Key of the OpenAI models in `models/openai-gpt.yaml`. |
 | `GOOGLE_API_KEY` | unset | Key of the Gemini models in `models/google-gemini.yaml`. |
+| `ANTHROPIC_BASE_URL` | `https://api.anthropic.com` | Endpoint of the Anthropic models, for an Anthropic-compatible endpoint such as a router or gateway; without the `/v1` suffix. LiteLLM also reads `ANTHROPIC_API_BASE`, which takes precedence. |
+| `OPENAI_BASE_URL` | `https://api.openai.com/v1` | Endpoint of the OpenAI models, for an OpenAI-compatible endpoint; with the `/v1` suffix. LiteLLM also reads `OPENAI_API_BASE`, which this one takes precedence over. |
+| `GEMINI_API_BASE` | `https://generativelanguage.googleapis.com/v1beta` | Endpoint of the Gemini models, for a Gemini-compatible endpoint; with the `/v1beta` suffix. |
 | `LITELLM_PORT` | `4000` | Host port of the LiteLLM proxy. |
 | `LITELLM_BIND` | `127.0.0.1` | Host address that the LiteLLM proxy's port is published on. The proxy holds the master key and the provider keys, so it listens on loopback only; set `0.0.0.0` to reach it from other machines, and only on a network you trust. |
 | `COMPOSE_PROJECT_NAME` | `ssebench` | Compose project of the proxy stack. Its containers, networks (`<project>_default`, and the internal `<project>_agents` that run containers join by default) and database volume (`<project>_postgres_data`) carry this name, so stacks with different names and ports run side by side. |
