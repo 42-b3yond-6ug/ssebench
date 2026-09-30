@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 use std::os::unix::process::CommandExt;
 use std::process::{Command, Stdio};
-use std::sync::mpsc;
+use std::sync::{Mutex, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -14,6 +14,43 @@ const OUTPUT_GRACE: Duration = Duration::from_secs(10);
 
 /// Rounds of killing before giving up on a user's processes.
 const KILL_ROUNDS: usize = 20;
+
+/// Process groups of children that are still running: the daemon kills them
+/// when it stops, since it cannot wait for them.
+static LIVE_GROUPS: Mutex<Vec<i32>> = Mutex::new(Vec::new());
+
+/// A child's process group, listed in [`kill_live_groups`] until dropped.
+#[derive(Debug)]
+pub struct TrackedGroup(i32);
+
+impl TrackedGroup {
+    /// Track the group `pgid`, which must be that of a child the caller
+    /// waits for and started with `process_group(0)`.
+    pub fn new(pgid: u32) -> Option<Self> {
+        let pgid = i32::try_from(pgid).ok()?;
+        LIVE_GROUPS.lock().unwrap().push(pgid);
+        Some(Self(pgid))
+    }
+}
+
+impl Drop for TrackedGroup {
+    fn drop(&mut self) {
+        let mut groups = LIVE_GROUPS.lock().unwrap();
+        if let Some(i) = groups.iter().position(|g| *g == self.0) {
+            groups.swap_remove(i);
+        }
+    }
+}
+
+/// Kill every tracked process group. The waiters see their children exit.
+pub fn kill_live_groups() {
+    for pgid in LIVE_GROUPS.lock().unwrap().iter() {
+        // SAFETY: see kill_process_group.
+        unsafe {
+            libc::kill(-pgid, libc::SIGKILL);
+        }
+    }
+}
 
 /// Run `cmd` to completion and capture its output.
 ///
@@ -28,6 +65,7 @@ pub fn run_captured(mut cmd: Command, reap: Option<&Account>) -> io::Result<Scri
         .stderr(Stdio::piped())
         .process_group(0);
     let mut child = cmd.spawn()?;
+    let _group = TrackedGroup::new(child.id());
     let stdout = child.stdout.take().map(drain);
     let stderr = child.stderr.take().map(drain);
 

@@ -1,4 +1,5 @@
 use std::io::{BufRead, BufReader, Write};
+use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::Stdio;
 use std::sync::mpsc;
@@ -8,7 +9,7 @@ use std::thread;
 use anyhow::{Result, anyhow};
 use serde::Deserialize;
 
-use crate::isolation::agent_account;
+use crate::isolation::{TrackedGroup, agent_account};
 
 use super::Tool;
 use super::response::{ScriptResult, ToolResult};
@@ -70,7 +71,9 @@ impl Bash {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
+            .process_group(0)
             .spawn()?;
+        let group = TrackedGroup::new(child.id());
 
         let mut stdin = child
             .stdin
@@ -151,6 +154,7 @@ impl Bash {
             let _ = stdout_listener.join();
             let _ = stderr_listener.join();
             let _ = child.wait();
+            drop(group);
         });
 
         Ok(Self {
