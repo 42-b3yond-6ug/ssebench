@@ -86,3 +86,16 @@ def test_status_is_written_to_result_json(status: str) -> None:
         runtime_result=evaluator.RuntimeResult(agent_duration=0, agent_timeout=False, evaluator_timeout=False),
     )
     assert f'"status":"{status}"' in result.model_dump_json()
+
+
+@pytest.mark.parametrize(("value", "status"), [("0", 0), ("1", 1), ("124", 124), ("", None), ("x", None)])
+def test_the_agents_exit_status_comes_from_the_entrypoint(
+    monkeypatch: pytest.MonkeyPatch, value: str, status: int | None
+) -> None:
+    monkeypatch.setenv("AGENT_EXIT_STATUS", value)
+    assert evaluator.agent_exit_status() == status
+
+
+def test_no_exit_status_from_an_entrypoint_that_predates_it(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("AGENT_EXIT_STATUS", raising=False)
+    assert evaluator.agent_exit_status() is None

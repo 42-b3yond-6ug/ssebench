@@ -160,7 +160,7 @@ later failures are recorded only in their fields. See
 |---|---|---|
 | `passed` | Grading ran, and every check that ran passed: the build succeeded, `pov_passed` equals `pov_total`, and the functional and intent tests passed. The patch fixes the task. | `[result] Patch success` |
 | `failed` | Grading ran, and a check failed or the patch did not apply. | `[result] Patch failed` |
-| `error` | The patch was not graded: no check ran. | `[result] Not graded: <error_msg>` |
+| `error` | The patch was not graded (no check ran), or the agent failed and the model answered no call. | `[result] Not graded: <error_msg>` |
 
 A run is `error` when grading raised an exception (`error_msg` starts with
 `Exception:`), when it ran out of time (`Timeout (<seconds>s)`, with
@@ -168,6 +168,13 @@ A run is `error` when grading raised an exception (`error_msg` starts with
 or when the container wrote no result (`No result: evaluator did not produce
 output`). Such a run says nothing about the patch: it is never a success. Count
 it apart from failures, or run it again.
+
+The CLI also records `error`, after the evaluator, for a run whose agent exited
+with a non-zero status (`runtime_result.agent_exit_code`) while the proxy
+booked no spend for it. Every model call failed, most often because the
+provider key is invalid, and the agent gave up. The checks keep the values from
+grading the unmodified project, but the run does not show what the model can do.
+See [Results format](/concepts/results#result-json).
 
 `just report` shows, for each agent and model, the share of runs that passed
 each check; it counts the latest run of each task, or every run if you ask, see

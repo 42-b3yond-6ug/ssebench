@@ -123,7 +123,8 @@ above produces:
   "runtime_result": {
     "agent_duration": 0,
     "agent_timeout": false,
-    "evaluator_timeout": false
+    "evaluator_timeout": false,
+    "agent_exit_code": 0
   },
   "config": {
     "agent": "dummy",
@@ -136,16 +137,17 @@ above produces:
 
 | Field | Type | Meaning |
 |---|---|---|
-| `patch_result.status` | string | The verdict: `passed` when every check that ran passed, `failed` when a check failed or the patch did not apply, `error` when the patch was not graded because no check ran. See [Grading pipeline](/concepts/grading#the-result). |
+| `patch_result.status` | string | The verdict: `passed` when every check that ran passed, `failed` when a check failed or the patch did not apply, `error` when the patch was not graded because no check ran, or the agent failed and the model answered no call. See [Grading pipeline](/concepts/grading#the-result). |
 | `patch_result.build_success` | bool or null | The patched project built. |
 | `patch_result.pov_passed` | int or null | Proofs of concept that no longer trigger the vulnerability. |
 | `patch_result.pov_total` | int or null | Proofs of concept the task has. |
 | `patch_result.func_test_success` | bool or null | The project's own tests passed. |
 | `patch_result.intent_test_success` | bool or null | The tests of the upstream fix passed. |
-| `patch_result.error_msg` | string or null | The first failure: `Build failed`, `PoC failed: <poc>`, `Function test failed`, `Intent test failed` or `Patch apply failed`; or, with `status` `error`, why the patch was not graded: `Timeout (<n>s)`, `Exception: <message>` or `No check ran`. |
+| `patch_result.error_msg` | string or null | The first failure: `Build failed`, `PoC failed: <poc>`, `Function test failed`, `Intent test failed` or `Patch apply failed`; or, with `status` `error`, why the run was not graded or says nothing about the model: `Timeout (<n>s)`, `Exception: <message>`, `No check ran` or `The agent exited with status <n> and the model answered no call ...`. |
 | `patch_result.error_log` | string or null | The output of the check that failed first. |
 | `runtime_result.agent_duration` | int | Seconds the agent ran. |
 | `runtime_result.agent_timeout` | bool | The agent reached `--timeout` and was stopped. |
+| `runtime_result.agent_exit_code` | int or null | The agent's exit status, 124 after a timeout. `null` when the container did not record one, as with a runtime that predates the field. |
 | `runtime_result.evaluator_timeout` | bool | Grading did not finish within the time limit. |
 | `config` | object | The run settings, as in the [summary](#the-summary). |
 
@@ -218,6 +220,15 @@ and `agent_duration` 0. When `result.json` has no `status`, as from an
 evaluator that predates the field, the CLI derives it from the checks in the
 same way.
 
+The CLI also sets `status` to `error`, keeping the checks as graded, when the
+agent exited non-zero (`runtime_result.agent_exit_code`) and the proxy booked no
+spend for the run: the model never answered, for example because the provider
+key is invalid, and the grade is that of the unmodified project. `error_msg`
+says so. Because the proxy books spend in batches, the CLI waits up to 15
+seconds for it before it decides. A model without prices in `models/` always
+shows a spend of 0, so give it `input_cost_per_token` and `output_cost_per_token`
+for this check to work.
+
 ## Reference runs
 
 A run of the `reference` agent grades the task's known fix instead of a
@@ -239,7 +250,9 @@ PDF report with Typst (`tools/report/`; it needs Typst). For each agent and
 model it shows the average spend and time, and the share of runs that built,
 stopped every proof of concept, passed the functional tests and passed the
 intent tests, followed by a table of every task. It leaves
-[reference runs](#reference-runs) out and says how many it left out.
+[reference runs](#reference-runs) out and says how many it left out. It also
+leaves out runs with `status` `error`, which were not graded or never got an
+answer from the model, and lists them, since they say nothing about the model.
 `just report anonymous` replaces the task IDs with short hashes.
 
 A task, model and agent can have many runs, so the report needs a rule for

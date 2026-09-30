@@ -501,6 +501,7 @@ generated from the [environment variable registry](/reference/environment).
 | `SSE_AGENT_DOCKER` | unset | SDK | `host:port` of the daemon's HTTP listener, used when `SSE_DAEMON_SOCKET` is not set. |
 | `MCP_LOG_DIR` | `/tmp/mcp/logs` | MCP server | Where the MCP server writes the full logs of long check results; see [Long logs](/reference/mcp-server#long-logs). |
 | `AGENT_DURATION` | `0` | evaluator | The agent's run time in seconds; the entrypoint sets it for the evaluator. |
+| `AGENT_EXIT_STATUS` | unset | evaluator | The agent's exit status, 124 when it hit its time limit; the entrypoint sets it for the evaluator, which records it as `agent_exit_code`. |
 | `SSE_METRIC_AGENT_TIMEOUT` | unset | evaluator | Set to `true` by the entrypoint for the evaluator when the agent hit its time limit. |
 | `CLAUDE` | unset | claude-code agent | Path of the Claude Code executable; the `claude-code` agent image sets it. |
 | `OPENCODE_CONFIG_CONTENT` | unset | OpenCode | OpenCode's configuration as JSON; `sse.ai` and the `opencode` agent set it for the OpenCode server they start. |

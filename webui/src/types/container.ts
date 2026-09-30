@@ -175,6 +175,8 @@ export interface DialogResponse {
 
 /** Patch evaluation result */
 export interface PatchResult {
+  /** `error`: not graded, or the agent failed and the model answered no call. Absent from older results. */
+  status?: "passed" | "failed" | "error"
   build_success: boolean | null
   pov_passed: number | null
   pov_total: number | null
@@ -189,6 +191,8 @@ export interface RuntimeResult {
   agent_duration: number
   agent_timeout: boolean
   evaluator_timeout: boolean
+  /** The agent's exit status; absent or null when it was not recorded. */
+  agent_exit_code?: number | null
 }
 
 /** SDK /result response */

@@ -13,9 +13,15 @@
 
 // Reference runs apply each task's known fix, so their grades rate the tasks,
 // not a model; they are never scored.
+// A run with the status `error` was not graded, or its agent failed without the
+// model answering a call: it says nothing about the model, so it is listed but
+// never scored.
 #let all-results = json(case_result_json_file)
-#let results = all-results.filter(r => not r.config.at("reference_run", default: false))
-#let reference-runs = all-results.len() - results.len()
+#let model-runs = all-results.filter(r => not r.config.at("reference_run", default: false))
+#let reference-runs = all-results.len() - model-runs.len()
+#let is-error(r) = r.patch_result.at("status", default: none) == "error"
+#let error-runs = model-runs.filter(r => is-error(r))
+#let results = model-runs.filter(r => not is-error(r))
 
 #grid(
   columns: (auto, 1fr, auto),
@@ -52,6 +58,15 @@ over #tasks.len() testcases.
 #if reference-runs > 0 [
   #reference-runs reference runs, which apply the known fix of each task
   instead of a model's patch, are left out.
+]
+
+#if error-runs.len() > 0 [
+  #error-runs.len() runs ended in an error and are left out of the scores,
+  since they say nothing about the model:
+  #list(..error-runs.map(r => [
+    #r.task.id, #r.config.model, #r.config.agent:
+    #r.patch_result.at("error_msg", default: none)
+  ]))
 ]
 
 #if results.any(r => r.at("trials", default: 1) > 1) [

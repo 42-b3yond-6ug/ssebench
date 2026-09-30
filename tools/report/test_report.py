@@ -19,7 +19,7 @@ needs_typst = pytest.mark.skipif(TYPST is None, reason="typst is not installed")
 
 def test_fixtures_match_the_result_schema():
     paths = find_summaries(FIXTURE_RESULTS)
-    assert len(paths) == 4
+    assert len(paths) == 5
     results = [PerTaskEvaluationResult.model_validate_json(path.read_text()) for path in paths]
     assert any(r.config.reference_run for r in results)
     assert all(r.run_id == path.parent.name and r.started_at for r, path in zip(results, paths, strict=True))
@@ -93,6 +93,20 @@ def test_report_leaves_reference_runs_out_of_the_scores(tmp_path: Path):
             ["Avg", "$0.76", "10m", "100%", "50%", "50%", "50%"],
         ]
     ]
+
+
+@needs_typst
+def test_report_lists_runs_that_ended_in_an_error_instead_of_scoring_them(tmp_path: Path):
+    summary, *_ = render(tmp_path, "default")
+    # The scores have no row for the model that never answered.
+    assert [row[0] for row in summary[1:]] == ["claude-sonnet-4-6"]
+
+    assert TYPST is not None
+    query = subprocess.run(
+        [TYPST, "query", "main.typ", "list"], cwd=tmp_path / "report", check=True, capture_output=True, text=True
+    )
+    [item] = [plain_text(item).strip() for item in json.loads(query.stdout)]
+    assert item.startswith("gjson-196-bf4efcb, gpt-5.2, codex: The agent exited with status 1")
 
 
 @needs_typst
