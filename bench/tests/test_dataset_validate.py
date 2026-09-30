@@ -76,6 +76,10 @@ def test_task_schema_accepts_every_pilot_config() -> None:
         {"repository": "git@example.org:demo.git"},
         {"id": "has space"},
         {"source": "src/demo"},
+        {"language": "python"},
+        {"language": "C"},
+        {"language": "c++"},
+        {"language": ""},
         {"originality": "Self Craft"},
         {"task_description": {"issue": " "}},
         {"task_description": {"crash_report": []}},
@@ -109,6 +113,19 @@ def test_id_must_equal_folder_name(tmp_path: Path, make_task: MakeTask) -> None:
     _ = make_task(tmp_path, "demo-1", {"id": "GO-2024-0001"})
 
     assert "demo-1:\n  sse/config.yaml: id: 'GO-2024-0001' must equal the folder name" in errors_of(tmp_path)
+
+
+@pytest.mark.parametrize("language", ["c", "go", "rust"])
+def test_the_supported_languages_are_valid(tmp_path: Path, make_task: MakeTask, language: str) -> None:
+    _ = make_task(tmp_path, "demo-1", {"language": language})
+
+    assert validate_dataset(tmp_path).ok
+
+
+def test_an_unsupported_language_is_reported_with_the_supported_ones(tmp_path: Path, make_task: MakeTask) -> None:
+    _ = make_task(tmp_path, "demo-1", {"language": "python"})
+
+    assert "sse/config.yaml: language: Input should be 'c', 'go' or 'rust'" in errors_of(tmp_path)
 
 
 def test_unknown_and_missing_keys(tmp_path: Path, make_task: MakeTask) -> None:

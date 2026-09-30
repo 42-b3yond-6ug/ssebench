@@ -156,7 +156,7 @@ Schema, which `ssebench dataset schema` exports.
 | `id` | string | yes | Task ID, equal to the task's folder name. |
 | `project` | string | yes | Name of the upstream project. |
 | `repository` | string | yes | URL of the upstream repository. |
-| `language` | string | yes | Language of the project, lowercase: c, go, rust. |
+| `language` | `c` \| `go` \| `rust` | yes | Language of the project. The case image builds on the base image of that language. |
 | `source` | string | yes | Absolute path of the project's source tree in the case image. |
 | `task_description` | object | yes | What the agent is told about the vulnerability. At least one field must be set. |
 | `task_description.issue` | string |  | Issue text given to the agent. |
