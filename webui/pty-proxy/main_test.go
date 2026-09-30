@@ -5,38 +5,35 @@ import (
 	"testing"
 )
 
-const testID = "0123456789ab"
-
-func TestParseArgsDefaultsToBash(t *testing.T) {
-	got, err := parseArgs([]string{testID})
+func TestParseArgsTakesTheCommandAfterDashes(t *testing.T) {
+	name, args, err := parseArgs([]string{"--", "ssebench", "runs", "exec", "--tty", "run-1", "--", "bash"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"exec", "-it", testID, "bash"}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("got %q, want %q", got, want)
+	if name != "ssebench" {
+		t.Fatalf("name %q", name)
+	}
+	want := []string{"runs", "exec", "--tty", "run-1", "--", "bash"}
+	if !reflect.DeepEqual(args, want) {
+		t.Fatalf("got %q, want %q", args, want)
 	}
 }
 
-func TestParseArgsPassesCommandVerbatim(t *testing.T) {
+func TestParseArgsPassesArgumentsVerbatim(t *testing.T) {
 	payload := "'; touch /tmp/pwned; echo '"
-	got, err := parseArgs([]string{"--workdir", "/src", testID, "opencode", "run", payload, "--workdir"})
+	name, args, err := parseArgs([]string{"prog", "--workdir", payload})
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"exec", "-it", "-w", "/src", testID, "opencode", "run", payload, "--workdir"}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("got %q, want %q", got, want)
+	if name != "prog" || !reflect.DeepEqual(args, []string{"--workdir", payload}) {
+		t.Fatalf("got %q %q", name, args)
 	}
 }
 
-func TestParseArgsRejectsBadContainerID(t *testing.T) {
-	for _, id := range []string{"x; touch /tmp/pwned", "--privileged", "my-container", "0123456789AB", "0123456789a"} {
-		if _, err := parseArgs([]string{id}); err == nil {
-			t.Errorf("container ID %q accepted", id)
+func TestParseArgsRejectsNoCommandAndOptions(t *testing.T) {
+	for _, argv := range [][]string{nil, {"--"}, {"--workdir", "/src", "bash"}, {"-c", "id"}} {
+		if _, _, err := parseArgs(argv); err == nil {
+			t.Errorf("%q accepted", argv)
 		}
-	}
-	if _, err := parseArgs(nil); err == nil {
-		t.Error("missing container ID accepted")
 	}
 }
