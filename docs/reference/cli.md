@@ -53,9 +53,9 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent <agent> --mo
 
 ```sh
 ssebench run [-h] [--model NAME] --agent NAME --task ID [--local DIR]
-             [--catalog PATH|URL] [--mode MODE] [--tool-layer NAME] [--plugin NAME]
-             [--run-id ID] [--timeout SECONDS] [--difficulty LEVEL] [--keep-container]
-             [--egress POLICY]
+             [--catalog PATH|URL] [--build] [--mode MODE] [--tool-layer NAME]
+             [--plugin NAME] [--run-id ID] [--timeout SECONDS] [--difficulty LEVEL]
+             [--keep-container] [--egress POLICY]
 ```
 
 | Option | Default | Description |
