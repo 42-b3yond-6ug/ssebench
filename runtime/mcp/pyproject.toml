@@ -1,6 +1,6 @@
 [project]
 name = "ssebench-mcp"
-version = "1.0.0rc1"
+version = "1.0.0"
 description = "SSEBENCH MCP Server"
 readme = "README.md"
 requires-python = ">=3.12"

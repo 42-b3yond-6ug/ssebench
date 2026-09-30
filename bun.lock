@@ -7,14 +7,14 @@
     },
     "docs": {
       "name": "ssebench-docs",
-      "version": "1.0.0-rc.1",
+      "version": "1.0.0",
       "devDependencies": {
         "vitepress": "^2.0.0-alpha.15",
       },
     },
     "webui": {
       "name": "ssebench-webui",
-      "version": "1.0.0-rc.1",
+      "version": "1.0.0",
       "dependencies": {
         "@hono/node-server": "^1.19.9",
         "@opencode-ai/sdk": "^1.1.40",

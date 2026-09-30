@@ -1,6 +1,6 @@
 [project]
 name = "claude-code-sse"
-version = "1.0.0rc1"
+version = "1.0.0"
 description = "Claude"
 readme = "README.md"
 requires-python = ">=3.12"

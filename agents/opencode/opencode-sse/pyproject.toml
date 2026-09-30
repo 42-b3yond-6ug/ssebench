@@ -1,6 +1,6 @@
 [project]
 name = "opencode-sse"
-version = "1.0.0rc1"
+version = "1.0.0"
 description = "OpenCode agent for SSEBench"
 readme = "README.md"
 requires-python = ">=3.12"
