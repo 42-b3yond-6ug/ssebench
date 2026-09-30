@@ -3,6 +3,7 @@
 # then use the /key/generate API to generate a new key with strict limit.
 
 import difflib
+import time
 from typing import final
 
 import httpx
@@ -14,6 +15,10 @@ from ssebench.backends import ProxyEndpoint
 from ssebench.errors import UserError
 
 MAX_BUDGET = 10
+
+# The proxy books a call's spend in batches (every 10 seconds unless configured otherwise), so the
+# spend of a run that just ended can still read 0.
+SPEND_SETTLE_SECONDS = 15
 
 # The model name of a run that makes no model calls.
 NO_MODEL = "none"
@@ -129,6 +134,15 @@ class Model:
         response = self.client.get(url, params={"user_id": self.user_id})
         user_result = UserInfoResult.model_validate_json(response.text)
         spend = user_result.user_info.spend
+        return spend
+
+    def settled_spend(self, seconds: float = SPEND_SETTLE_SECONDS) -> float:
+        """The spend, after waiting up to `seconds` for the proxy to book a call that has just ended."""
+        deadline = time.monotonic() + seconds
+        spend = self.get_spend()
+        while spend == 0 and time.monotonic() < deadline:
+            time.sleep(1)
+            spend = self.get_spend()
         return spend
 
 

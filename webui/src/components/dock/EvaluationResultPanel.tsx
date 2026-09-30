@@ -148,18 +148,21 @@ function ResultCard({
 
   const isPovSuccess = povTotal > 0 && povPassed === povTotal
   const isPovPartial = povTotal > 0 && povPassed > 0 && povPassed < povTotal
+  const isRunError = patch_result?.status === "error"
   const isBuildFail = buildSuccess === false
   const isIntentFail = intentSuccess === false
 
-  const borderColor = isBuildFail
-    ? "border-gruvbox-red"
-    : isIntentFail
-      ? "border-gruvbox-yellow"
-      : isPovSuccess
-        ? "border-gruvbox-green"
-        : isPovPartial
-          ? "border-gruvbox-yellow"
-          : "border-gruvbox-gray"
+  const borderColor = isRunError
+    ? "border-gruvbox-orange"
+    : isBuildFail
+      ? "border-gruvbox-red"
+      : isIntentFail
+        ? "border-gruvbox-yellow"
+        : isPovSuccess
+          ? "border-gruvbox-green"
+          : isPovPartial
+            ? "border-gruvbox-yellow"
+            : "border-gruvbox-gray"
 
   return (
     <div className={`bg-bg-1 rounded-lg border-2 p-3 ${borderColor}`}>
@@ -187,6 +190,16 @@ function ResultCard({
           <div className="opacity-90">
             The task&apos;s known fix was applied, so this grade checks the
             task, not a model.
+          </div>
+        </div>
+      )}
+
+      {isRunError && (
+        <div className="bg-gruvbox-orange/10 text-gruvbox-orange mb-2 rounded p-2 text-[10px]">
+          <div className="mb-1 font-medium">Run error</div>
+          <div className="opacity-90">
+            This run was not graded as a result of the model; the checks below
+            are those of the unmodified project when the agent failed.
           </div>
         </div>
       )}
@@ -301,6 +314,15 @@ function ResultCard({
               {formatDuration(runtime_result.agent_duration * 1000)}
             </span>
           </div>
+          {typeof runtime_result.agent_exit_code === "number" &&
+            runtime_result.agent_exit_code !== 0 && (
+              <div className="text-fg-4">
+                exit{" "}
+                <span className="text-fg-3 font-mono">
+                  {runtime_result.agent_exit_code}
+                </span>
+              </div>
+            )}
           {runtime_result.agent_timeout && (
             <div className="bg-gruvbox-orange/20 text-gruvbox-orange rounded px-1 py-0.5 font-medium">
               TIMEOUT

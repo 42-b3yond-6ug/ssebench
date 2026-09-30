@@ -51,6 +51,8 @@ class RuntimeResult(BaseModel):
     agent_duration: int
     agent_timeout: bool
     evaluator_timeout: bool
+    # None when the entrypoint did not say, as with one that predates the variable.
+    agent_exit_code: int | None = None
 
 
 class EvaluationResult(BaseModel):
@@ -73,6 +75,12 @@ async def run_grading(timeout: float, grade_patch: Callable[[], SDKPatchResult] 
         logger.error(f"[evaluator] Unexpected Error: {e}", exc_info=True)
         return PatchResult.not_graded(f"Exception: {e!s}"), False
     return PatchResult.from_sdk(sdk_result), False
+
+
+def agent_exit_status() -> int | None:
+    """The agent's exit status, which the entrypoint passes in AGENT_EXIT_STATUS."""
+    value = os.getenv("AGENT_EXIT_STATUS", "")
+    return int(value) if value.lstrip("-").isdigit() else None
 
 
 def result_path() -> Path:
@@ -131,6 +139,7 @@ async def main_async():
             agent_duration=agent_duration,
             agent_timeout=agent_timeout_flag,
             evaluator_timeout=is_self_timeout,
+            agent_exit_code=agent_exit_status(),
         ),
     )
 

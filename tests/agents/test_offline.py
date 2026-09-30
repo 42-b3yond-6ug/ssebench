@@ -55,6 +55,9 @@ class StubModel:
     def get_spend(self) -> float:
         return 0.0
 
+    def settled_spend(self) -> float:
+        return 0.0
+
 
 def last_dialog_entry(run: Path) -> dict[str, object]:
     lines = (run / "archive" / "dialog.jsonl").read_text().splitlines()
