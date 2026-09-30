@@ -232,13 +232,13 @@ The package provides:
 | `Main()` | Runs the entrypoint with the process arguments and exits |
 | `Run(args []string) int` | The same, returning the exit status; for tests |
 | `Version` | Printed by `--version` |
-| `Configurer` | Optional interface with `Configure(cfg *Config)`, called before the `TIMEOUT`, `SSE_DAEMON_TIMEOUT` and `SSE_MCP_TIMEOUT` overrides; the sidecar mode uses it to read the daemon's socket from `SSE_DAEMON_SOCKET` and to move the MCP server and evaluator paths |
+| `Configurer` | Optional interface with `Configure(cfg *Config)`, called before the `TIMEOUT`, `SSE_DAEMON_TIMEOUT` and `SSE_MCP_TIMEOUT` overrides; the sidecar mode uses it to read the daemon's socket from `SSE_DAEMON_SOCKET` and to move the MCP server and evaluator paths. See [Modes that own stdio or take no command](#modes-that-own-stdio-or-take-no-command) for the log and command fields |
 
 Before `Run`, the entrypoint installs the SIGINT and SIGTERM handler, makes the
 results directory (`SSE_RESULTS`) `0755` inside a root-only parent, so only
 root in the container can reach it and write the grade and logs, and creates
-the log files. It gives the agent's
-archive (`SSE_ARCHIVE`) to the `model` user only when the mode leaves
+the log files. It creates the agent's archive (`SSE_ARCHIVE`) if it is missing,
+and gives it to the `model` user only when the mode leaves
 `Config.AgentWritesArchive` set, which the built-in modes do; a mode where only
 root writes clears it in `Configure`, and the archive stays root-owned. After
 `Run` returns, it stops every service the mode started and exits with the
@@ -248,7 +248,7 @@ returned status. Inside `Run`, the mode uses the `*Runtime`:
 |--------|-------------|
 | `Config() Config` | Paths, sockets and timeouts of this run |
 | `AgentCommand() []string` | The agent command, from the arguments after `--` |
-| `Logger() *slog.Logger` | The entrypoint's logger |
+| `Logger() *slog.Logger` | The entrypoint's logger, which writes to `Config.LogTo` |
 | `LogPath(name string) string` | `<SSE_RESULTS>/<name>.log` |
 | `StartDaemon() error` | Starts the daemon with its agent-facing and admin sockets |
 | `WaitForDaemon() error` | Waits for a daemon in another container, as the sidecar mode does |
@@ -270,6 +270,42 @@ ends it before grading at the latest. A mode whose agent does not run through
 `RunAgent`, for example because it runs elsewhere, calls `EndAgentPhase` when
 the agent is done, and never before. The reference patch is served only on the
 admin socket, at any time.
+
+### Modes that own stdio or take no command
+
+By default the entrypoint writes its log to stdout, relays the daemon's and the
+evaluator's logs there, and exits with a usage error when it gets no agent
+command. A mode changes both in `Configure`, through two `Config` fields:
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `LogTo LogDestination` | `LogToStdout` | Where the entrypoint's log and the relayed service logs go. `LogToStderr` writes them to stderr. `LogToFile` writes the entrypoint's log only to `entrypoint.log` in the results directory, relays no service log, and leaves stdout and stderr to the mode; until the results directory exists, it reports errors on stderr. |
+| `AgentCommandOptional bool` | `false` | The mode runs without an agent command, so a missing one is not a usage error. `RunAgent` returns an error when there is no command to run. |
+
+A mode that speaks a protocol over the container's stdin and stdout sets `LogTo`
+to `LogToStderr` or `LogToFile`, so nothing but the protocol reaches stdout; the
+entrypoint starts its services with no stdin and with their output in log files.
+A mode that runs no agent sets `AgentCommandOptional`, and its image needs no
+command after `--`.
+
+Log files, in the results directory and under `plugins/`, are appended to and
+never truncated, so a second run of the entrypoint in the same container keeps
+what the first one wrote. The relay of a service's log starts at the point where
+that run's output begins.
+
+```go
+func (stdio) Configure(cfg *entrypoint.Config) {
+	cfg.LogTo = entrypoint.LogToFile
+	cfg.AgentCommandOptional = true
+	cfg.AgentWritesArchive = false
+}
+```
+
+`runtime/entrypoint/examples/stdio-mode` is a complete program with such a mode,
+`stdio`, which answers each line on stdin with `echo: ` and the line. Its test
+starts the entrypoint as a process and checks that stdout holds only the answers.
+
+### An example mode
 
 This mode greets and writes the agent command to `hello.txt` in the results
 directory, without starting anything:
@@ -453,7 +489,8 @@ directory, at `SSE_RESULTS` (root-only), and its `archive/` subdirectory at
 | File | Written by | Contents |
 |------|------------|----------|
 | `result.json` | evaluator, to the results directory; `ssebench run` adds `config` | The grade: `patch_result` and `runtime_result`, and the run settings |
-| `agent.log`, `daemon.log`, `mcp.log`, `evaluator.log`, `opencode.log` | entrypoint | The output of each process |
+| `agent.log`, `daemon.log`, `mcp.log`, `evaluator.log`, `opencode.log` | entrypoint | The output of each process; a second run in the same container appends to them |
+| `entrypoint.log` | entrypoint | The entrypoint's own log, only for a mode that sets `LogTo` to `LogToFile` |
 | `archive/dialog.jsonl` | agent | The agent's session; see [Dialog protocol](/reference/dialog-protocol) |
 | `final.patch`, `commits.log` | daemon, when grading starts | The agent's diff and commit messages |
 | `scriptrunner-<ms>.log`, `patch-<ms>.log` | daemon | The output of each script the daemon runs, and of each test patch it applies |
