@@ -1,10 +1,10 @@
-FROM ghcr.io/astral-sh/uv:0.12.20@sha256:100047e74f30778ab704942321a09750d6158739573ff58bf3924085cc6cd2d8 AS uv
+FROM ghcr.io/astral-sh/uv:0.12.21@sha256:a7aed3216253ee804de3e2d8afa5073baa1a177335345d43845cd4165e43b711 AS uv
 
 # The evaluator and the MCP server are members of the uv workspace at the
 # repository root. Each venv is synced from a copy of just the workspace files
 # it needs, directly at its final location; --no-editable installs the SDK into
 # the venv, so /src is not needed at run time.
-FROM ubuntu:24.04 AS python-builder
+FROM ubuntu:26.04 AS python-builder
 COPY --from=uv /uv /bin/
 WORKDIR /src
 COPY pyproject.toml uv.lock ./
@@ -38,7 +38,7 @@ RUN mkdir -p /plugins && \
 # Only unpacks a download, so it runs on the build platform; TARGETARCH picks the
 # build to fetch. To bump OPENCODE_VERSION, update both checksums from the
 # release's assets.
-FROM --platform=$BUILDPLATFORM alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8 AS opencode-downloader
+FROM --platform=$BUILDPLATFORM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS opencode-downloader
 RUN apk add --no-cache wget ca-certificates
 ARG TARGETARCH
 ARG OPENCODE_VERSION=1.18.33
@@ -78,7 +78,7 @@ RUN target="$(cat /rust-target)" && \
     cp "target/$target/release/ssebench-daemon" /ssebench-daemon
 
 
-FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS entrypoint-builder
+FROM --platform=$BUILDPLATFORM golang:1.27-bookworm AS entrypoint-builder
 COPY runtime/entrypoint/ /build/
 WORKDIR /build
 ARG TARGETOS TARGETARCH VERSION=dev
