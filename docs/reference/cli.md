@@ -769,12 +769,13 @@ uv run ssebench doctor
 <!-- generated: cli doctor -->
 
 ```sh
-ssebench doctor [-h] [--json]
+ssebench doctor [-h] [--json] [--verify-keys]
 ```
 
 | Option | Default | Description |
 |---|---|---|
 | `--json` | off | Print the checks as JSON, with the provider keys that each model in `models/` needs and .env lacks |
+| `--verify-keys` | off | Also send each provider key in .env to its provider's model-list endpoint, which is not billed, to see whether the provider accepts it; needs internet access |
 
 <!-- end generated -->
 
@@ -785,6 +786,13 @@ every pilot task runs under emulation),
 port, and which provider keys that `models/*.yaml` refers to are set. It exits
 with status 1 when a required check fails; warnings do not change the exit
 status.
+
+Doctor contacts no provider unless you pass `--verify-keys`, which sends each key that
+`.env` sets for Anthropic, OpenAI or Google to the provider's model-list
+endpoint (`GET /v1/models`, or `/v1beta/models` for Google), which lists the
+models the key may use and is not billed. A provider that rejects the key is a
+warning: every model call with that key fails, and the run ends with status
+`error` instead of a grade.
 
 ## Commands from extensions
 
