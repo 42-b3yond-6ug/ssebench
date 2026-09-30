@@ -29,10 +29,10 @@ ssebench/
 │   └── schema/          # JSON Schemas of the task config and the dataset manifest
 ├── tools/
 │   ├── bear/            # compile_commands.json generation for C tasks
+│   ├── dataset/         # Generator of THIRD_PARTY.md, and its drift check
 │   ├── docs/            # Generators of the reference pages, and their drift check
 │   ├── release/         # Version bump and drift check (bump.py)
-│   ├── report/          # Typst report built from results/
-│   └── validate/        # Task validator
+│   └── report/          # Typst report built from results/
 ├── docs/                # Documentation (this site)
 ├── deploy/
 │   └── compose/         # Docker Compose stack: LiteLLM proxy and Postgres, plus the demo's catalog and web UI

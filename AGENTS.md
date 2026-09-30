@@ -56,10 +56,10 @@ webui/                 web UI: Vite + React client, Bun/Hono server, pty-proxy (
 datasets/pilot/        the pilot dataset, one folder per task, with dataset.yaml and the generated manifest.json
 datasets/schema/       JSON Schemas of the task config and the manifest, exported from bench/src/ssebench/tasks/
 tools/bear/            compile_commands.json generation for C tasks
+tools/dataset/         third_party.py: generates datasets/pilot/THIRD_PARTY.md from third_party.json, or checks it with --check
 tools/docs/            reference.py: regenerates the generated parts of docs/reference/, or checks them with --check
 tools/release/         bump.py: sets the version everywhere, or checks for drift with --check
 tools/report/          Typst report from results/
-tools/validate/        task validator
 docs/                  VitePress documentation site
 deploy/compose/        Docker Compose stack (LiteLLM proxy and Postgres); demo.yaml adds the catalog and the web UI for `just demo`
 deploy/helm/           Helm chart (planned)
@@ -93,7 +93,6 @@ Justfile yet.
 | `just lint [components]` | ruff, basedpyright, cargo fmt and clippy, gofmt and go vet, webui typecheck and eslint (eslint findings are reported, not enforced yet). |
 | `just fmt [components]` | ruff, cargo fmt, gofmt, prettier. |
 | `just images` | Build the base images and the runtime, LiteLLM and catalog images. |
-| `just dataset-validate [tasks]` | Check that tasks build, their PoCs reproduce and their tests behave. |
 | `just dataset-verify [tasks]` | Grade tasks with the reference agent (every check must pass) and the dummy agent (the PoCs must still trigger), as the Dataset workflow does; `--changed-since origin/main` picks the tasks a branch changed. |
 | `just docs [build]` | Serve or build the documentation site. |
 | `just docs-gen` / `just docs-check` | Regenerate, or check, the reference pages generated from the code (CLI, Python SDK, daemon API, environment variables, config files). |
