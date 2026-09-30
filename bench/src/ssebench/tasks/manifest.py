@@ -1,10 +1,13 @@
-"""Schema of a dataset's `manifest.json` and of the `dataset.yaml` it is generated with.
+"""Schema of a dataset's `manifest.json`, of the `dataset.yaml` it is generated with, and of its `images.lock.json`.
 
-`ssebench dataset manifest` writes the manifest; `datasets/schema/manifest.schema.json` is exported
-from these models. Image names in the manifest carry no registry: clients prepend `$SSEBENCH_REGISTRY/`.
+`ssebench dataset manifest` writes the manifest and `ssebench dataset lock` the images lock;
+`datasets/schema/` is exported from these models. Image names in the manifest carry no registry:
+clients prepend `$SSEBENCH_REGISTRY/`. A published case image is tagged with the dataset's version.
 """
 
 import hashlib
+import json
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -17,6 +20,10 @@ Arch = Literal["amd64", "arm64"]
 
 VERSION_PATTERN = r"^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
 Sha256 = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+Digest = Annotated[str, Field(pattern=r"^sha256:[0-9a-f]{64}$")]
+Commit = Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")]
+
+IMAGES_LOCK = "images.lock.json"
 
 
 class _Model(BaseModel):
@@ -44,7 +51,9 @@ class ManifestTask(_Model):
         "FROM of the task's Dockerfile without ${SSEBENCH_REGISTRY}/, such as base-generic-go:1.0.0.",
     )
     image: str = Field(
-        min_length=1, description="Case image, relative to the registry: case/<dataset>/<id>, lowercase."
+        min_length=1,
+        description="Case image, relative to the registry: case/<dataset>/<id>, lowercase. The published image "
+        "is tagged with the dataset version.",
     )
     arch: list[Arch] = Field(min_length=1, description="Platforms the task runs on.")
     checks: list[Check] = Field(
@@ -87,3 +96,36 @@ def task_files_digest(task_dir: Path) -> str:
     for name, sha256 in task_files(task_dir).items():
         digest.update(f"{name}\0{sha256}\n".encode())
     return digest.hexdigest()
+
+
+def case_image_name(dataset: str, task_id: str) -> str:
+    """The case image of a task, relative to the registry."""
+    return f"case/{dataset}/{task_id}".lower()
+
+
+def files_digest(files: Mapping[str, str]) -> str:
+    """One SHA-256 for the `files` of a manifest entry, which says which task files an image was built from."""
+    return hashlib.sha256(json.dumps(files, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+class LockedImage(_Model):
+    """A published case image."""
+
+    digest: Digest = Field(description="Digest of the image in the registry, to pull it as <image>@<digest>.")
+    files_sha256: Sha256 = Field(
+        description="SHA-256 of the task's `files` in the manifest that the image was built from. The lock does not "
+        "apply to the task once its files change."
+    )
+    revision: Commit = Field(description="Commit of the SSEBench repository that the image was built and verified at.")
+
+
+class ImagesLock(_Model):
+    """The published case images of a dataset version, by digest."""
+
+    model_config = ConfigDict(title="SSEBench dataset images lock")
+
+    dataset: str = Field(pattern=TASK_ID_PATTERN, description="Dataset name, as in the manifest.")
+    version: str = Field(pattern=VERSION_PATTERN, description="Dataset version, as in the manifest.")
+    images: dict[str, LockedImage] = Field(
+        description="The published image of each task that has one, by task ID, sorted by ID."
+    )

@@ -240,6 +240,18 @@ def verdict(task: str, dummy: PatchResult) -> verify.TaskVerdict:
     return v
 
 
+def test_runs_that_graded_different_images_do_not_verify_a_task() -> None:
+    v = verdict("demo-1", grade(pov_passed=0, intent_test_success=False))
+    v.runs[verify.REFERENCE].image = "sha256:aa"
+    v.runs[verify.DUMMY].image = "sha256:aa"
+    assert v.ok
+
+    v.runs[verify.DUMMY].image = "sha256:bb"
+
+    assert not v.ok
+    assert v.failures == ["the runs graded different case images, so no single image has been verified"]
+
+
 def test_summary(tmp_path: Path) -> None:
     good = verdict("demo-1", grade(pov_passed=0, intent_test_success=False))
     bad = verdict("demo-2", grade(intent_test_success=True))
@@ -313,6 +325,8 @@ def test_a_run_without_a_result_is_retried(
     calls: list[list[str]] = []
 
     def fake_run(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        if cmd[0] == "docker":
+            return subprocess.CompletedProcess(cmd, 0, "sha256:aa\n", "")
         calls.append(cmd)
         if len(calls) == 2:
             path = verify.result_path(opts, "demo-1", verify.DUMMY)
@@ -327,3 +341,10 @@ def test_a_run_without_a_result_is_retried(
     assert len(calls) == 2
     assert run.attempts == 2 and run.exit_code == 0
     assert run.cells["poc"] == "ok"
+    assert run.image == "sha256:aa"
+
+
+def test_the_image_of_a_run_without_one_is_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(verify.subprocess, "run", lambda cmd, **_: subprocess.CompletedProcess(cmd, 1, "", "no image"))
+
+    assert verify.image_id("registry.test/case/demo/demo-1") is None

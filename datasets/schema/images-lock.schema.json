@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "LockedImage": {
+      "additionalProperties": false,
+      "description": "A published case image.",
+      "properties": {
+        "digest": {
+          "description": "Digest of the image in the registry, to pull it as <image>@<digest>.",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "files_sha256": {
+          "description": "SHA-256 of the task's `files` in the manifest that the image was built from. The lock does not apply to the task once its files change.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Files Sha256",
+          "type": "string"
+        },
+        "revision": {
+          "description": "Commit of the SSEBench repository that the image was built and verified at.",
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "digest",
+        "files_sha256",
+        "revision"
+      ],
+      "title": "LockedImage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The published case images of a dataset version, by digest.",
+  "properties": {
+    "dataset": {
+      "description": "Dataset name, as in the manifest.",
+      "pattern": "^[A-Za-z0-9]+(?:(?:[._]|__|-+)[A-Za-z0-9]+)*$",
+      "title": "Dataset",
+      "type": "string"
+    },
+    "version": {
+      "description": "Dataset version, as in the manifest.",
+      "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "title": "Version",
+      "type": "string"
+    },
+    "images": {
+      "additionalProperties": {
+        "$ref": "#/$defs/LockedImage"
+      },
+      "description": "The published image of each task that has one, by task ID, sorted by ID.",
+      "title": "Images",
+      "type": "object"
+    }
+  },
+  "required": [
+    "dataset",
+    "version",
+    "images"
+  ],
+  "title": "SSEBench dataset images lock",
+  "type": "object"
+}

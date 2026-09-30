@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from ssebench.tasks.manifest import Arch, Check, Manifest, ManifestTask, task_files
+from ssebench.tasks.manifest import Arch, Check, Manifest, ManifestTask, case_image_name, task_files
 from ssebench.tasks.metadata import TaskMetadata
 
 from .validate import DatasetReport, TaskReport, validate_dataset
@@ -43,7 +43,7 @@ def manifest_task(dataset: str, task: TaskReport) -> ManifestTask:
         project=m.project,
         repository=m.repository,
         base=task.base,
-        image=f"case/{dataset}/{task.id}".lower(),
+        image=case_image_name(dataset, task.id),
         arch=DEFAULT_ARCH,
         checks=checks(m),
         files=task_files(task.path),

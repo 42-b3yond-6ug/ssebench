@@ -3,18 +3,22 @@
 import argparse
 import difflib
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 from ssebench import paths, pipe, stack
-from ssebench.dataset import schema, verify
+from ssebench.dataset import publish, schema, verify
 from ssebench.dataset.generate import MANIFEST, InvalidDatasetError, build_manifest, recorded_commit, render_manifest
 from ssebench.dataset.validate import validate_dataset
+from ssebench.tasks.manifest import IMAGES_LOCK
 
 
 def add_parser(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
-    parser = subparsers.add_parser("dataset", help="Validate a dataset and generate its manifest")
+    parser = subparsers.add_parser(
+        "dataset", help="Validate a dataset, generate its manifest, verify its tasks and publish their images"
+    )
     commands = parser.add_subparsers(dest="dataset_command", metavar="COMMAND", required=True)
 
     validate = commands.add_parser("validate", help="Check every task folder of a dataset against the task schema")
@@ -40,7 +44,7 @@ def add_parser(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]"
     manifest.set_defaults(handler=cmd_manifest)
 
     export = commands.add_parser(
-        "schema", help="Write the JSON Schemas of the task config, dataset.yaml and the manifest"
+        "schema", help="Write the JSON Schemas of the task config, dataset.yaml, the manifest and the images lock"
     )
     _ = export.add_argument(
         "-o", "--output", metavar="DIR", help="Output directory (default: datasets/schema in the SSEBench home)"
@@ -91,6 +95,57 @@ def add_parser(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]"
         help="Write the summary of the task results already in OUTPUT/tasks/; run nothing",
     )
     check.set_defaults(handler=cmd_verify)
+
+    push = commands.add_parser(
+        "publish",
+        help="Push the case images of verified tasks to a registry",
+        description="Pushes the case image that `ssebench dataset verify` graded, and no other, for each task "
+        "that verified: to REGISTRY/case/<dataset>/<id> tagged <version>-<short commit>, and then <version> "
+        "(the dataset version). Writes one record per task, with the pushed digest, under OUTPUT/published/, "
+        "for `ssebench dataset lock`. Log in to the registry first. Exits 1 when a task cannot be published.",
+    )
+    _ = push.add_argument(
+        "tasks", nargs="*", default=[], metavar="TASK", help="Tasks to publish (default: every task with a result)"
+    )
+    _ = push.add_argument("--dir", help="Dataset directory (default: datasets/pilot in the SSEBench home)")
+    _ = push.add_argument(
+        "-o", "--output", default="results/dataset-verify", help="Verification output (default: results/dataset-verify)"
+    )
+    _ = push.add_argument(
+        "--registry", required=True, metavar="PREFIX", help="Registry prefix, such as ghcr.io/owner/repo"
+    )
+    _ = push.add_argument(
+        "--revision",
+        metavar="COMMIT",
+        help="Full commit of the SSEBench repository that the dataset is at (default: HEAD of the repository "
+        "that holds the dataset)",
+    )
+    push.set_defaults(handler=cmd_publish)
+
+    lock = commands.add_parser(
+        "lock",
+        help="Write the images lock, which pins the published case images by digest",
+        description=f"Writes {IMAGES_LOCK} into the dataset: the images it already lists whose task files are "
+        "unchanged, and the images that the records of `ssebench dataset publish` describe. `ssebench run` pulls "
+        "a task's image by the digest in the lock. The output depends only on those inputs.",
+    )
+    _ = lock.add_argument(
+        "dir", nargs="?", metavar="DIR", help="Dataset directory (default: datasets/pilot in the SSEBench home)"
+    )
+    _ = lock.add_argument(
+        "--records",
+        metavar="DIR",
+        help="Directory of publication records to add (default: none; keep the current images)",
+    )
+    _ = lock.add_argument(
+        "-o", "--output", metavar="FILE", help="Output file (default: the images lock in the dataset)"
+    )
+    _ = lock.add_argument(
+        "--check",
+        action="store_true",
+        help="Fail if the dataset's lock is missing, is for another version or names other tasks; write nothing",
+    )
+    lock.set_defaults(handler=cmd_lock)
 
 
 def dataset_dir(arg: str | None) -> Path:
@@ -231,3 +286,67 @@ def cmd_verify(args: argparse.Namespace) -> int:
 def _head_commit(directory: Path) -> str | None:
     proc = subprocess.run(["git", "-C", str(directory), "rev-parse", "HEAD"], capture_output=True, text=True)
     return proc.stdout.strip() if proc.returncode == 0 else None
+
+
+def cmd_publish(args: argparse.Namespace) -> int:
+    dataset = dataset_dir(args.dir).resolve()
+    output = Path(args.output).resolve()
+    try:
+        report = verify.load_tasks(dataset)
+        tasks = verify.select_tasks(report, args.tasks)
+    except verify.SelectionError as e:
+        print(e, file=sys.stderr)
+        return 1
+    assert report.info is not None
+    revision = args.revision or _head_commit(dataset)
+    if revision is None or not re.fullmatch(r"[0-9a-f]{40}", revision):
+        print("Give the commit that the dataset is at as a full commit hash with --revision", file=sys.stderr)
+        return 1
+    if not args.tasks:
+        tasks = [t for t in tasks if verify.read_verdict(output, t.id) is not None]
+        if not tasks:
+            print(f"No task results in {output / 'tasks'}", file=sys.stderr)
+            return 1
+
+    target = publish.Target(
+        dataset=dataset,
+        version=report.info.version,
+        output=output,
+        registry=args.registry.rstrip("/"),
+        revision=revision,
+    )
+    failed = False
+    for task in tasks:
+        try:
+            published = publish.publish_task(target, task)
+        except publish.PublishError as e:
+            print(e, file=sys.stderr)
+            failed = True
+            continue
+        print(f"published {published.image}@{published.digest} as {', '.join(published.tags)}")
+    return 1 if failed else 0
+
+
+def cmd_lock(args: argparse.Namespace) -> int:
+    dataset = dataset_dir(args.dir)
+    try:
+        if args.check:
+            problems = publish.lock_problems(dataset)
+            for problem in problems:
+                print(problem, file=sys.stderr)
+            if not problems:
+                print(f"{dataset / IMAGES_LOCK} is consistent with the dataset")
+            return 1 if problems else 0
+        target = Path(args.output) if args.output else dataset / IMAGES_LOCK
+        records = publish.read_records(Path(args.records)) if args.records else []
+        lock = publish.build_lock(dataset, records, publish.read_lock(dataset / IMAGES_LOCK))
+    except InvalidDatasetError as e:
+        print(e.report.format_errors(), file=sys.stderr)
+        print(f"{dataset}: not a valid dataset, so no lock was generated", file=sys.stderr)
+        return 1
+    except publish.LockError as e:
+        print(e, file=sys.stderr)
+        return 1
+    _ = target.write_text(publish.render_lock(lock))
+    print(f"wrote {target} with {len(lock.images)} images")
+    return 0

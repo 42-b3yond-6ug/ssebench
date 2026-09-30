@@ -120,7 +120,7 @@
           "type": "string"
         },
         "image": {
-          "description": "Case image, relative to the registry: case/<dataset>/<id>, lowercase.",
+          "description": "Case image, relative to the registry: case/<dataset>/<id>, lowercase. The published image is tagged with the dataset version.",
           "minLength": 1,
           "title": "Image",
           "type": "string"

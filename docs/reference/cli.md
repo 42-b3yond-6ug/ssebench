@@ -27,8 +27,10 @@ bench/src/ssebench/cli/, then run `just docs-gen`. -->
 | `ssebench build-case` | Build case images |
 | `ssebench dataset validate` | Check every task folder of a dataset against the task schema |
 | `ssebench dataset manifest` | Validate a dataset and write its manifest.json |
-| `ssebench dataset schema` | Write the JSON Schemas of the task config, dataset.yaml and the manifest |
+| `ssebench dataset schema` | Write the JSON Schemas of the task config, dataset.yaml, the manifest and the images lock |
 | `ssebench dataset verify` | Grade tasks with the reference and dummy agents and check that they grade as sound tasks do |
+| `ssebench dataset publish` | Push the case images of verified tasks to a registry |
+| `ssebench dataset lock` | Write the images lock, which pins the published case images by digest |
 | `ssebench tasks list` | List the tasks of a catalog or a local dataset |
 | `ssebench proxy` | Start, rebuild or stop the local LiteLLM proxy |
 | `ssebench init` | Write .env with generated secrets, models/ and results/ to the current directory |
@@ -92,11 +94,14 @@ are some, and exit status 1. A failed image build ends the same way, after
 Docker's own output.
 
 Without `--local`, the task comes from the [task catalog](#task-catalog), and
-its case image is pulled from `$SSEBENCH_REGISTRY`. When the pull fails, the CLI
-says so and builds the image from the task's folder instead, if a copy of the
-folder whose files match the catalog is available locally: next to a local
-manifest, or in `datasets/<dataset>/` of the
+its [case image is pulled](#case-images) from `$SSEBENCH_REGISTRY`. When the
+pull fails, the CLI says so and builds the image from the task's folder
+instead, if a copy of the folder whose files match the catalog is available
+locally: next to a local manifest, or in `datasets/<dataset>/` of the
 [SSEBench home](#working-directory), as for the bundled pilot dataset.
+`--build` skips the pull and builds the image from that folder, and fails
+before starting anything when there is no such folder. With `--local` the image
+is always built, so `--build` changes nothing.
 
 In order, `run`:
 
@@ -188,6 +193,37 @@ With neither, the catalog is `datasets/pilot/manifest.json` in the
 with SSEBench. The [web UI](/webui/) reads the same variable and passes its
 catalog on to the runs it launches.
 
+### Case images
+
+The case image of each task is published under the name the manifest gives it,
+prefixed with `$SSEBENCH_REGISTRY`, and tagged with the dataset's version:
+`ghcr.io/42-b3yond-6ug/ssebench/case/pilot/gjson-196-bf4efcb:pilot-v1`. Each
+push also has a tag that names the commit it was built and verified at, such as
+`pilot-v1-0123abc`, which no later commit reuses. Only the images that passed
+[`ssebench dataset verify`](#ssebench-dataset-verify) are published, and they
+are the images that it graded. They are for `linux/amd64` only.
+
+`ssebench run` without `--local` pulls the image, so that a machine runs any
+task without building it. It pulls:
+
+- **by digest**, when an `images.lock.json` pins the task. The lock is the file
+  of that name next to a local manifest, which is `datasets/pilot/` for the
+  bundled catalog, or the path or URL that `SSEBENCH_IMAGES_LOCK` names. An
+  entry applies when the lock's dataset version is the manifest's and the
+  entry was built from the task files that the manifest lists; otherwise the
+  CLI logs a warning and pulls by tag. The wheel carries the pilot lock, so a
+  release runs the images it was published with. The digest identifies the
+  image whatever registry serves it, so a mirror that copied the images with
+  their digests can be used with `SSEBENCH_REGISTRY`.
+- **by tag** (the dataset version) for a task the lock does not pin, for a
+  dataset without a lock, and for a catalog service URL.
+
+After a pull by digest, the image also gets the tag name locally, so that the
+layers built on it and the [reference patch](#reference-runs) use exactly that
+image. [Releasing and versioning](/contributing/releasing#case-images) describes
+how the lock is refreshed, and the [pilot dataset](/dataset/pilot#prebuilt-images)
+lists the size of every image.
+
 ## `ssebench build-case`
 
 Builds the case images of a dataset without running anything.
@@ -261,7 +297,7 @@ ssebench dataset manifest [-h] [-o FILE] [--check] [--generated-from COMMIT] [DI
 
 ### `ssebench dataset schema`
 
-Writes the JSON Schemas of the task config, `dataset.yaml` and the manifest,
+Writes the JSON Schemas of the task config, `dataset.yaml`, the manifest and the images lock,
 which [Configuration files](/reference/configuration) describes.
 
 <!-- generated: cli dataset schema -->
@@ -274,6 +310,64 @@ ssebench dataset schema [-h] [-o DIR] [--check]
 |---|---|---|
 | `-o, --output DIR` | `datasets/schema` in the SSEBench home | Output directory |
 | `--check` | off | Fail if the files are out of date; write nothing |
+
+<!-- end generated -->
+
+### `ssebench dataset lock`
+
+Writes the dataset's `images.lock.json`, which pins the published case image of
+each task by digest, so that `ssebench run` [pulls exactly that image](#case-images).
+The output keeps the images of the current lock whose task files are unchanged,
+adds the ones in `--records`, and depends on nothing else. A dataset with no
+published images has a lock with no images. `--check` fails when the file is
+missing, is for another dataset version or pins a task the dataset does not
+have; a lock that lags behind a changed task passes.
+
+<!-- generated: cli dataset lock -->
+
+```sh
+ssebench dataset lock [-h] [--records DIR] [-o FILE] [--check] [DIR]
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `DIR` | `datasets/pilot` in the SSEBench home | Dataset directory |
+| `--records DIR` | none; keep the current images | Directory of publication records to add |
+| `-o, --output FILE` | the images lock in the dataset | Output file |
+| `--check` | off | Fail if the dataset's lock is missing, is for another version or names other tasks; write nothing |
+
+<!-- end generated -->
+
+### `ssebench dataset publish`
+
+Pushes the case images of verified tasks to a registry and records the digests.
+It publishes the image that `ssebench dataset verify` graded and no other: a
+task with no result, a task that did not pass, and an image that was rebuilt
+after the verification are refused. Log in to the registry first. The
+[Dataset](https://github.com/42-b3yond-6ug/ssebench/blob/main/.github/workflows/dataset.yml)
+workflow runs it for every task that passes, on a release tag, on the weekly
+run and on a manual run that asks for it, and never from a private repository.
+
+```sh
+uv run ssebench dataset verify gjson-196-bf4efcb
+uv run ssebench dataset publish --registry ghcr.io/owner/repo gjson-196-bf4efcb
+```
+
+<!-- generated: cli dataset publish -->
+
+```sh
+ssebench dataset publish [-h] [--dir DIR] [-o OUTPUT] --registry PREFIX
+                         [--revision COMMIT]
+                         [TASK ...]
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `TASK` | every task with a result | Tasks to publish |
+| `--dir DIR` | `datasets/pilot` in the SSEBench home | Dataset directory |
+| `-o, --output OUTPUT` | `results/dataset-verify` | Verification output |
+| `--registry PREFIX` | *(required)* | Registry prefix, such as `ghcr.io/owner/repo` |
+| `--revision COMMIT` | HEAD of the repository that holds the dataset | Full commit of the SSEBench repository that the dataset is at |
 
 <!-- end generated -->
 
@@ -523,13 +617,16 @@ The wheel carries, under `ssebench/_data/` and laid out like the repository:
 - `models/` and the Compose file with the LiteLLM image's sources;
 - the tool layer Dockerfiles, the sources of the SDK, the evaluator and the MCP
   server, `uv.lock`, and `runtime/plugins/`;
-- the pilot manifest, `datasets/pilot/manifest.json`, but not the task folders.
+- the pilot manifest, `datasets/pilot/manifest.json`, and the digests of its
+  published case images, `datasets/pilot/images.lock.json`, but not the task
+  folders.
 
 What a run needs beyond that comes from the registry and the network:
 
-- The task's **case image** is pulled from
-  `$SSEBENCH_REGISTRY/case/<dataset>/<task>`. Without a task folder to build
-  it from, a failed pull ends the run.
+- The task's **case image** is [pulled](#case-images) from
+  `$SSEBENCH_REGISTRY/case/<dataset>/<task>`, by the digest in the packaged
+  `images.lock.json` when it pins the task. Without a task folder to build it
+  from, a failed pull ends the run.
 - The **tool layer** and the **agent image** are built on top of the case
   image from the packaged files, as in a checkout. The daemon and the
   entrypoint, which need Rust and Go to build, come from the published
