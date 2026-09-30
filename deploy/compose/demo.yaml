@@ -14,7 +14,7 @@ name: ssebench
 
 services:
   catalog:
-    image: ${SSEBENCH_REGISTRY:-ghcr.io/42-b3yond-6ug/ssebench}/catalog:1.1.0-dev
+    image: ${SSEBENCH_REGISTRY:-ghcr.io/42-b3yond-6ug/ssebench}/catalog:1.1.0
     build:
       context: ../..
       dockerfile: catalog/Dockerfile
@@ -30,7 +30,7 @@ services:
       ssebench.demo: "true"
 
   webui:
-    image: ${SSEBENCH_REGISTRY:-ghcr.io/42-b3yond-6ug/ssebench}/webui:1.1.0-dev
+    image: ${SSEBENCH_REGISTRY:-ghcr.io/42-b3yond-6ug/ssebench}/webui:1.1.0
     build:
       context: ../..
       dockerfile: webui/Dockerfile

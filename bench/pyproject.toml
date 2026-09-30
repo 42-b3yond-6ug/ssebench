@@ -1,6 +1,6 @@
 [project]
 name = "ssebench"
-version = "1.1.0.dev0"
+version = "1.1.0"
 description = "Benchmark AI coding agents on real security vulnerabilities"
 readme = "README.md"
 requires-python = ">=3.12"
