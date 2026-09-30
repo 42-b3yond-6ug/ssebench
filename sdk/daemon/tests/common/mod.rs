@@ -212,9 +212,27 @@ pub fn post_to(socket: &Path, path: &str, body: &str) -> String {
     response
 }
 
-/// The number of threads of the daemon process.
+/// The number of threads of the daemon process once it has stopped changing:
+/// actix starts its workers after the listeners accept connections, so a count
+/// taken as soon as `start` returns can miss some of them.
 pub fn thread_count(daemon: &Daemon) -> usize {
-    fs::read_dir(format!("/proc/{}/task", daemon.child.id()))
-        .unwrap()
-        .count()
+    let count = || {
+        fs::read_dir(format!("/proc/{}/task", daemon.child.id()))
+            .unwrap()
+            .count()
+    };
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let mut last = count();
+    let mut unchanged = 0;
+    while unchanged < 10 {
+        assert!(Instant::now() < deadline, "the thread count did not settle");
+        thread::sleep(Duration::from_millis(50));
+        let now = count();
+        if now == last {
+            unchanged += 1;
+        } else {
+            (last, unchanged) = (now, 0);
+        }
+    }
+    last
 }
