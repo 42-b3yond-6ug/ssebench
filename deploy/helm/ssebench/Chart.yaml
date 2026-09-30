@@ -1,0 +1,18 @@
+apiVersion: v2
+name: ssebench
+description: The SSEBench stack on Kubernetes - the LiteLLM proxy, the task catalog and the web UI, and the access to run tasks as Jobs
+type: application
+# The chart, and the images it deploys, carry the version of the repository's VERSION file.
+version: 1.0.0-dev
+appVersion: 1.0.0-dev
+kubeVersion: ">=1.28.0-0"
+home: https://github.com/42-b3yond-6ug/ssebench
+sources:
+  - https://github.com/42-b3yond-6ug/ssebench
+keywords:
+  - benchmark
+  - llm
+  - agents
+maintainers:
+  - name: 42-b3yond-6ug
+    url: https://github.com/42-b3yond-6ug

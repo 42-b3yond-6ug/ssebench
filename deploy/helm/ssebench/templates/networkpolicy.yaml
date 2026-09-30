@@ -1,0 +1,48 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- /* Ingress only: the proxy must reach the model providers, and the database needs nothing outside. */}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ssebench.litellmService" . }}
+  labels: {{- include "ssebench.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {{- include "ssebench.selector" (dict "component" "litellm" "root" .) | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - {protocol: TCP, port: 4000}
+      from:
+        # The web UI, which makes the keys of the runs it launches.
+        - podSelector:
+            matchLabels: {{- include "ssebench.selector" (dict "component" "webui" "root" .) | nindent 14 }}
+        # The pods of the runs, which call the models through the proxy.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ include "ssebench.runsNamespace" . }}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ssebench-run
+              app.kubernetes.io/managed-by: ssebench
+        {{- with .Values.networkPolicy.proxyExtraIngress }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+{{- if .Values.postgres.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ssebench.databaseService" . }}
+  labels: {{- include "ssebench.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {{- include "ssebench.selector" (dict "component" "litellm-db" "root" .) | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - {protocol: TCP, port: 5432}
+      from:
+        - podSelector:
+            matchLabels: {{- include "ssebench.selector" (dict "component" "litellm" "root" .) | nindent 14 }}
+{{- end }}
+{{- end }}

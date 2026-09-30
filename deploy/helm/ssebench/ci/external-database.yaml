@@ -1,0 +1,8 @@
+# The proxy on a database of its own, and no RBAC or network policies from the chart.
+postgres:
+  enabled: false
+  externalSecret: my-database-url
+rbac:
+  create: false
+networkPolicy:
+  enabled: false

@@ -1,0 +1,22 @@
+SSEBench {{ .Chart.AppVersion }} is installed as {{ .Release.Name }} in {{ .Release.Namespace }}. Runs go to the namespace {{ include "ssebench.runsNamespace" . }}.
+
+Open the web UI (it asks for its access token):
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "ssebench.webuiService" . }} {{ .Values.webui.service.port }}:{{ .Values.webui.service.port }}
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "ssebench.authSecret" . }} -o jsonpath='{.data.SSEBENCH_WEBUI_TOKEN}' | base64 -d
+{{- if .Values.webui.hosted }}
+
+The web UI is a read-only viewer (webui.hosted=true). To launch runs from it, install with --set webui.hosted=false.
+{{- end }}
+
+Run a task from your machine, with the settings this release uses:
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "ssebench.litellmService" . }} 4000:4000 &
+  export SSEBENCH_BACKEND=kubernetes SSEBENCH_PREBUILT=1 SSEBENCH_REGISTRY={{ default .Values.image.registry .Values.runs.registry }}
+  export SSEBENCH_K8S_NAMESPACE={{ include "ssebench.runsNamespace" . }} SSEBENCH_K8S_PROXY_NAMESPACE={{ .Release.Namespace }}
+  export SSEBENCH_K8S_PROXY_URL={{ include "ssebench.litellmUrl" . }}
+  export SSEBENCH_K8S_PROXY_SELECTOR=app.kubernetes.io/name=litellm,app.kubernetes.io/instance={{ .Release.Name }}
+  export LITELLM_MASTER_KEY=$(kubectl -n {{ .Release.Namespace }} get secret {{ include "ssebench.authSecret" . }} -o jsonpath='{.data.LITELLM_MASTER_KEY}' | base64 -d)
+  ssebench run --agent reference --task gjson-196-bf4efcb
+
+The runs' network policies only keep the internet out on a cluster whose network plugin enforces NetworkPolicy (Calico, Cilium and others do; the default plugin of a kind cluster does not). See docs/deployment/kubernetes.md.
