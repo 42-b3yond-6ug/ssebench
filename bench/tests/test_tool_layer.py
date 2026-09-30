@@ -1,3 +1,5 @@
+import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -13,6 +15,7 @@ from ssebench.middleware.tools import (
     runtime_build_args,
     runtime_image,
 )
+from ssebench.pipe import REGISTRY, TAG
 
 CHECKOUT = Path(__file__).resolve().parents[2]
 LAYERS = [
@@ -54,8 +57,6 @@ def test_the_configured_image_wins_over_the_published_one(monkeypatch: pytest.Mo
 def test_every_tool_layer_uses_the_configured_image(
     monkeypatch: pytest.MonkeyPatch, layer: type[ToolLayer], base: str | None
 ) -> None:
-    import subprocess
-
     commands: list[list[str]] = []
     monkeypatch.setattr(
         subprocess, "run", lambda cmd, **kwargs: commands.append(cmd) or subprocess.CompletedProcess(cmd, 0)
@@ -73,8 +74,6 @@ def test_every_tool_layer_uses_the_configured_image(
 def test_every_tool_layer_builds_for_the_run_platform(
     monkeypatch: pytest.MonkeyPatch, layer: type[ToolLayer], base: str | None
 ) -> None:
-    import subprocess
-
     commands: list[list[str]] = []
     monkeypatch.setattr(
         subprocess, "run", lambda cmd, **kwargs: commands.append(cmd) or subprocess.CompletedProcess(cmd, 0)
@@ -87,3 +86,34 @@ def test_every_tool_layer_builds_for_the_run_platform(
     with_platform, without = commands
     assert [with_platform[i + 1] for i, arg in enumerate(with_platform) if arg == "--platform"] == ["linux/arm64"]
     assert "--platform" not in without
+
+
+def just_images() -> dict[str, str]:
+    """The image name that `just runtime-images` gives each Dockerfile it builds, with the variables filled in."""
+    text = (CHECKOUT / "just" / "infra.just").read_text().replace("\\\n", " ")
+    recipe = text[text.index("\nruntime-images:") :].split("\n\n")[0]
+    images: dict[str, str] = {}
+    for line in recipe.splitlines():
+        if "docker buildx build" not in line:
+            continue
+        dockerfile = re.search(r"-f (\S+)", line)
+        tag = re.search(r'-t "([^"]+)"', line)
+        assert dockerfile and tag, line
+        images[dockerfile.group(1)] = tag.group(1).replace("{{registry}}", REGISTRY).replace("{{version}}", TAG)
+    return images
+
+
+def test_the_recipe_names_the_runtime_image_after_the_image_that_holds_the_daemon() -> None:
+    assert just_images()["images/runtime/Dockerfile"] == runtime_image()
+
+
+def test_the_recipe_names_the_sidecar_agent_image_as_a_run_does(monkeypatch: pytest.MonkeyPatch) -> None:
+    commands: list[list[str]] = []
+    monkeypatch.setattr(
+        subprocess, "run", lambda cmd, **kwargs: commands.append(cmd) or subprocess.CompletedProcess(cmd, 0)
+    )
+
+    built = SidecarToolLayerAgentRuntime(ToolLayerContext(task_name="t", source_dir="/src")).docker_image(None)
+
+    assert just_images()["images/sidecar-agent/Dockerfile"] == built
+    assert built != runtime_image()
