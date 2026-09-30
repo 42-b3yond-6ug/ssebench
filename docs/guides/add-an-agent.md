@@ -595,8 +595,9 @@ containers.
 
 | Symptom | Cause and fix |
 |---|---|
-| `FileNotFoundError: Agent <name> does not exist.` | No folder `agents/<name>`. The CLI prints a Python traceback for this. |
-| `ValidationError ... Extra inputs are not permitted` | `agent.yaml` has a key that is not `name` or `version`. |
+| `Unknown agent '<name>'. Available agents: ...` | No folder `agents/<name>`; the message lists the agents there are. |
+| `agents/<name>/agent.yaml is not a valid agent config: <key>: Extra inputs are not permitted` | `agent.yaml` has a key that is not `name` or `version`. The message also reports a missing `name` and text that is not YAML. |
+| `Building the image of agent '<name>' failed: ...` | The agent's `docker build` failed; Docker's output is above the message. |
 | `The lockfile at uv.lock needs to be updated, but --frozen was provided: Missing workspace member` | A new wrapper package is not in `uv.lock`. Run `uv lock`. |
 | `warning: unable to access '/root/.gitconfig': Permission denied`, or `uv` cannot create `/root/.cache/uv` | `HOME` is still `/root`. Set it to the home of `model`. |
 | `Author identity unknown` | `HOME` points at a directory without a git identity. Use the home from the user database, or `git -c user.name=… -c user.email=… commit`. |

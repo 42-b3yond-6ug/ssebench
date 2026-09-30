@@ -63,6 +63,10 @@ class ToolLayer(DockerLayerMixin, ABC):
     def __init__(self, context: ToolLayerContext):
         self.context = context
 
+    @override
+    def describe(self) -> str:
+        return f"SSEBench tool layer image of task {self.context.task_name}"
+
 
 @final
 class SandboxToolLayer(ToolLayer):

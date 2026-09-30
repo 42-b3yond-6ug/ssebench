@@ -1,13 +1,18 @@
-import os
+import difflib
 import subprocess
 from pathlib import Path
 from typing import ClassVar, final, override
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from ssebench import paths
+from ssebench.errors import UserError
 from ssebench.pipe import REGISTRY, TAG, DockerLayerMixin
+
+
+class AgentError(UserError):
+    """The agent is unknown, or its `agent.yaml` is missing or invalid."""
 
 
 class AgentConfig(BaseModel):
@@ -32,20 +37,51 @@ class AgentConfig(BaseModel):
         return v.strip()
 
 
+def available_agents() -> list[str]:
+    """The agents under `agents/`: the folders with an `agent.yaml`."""
+    return sorted(p.parent.name for p in paths.agents_dir().glob("*/agent.yaml"))
+
+
 def get_agent_path(name: str) -> Path:
+    """The folder of the agent called `name`.
+
+    Raises:
+        AgentError: If there is no such agent. The message lists the agents there are.
+    """
     agents_dir = paths.agents_dir()
-    if os.path.exists(agents_dir / name):
-        return agents_dir / name
-    else:
-        raise FileNotFoundError(f"Agent {name} does not exist.")
+    folders = {p.name for p in agents_dir.iterdir() if p.is_dir()} if agents_dir.is_dir() else set()
+    if name not in folders:
+        message = f"Unknown agent {name!r}"
+        if close := difflib.get_close_matches(name, available_agents(), n=1):
+            message += f" (did you mean {close[0]!r}?)"
+        raise AgentError(f"{message}. Available agents: {', '.join(available_agents())}.")
+    return agents_dir / name
 
 
 def load_agent_config(config_path: Path) -> AgentConfig:
-    if not os.path.exists(config_path):
-        raise FileNotFoundError(f"Config file {config_path} does not exist.")
+    """Read and validate an `agent.yaml`.
 
-    with open(config_path) as file:
-        return AgentConfig.model_validate(yaml.safe_load(file))
+    Raises:
+        AgentError: If the file is missing, is not YAML or does not match `AgentConfig`.
+    """
+    try:
+        data = yaml.safe_load(config_path.read_text())
+    except FileNotFoundError:
+        raise AgentError(f"{config_path} does not exist; an agent folder needs an agent.yaml") from None
+    except OSError as e:
+        raise AgentError(f"Cannot read {config_path}: {e}") from e
+    except yaml.YAMLError as e:
+        detail = str(e)
+        if isinstance(e, yaml.MarkedYAMLError) and e.problem and e.problem_mark:
+            detail = f"{e.problem} (line {e.problem_mark.line + 1})"
+        raise AgentError(f"{config_path} is not valid YAML: {' '.join(detail.split())}") from e
+    try:
+        return AgentConfig.model_validate(data)
+    except ValidationError as e:
+        problems = "; ".join(
+            f"{'.'.join(str(part) for part in error['loc']) or 'the file'}: {error['msg']}" for error in e.errors()
+        )
+        raise AgentError(f"{config_path} is not a valid agent config: {problems}") from e
 
 
 @final
@@ -58,6 +94,10 @@ class Agent(DockerLayerMixin):
         self.agent_path = agent_path
         self.agent_config = agent_config
         self.task_name = task_name or "any"
+
+    @override
+    def describe(self) -> str:
+        return f"image of agent {self.agent_name!r}"
 
     @override
     def docker_image(self, base: str | None) -> str:

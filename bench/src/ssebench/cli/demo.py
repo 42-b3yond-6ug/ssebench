@@ -6,6 +6,7 @@ import subprocess
 from collections.abc import Callable
 
 from ssebench import demo
+from ssebench.errors import UserError
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,7 @@ def cmd_down(args: argparse.Namespace) -> int:
 def guarded(action: Callable[[], int]) -> int:
     try:
         return action()
-    except demo.DemoError as e:
+    except (demo.DemoError, UserError) as e:
         logger.error(e)
     except subprocess.CalledProcessError as e:
         logger.error(f"{' '.join(str(part) for part in e.cmd)} failed with exit code {e.returncode}")

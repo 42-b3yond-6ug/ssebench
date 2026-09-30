@@ -230,17 +230,19 @@ which recreates the container.
 
 ## Troubleshooting
 
-### `Model <name> does not exist.`
+### `Unknown model '<name>'`
 
-`ssebench run` checks the model with the proxy before it builds anything, and
-stops with a Python traceback that ends in `ValueError: Model <name> does not
-exist.` if the proxy doesn't know the name:
+`ssebench run` checks the name against `models/*.yaml` before it starts the
+proxy, and the error lists the models that are defined. If yours is missing:
 
 - check that the file is in `models/` and ends in `.yaml` or `.yml`;
 - check that the YAML is valid and the file is a list of models; a file that
   fails to parse, or is not a list, is skipped without a message;
 - check that `--model` is the `model_name`, not the LiteLLM model;
 - run `just launch` to rebuild the proxy with your changes.
+
+If the error says that the proxy does not serve a model that `models/*.yaml`
+defines, the running proxy predates the file: restart it with `ssebench proxy up`.
 
 ### Authentication errors
 

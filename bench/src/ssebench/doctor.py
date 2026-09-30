@@ -11,6 +11,7 @@ from pathlib import Path
 import yaml
 
 from ssebench import paths, settings, stack
+from ssebench.models import model_names
 
 GIB = 1024**3
 # Case images of C tasks with their toolchains run to several GiB each.
@@ -205,19 +206,6 @@ def check_provider_keys() -> Check:
         "Put the key of each provider you use in .env (the proxy reads keys only from there), "
         "then restart the proxy with `ssebench proxy up`. The dummy and reference agents need no key.",
     )
-
-
-def model_names() -> set[str]:
-    """The names of the models that `models/*.yaml` define."""
-    names: set[str] = set()
-    for path in sorted(paths.models_dir().glob("*.y*ml")):
-        try:
-            entries = yaml.safe_load(path.read_text())
-        except yaml.YAMLError:
-            continue
-        if isinstance(entries, list):
-            names.update(str(e["model_name"]) for e in entries if isinstance(e, dict) and "model_name" in e)
-    return names
 
 
 def check_model_key(model: str) -> Check:

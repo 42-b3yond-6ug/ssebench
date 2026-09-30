@@ -95,8 +95,9 @@ in line with the provider's prices. To add a model, see
 
 Before each run, `ssebench run` uses the master key to:
 
-1. check that the proxy has the model: `GET /models/<name>` must succeed,
-   otherwise the run stops with `Model <name> does not exist.`;
+1. check the model: `models/*.yaml` must define it, or the run stops before
+   the proxy starts with `Unknown model '<name>'` and the list of defined
+   models; and the proxy must have it, `GET /models/<name>` must succeed;
 2. create a new LiteLLM user that may use **only that model**, with a budget of
    10 US dollars, and take the key LiteLLM returns for it (`POST /user/new`).
 
