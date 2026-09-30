@@ -7,7 +7,7 @@ name: ssebench
 
 services:
   litellm:
-    image: ${SSEBENCH_REGISTRY:-ghcr.io/42-b3yond-6ug/ssebench}/litellm:1.0.0
+    image: ${SSEBENCH_REGISTRY:-ghcr.io/42-b3yond-6ug/ssebench}/litellm:1.1.0-dev
     build:
       context: ../..
       dockerfile: images/litellm/Dockerfile
