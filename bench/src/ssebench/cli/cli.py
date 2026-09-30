@@ -17,9 +17,9 @@ from ssebench.extensions import (
     Command,
     ExtensionError,
     command_names,
-    get_backend,
     get_tool_layer,
     load_commands,
+    resolve_backend,
 )
 from ssebench.models import NO_MODEL, Model, NoModel, require_defined
 from ssebench.plugins import PluginError, selected_plugins
@@ -30,7 +30,7 @@ from ssebench.runner.reference import REFERENCE_AGENT, is_reference_run, referen
 from ssebench.tasks import CatalogError, CatalogTask, LocalTask, Task, load_catalog
 from ssebench.version import VERSION
 
-from . import dataset, demo, init, tasks
+from . import dataset, demo, init, runs, tasks
 from .build import build_case_image, get_tasks
 
 logger = logging.getLogger(__name__)
@@ -39,9 +39,8 @@ logger = logging.getLogger(__name__)
 KEYLESS_AGENTS = ("dummy", REFERENCE_AGENT)
 
 PREBUILT_ENV = "SSEBENCH_PREBUILT"
-BACKEND_ENV = "SSEBENCH_BACKEND"
 
-BUILTIN_COMMANDS = ("run", "build-case", "dataset", "tasks", "proxy", "doctor", "init", "demo")
+BUILTIN_COMMANDS = ("run", "build-case", "dataset", "tasks", "runs", "proxy", "doctor", "init", "demo")
 
 
 class RunArgs(argparse.Namespace):
@@ -94,7 +93,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     # Reject an unknown or broken layer or backend before starting the proxy.
     try:
         _ = get_tool_layer(tool_layer)
-        backend = get_backend(getattr(args, "backend", None) or settings.get(BACKEND_ENV) or DEFAULT_BACKEND)
+        backend = resolve_backend(getattr(args, "backend", None))
     except ExtensionError as e:
         logger.error(e)
         return 1
@@ -446,6 +445,9 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
     # ==================== tasks subcommand ====================
     tasks.add_parser(subparsers)
 
+    # ==================== runs subcommand ====================
+    runs.add_parser(subparsers)
+
     # ==================== proxy subcommand ====================
     proxy_parser = subparsers.add_parser(
         "proxy",
@@ -526,7 +528,7 @@ def main(argv: Sequence[str] | None = None):
             sys.exit(cmd_run(args))
         elif args.command == "build-case":
             sys.exit(cmd_build_case(args))
-        elif args.command in ("dataset", "tasks", "init", "demo"):
+        elif args.command in ("dataset", "tasks", "runs", "init", "demo"):
             sys.exit(args.handler(args))
         elif args.command == "proxy":
             sys.exit(cmd_proxy(args))
