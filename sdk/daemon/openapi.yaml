@@ -10,9 +10,9 @@
 #   x-access on an operation: which listeners serve it.
 #     any          every listener.
 #     admin        the admin socket only; the agent-facing listeners answer 403.
-#     after-agent  the admin socket, and the agent-facing listeners once the
-#                  entrypoint has called POST /admin/agent_exited; before that
-#                  they answer 403.
+#     agent-phase  the admin socket, and the agent-facing listeners until the
+#                  entrypoint calls POST /admin/agent_exited; after that they
+#                  answer 403.
 #   x-difficulty-gate on an operation: for each action of a tool, the highest
 #     difficulty level (SSE_DIFFICULTY) at which the agent-facing listeners run
 #     it. At a higher level they answer 403; the admin socket runs every action.
@@ -39,7 +39,7 @@ tags:
   - name: grading
     description: Grading and its result.
   - name: reference
-    description: The reference patch and the phase switch that unlocks it.
+    description: The reference patch and the end of the agent phase.
 paths:
   /version:
     get:
@@ -93,12 +93,14 @@ paths:
       tags: [tools]
       summary: Run an action of a tool.
       description: >-
-        `bencher` builds and tests a copy of the source tree; `bash` runs a
+        `bencher` builds and tests a private copy of the source tree, running
+        the task's scripts as the unprivileged runner user; `bash` runs a
         command in one interactive shell in the source tree, as the unprivileged
         user `model`. The daemon runs one action at a time. A script that runs and
-        fails is a 200 with a non-zero `code`.
+        fails is a 200 with a non-zero `code`. The agent-facing listeners serve
+        tools during the agent phase only, and never with `grading: true`.
       operationId: tool
-      x-access: any
+      x-access: agent-phase
       x-difficulty-gate:
         tool: bencher
         actions:
@@ -145,8 +147,9 @@ paths:
           description: The `action` parameter is missing, or the body is not JSON.
         "403":
           description: >-
-            On an agent-facing listener, a `bencher` action that the difficulty
-            level withholds.
+            On an agent-facing listener: a `bencher` action that the difficulty
+            level withholds, an argument with `grading: true`, or any tool after
+            the agent phase.
           content:
             application/json:
               schema:
@@ -250,11 +253,13 @@ paths:
       tags: [grading]
       summary: Save the agent's diff and apply it to the copy of the repository that is graded.
       description: >-
-        Writes the agent's diff to `$SSE_ARCHIVE/final.patch` and its commit
-        messages to `$SSE_ARCHIVE/commits.log`, then applies the diff to the
-        clean clone of the repository in `$SSE_REPO_PATH`, which the `bencher`
-        actions use with `grading: true`. The evaluator calls it once, after the
-        agent has finished.
+        Starts a new session of the runner user, which kills its processes and
+        discards its caches and workspaces, writes the agent's diff to
+        `final.patch` and its commit messages to `commits.log` in the results
+        directory (`$SSE_RESULTS`), then applies the diff to the clean clone of
+        the repository in `$SSE_REPO_PATH`, which the `bencher` actions use with
+        `grading: true`. The evaluator calls it once, after the agent has
+        finished.
       operationId: prepareGrading
       x-access: admin
       responses:
@@ -301,8 +306,9 @@ paths:
       summary: End the agent phase.
       description: >-
         The entrypoint calls it once the agent process has exited. From then on
-        the agent-facing listeners serve `GET /reference/patch`, so that the web
-        UI can show it. Calling it again has no effect.
+        the agent-facing listeners refuse tools, and every process of the agent's
+        user in the daemon's container is killed. Calling it again has no other
+        effect.
       operationId: agentExited
       x-access: admin
       responses:
@@ -318,16 +324,23 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "500":
+          description: A process of the agent's user could not be killed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /reference/patch:
     get:
       tags: [reference]
       summary: The reference patch, the answer to the task.
       description: >-
-        The upstream fix that the task config names as `files.patch`. It must
-        never reach the agent while it works, so the agent-facing listeners
-        refuse it until the agent phase has ended.
+        The upstream fix that the task config names as `files.patch`. Only the
+        admin socket serves it: the agent-facing listeners are reachable from
+        other containers on the run network, also after the run. Tools on the
+        host read it from the task folder or the run's results directory.
       operationId: referencePatch
-      x-access: after-agent
+      x-access: admin
       responses:
         "200":
           description: The patch; empty when the task has none or it cannot be read.
@@ -336,7 +349,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Diff"
         "403":
-          description: The request came from an agent-facing listener while the agent works.
+          description: The request came from an agent-facing listener.
           content:
             application/json:
               schema:
