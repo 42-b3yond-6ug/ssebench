@@ -328,6 +328,18 @@ def test_a_failed_case_image_build_names_the_task(
     ]
 
 
+def test_ctrl_c_ends_the_command_with_one_line(
+    dataset: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def interrupted(args: object) -> int:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(cli, "cmd_run", interrupted)
+
+    assert run_cli(run_args(dataset, "--agent", "dummy", "--model", "beta")) == 130
+    assert errors(caplog) == ["Interrupted"]
+
+
 # ==================== the demo ====================
 
 

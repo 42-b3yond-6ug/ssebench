@@ -45,6 +45,10 @@ REFERENCE_PATCH_FILE = "reference.patch"
 RESULTS_LABEL = "ssebench.results"
 """Container label with the run directory on the host, for the web UI."""
 
+# What `docker stop` ends a container with: 128 plus SIGTERM, or plus SIGKILL, which follows
+# the ten seconds it allows.
+STOP_STATUSES = (143, 137)
+
 
 def clear_directory(path: Path) -> None:
     """Clear all contents of a directory without removing the directory itself."""
@@ -91,6 +95,15 @@ def replace_file(path: Path, content: str) -> None:
     tmp = path.with_name(f".{path.name}.tmp")
     _ = tmp.write_text(content)
     _ = tmp.replace(path)
+
+
+def stopped_after_grading(returncode: int, keep_container: bool, evaluator_file: Path) -> bool:
+    """Whether a container that exited with `returncode` was stopped after grading, as a kept one is.
+
+    A kept container waits for `docker stop` once the evaluator has written the grade, so that stop
+    is how the run ends. The same status before the grade exists is a failed run.
+    """
+    return keep_container and returncode in STOP_STATUSES and evaluator_file.stat().st_size > 0
 
 
 def record_results(task: Task, run_config: RunConfig, spend: float, evaluator_file: Path) -> None:
@@ -243,7 +256,11 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
                 logger.info(f"Running Benchmark: {self.task.name}")
                 _ = subprocess.run(self.docker_command(results_path, patch), check=True)
             except subprocess.CalledProcessError as e:
-                logger.error(f"Agent container stopped with a non-zero exit: {e}")
+                if stopped_after_grading(e.returncode, self.keep_container, evaluator_file):
+                    logger.info(f"The kept container was stopped after grading (exit status {e.returncode})")
+                else:
+                    # The exception's text is the docker command line, which carries the run's proxy key.
+                    logger.error(f"Agent container stopped with a non-zero exit status: {e.returncode}")
         save_reference_patch(self.task, results_path)
 
         run_config = RunConfig(
