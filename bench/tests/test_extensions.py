@@ -200,11 +200,11 @@ def test_builtin_backend() -> None:
     backend = get_backend("docker")
 
     assert isinstance(backend, DockerBackend)
-    assert backend_names() == ["docker"]
+    assert backend_names() == ["docker", "kubernetes"]
 
 
 def test_example_backend_is_selectable(example: Path) -> None:
-    assert backend_names() == ["docker", "logging"]
+    assert backend_names() == ["docker", "kubernetes", "logging"]
 
     backend = get_backend("logging")
 
@@ -213,7 +213,7 @@ def test_example_backend_is_selectable(example: Path) -> None:
 
 
 def test_unknown_backend() -> None:
-    with pytest.raises(ExtensionError, match=r"Unknown backend 'nope'\. Available: docker\."):
+    with pytest.raises(ExtensionError, match=r"Unknown backend 'nope'\. Available: docker, kubernetes\."):
         _ = get_backend("nope")
 
 

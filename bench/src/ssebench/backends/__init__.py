@@ -29,6 +29,7 @@ from .base import (
 )
 from .docker import DockerBackend, DockerRun
 from .images import prebuilt_images
+from .kubernetes import KubernetesBackend, KubernetesRun
 
 __all__ = [
     "AGENT_LABEL",
@@ -51,6 +52,8 @@ __all__ = [
     "ImageRequest",
     "ImageUnavailableError",
     "Images",
+    "KubernetesBackend",
+    "KubernetesRun",
     "Mode",
     "Mount",
     "NetworkPolicy",
