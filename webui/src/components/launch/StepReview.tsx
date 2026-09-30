@@ -9,6 +9,7 @@ import { useState, useCallback, forwardRef, useImperativeHandle } from "react"
 import type { TaskSource, LaunchMode, LaunchConfig } from "../../types/launch"
 import type { StepId } from "./WizardSteps"
 import { launchTask } from "../../lib/api"
+import { DEFAULT_EGRESS } from "../../lib/launchOptions"
 
 interface StepReviewProps {
   tasks: string[]
@@ -101,7 +102,9 @@ export const StepReview = forwardRef<StepReviewRef, StepReviewProps>(
     const changedOptions = [
       options.difficulty !== undefined && `difficulty ${options.difficulty}`,
       options.timeout !== undefined && `timeout ${options.timeout / 60} min`,
-      options.egress && `egress ${options.egress}`,
+      options.egress &&
+        options.egress !== DEFAULT_EGRESS &&
+        `egress ${options.egress}`,
       options.plugins && `plugins ${options.plugins.join(", ") || "none"}`,
     ].filter((v): v is string => !!v)
     // The command a launch corresponds to, without its task
