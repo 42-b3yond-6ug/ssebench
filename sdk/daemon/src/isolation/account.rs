@@ -1,4 +1,7 @@
+use std::ffi::OsStr;
+use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::OnceLock;
 
 use anyhow::{Context, Result, anyhow};
@@ -23,6 +26,34 @@ impl Account {
             .with_context(|| format!("failed to read {}", passwd.display()))?;
         parse_passwd(&content, name)
             .ok_or_else(|| anyhow!("no user named {name} in {}", passwd.display()))
+    }
+
+    /// A command that runs as this account, the way the entrypoint starts the
+    /// agent: its home and identity in the environment instead of the
+    /// daemon's, and no supplementary groups. The rest of the daemon's
+    /// environment is kept, since it holds the image's toolchain settings.
+    ///
+    /// The standard library drops every supplementary group when a process
+    /// with uid 0 changes user and no groups are given, which is what keeps
+    /// the daemon's group 0 from carrying over; the integrity suite checks it.
+    ///
+    /// Only a daemon running as root can change users; any other keeps its own
+    /// identity and environment (tests and local development).
+    pub fn command(&self, program: impl AsRef<OsStr>) -> Command {
+        self.command_as(program, is_root())
+    }
+
+    fn command_as(&self, program: impl AsRef<OsStr>, switch_user: bool) -> Command {
+        let mut cmd = Command::new(program);
+        if switch_user {
+            cmd.uid(self.uid)
+                .gid(self.gid)
+                .env("HOME", &self.home)
+                .env("USER", &self.name)
+                .env("LOGNAME", &self.name)
+                .env_remove("SSE_ADMIN_SOCKET");
+        }
+        cmd
     }
 
     /// Whether this is the superuser, or the account the daemon runs as.
@@ -118,6 +149,27 @@ short:x:1
         assert_eq!(Account::lookup_in(&passwd, "root").unwrap().uid, 0);
         let err = Account::lookup_in(&passwd, "ghost").unwrap_err();
         assert!(err.to_string().contains("ghost"), "{err}");
+    }
+
+    #[test]
+    fn a_command_as_an_account_has_its_home_and_identity() {
+        let model = parse_passwd(PASSWD, "model").unwrap();
+        let cmd = model.command_as("bash", true);
+        let env: std::collections::HashMap<_, _> = cmd
+            .get_envs()
+            .map(|(k, v)| (k.to_str().unwrap(), v.and_then(|v| v.to_str())))
+            .collect();
+        assert_eq!(env["HOME"], Some("/home/model"));
+        assert_eq!(env["USER"], Some("model"));
+        assert_eq!(env["LOGNAME"], Some("model"));
+        // Removed for the child, which the daemon's own environment would otherwise carry in.
+        assert_eq!(env["SSE_ADMIN_SOCKET"], None);
+    }
+
+    #[test]
+    fn a_daemon_that_is_not_root_keeps_its_own_environment() {
+        let model = parse_passwd(PASSWD, "model").unwrap();
+        assert_eq!(model.command_as("bash", false).get_envs().count(), 0);
     }
 
     #[test]
