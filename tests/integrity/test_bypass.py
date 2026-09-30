@@ -22,6 +22,8 @@ with:
   SSEBENCH_INTEGRITY_SIDECAR_ENV_IMAGE   sidecar environment (task) image
   SSEBENCH_INTEGRITY_SIDECAR_AGENT_IMAGE sidecar agent runtime image
   SSEBENCH_INTEGRITY_SOURCE              source dir inside the images; default: /src/gjson
+  SSEBENCH_INTEGRITY_NETWORK             name of the internal network the test creates and removes, so that
+                                         two runs on one Docker daemon do not share it; default: ssebench-integrity-testnet
 The defaults are the images `ssebench` builds for gjson-196-bf4efcb, from
 SSEBENCH_REGISTRY and the current version. Sidecar mode needs the uv workspace.
 """
@@ -73,7 +75,7 @@ SOURCE_DIR = os.environ.get("SSEBENCH_INTEGRITY_SOURCE", "/src/gjson")
 # Plugins the sandbox container enables (SSE_PLUGINS), to check that they do
 # not open a bypass; the image must have them installed.
 PLUGINS = os.environ.get("SSEBENCH_INTEGRITY_PLUGINS")
-NETWORK = "ssebench-integrity-testnet"
+NETWORK = os.environ.get("SSEBENCH_INTEGRITY_NETWORK", "ssebench-integrity-testnet")
 FAKE_AGENT = Path(__file__).with_name("fake_agent.sh")
 # The same path in both modes; in sidecar mode it is on a volume the two containers share.
 ADMIN_SOCKET = "/run/ssebench/admin.sock"
