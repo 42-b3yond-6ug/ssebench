@@ -1,4 +1,4 @@
-"""`ssebench run --backend`, `--prebuilt` and `--egress`, and the settings that stand for them."""
+"""`ssebench run --backend`, `--prebuilt`, `--egress` and `--require-pass`, and the settings that stand for them."""
 
 import argparse
 from collections.abc import Callable
@@ -9,8 +9,9 @@ import pytest
 from ssebench import stack
 from ssebench.backends import DockerBackend
 from ssebench.cli import cli
-from ssebench.runner import BenchmarkSandboxRunner
+from ssebench.runner import BenchmarkSandboxRunner, RunOutcome
 from ssebench.runner.reference import REFERENCE_AGENT
+from ssebench.runner.result import EvaluationResult, FrameworkResult, PerTaskEvaluationResult, RunConfig
 from ssebench.tasks import LocalTask
 
 TASK = "demo-1"
@@ -40,13 +41,30 @@ def run_args(local: Path, **overrides: object) -> argparse.Namespace:
     return argparse.Namespace(**(defaults | overrides))
 
 
+def outcome(task: LocalTask, directory: Path, patch_result: dict[str, object]) -> RunOutcome:
+    """A finished run with that grade."""
+    runtime = {"agent_duration": 0, "agent_timeout": False, "evaluator_timeout": False}
+    config = RunConfig(agent="dummy", model="none", mode="sandbox", timeout=60, difficulty=2)
+    result = EvaluationResult.model_validate({"patch_result": patch_result, "runtime_result": runtime})
+    summary = PerTaskEvaluationResult.build(task.get_task_metadata(), config, FrameworkResult(spend=0), result)
+    return RunOutcome(directory, summary)
+
+
 @pytest.fixture
-def runners(monkeypatch: pytest.MonkeyPatch) -> list[BenchmarkSandboxRunner]:
+def grade(tmp_path: Path, task: LocalTask) -> dict[str, object]:
+    """The grade that the fake run ends with; a test replaces its entries."""
+    return {"build_success": True, "pov_passed": 1, "pov_total": 1, "func_test_success": True}
+
+
+@pytest.fixture
+def runners(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, task: LocalTask, grade: dict[str, object]
+) -> list[BenchmarkSandboxRunner]:
     made: list[BenchmarkSandboxRunner] = []
     monkeypatch.setattr(stack, "up", lambda: None)
     monkeypatch.setattr(stack, "wait_healthy", lambda: None)
     monkeypatch.setattr(BenchmarkSandboxRunner, "build", lambda self: made.append(self))
-    monkeypatch.setattr(BenchmarkSandboxRunner, "run", lambda self: None)
+    monkeypatch.setattr(BenchmarkSandboxRunner, "run", lambda self: outcome(task, tmp_path / "run", grade))
     return made
 
 
@@ -144,3 +162,55 @@ def test_a_setting_that_is_not_an_egress_policy_fails_before_the_run(
 
     assert cli.cmd_run(run_args(tmp_path / "pilot")) == 1
     assert "SSEBENCH_EGRESS='everything'" in caplog.text and not runners
+
+
+def test_a_run_prints_its_grade_and_directory(
+    task: LocalTask,
+    tmp_path: Path,
+    runners: list[BenchmarkSandboxRunner],
+    grade: dict[str, object],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    grade.update(pov_passed=0)
+
+    assert cli.cmd_run(run_args(tmp_path / "pilot")) == 0
+
+    lines = capsys.readouterr().out.splitlines()
+    assert lines == [
+        "Result: build passed, PoC 0/1 passed, functional tests passed, intent tests not run",
+        "Grade: failed",
+        f"Run directory: {tmp_path / 'run'}",
+    ]
+
+
+def test_a_run_that_was_not_graded_says_why(
+    task: LocalTask,
+    tmp_path: Path,
+    runners: list[BenchmarkSandboxRunner],
+    grade: dict[str, object],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    grade.clear()
+    grade.update(status="error", error_msg="Timeout (30s)")
+
+    assert cli.cmd_run(run_args(tmp_path / "pilot")) == 0
+
+    assert "Grade: error (Timeout (30s))" in capsys.readouterr().out.splitlines()
+
+
+@pytest.mark.parametrize(
+    ("grade_update", "status"),
+    [({}, 0), ({"pov_passed": 0}, 1), ({"status": "error", "error_msg": "No check ran"}, 1)],
+)
+def test_require_pass_makes_a_grade_that_is_not_passed_the_exit_status(
+    task: LocalTask,
+    tmp_path: Path,
+    runners: list[BenchmarkSandboxRunner],
+    grade: dict[str, object],
+    grade_update: dict[str, object],
+    status: int,
+) -> None:
+    grade.update(grade_update)
+
+    assert cli.cmd_run(run_args(tmp_path / "pilot", require_pass=True)) == status
+    assert cli.cmd_run(run_args(tmp_path / "pilot")) == 0

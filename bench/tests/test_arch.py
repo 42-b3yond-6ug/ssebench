@@ -21,6 +21,8 @@ from ssebench.models import NoModel
 from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
 from ssebench.tasks import CatalogTask, LocalTask, load_catalog
 
+from .conftest import finished_run
+
 TASK = "demo-1"
 PILOT_TASK = "gjson-196-bf4efcb"
 
@@ -283,7 +285,7 @@ def test_run_warns_once_when_the_task_runs_under_emulation(
     monkeypatch.setattr(stack, "up", lambda: None)
     monkeypatch.setattr(stack, "wait_healthy", lambda: None)
     monkeypatch.setattr(BenchmarkSandboxRunner, "build", lambda self: None)
-    monkeypatch.setattr(BenchmarkSandboxRunner, "run", lambda self: None)
+    monkeypatch.setattr(BenchmarkSandboxRunner, "run", finished_run)
 
     assert cli.cmd_run(run_args(dataset)) == 0
 

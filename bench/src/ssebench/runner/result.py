@@ -40,6 +40,23 @@ def grade_status(r: PatchResult) -> GradeStatus:
     return "failed" if failed else "passed"
 
 
+def describe_grade(r: PatchResult) -> str:
+    """One line with the outcome of each check, such as `build passed, PoC 0/1 passed, ...`; a check that did not run says so."""
+
+    def outcome(ok: bool | None) -> str:
+        return "not run" if ok is None else "passed" if ok else "failed"
+
+    poc = "PoC not run" if r.pov_total is None else f"PoC {r.pov_passed}/{r.pov_total} passed"
+    return ", ".join(
+        [
+            f"build {outcome(r.build_success)}",
+            poc,
+            f"functional tests {outcome(r.func_test_success)}",
+            f"intent tests {outcome(r.intent_test_success)}",
+        ]
+    )
+
+
 class RuntimeResult(BaseModel):
     agent_duration: int
     agent_timeout: bool

@@ -25,10 +25,11 @@ from ssebench.extensions import (
 )
 from ssebench.models import NO_MODEL, Model, NoModel, require_defined
 from ssebench.plugins import PluginError, selected_plugins
-from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
+from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner, RunOutcome
 from ssebench.runner.layout import new_run_id, run_dir
 from ssebench.runner.lifecycle import RUN_ID_LABEL, RunGuard, check_run_id
 from ssebench.runner.reference import REFERENCE_AGENT, is_reference_run, reference_patch_path
+from ssebench.runner.result import describe_grade
 from ssebench.tasks import CatalogError, CatalogTask, LocalTask, Task, load_catalog
 from ssebench.version import VERSION
 
@@ -66,6 +67,7 @@ class RunArgs(argparse.Namespace):
         self.run_id: str | None
         self.backend: str | None
         self.prebuilt: bool
+        self.require_pass: bool
 
 
 def run_id_arg(value: str) -> str:
@@ -82,6 +84,14 @@ def egress_policy(requested: Egress | None) -> Egress:
         if name == policy:
             return policy
     raise UserError(f"{EGRESS_ENV}={name!r} is not a network egress policy; use one of: {', '.join(EGRESS_POLICIES)}")
+
+
+def report_outcome(outcome: RunOutcome) -> None:
+    """Print the grade and where the run's files are, on standard output for a script to read."""
+    patch = outcome.summary.patch_result
+    print(f"Result: {describe_grade(patch)}")
+    print(f"Grade: {patch.status}" + (f" ({patch.error_msg})" if patch.status == "error" and patch.error_msg else ""))
+    print(f"Run directory: {outcome.directory}")
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -229,8 +239,9 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 1
     # SIGTERM or SIGINT stops the container; the results are still recorded.
     with RunGuard():
-        runner.run()
-    return 0
+        outcome = runner.run()
+    report_outcome(outcome)
+    return 1 if getattr(args, "require_pass", False) and not outcome.passed else 0
 
 
 def cmd_proxy(args: argparse.Namespace) -> int:
@@ -406,6 +417,12 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
         f"`{RUN_ID_LABEL}=ID`, so a tool that starts the run can find them. 1 to 64 letters, digits, '.', '_' or '-', "
         "and not `latest`. The run is refused if that directory exists. "
         "Default: the UTC time the command started and six random hex digits, such as 20260929-153012-a1b2c3",
+    )
+    run_parser.add_argument(
+        "--require-pass",
+        action="store_true",
+        help="Exit with status 1 unless the run's grade is passed, which needs every check the task has to pass; "
+        "without it the command exits 0 whatever the grade. The grade is printed either way",
     )
     run_parser.add_argument("--timeout", type=int, default=3600, metavar="SECONDS", help="How long the agent may run")
     run_parser.add_argument(

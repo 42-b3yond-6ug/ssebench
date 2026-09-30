@@ -22,7 +22,7 @@ from ssebench.runner.result import RunConfig
 from ssebench.runner.runner import record_results
 from ssebench.tasks import LocalTask
 
-from .conftest import FakeDocker
+from .conftest import FakeDocker, finished_run
 
 AGENTS = sorted(p.parent.name for p in paths.agents_dir().glob("*/agent.yaml"))
 OTHER_AGENTS = [name for name in AGENTS if name != REFERENCE_AGENT]
@@ -190,7 +190,7 @@ def test_reference_run_needs_no_model(
     monkeypatch.setattr(stack, "wait_healthy", lambda: None)
     monkeypatch.setattr(cli, "Model", lambda name, proxy=None: pytest.fail("no proxy key may be created"))
     monkeypatch.setattr(BenchmarkSandboxRunner, "build", lambda self: runners.append(self))
-    monkeypatch.setattr(BenchmarkSandboxRunner, "run", lambda self: None)
+    monkeypatch.setattr(BenchmarkSandboxRunner, "run", finished_run)
 
     assert cli.cmd_run(run_args(model=model, local=str(tmp_path / "pilot"))) == 0
 

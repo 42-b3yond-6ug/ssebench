@@ -59,6 +59,18 @@ which the container writes as root, so you can also move or delete it as
 yourself; nothing reads it but you. If the file system has no symbolic links,
 the run goes on without it.
 
+`ssebench run` ends by printing the grade and the run directory, so you need not look for them:
+
+```text
+Result: build passed, PoC 1/1 passed, functional tests passed, intent tests passed
+Grade: passed
+Run directory: /work/results/gjson-196-bf4efcb/none/reference/20260929-153012-a1b2c3
+```
+
+A check that did not run says `not run`. The command exits 0 whatever the grade;
+`--require-pass` makes it exit 1 unless the grade is `passed`, for a script that
+stops at the first run that did not solve its task.
+
 ## The run directory
 
 The CLI mounts the run directory into the container root-only, at `SSE_RESULTS`

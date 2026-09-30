@@ -206,6 +206,7 @@ is the time in UTC and six random hex digits, or the `--run-id` you give.
 Running the same combination again makes another directory, so repeated trials
 keep their results.
 
+`ssebench run` prints the grade and the path of the run directory when it ends.
 `result.json` is the evaluator's grade; `latest` is the newest run:
 
 ```sh
