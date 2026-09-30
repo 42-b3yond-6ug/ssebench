@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from ssebench import stack
 from ssebench.agents import Agent
+from ssebench.arch import platform_args
 from ssebench.extensions import DEFAULT_TOOL_LAYER, get_tool_layer
 from ssebench.middleware import (
     SidecarToolLayerAgentRuntime,
@@ -194,7 +195,12 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
     def build(self):
         metadata = self.task.get_task_metadata()
         tool_layer = self.tool_layer(
-            ToolLayerContext(task_name=self.task.name, source_dir=metadata.source, plugins=tuple(self.plugins))
+            ToolLayerContext(
+                task_name=self.task.name,
+                source_dir=metadata.source,
+                plugins=tuple(self.plugins),
+                platform=self.task.platform,
+            )
         )
         self.sandbox_image = build_pipe([self.task, tool_layer, self.agent])
         logger.info(f"Build benchmark image {self.sandbox_image}")
@@ -210,6 +216,7 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
             docker_cmd.append("--rm")
         docker_cmd.extend(
             [
+                *platform_args(self.task.platform),
                 "--network",
                 stack.run_network(self.egress),
                 "-e",
@@ -312,6 +319,8 @@ class SidecarPair:
     difficulty: int
     keep_alive: bool = False
     run_id: str = field(default_factory=lambda: uuid4().hex[:12])
+    platform: str | None = None
+    """The `linux/<arch>` platform of both containers, that of their images; None runs the Docker host's own."""
 
     @property
     def environment_name(self) -> str:
@@ -331,6 +340,7 @@ class SidecarPair:
 
     def _shared_options(self) -> list[str]:
         return [
+            *platform_args(self.platform),
             "--network",
             self.network,
             "--label",
@@ -412,7 +422,9 @@ class BenchmarkSidecarRunner(BenchmarkRunner):
 
     @override
     def build(self):
-        context = ToolLayerContext(task_name=self.task.name, source_dir=self.task.get_task_metadata().source)
+        context = ToolLayerContext(
+            task_name=self.task.name, source_dir=self.task.get_task_metadata().source, platform=self.task.platform
+        )
 
         tool_layer_agentrt = SidecarToolLayerAgentRuntime(context)
         self.sidecar_agentrt_image = build_pipe([tool_layer_agentrt, self.agent])
@@ -438,6 +450,7 @@ class BenchmarkSidecarRunner(BenchmarkRunner):
             network=stack.run_network(self.egress),
             difficulty=self.difficulty,
             keep_alive=self.keep_container,
+            platform=self.task.platform,
         )
         labels = [
             "--label",

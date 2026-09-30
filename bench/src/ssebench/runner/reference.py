@@ -12,6 +12,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 
+from ssebench.arch import platform_args
 from ssebench.tasks import Task
 
 REFERENCE_AGENT = "reference"
@@ -52,13 +53,17 @@ def reference_run_labels(agent_name: str) -> list[str]:
     return ["--label", f"{REFERENCE_RUN_LABEL}=true"] if is_reference_run(agent_name) else []
 
 
-def copy_from_image(image: str, path: PurePosixPath, dest: Path) -> None:
+def copy_from_image(image: str, path: PurePosixPath, dest: Path, platform: str | None = None) -> None:
     """Copy one file out of an image without starting a container.
+
+    `platform` (`linux/<arch>`) is the platform the image was built for; None takes the Docker host's own.
 
     Raises:
         RuntimeError: If Docker cannot create the container or copy the file.
     """
-    create = subprocess.run(["docker", "create", image, "true"], capture_output=True, text=True)
+    create = subprocess.run(
+        ["docker", "create", *platform_args(platform), image, "true"], capture_output=True, text=True
+    )
     if create.returncode != 0:
         raise RuntimeError(f"Could not create a container from {image}: {create.stderr.strip()}")
     container = create.stdout.strip()
@@ -86,7 +91,7 @@ def reference_patch(agent_name: str, task: Task) -> Iterator[Path | None]:
     source = reference_patch_path(task)
     with tempfile.TemporaryDirectory(prefix="ssebench-reference-") as tmp:
         host_patch = Path(tmp) / "patch.diff"
-        copy_from_image(task.docker_image_name, source, host_patch)
+        copy_from_image(task.docker_image_name, source, host_patch, task.platform)
         # The agent reads it as the unprivileged model user.
         host_patch.chmod(0o644)
         yield host_patch

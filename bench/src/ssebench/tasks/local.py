@@ -4,14 +4,19 @@ import subprocess
 from pathlib import Path
 from typing import final, override
 
+from pydantic import ValidationError
+
+from ssebench.arch import Arch, platform_args
 from ssebench.pipe import REGISTRY
-from ssebench.tasks.manifest import case_image_name, task_files_digest
+from ssebench.tasks.manifest import Manifest, case_image_name, task_files_digest
 from ssebench.tasks.metadata import TaskMetadata, load_task_metadata
 
 from .task import Task
 
 FILES_LABEL = "ssebench.task-files"
 """Label of a case image: the digest of the task folder it was built from."""
+
+logger = logging.getLogger(__name__)
 
 
 @final
@@ -38,7 +43,12 @@ class LocalTask(Task):
         return self.docker_image_name
 
     def _prepare(self) -> None:
-        docker_build_case(self.task_path, self.docker_image_name)
+        docker_build_case(self.task_path, self.docker_image_name, self.platform)
+
+    @override
+    def supported_arches(self) -> list[Arch]:
+        """The `arch` that the dataset's manifest.json lists for the task; every one without a manifest."""
+        return manifest_arches(self.task_path.parent / "manifest.json").get(self.name) or super().supported_arches()
 
     def _validate(self) -> bool:
         """
@@ -105,9 +115,20 @@ def get_task_path(benchmark_dir: Path, name: str) -> Path:
         raise FileNotFoundError(f"Benchmark task {name} does not exist.")
 
 
-def docker_build_case(task_path: Path, image: str) -> None:
+def manifest_arches(manifest: Path) -> dict[str, list[Arch]]:
+    """The `arch` of every task in a dataset manifest; empty when there is no manifest or it cannot be read."""
+    if not manifest.is_file():
+        return {}
+    try:
+        return {task.id: task.arch for task in Manifest.model_validate_json(manifest.read_text()).tasks}
+    except (OSError, ValidationError) as e:
+        logger.warning(f"Cannot read {manifest}, so its tasks are not limited to an architecture: {e}")
+        return {}
+
+
+def docker_build_case(task_path: Path, image: str, platform: str | None = None) -> None:
     """
-    Build a task's case image from its folder.
+    Build a task's case image from its folder, for `platform` (`linux/<arch>`) or the Docker host's own.
 
     Raises:
         subprocess.CalledProcessError: If the Docker build fails.
@@ -118,6 +139,7 @@ def docker_build_case(task_path: Path, image: str) -> None:
             "docker",
             "buildx",
             "build",
+            *platform_args(platform),
             "--build-arg",
             f"SSEBENCH_REGISTRY={REGISTRY}",
             "--label",

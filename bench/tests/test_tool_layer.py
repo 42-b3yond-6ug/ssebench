@@ -67,3 +67,23 @@ def test_every_tool_layer_uses_the_configured_image(
     [command] = commands
     contexts = [command[i + 1] for i, arg in enumerate(command) if arg == "--build-context"]
     assert "runtime=docker-image://registry.test/ssebench/runtime:1.0.0" in contexts
+
+
+@pytest.mark.parametrize(("layer", "base"), LAYERS)
+def test_every_tool_layer_builds_for_the_run_platform(
+    monkeypatch: pytest.MonkeyPatch, layer: type[ToolLayer], base: str | None
+) -> None:
+    import subprocess
+
+    commands: list[list[str]] = []
+    monkeypatch.setattr(
+        subprocess, "run", lambda cmd, **kwargs: commands.append(cmd) or subprocess.CompletedProcess(cmd, 0)
+    )
+
+    for platform in ("linux/arm64", None):
+        context = ToolLayerContext(task_name="gjson-196-bf4efcb", source_dir="/src/gjson", platform=platform)
+        _ = layer(context).docker_image(base)
+
+    with_platform, without = commands
+    assert [with_platform[i + 1] for i, arg in enumerate(with_platform) if arg == "--platform"] == ["linux/arm64"]
+    assert "--platform" not in without

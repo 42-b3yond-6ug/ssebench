@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import final, override
 
 from ssebench import paths, settings
+from ssebench.arch import platform_args
 from ssebench.pipe import REGISTRY, TAG, DockerLayerMixin
 from ssebench.version import VERSION
 
@@ -51,6 +52,8 @@ class ToolLayerContext:
     """The SSEBench home, which holds `images/`, `runtime/` and `sdk/`; the built-in layers use it as build context."""
     plugins: tuple[str, ...] = ()
     """Plugins to install into the tool layer, by folder name; empty installs none."""
+    platform: str | None = None
+    """The `linux/<arch>` platform of the run, that of the case image; None builds for the Docker host's own."""
 
 
 class ToolLayer(DockerLayerMixin, ABC):
@@ -86,6 +89,7 @@ class SandboxToolLayer(ToolLayer):
                 "docker",
                 "buildx",
                 "build",
+                *platform_args(self.context.platform),
                 "--build-context",
                 f"case-image=docker-image://{base}",
                 *runtime_build_args(self.context.build_root),
@@ -126,6 +130,7 @@ class SidecarToolLayerAgentRuntime(ToolLayer):
                 "docker",
                 "buildx",
                 "build",
+                *platform_args(self.context.platform),
                 *runtime_build_args(self.context.build_root),
                 "--build-arg",
                 f"VERSION={VERSION}",
@@ -160,6 +165,7 @@ class SidecarToolLayerEnvironment(ToolLayer):
                 "docker",
                 "buildx",
                 "build",
+                *platform_args(self.context.platform),
                 "--build-context",
                 f"case-image=docker-image://{base}",
                 *runtime_build_args(self.context.build_root),

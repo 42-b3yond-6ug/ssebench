@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
+from functools import cached_property
 from pathlib import Path
 from typing import override
 
+from ssebench.arch import ARCHES, Arch, docker_platform, run_arch
 from ssebench.pipe import DockerLayerMixin
 from ssebench.tasks.metadata import TaskMetadata
 
@@ -46,6 +48,23 @@ class Task(DockerLayerMixin, ABC):
         always available after a pull, so they return True unconditionally.
         """
         pass
+
+    def supported_arches(self) -> list[Arch]:
+        """The architectures the task's case image is built for, in order of preference; every one when unknown."""
+        return list(ARCHES)
+
+    @cached_property
+    def arch(self) -> Arch:
+        """The architecture that a run builds and runs all of its images for.
+
+        The host's when the task supports it, else the task's first, which runs under emulation.
+        """
+        return run_arch(self.supported_arches())
+
+    @property
+    def platform(self) -> str:
+        """`arch` as a Docker platform, such as `linux/amd64`."""
+        return docker_platform(self.arch)
 
     def task_folder(self) -> Path | None:
         """The task's folder on this machine, if there is one."""

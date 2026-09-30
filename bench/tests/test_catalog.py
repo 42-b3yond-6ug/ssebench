@@ -173,14 +173,16 @@ class Docker:
         self.built: list[tuple[Path, str]] = []
         self.pull_ok: bool = pull_ok
         monkeypatch.setattr(catalog.subprocess, "run", self.run)
-        monkeypatch.setattr(catalog, "docker_build_case", lambda folder, image: self.built.append((folder, image)))
+        monkeypatch.setattr(
+            catalog, "docker_build_case", lambda folder, image, platform: self.built.append((folder, image))
+        )
 
     def run(self, cmd: list[str], **_: Any) -> subprocess.CompletedProcess[bytes]:
         if cmd[:2] == ["docker", "tag"]:
             self.tagged.append((cmd[2], cmd[3]))
             return subprocess.CompletedProcess(cmd, 0)
         assert cmd[:2] == ["docker", "pull"]
-        self.pulled.append(cmd[2])
+        self.pulled.append(cmd[-1])
         return subprocess.CompletedProcess(cmd, 0 if self.pull_ok else 1)
 
 

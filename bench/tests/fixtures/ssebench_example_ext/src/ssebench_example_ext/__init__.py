@@ -21,11 +21,13 @@ class ExampleToolLayer(ToolLayer):
     def docker_image(self, base: str | None) -> str:
         runtime = SandboxToolLayer(self.context).docker_image(base)
         image = f"{REGISTRY}/tool-example/{self.context.task_name.lower()}:{TAG}"
+        platform = ["--platform", self.context.platform] if self.context.platform else []
         _ = subprocess.run(
             [
                 "docker",
                 "buildx",
                 "build",
+                *platform,
                 "--build-context",
                 f"runtime=docker-image://{runtime}",
                 "-t",

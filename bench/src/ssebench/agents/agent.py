@@ -7,6 +7,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from ssebench import paths
+from ssebench.arch import platform_args
 from ssebench.errors import UserError
 from ssebench.pipe import REGISTRY, TAG, DockerLayerMixin
 
@@ -86,7 +87,12 @@ def load_agent_config(config_path: Path) -> AgentConfig:
 
 @final
 class Agent(DockerLayerMixin):
-    def __init__(self, name: str, task_name: str | None = None):
+    """An agent's image, built on the image of the layer below it.
+
+    `platform` (`linux/<arch>`) must be the platform of that image; None builds for the Docker host's own.
+    """
+
+    def __init__(self, name: str, task_name: str | None = None, platform: str | None = None):
         agent_path = get_agent_path(name)
         agent_config = load_agent_config(agent_path / "agent.yaml")
 
@@ -94,6 +100,7 @@ class Agent(DockerLayerMixin):
         self.agent_path = agent_path
         self.agent_config = agent_config
         self.task_name = task_name or "any"
+        self.platform = platform
 
     @override
     def describe(self) -> str:
@@ -113,6 +120,7 @@ class Agent(DockerLayerMixin):
                 "docker",
                 "buildx",
                 "build",
+                *platform_args(self.platform),
                 "--build-context",
                 f"ssebench-agent=docker-image://{base}",
                 # In-repo agent wrappers are uv workspace members and install from the workspace root.

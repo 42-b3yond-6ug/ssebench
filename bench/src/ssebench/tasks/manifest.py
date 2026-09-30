@@ -13,10 +13,11 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ssebench.arch import Arch
+
 from .metadata import TASK_ID_PATTERN, TaskMetadata
 
 Check = Literal["build", "poc", "function_test", "intent_test"]
-Arch = Literal["amd64", "arm64"]
 
 VERSION_PATTERN = r"^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
 Sha256 = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
