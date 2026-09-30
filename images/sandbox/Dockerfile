@@ -35,32 +35,54 @@ RUN mkdir -p /plugins && \
     done
 
 
-FROM alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8 AS opencode-downloader
+# Only unpacks a download, so it runs on the build platform; TARGETARCH picks the
+# build to fetch. To bump OPENCODE_VERSION, update both checksums from the
+# release's assets.
+FROM --platform=$BUILDPLATFORM alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8 AS opencode-downloader
 RUN apk add --no-cache wget ca-certificates
+ARG TARGETARCH
 ARG OPENCODE_VERSION=1.2.10
-ARG OPENCODE_SHA256=ebcc24012e8f067b10d7416430c88e9c429115ecfbccf8da9eb59db3b629a358
-RUN wget -qO /tmp/opencode.tar.gz \
-        "https://github.com/anomalyco/opencode/releases/download/v${OPENCODE_VERSION}/opencode-linux-x64.tar.gz" && \
-    echo "${OPENCODE_SHA256}  /tmp/opencode.tar.gz" | sha256sum -c - && \
+ARG OPENCODE_SHA256_AMD64=ebcc24012e8f067b10d7416430c88e9c429115ecfbccf8da9eb59db3b629a358
+ARG OPENCODE_SHA256_ARM64=d9a9d4f0bc1ed246258c0e8846e80593755a72bf4afd3940c4071d6f0b7b7775
+RUN case "${TARGETARCH}" in \
+      amd64) asset=x64; sha256="${OPENCODE_SHA256_AMD64}" ;; \
+      arm64) asset=arm64; sha256="${OPENCODE_SHA256_ARM64}" ;; \
+      *) echo "no opencode release for ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+    wget -qO /tmp/opencode.tar.gz \
+        "https://github.com/anomalyco/opencode/releases/download/v${OPENCODE_VERSION}/opencode-linux-${asset}.tar.gz" && \
+    echo "${sha256}  /tmp/opencode.tar.gz" | sha256sum -c - && \
     tar -xzf /tmp/opencode.tar.gz -C /usr/local/bin/ && \
     chmod +x /usr/local/bin/opencode && \
     rm /tmp/opencode.tar.gz
 
 
-FROM rust:1.98.1-alpine AS daemon-builder
-RUN apk add --no-cache musl-dev
+# Both binaries are cross-compiled on the build platform, as in images/runtime,
+# so building for another architecture needs no emulation here.
+FROM --platform=$BUILDPLATFORM rust:1.98.1-alpine AS daemon-builder
+# zig is the C compiler and linker for the musl targets.
+RUN apk add --no-cache cargo-zigbuild musl-dev
+ARG TARGETARCH
+RUN case "$TARGETARCH" in \
+      amd64) echo x86_64-unknown-linux-musl ;; \
+      arm64) echo aarch64-unknown-linux-musl ;; \
+      *) echo "unsupported architecture: $TARGETARCH" >&2; exit 1 ;; \
+    esac > /rust-target && \
+    rustup target add "$(cat /rust-target)"
 WORKDIR /build
 COPY Cargo.toml Cargo.lock ./
 COPY sdk/daemon/Cargo.toml sdk/daemon/
 COPY sdk/daemon/src/ sdk/daemon/src/
-RUN cargo build --release --locked --bin ssebench-daemon
+RUN target="$(cat /rust-target)" && \
+    cargo zigbuild --release --locked --bin ssebench-daemon --target "$target" && \
+    cp "target/$target/release/ssebench-daemon" /ssebench-daemon
 
 
-FROM golang:1.26-bookworm AS entrypoint-builder
+FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS entrypoint-builder
 COPY runtime/entrypoint/ /build/
 WORKDIR /build
-ARG VERSION=dev
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${VERSION}" -o /entrypoint ./cmd/ssebench-entrypoint
+ARG TARGETOS TARGETARCH VERSION=dev
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-s -w -X main.version=${VERSION}" -o /entrypoint ./cmd/ssebench-entrypoint
 
 
 # The daemon and the entrypoint, laid out like the runtime image
@@ -68,7 +90,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.versi
 #   --build-context runtime=docker-image://<registry>/runtime:<version>
 # replaces this stage, and skips both builds above.
 FROM scratch AS runtime
-COPY --from=daemon-builder /build/target/release/ssebench-daemon /ssebench/ssebench-daemon
+COPY --from=daemon-builder /ssebench-daemon /ssebench/ssebench-daemon
 COPY --from=entrypoint-builder /entrypoint /usr/local/bin/entrypoint
 
 
