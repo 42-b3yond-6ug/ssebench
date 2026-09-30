@@ -1,0 +1,89 @@
+# A LiteLLM proxy and its Postgres for trying the Kubernetes backend, with throwaway keys. It answers
+# the runner's key requests but has no provider key, so it cannot reach a model. The Helm chart
+# installs the real proxy; do not use this outside a test cluster.
+#
+#   kubectl apply -n ssebench -f deploy/k8s/litellm-test.yaml
+#
+# The images are the proxy image that `ssebench proxy up` builds and postgres:16. In a kind cluster,
+# load them with `kind load docker-image`. The labels are the ones the backend's network policy
+# lets a run reach (SSEBENCH_K8S_PROXY_SELECTOR).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: litellm-test
+stringData:
+  LITELLM_MASTER_KEY: sk-test-master
+  POSTGRES_PASSWORD: test-password
+  ANTHROPIC_API_KEY: sk-not-a-real-key
+  OPENAI_API_KEY: sk-not-a-real-key
+  GOOGLE_API_KEY: not-a-real-key
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: litellm-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: litellm-db}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: litellm-db}
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: POSTGRES_DB, value: litellm}
+            - {name: POSTGRES_USER, value: litellm}
+            - name: POSTGRES_PASSWORD
+              valueFrom: {secretKeyRef: {name: litellm-test, key: POSTGRES_PASSWORD}}
+          ports: [{containerPort: 5432}]
+          readinessProbe:
+            exec: {command: [pg_isready, -U, litellm, -d, litellm]}
+            periodSeconds: 2
+          volumeMounts: [{name: data, mountPath: /var/lib/postgresql/data}]
+      volumes: [{name: data, emptyDir: {}}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: litellm-db
+spec:
+  selector: {app.kubernetes.io/name: litellm-db}
+  ports: [{port: 5432}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: litellm
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: litellm}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: litellm}
+    spec:
+      containers:
+        - name: litellm
+          image: ghcr.io/42-b3yond-6ug/ssebench/litellm:1.0.0-dev
+          imagePullPolicy: IfNotPresent
+          envFrom: [{secretRef: {name: litellm-test}}]
+          env:
+            - name: DATABASE_URL
+              value: postgresql://litellm:test-password@litellm-db:5432/litellm
+            - {name: STORE_MODEL_IN_DB, value: "True"}
+          ports: [{containerPort: 4000}]
+          readinessProbe:
+            httpGet: {path: /health/liveliness, port: 4000}
+            periodSeconds: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: litellm
+spec:
+  selector: {app.kubernetes.io/name: litellm}
+  ports: [{port: 4000}]
