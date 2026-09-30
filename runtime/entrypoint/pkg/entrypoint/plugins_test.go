@@ -181,6 +181,19 @@ func TestBlockingHooksRunAndRecord(t *testing.T) {
 	}
 }
 
+func TestPluginLogIsAppendedWhenThePluginRunsAgain(t *testing.T) {
+	r, pdir, archive := newTestRunner(t)
+	writePlugin(t, pdir, "a", "echo ran")
+	r.byHook[Hook{After, PhaseGrading}] = []Plugin{{Name: "a", Hook: "after-grading", Timeout: 1}}
+
+	r.runBlocking(Hook{After, PhaseGrading})
+	r.runBlocking(Hook{After, PhaseGrading})
+
+	if got := readFile(filepath.Join(archive, "plugins", "a.log")); got != "ran\nran\n" {
+		t.Errorf("plugin log = %q, want the output of both runs", got)
+	}
+}
+
 func TestOnHooksRunInParallelWithTheEvent(t *testing.T) {
 	r, pdir, archive := newTestRunner(t)
 	started := filepath.Join(archive, "on-started")

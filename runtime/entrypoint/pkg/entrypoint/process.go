@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -15,6 +16,10 @@ type processInfo struct {
 	name    string
 	cmd     *exec.Cmd
 	logPath string
+	// logStart is the size of the log before this process started writing to
+	// it. A log can hold the output of an earlier run of the entrypoint in the
+	// same container.
+	logStart int64
 }
 
 // isAlive reports whether the process is still running.
@@ -26,11 +31,14 @@ func (p *processInfo) isAlive() bool {
 	return p.cmd.Process.Signal(syscall.Signal(0)) == nil
 }
 
-// recentLogs returns the last n lines from the process log file.
+// recentLogs returns the last n lines this process wrote to its log file.
 func (p *processInfo) recentLogs(lines int) string {
 	data, err := os.ReadFile(p.logPath)
 	if err != nil {
 		return fmt.Sprintf("<failed to read logs: %v>", err)
+	}
+	if p.logStart <= int64(len(data)) {
+		data = data[p.logStart:]
 	}
 	all := strings.Split(strings.TrimRight(string(data), "\n"), "\n")
 	if len(all) <= lines {
@@ -53,8 +61,25 @@ func newServiceManager(cfg Config) *serviceManager {
 	return &serviceManager{cfg: cfg}
 }
 
+// openLog opens a log file for appending, creating it if needed, so a second
+// run of the entrypoint in the same container keeps what the first one wrote.
+// It also returns the size of the file, where the output of the new writer
+// begins.
+func openLog(path string) (*os.File, int64, error) {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return nil, 0, err
+	}
+	info, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return nil, 0, err
+	}
+	return f, info.Size(), nil
+}
+
 // startProcess launches a background process in its own session (new process
-// group), redirecting stdout+stderr to logPath.
+// group), appending stdout+stderr to logPath.
 func (sm *serviceManager) startProcess(name string, argv []string, logPath string, cwd string, extraEnv []string) (*processInfo, error) {
 	return sm.startProcessAs(name, argv, logPath, cwd, extraEnv, nil)
 }
@@ -64,9 +89,9 @@ func (sm *serviceManager) startProcess(name string, argv []string, logPath strin
 func (sm *serviceManager) startProcessAs(name string, argv []string, logPath string, cwd string, extraEnv []string, cred *syscall.Credential) (*processInfo, error) {
 	logger.Info("Starting...", "name", name)
 
-	logFile, err := os.Create(logPath)
+	logFile, logStart, err := openLog(logPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create log file %s: %w", logPath, err)
+		return nil, fmt.Errorf("failed to open log file %s: %w", logPath, err)
 	}
 
 	cmd := exec.Command(argv[0], argv[1:]...)
@@ -84,7 +109,7 @@ func (sm *serviceManager) startProcessAs(name string, argv []string, logPath str
 	}
 	logFile.Close()
 
-	info := &processInfo{name: name, cmd: cmd, logPath: logPath}
+	info := &processInfo{name: name, cmd: cmd, logPath: logPath, logStart: logStart}
 
 	sm.mu.Lock()
 	sm.processes = append(sm.processes, info)
@@ -97,9 +122,14 @@ func (sm *serviceManager) startProcessAs(name string, argv []string, logPath str
 	return info, nil
 }
 
-// startLogTail tails a log file to stdout in real-time.
-func (sm *serviceManager) startLogTail(logPath string) *exec.Cmd {
-	cmd := exec.Command("tail", "-f", logPath)
+// startLogTail tails a log file to stdout in real time, from byte offset from,
+// or from its last lines if from is negative.
+func (sm *serviceManager) startLogTail(logPath string, from int64) *exec.Cmd {
+	args := []string{"-f", logPath}
+	if from >= 0 {
+		args = []string{"-c", "+" + strconv.FormatInt(from+1, 10), "-f", logPath}
+	}
+	cmd := exec.Command("tail", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
