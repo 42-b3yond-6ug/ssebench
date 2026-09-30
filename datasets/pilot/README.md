@@ -205,7 +205,10 @@ the tasks a pull request changes, and every task weekly. See
   by hand, use `docker run -t`; without a terminal `Test_getchar` fails. Runs
   through `ssebench run` are not affected.
 - **Disk and time.** The largest case images are about 3.4 GB, and every run adds
-  a tool layer and a copy of the built project.
+  a tool layer and a copy of the built project. All 55 images take about 28.5 GB
+  on disk and 10.6 GB to download; the
+  [prebuilt images page](../../docs/dataset/pilot.md#prebuilt-images) lists the
+  size of each.
 - **Public bugs.** Every task is a public vulnerability with a public fix, so a
   model may have seen the bug, the report or the fix in its training data.
 
@@ -223,7 +226,9 @@ its Dockerfile checks out the upstream project at the pinned commit
 pinned by version, so a rebuilt image can differ from an older one in them.
 `manifest.json` records the SHA-256 of every task file, so a change to a task
 shows up as a change to the manifest, and CI fails when the manifest is stale.
-See [Releasing and versioning](../../docs/contributing/releasing.md).
+Each task has a prebuilt case image, tagged `pilot-v1`, and
+[`images.lock.json`](images.lock.json) pins it by digest. See
+[Releasing and versioning](../../docs/contributing/releasing.md).
 
 ## License
 

@@ -112,6 +112,21 @@ pilot task, one after the other. [CLI](/reference/cli) lists every option;
 `--difficulty` sets how much the agent may check while it works, see
 [Difficulty levels](/concepts/difficulty-levels).
 
+::: tip Pull the case image instead of building it
+`--local` builds the task's case image from its folder. Without it, `ssebench
+run` pulls the prebuilt image of the task, which already holds its base image,
+so the base images are not needed:
+
+```sh
+uv run ssebench run --task gjson-196-bf4efcb --agent reference
+```
+
+That is how `ssebench` runs [without a clone](#without-a-clone). `--build`
+builds the case image from the task's folder even though a prebuilt one exists.
+See [Prebuilt images](/dataset/pilot#prebuilt-images) for the tags, the digests
+that pin them and the size of every image.
+:::
+
 To watch a real run live in the web UI, start it with the demo instead:
 
 ```sh
@@ -158,9 +173,9 @@ uvx ssebench run --task gjson-196-bf4efcb --agent claude-code --model claude-son
 Run every `ssebench` command from this directory: it holds `.env` and
 `models/`, and `results/` is written here. Edit `models/` to add or change a
 model; `ssebench run` rebuilds the proxy image when a file changes. The first
-run pulls the task's case image and the runtime image from the registry, and
-builds the tool, agent and proxy layers on your machine, which downloads
-packages, so it needs network access. `uv tool install ssebench` keeps the
+run pulls the task's [case image](/dataset/pilot#prebuilt-images) and the
+runtime image from the registry, and builds the tool, agent and proxy layers on
+your machine, which downloads packages, so it needs network access. `uv tool install ssebench` keeps the
 command on your `PATH` instead of running it through `uvx`.
 
 Without a clone there is no `just`: `uvx ssebench proxy up` starts the proxy,

@@ -28,7 +28,7 @@ differently; see [below](#sidecar-mode).
 | Layer | Built from | Image name | Built by |
 |---|---|---|---|
 | Base | `images/base-images/generic-{c,go,rust}/Dockerfile` | `base-generic-<lang>:<version>` and `:latest` | `just base-images`, or `make -C images/base-images <name>` |
-| Case | the task's `Dockerfile` | `case/<dataset>/<task-id>`, lowercase, untagged | `ssebench run --local`, `ssebench build-case`; or pulled from a catalog |
+| Case | the task's `Dockerfile` | `case/<dataset>/<task-id>`, lowercase, untagged when built from a dataset and tagged with the dataset version when it comes from a catalog | `ssebench run --local`, `ssebench build-case`; or [pulled](/dataset/pilot#prebuilt-images) from a catalog, or built with `ssebench run --build` |
 | Tool | `images/sandbox/Dockerfile` | `tool/<task-id>:<version>` | `ssebench run` |
 | Agent | `agents/<name>/Dockerfile` | `agent-<name>/<task-id>:<agent version>`, lowercase | `ssebench run` |
 
@@ -70,7 +70,8 @@ runs the build on every run and Docker's build cache makes repeats fast.
 `ssebench.task-files` that every case image it builds carries, and rebuilds
 an image whose folder changed. It skips an image that is up to date, and an
 image without the label, which it cannot check and says so; `--force`
-rebuilds every image. Tasks from a catalog are pulled instead.
+rebuilds every image. Tasks from a catalog are pulled instead, unless you pass
+`--build`.
 
 ### Tool
 
