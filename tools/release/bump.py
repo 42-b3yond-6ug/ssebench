@@ -18,6 +18,9 @@ Usage:
     bump.py 1.2.0-rc.1   write VERSION and every version field, refresh the lockfiles
     bump.py --check      exit 1 if a version field or a lockfile disagrees with VERSION
 
+The Helm chart takes VERSION as it is, both as its own version and as the appVersion
+that its image tags default to.
+
 Datasets are versioned on their own (for example in datasets/*/manifest.json);
 this tool never reads or writes anything under datasets/.
 """
@@ -45,6 +48,9 @@ PEP440_PRE = {"alpha": "a", "beta": "b", "rc": "rc"}
 
 # Compose files whose SSEBench images carry the version as their tag.
 COMPOSE_FILES = ["deploy/compose/docker-compose.yaml", "deploy/compose/demo.yaml"]
+
+# The Helm chart, whose version and appVersion are both VERSION.
+CHART_FILE = "deploy/helm/ssebench/Chart.yaml"
 COMPOSE_IMAGE = re.compile(r"(?m)^(\s*image:\s*\$\{SSEBENCH_REGISTRY[^}]*\}/[\w./-]+?)(?::([\w.-]+))?\s*$")
 
 
@@ -233,8 +239,26 @@ def compose_fields() -> Iterator[Field]:
             yield Field(path, label, read, write, str)
 
 
+def chart_fields() -> Iterator[Field]:
+    path = ROOT / CHART_FILE
+    for key in ("version", "appVersion"):
+        line = re.compile(rf"(?m)^({key}:[ \t]*)\"?([^\"\s#]*)\"?")
+
+        def read(path: Path = path, line: re.Pattern[str] = line) -> str | None:
+            m = line.search(path.read_text())
+            return m[2] if m else None
+
+        def write(value: str, path: Path = path, line: re.Pattern[str] = line, key: str = key) -> None:
+            text, n = line.subn(lambda m: f"{m[1]}{value}", path.read_text(), count=1)
+            if n != 1:
+                raise SystemExit(f"{path.relative_to(ROOT)}: no {key}")
+            path.write_text(text)
+
+        yield Field(path, key, read, write, str)
+
+
 def fields() -> list[Field]:
-    return [*python_fields(), *rust_fields(), *js_fields(), *compose_fields()]
+    return [*python_fields(), *rust_fields(), *js_fields(), *compose_fields(), *chart_fields()]
 
 
 def drift(version: str) -> list[str]:
