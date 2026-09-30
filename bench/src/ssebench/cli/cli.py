@@ -22,6 +22,7 @@ from ssebench.extensions import (
 from ssebench.models import NO_MODEL, Model, NoModel, require_defined
 from ssebench.plugins import PluginError, selected_plugins
 from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
+from ssebench.runner.lifecycle import RUN_ID_LABEL, RunGuard, check_run_id
 from ssebench.runner.reference import REFERENCE_AGENT, is_reference_run, reference_patch_path
 from ssebench.tasks import CatalogError, CatalogTask, LocalTask, Task, load_catalog
 from ssebench.version import VERSION
@@ -52,6 +53,14 @@ class RunArgs(argparse.Namespace):
         self.keep_container: bool
         self.egress: Literal["restricted", "open"]
         self.plugin: list[str]
+        self.run_id: str | None
+
+
+def run_id_arg(value: str) -> str:
+    try:
+        return check_run_id(value)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e)) from e
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -129,6 +138,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     difficulty = args.difficulty
     keep_container = args.keep_container
     egress = args.egress
+    run_id = getattr(args, "run_id", None)
     runner: BenchmarkSandboxRunner | BenchmarkSidecarRunner
     match args.mode:
         case "sandbox":
@@ -143,9 +153,12 @@ def cmd_run(args: argparse.Namespace) -> int:
                 egress,
                 plugins=plugin_names,
                 select_plugins=requested is not None,
+                run_id=run_id,
             )
         case "sidecar":
-            runner = BenchmarkSidecarRunner(model, agent, task, timeout, difficulty, keep_container, egress)
+            runner = BenchmarkSidecarRunner(
+                model, agent, task, timeout, difficulty, keep_container, egress, run_id=run_id
+            )
         case _:
             logger.error(f"Unknown mode: {args.mode}")
             return 1
@@ -154,7 +167,9 @@ def cmd_run(args: argparse.Namespace) -> int:
     except CatalogError as e:
         logger.error(e)
         return 1
-    runner.run()
+    # SIGTERM or SIGINT stops the container; the results are still recorded.
+    with RunGuard():
+        runner.run()
     return 0
 
 
@@ -248,7 +263,9 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
     run_parser = subparsers.add_parser(
         "run",
         help="Run a benchmark",
-        description="Runs one agent on one task with one model and writes the results to results/.",
+        description="Runs one agent on one task with one model and writes the results to results/. "
+        "SIGTERM or SIGINT stops the run's container, and the results and the summary are still written; "
+        "a second signal ends the command at once.",
     )
     run_parser.add_argument(
         "--model",
@@ -294,6 +311,14 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
         default=[],
         metavar="NAME",
         help="Run a plugin in this run (repeatable), instead of those plugins.yaml enables; sandbox mode only",
+    )
+    run_parser.add_argument(
+        "--run-id",
+        type=run_id_arg,
+        default=None,
+        metavar="ID",
+        help=f"Set the label `{RUN_ID_LABEL}=ID` on the run's containers, so a tool that starts the run can find "
+        "them (1 to 64 letters, digits, '.', '_' or '-')",
     )
     run_parser.add_argument("--timeout", type=int, default=3600, metavar="SECONDS", help="How long the agent may run")
     run_parser.add_argument(

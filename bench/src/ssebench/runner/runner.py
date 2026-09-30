@@ -18,6 +18,7 @@ from ssebench.middleware import (
 )
 from ssebench.models import Model, NoModel
 from ssebench.pipe import build_pipe
+from ssebench.runner.lifecycle import run_container, run_id_labels
 from ssebench.runner.reference import (
     is_reference_run,
     reference_patch,
@@ -143,6 +144,7 @@ class BenchmarkRunner(ABC):
         difficulty: int,
         keep_container: bool = False,
         egress: str = "restricted",
+        run_id: str | None = None,
     ): ...
 
     @abstractmethod
@@ -166,8 +168,10 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
         egress: str = "restricted",
         plugins: list[str] | None = None,
         select_plugins: bool = False,
+        run_id: str | None = None,
     ):
         self.model = model
+        self.run_id = run_id
         self.agent = agent
         self.task = task
         self.timeout = timeout
@@ -239,6 +243,7 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
                 "--label",
                 f"ssebench.agent={self.agent.agent_name}",
                 *reference_run_labels(self.agent.agent_name),
+                *run_id_labels(self.run_id),
                 self.sandbox_image,
             ]
         )
@@ -254,7 +259,7 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
         with reference_patch(self.agent.agent_name, self.task) as patch:
             try:
                 logger.info(f"Running Benchmark: {self.task.name}")
-                _ = subprocess.run(self.docker_command(results_path, patch), check=True)
+                run_container(self.docker_command(results_path, patch))
             except subprocess.CalledProcessError as e:
                 if stopped_after_grading(e.returncode, self.keep_container, evaluator_file):
                     logger.info(f"The kept container was stopped after grading (exit status {e.returncode})")
@@ -391,6 +396,7 @@ class BenchmarkSidecarRunner(BenchmarkRunner):
         difficulty: int,
         keep_container: bool = False,
         egress: str = "restricted",
+        run_id: str | None = None,
     ):
         self.model = model
         self.agent = agent
@@ -399,6 +405,7 @@ class BenchmarkSidecarRunner(BenchmarkRunner):
         self.difficulty = difficulty
         self.keep_container = keep_container
         self.egress = egress
+        self.run_id = run_id
 
         self.sidecar_agentrt_image: str | None = None
         self.sidecar_environ_image: str | None = None
@@ -444,6 +451,7 @@ class BenchmarkSidecarRunner(BenchmarkRunner):
             *reference_run_labels(self.agent.agent_name),
             "--label",
             f"{RESULTS_LABEL}={results_path}",
+            *run_id_labels(self.run_id),
         ]
 
         try:
@@ -467,7 +475,7 @@ class BenchmarkSidecarRunner(BenchmarkRunner):
                     },
                 )
                 docker_cmd += [*reference_patch_mount(self.agent.agent_name, patch), self.sidecar_agentrt_image]
-                _ = subprocess.run(docker_cmd, check=True)
+                run_container(docker_cmd)
         except subprocess.CalledProcessError as e:
             logger.error(f"Sidecar run failed: {e}")
         finally:

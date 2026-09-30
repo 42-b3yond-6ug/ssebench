@@ -52,7 +52,7 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent <agent> --mo
 ```sh
 ssebench run [-h] [--model NAME] --agent NAME --task ID [--local DIR]
              [--catalog PATH|URL] [--mode MODE] [--tool-layer NAME] [--plugin NAME]
-             [--timeout SECONDS] [--difficulty LEVEL] [--keep-container]
+             [--run-id ID] [--timeout SECONDS] [--difficulty LEVEL] [--keep-container]
              [--egress POLICY]
 ```
 
@@ -66,6 +66,7 @@ ssebench run [-h] [--model NAME] --agent NAME --task ID [--local DIR]
 | `--mode MODE` | `sandbox` | Execution mode: sandbox, or sidecar (experimental) |
 | `--tool-layer NAME` | `sandbox` | Tool layer to build in sandbox mode; installed extensions can add more |
 | `--plugin NAME` | `[]` | Run a plugin in this run (repeatable), instead of those `plugins.yaml` enables; sandbox mode only |
+| `--run-id ID` |  | Set the label `ssebench.run-id=ID` on the run's containers, so a tool that starts the run can find them (1 to 64 letters, digits, '.', '_' or '-') |
 | `--timeout SECONDS` | `3600` | How long the agent may run |
 | `--difficulty LEVEL` | 2 = `NO_FUTURE_TEST` | Which checks the agent's `test_patch` tool may run, from 0 (all) to 4 (none). One of 0, 1, 2, 3, 4 |
 | `--keep-container` | off | Keep the container after the run, for example to inspect it from the web UI |
