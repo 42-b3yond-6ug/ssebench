@@ -52,7 +52,7 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/*
 
 # Agents run as the non-root user "model" (uid/gid 1000), which owns the shared
-# source tree. ubuntu:24.04 already has a user "ubuntu" with uid/gid 1000.
+# source tree. The ubuntu image already has a user "ubuntu" with uid/gid 1000.
 RUN userdel --remove ubuntu && \
     groupadd -g 1000 model && \
     useradd -m -u 1000 -g 1000 -s /bin/bash model && \
