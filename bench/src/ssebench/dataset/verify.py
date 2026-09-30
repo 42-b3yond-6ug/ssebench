@@ -25,8 +25,8 @@ from pydantic import ValidationError
 from ssebench import paths
 from ssebench.models import NO_MODEL
 from ssebench.pipe import REGISTRY
+from ssebench.runner.layout import new_run_id, summary_path
 from ssebench.runner.result import PatchResult, PerTaskEvaluationResult
-from ssebench.runner.runner import summary_path
 from ssebench.tasks.manifest import Check, case_image_name, task_files
 
 from .generate import MANIFEST, checks
@@ -186,7 +186,7 @@ class Options:
     retries: int = 0
 
 
-def run_command(opts: Options, task: str, agent: str) -> list[str]:
+def run_command(opts: Options, task: str, agent: str, run_id: str) -> list[str]:
     cmd = [
         sys.executable,
         "-m",
@@ -204,16 +204,18 @@ def run_command(opts: Options, task: str, agent: str) -> list[str]:
         str(opts.timeout),
         "--egress",
         opts.egress,
+        "--run-id",
+        run_id,
     ]
     if agent != REFERENCE:
         cmd += ["--model", opts.model]
     return cmd
 
 
-def result_path(opts: Options, task: str, agent: str) -> Path:
-    """The summary of the run, which `ssebench run`, started in the runs directory, writes when it ends."""
+def result_path(opts: Options, task: str, agent: str, run_id: str) -> Path:
+    """The summary of the run `run_id`, which `ssebench run`, started in the runs directory, writes when it ends."""
     model = NO_MODEL if agent == REFERENCE else opts.model
-    return runs_dir(opts.output) / summary_path(task, agent, model)
+    return runs_dir(opts.output) / summary_path(task, agent, model, run_id)
 
 
 def runs_dir(output: Path) -> Path:
@@ -245,8 +247,6 @@ def image_id(image: str) -> str | None:
 
 
 def run_agent(opts: Options, task: TaskReport, agent: str) -> RunReport:
-    result_file = result_path(opts, task.id, agent)
-    result_file.unlink(missing_ok=True)
     log = opts.output / "logs" / f"{task.id}.{agent}.log"
     log.parent.mkdir(parents=True, exist_ok=True)
     runs = runs_dir(opts.output)
@@ -258,12 +258,19 @@ def run_agent(opts: Options, task: TaskReport, agent: str) -> RunReport:
     with log.open("w") as out:
         while True:
             attempts += 1
+            # Every attempt is a run of its own, so a retry never reads the summary of an earlier one.
+            run_id = new_run_id()
             _ = out.write(f"=== {agent} run of {task.id}, attempt {attempts}\n")
             out.flush()
             proc = subprocess.run(
-                run_command(opts, task.id, agent), cwd=runs, env=env, stdout=out, stderr=subprocess.STDOUT, check=False
+                run_command(opts, task.id, agent, run_id),
+                cwd=runs,
+                env=env,
+                stdout=out,
+                stderr=subprocess.STDOUT,
+                check=False,
             )
-            result = read_result(result_file)
+            result = read_result(result_path(opts, task.id, agent, run_id))
             if result is not None or attempts > opts.retries:
                 break
     seconds = time.monotonic() - start

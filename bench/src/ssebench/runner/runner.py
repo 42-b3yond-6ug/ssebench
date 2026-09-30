@@ -1,9 +1,9 @@
 import logging
-import os
 import shutil
 import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import final, override
 from uuid import uuid4
@@ -11,6 +11,7 @@ from uuid import uuid4
 from ssebench import stack
 from ssebench.agents import Agent
 from ssebench.arch import platform_args
+from ssebench.errors import UserError
 from ssebench.extensions import DEFAULT_TOOL_LAYER, get_tool_layer
 from ssebench.middleware import (
     SidecarToolLayerAgentRuntime,
@@ -19,6 +20,7 @@ from ssebench.middleware import (
 )
 from ssebench.models import Model, NoModel
 from ssebench.pipe import build_pipe
+from ssebench.runner.layout import SUMMARY_FILE, mark_latest, new_run_id, run_dir
 from ssebench.runner.lifecycle import run_container, run_id_labels
 from ssebench.runner.reference import (
     is_reference_run,
@@ -45,34 +47,24 @@ RESULTS_PATH = "/var/lib/ssebench/results"
 """Where a task container has the run directory: root-only, for the grade, the graded patch and the logs."""
 REFERENCE_PATCH_FILE = "reference.patch"
 RESULTS_LABEL = "ssebench.results"
-"""Container label with the run directory on the host, for the web UI."""
+"""Container label with the run's own directory on the host, for the web UI."""
 
 # What `docker stop` ends a container with: 128 plus SIGTERM, or plus SIGKILL, which follows
 # the ten seconds it allows.
 STOP_STATUSES = (143, 137)
 
 
-def clear_directory(path: Path) -> None:
-    """Clear all contents of a directory without removing the directory itself."""
-    if not path.exists():
-        return
-    for item in path.iterdir():
-        if item.is_dir():
-            shutil.rmtree(item)
-        else:
-            item.unlink()
-    logger.debug(f"Cleared contents of {path}")
-
-
-def summary_path(task: str, agent: str, model: str) -> Path:
-    """The run summary that `ssebench run` writes, a PerTaskEvaluationResult, relative to its working directory."""
-    return Path("results") / f"{task}-{agent}-{model}.json"
-
-
 def prepare_run_directory(results_path: Path) -> Path:
-    """Empty the run directory, create its agent archive, and return the path of its `result.json`."""
-    os.makedirs(results_path, exist_ok=True)
-    clear_directory(results_path)
+    """Create the run directory with its agent archive, and return the path of its `result.json`.
+
+    Raises:
+        UserError: If the directory exists, since a run never adds to another run's results.
+    """
+    results_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        results_path.mkdir()
+    except FileExistsError:
+        raise UserError(f"{results_path} already has results; give the run another --run-id") from None
     (results_path / ARCHIVE_DIR).mkdir()
     evaluator_file = results_path / "result.json"
     evaluator_file.touch()
@@ -108,8 +100,15 @@ def stopped_after_grading(returncode: int, keep_container: bool, evaluator_file:
     return keep_container and returncode in STOP_STATUSES and evaluator_file.stat().st_size > 0
 
 
-def record_results(task: Task, run_config: RunConfig, spend: float, evaluator_file: Path) -> None:
-    """Complete the run's result.json with the run settings, and write the summary to results/."""
+def record_results(
+    task: Task,
+    run_config: RunConfig,
+    spend: float,
+    evaluator_file: Path,
+    run_id: str | None = None,
+    started_at: datetime | None = None,
+) -> None:
+    """Complete the run's result.json with the run settings, and write the summary beside it."""
     content = evaluator_file.read_text().strip()
     if content:
         container_result = EvaluationResult.model_validate_json(content)
@@ -127,11 +126,10 @@ def record_results(task: Task, run_config: RunConfig, spend: float, evaluator_fi
         rc=run_config,
         frs=FrameworkResult(spend=spend),
         crs=container_result,
+        run_id=run_id,
+        started_at=started_at,
     )
-
-    result_json_path = summary_path(task.name, run_config.agent, run_config.model)
-    result_json_path.parent.mkdir(exist_ok=True)
-    _ = result_json_path.write_text(per_task_result.model_dump_json())
+    replace_file(evaluator_file.with_name(SUMMARY_FILE), per_task_result.model_dump_json())
 
 
 class BenchmarkRunner(ABC):
@@ -172,7 +170,7 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
         run_id: str | None = None,
     ):
         self.model = model
-        self.run_id = run_id
+        self.run_id = run_id or new_run_id()
         self.agent = agent
         self.task = task
         self.timeout = timeout
@@ -260,8 +258,10 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
     def run(self):
         assert self.sandbox_image is not None
 
-        results_path = (Path("results") / self.task.name / self.model.model_name / self.agent.agent_name).absolute()
+        started_at = datetime.now(UTC)
+        results_path = run_dir(self.task.name, self.agent.agent_name, self.model.model_name, self.run_id).absolute()
         evaluator_file = prepare_run_directory(results_path)
+        mark_latest(results_path)
 
         with reference_patch(self.agent.agent_name, self.task) as patch:
             try:
@@ -286,7 +286,7 @@ class BenchmarkSandboxRunner(BenchmarkRunner):
             reference_run=is_reference_run(self.agent.agent_name),
             plugins=self.plugins,
         )
-        record_results(self.task, run_config, self.model.get_spend(), evaluator_file)
+        record_results(self.task, run_config, self.model.get_spend(), evaluator_file, self.run_id, started_at)
 
 
 SIDECAR_SOCKET_DIR = "/run/ssebench"
@@ -415,7 +415,7 @@ class BenchmarkSidecarRunner(BenchmarkRunner):
         self.difficulty = difficulty
         self.keep_container = keep_container
         self.egress = egress
-        self.run_id = run_id
+        self.run_id = run_id or new_run_id()
 
         self.sidecar_agentrt_image: str | None = None
         self.sidecar_environ_image: str | None = None
@@ -439,8 +439,10 @@ class BenchmarkSidecarRunner(BenchmarkRunner):
         assert self.sidecar_agentrt_image is not None
         assert self.sidecar_environ_image is not None
 
-        results_path = (Path("results") / self.task.name / self.model.model_name / self.agent.agent_name).absolute()
+        started_at = datetime.now(UTC)
+        results_path = run_dir(self.task.name, self.agent.agent_name, self.model.model_name, self.run_id).absolute()
         evaluator_file = prepare_run_directory(results_path)
+        mark_latest(results_path)
 
         pair = SidecarPair(
             task_name=self.task.name,
@@ -507,4 +509,4 @@ class BenchmarkSidecarRunner(BenchmarkRunner):
             egress="open" if self.egress == "open" else "restricted",
             reference_run=is_reference_run(self.agent.agent_name),
         )
-        record_results(self.task, run_config, self.model.get_spend(), evaluator_file)
+        record_results(self.task, run_config, self.model.get_spend(), evaluator_file, self.run_id, started_at)

@@ -63,13 +63,13 @@ def docker(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Docker:
 
 
 def sandbox_runner(agent: str, task: LocalTask) -> BenchmarkSandboxRunner:
-    runner = BenchmarkSandboxRunner(NoModel(), Agent(agent, task_name=task.name), task, 60, 2)
+    runner = BenchmarkSandboxRunner(NoModel(), Agent(agent, task_name=task.name), task, 60, 2, run_id="r1")
     runner.sandbox_image = "registry.test/agent-image"
     return runner
 
 
 def sidecar_runner(agent: str, task: LocalTask) -> BenchmarkSidecarRunner:
-    runner = BenchmarkSidecarRunner(NoModel(), Agent(agent, task_name=task.name), task, 60, 2)
+    runner = BenchmarkSidecarRunner(NoModel(), Agent(agent, task_name=task.name), task, 60, 2, run_id="r1")
     runner.sidecar_agentrt_image = "registry.test/agent-image"
     runner.sidecar_environ_image = "registry.test/environment-image"
     return runner
@@ -118,7 +118,7 @@ def test_other_agents_run_without_the_reference_patch(
     assert not docker.mentioning("patch.diff")
     assert not docker.mentioning(REFERENCE_RUN_LABEL)
     assert not [cmd for cmd in docker.commands if cmd[:2] in (["docker", "create"], ["docker", "cp"])]
-    summary = json.loads((Path("results") / f"{TASK}-{agent}-none.json").read_text())
+    summary = json.loads((Path("results") / TASK / "none" / agent / "r1" / "summary.json").read_text())
     assert summary["config"]["reference_run"] is False
 
 
@@ -150,9 +150,9 @@ def test_reference_run_results_are_labelled(
 ) -> None:
     make_runner(REFERENCE_AGENT, task).run()
 
-    results = Path("results")
-    summary = json.loads((results / f"{TASK}-{REFERENCE_AGENT}-none.json").read_text())
-    result = json.loads((results / TASK / "none" / REFERENCE_AGENT / "result.json").read_text())
+    run_dir = Path("results") / TASK / "none" / REFERENCE_AGENT / "r1"
+    summary = json.loads((run_dir / "summary.json").read_text())
+    result = json.loads((run_dir / "result.json").read_text())
     for record in (summary, result):
         assert record["config"]["agent"] == REFERENCE_AGENT
         assert record["config"]["model"] == "none"
@@ -174,7 +174,7 @@ def test_record_results_adds_the_config_to_result_json(task: LocalTask, tmp_path
     result = json.loads(evaluator_file.read_text())
     assert result["patch_result"]["pov_passed"] == 1
     assert result["config"] == config.model_dump()
-    summary = json.loads((tmp_path / "results" / f"{TASK}-dummy-m.json").read_text())
+    summary = json.loads((tmp_path / "summary.json").read_text())
     assert summary["spend"] == 0.5
 
 

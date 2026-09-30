@@ -21,7 +21,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import httpx
@@ -32,6 +32,8 @@ from ssebench.doctor import Status
 from ssebench.middleware.tools import RUNTIME_IMAGE_ENV, runtime_image
 from ssebench.models import NO_MODEL
 from ssebench.pipe import REGISTRY, TAG
+from ssebench.runner.layout import new_run_id, run_dir
+from ssebench.runner.lifecycle import RUN_ID_LABEL
 from ssebench.runner.reference import is_reference_run
 from ssebench.tasks import Catalog, CatalogError, load_catalog
 from ssebench.tasks.catalog import bundled_manifest
@@ -355,13 +357,14 @@ class Plan:
     model: str | None
     timeout: int
     build: bool
+    run_id: str = field(default_factory=new_run_id)
 
     @property
     def result_file(self) -> Path:
         """Where the evaluator writes the grade; the runner finds it there and the demo waits for it."""
         model = NO_MODEL if is_reference_run(self.agent) else self.model
         assert model is not None
-        return paths.workspace() / "results" / self.task / model / self.agent / "result.json"
+        return run_dir(self.task, self.agent, model, self.run_id, paths.workspace() / "results") / "result.json"
 
     def run_command(self, demo: Demo) -> list[str]:
         cmd = [
@@ -375,6 +378,8 @@ class Plan:
             self.agent,
             "--timeout",
             str(self.timeout),
+            "--run-id",
+            self.run_id,
             "--keep-container",
         ]
         if self.model is not None and not is_reference_run(self.agent):
@@ -512,16 +517,15 @@ def wait_for_run(plan: Plan, process: subprocess.Popen[bytes], log: Path, starte
 
 
 def find_run(demo: Demo, plan: Plan) -> str | None:
-    """The newest kept container of the run, as the web UI lists it."""
+    """The kept container of the run, as the web UI lists it."""
     for network in demo.run_networks:
         found = container_ids(
             f"label={RUN_LABEL}=true",
-            f"label=ssebench.task-id={plan.task}",
-            f"label=ssebench.agent={plan.agent}",
+            f"label={RUN_ID_LABEL}={plan.run_id}",
             f"network={network}",
         )
         if found:
-            return found[0]  # `docker ps` lists the newest first
+            return found[0]
     return None
 
 

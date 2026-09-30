@@ -22,6 +22,7 @@ from ssebench.extensions import (
 from ssebench.models import NO_MODEL, Model, NoModel, require_defined
 from ssebench.plugins import PluginError, selected_plugins
 from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
+from ssebench.runner.layout import new_run_id, run_dir
 from ssebench.runner.lifecycle import RUN_ID_LABEL, RunGuard, check_run_id
 from ssebench.runner.reference import REFERENCE_AGENT, is_reference_run, reference_patch_path
 from ssebench.tasks import CatalogError, CatalogTask, LocalTask, Task, load_catalog
@@ -127,6 +128,13 @@ def cmd_run(args: argparse.Namespace) -> int:
     if arch.is_emulated(task.arch):
         logger.warning(arch.emulation_warning(task.arch))
 
+    # Refuse a taken ID before the proxy starts or anything is built.
+    run_id = getattr(args, "run_id", None) or new_run_id()
+    taken = run_dir(task.name, args.agent, NO_MODEL if reference_run else str(args.model), run_id)
+    if taken.exists():
+        logger.error(f"{taken} already has results; give the run another --run-id, or none to get a new ID")
+        return 1
+
     try:
         stack.up()
         stack.wait_healthy()
@@ -143,7 +151,6 @@ def cmd_run(args: argparse.Namespace) -> int:
     difficulty = args.difficulty
     keep_container = args.keep_container
     egress = args.egress
-    run_id = getattr(args, "run_id", None)
     runner: BenchmarkSandboxRunner | BenchmarkSidecarRunner
     match args.mode:
         case "sandbox":
@@ -271,7 +278,8 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
     run_parser = subparsers.add_parser(
         "run",
         help="Run a benchmark",
-        description="Runs one agent on one task with one model and writes the results to results/. "
+        description="Runs one agent on one task with one model and writes the results to "
+        "results/TASK/MODEL/AGENT/RUN-ID/, a directory of its own for each run. "
         "SIGTERM or SIGINT stops the run's container, and the results and the summary are still written; "
         "a second signal ends the command at once.",
     )
@@ -331,8 +339,10 @@ def build_parser(commands: Sequence[Command] = ()) -> tuple[argparse.ArgumentPar
         type=run_id_arg,
         default=None,
         metavar="ID",
-        help=f"Set the label `{RUN_ID_LABEL}=ID` on the run's containers, so a tool that starts the run can find "
-        "them (1 to 64 letters, digits, '.', '_' or '-')",
+        help="Name the run: its directory is results/TASK/MODEL/AGENT/ID, and its containers get the label "
+        f"`{RUN_ID_LABEL}=ID`, so a tool that starts the run can find them. 1 to 64 letters, digits, '.', '_' or '-', "
+        "and not `latest`. The run is refused if that directory exists. "
+        "Default: the UTC time the command started and six random hex digits, such as 20260929-153012-a1b2c3",
     )
     run_parser.add_argument("--timeout", type=int, default=3600, metavar="SECONDS", help="How long the agent may run")
     run_parser.add_argument(

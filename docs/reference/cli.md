@@ -43,7 +43,8 @@ bench/src/ssebench/cli/, then run `just docs-gen`. -->
 ## `ssebench run`
 
 Runs one agent × model × task combination and writes the
-[results](/concepts/results) to `results/`.
+[results](/concepts/results) to a directory of its own,
+`results/<task>/<model>/<agent>/<run-id>/`.
 
 ```sh
 uv run ssebench run --local datasets/pilot --task <task-id> --agent <agent> --model <model>
@@ -69,7 +70,7 @@ ssebench run [-h] [--model NAME] --agent NAME --task ID [--local DIR]
 | `--mode MODE` | `sandbox` | Execution mode: sandbox, or sidecar (experimental) |
 | `--tool-layer NAME` | `sandbox` | Tool layer to build in sandbox mode; installed extensions can add more |
 | `--plugin NAME` | `[]` | Run a plugin in this run (repeatable), instead of those `plugins.yaml` enables; sandbox mode only |
-| `--run-id ID` |  | Set the label `ssebench.run-id=ID` on the run's containers, so a tool that starts the run can find them (1 to 64 letters, digits, '.', '_' or '-') |
+| `--run-id ID` |  | Name the run: its directory is `results/TASK/MODEL/AGENT/ID`, and its containers get the label `ssebench.run-id=ID`, so a tool that starts the run can find them. 1 to 64 letters, digits, '.', '_' or '-', and not `latest`. The run is refused if that directory exists. Default: the UTC time the command started and six random hex digits, such as 20260929-153012-a1b2c3 |
 | `--timeout SECONDS` | `3600` | How long the agent may run |
 | `--difficulty LEVEL` | 2 = `NO_FUTURE_TEST` | Which checks the agent's `test_patch` tool may run, from 0 (all) to 4 (none). One of 0, 1, 2, 3, 4 |
 | `--keep-container` | off | Keep the container after the run, for example to inspect it from the web UI |
@@ -84,7 +85,9 @@ in [Extension points](/guides/extension-points#tool-layers), and `--egress` in
 [Integrity and egress](/deployment/integrity-and-egress); the egress policy is
 recorded as `config.egress` in the run summary. `--keep-container` leaves the
 container for the [web UI](/webui/) to inspect; in sidecar mode it leaves both
-containers and their volumes.
+containers and their volumes. `--run-id` names the run directory; without it the
+CLI makes an ID, so running a combination again adds a run and replaces none;
+see [Run IDs and repeated runs](/concepts/results#run-ids-and-repeated-runs).
 
 Before it starts the proxy or builds an image, `ssebench run` checks the
 arguments: the agent must exist and have a valid `agent.yaml`, `--model` must be
@@ -116,8 +119,9 @@ In order, `run`:
    sidecar mode, it starts the task container with the daemon, then runs the
    agent container, which runs the agent and then the evaluator, and removes
    the task container afterwards;
-5. writes the grade, the run settings and the model spend to `results/`, and
-   adds the run settings to the run's `result.json` as `config`.
+5. writes the grade, the run settings and the model spend to `summary.json` in
+   the run directory, and adds the run settings to the run's `result.json` as
+   `config`.
 
 Every image and container of a run uses the platform of the task's case image:
 the host's architecture if the task's manifest `arch` lists it, otherwise the
@@ -140,9 +144,10 @@ uv run ssebench run --local datasets/pilot --task gjson-196-bf4efcb --agent refe
 A reference run differs from other runs in these ways:
 
 - `--model` is optional. The run's model is `none`: no proxy key is created,
-  the spend is 0, and the results go to `results/<task>/none/reference/` and
-  `results/<task>-reference-none.json`. Any other `--model` is ignored, with a
-  warning. The LiteLLM proxy still starts, as the container joins its network.
+  the spend is 0, and the results go to
+  `results/<task>/none/reference/<run-id>/`. Any other `--model` is ignored,
+  with a warning. The LiteLLM proxy still starts, as the container joins its
+  network.
 - `run` copies the file that `files.patch` names out of the case image and
   mounts it read-only at `/reference/patch.diff` in the container (in sidecar
   mode, the agent container). No other agent gets this mount. A task without
@@ -397,7 +402,8 @@ uv run ssebench dataset verify --changed-since origin/main --jobs 4
 ```
 
 It writes, under the output directory, one JSON file per task in `tasks/`, the
-log of every run in `logs/`, the run directories in `runs/results/`, and
+log of every run in `logs/`, the run directories, one for each attempt, in
+`runs/results/`, and
 `summary.md` and `summary.json`, a table of every task result in the directory
 by check. It exits 1 when a task does not grade as expected. The
 [Dataset](https://github.com/42-b3yond-6ug/ssebench/blob/main/.github/workflows/dataset.yml)
