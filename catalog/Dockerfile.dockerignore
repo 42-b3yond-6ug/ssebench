@@ -4,3 +4,4 @@
 !catalog/cmd/
 !catalog/internal/
 !datasets/*/manifest.json
+!datasets/*/images.lock.json

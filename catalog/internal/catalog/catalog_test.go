@@ -69,9 +69,17 @@ func TestParseRejects(t *testing.T) {
 }
 
 func TestResolve(t *testing.T) {
-	task := Task{ID: "a", Base: "base-generic-go:latest", Image: "case/pilot/a"}.Resolve("registry.test/ns/")
-	if task.Base != "registry.test/ns/base-generic-go:latest" || task.Image != "registry.test/ns/case/pilot/a" {
-		t.Errorf("unexpected resolved task %+v", task)
+	base := Task{ID: "a", Base: "base-generic-go:1.0.0", Image: "case/pilot/a"}
+
+	tagged := base.Resolve("registry.test/ns/", "pilot-v1", "")
+	if tagged.Base != "registry.test/ns/base-generic-go:1.0.0" || tagged.Image != "registry.test/ns/case/pilot/a:pilot-v1" {
+		t.Errorf("unexpected resolved task %+v", tagged)
+	}
+
+	digest := "sha256:" + strings.Repeat("ab", 32)
+	pinned := base.Resolve("registry.test/ns", "pilot-v1", digest)
+	if pinned.Image != "registry.test/ns/case/pilot/a@"+digest {
+		t.Errorf("a pinned image should be named by its digest, got %q", pinned.Image)
 	}
 }
 

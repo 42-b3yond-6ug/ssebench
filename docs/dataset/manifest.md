@@ -315,7 +315,11 @@ validate` checks those.
 ## Catalog service
 
 The catalog service (`catalog/`, Go) serves a manifest over HTTP. In each task
-it returns, `base` and `image` are prefixed with the registry.
+it returns, `base` and `image` are prefixed with the registry, and `image` is
+tagged with the dataset's `version`, or named by its digest
+(`<registry>/case/pilot/<id>@sha256:…`) when the [images lock](#images-lock)
+next to the manifest pins the task to an image built from the files the
+manifest lists. A client can pull the `image` it gets as it is.
 
 ```sh
 go run ./catalog/cmd/ssebench-catalog serve --manifest datasets/pilot/manifest.json
@@ -324,6 +328,7 @@ go run ./catalog/cmd/ssebench-catalog serve --manifest datasets/pilot/manifest.j
 | Option | Environment | Default | Description |
 |---|---|---|---|
 | `--manifest FILE` | `SSEBENCH_MANIFEST` | `datasets/pilot/manifest.json` | Manifest to serve |
+| `--lock FILE` | `SSEBENCH_IMAGES_LOCK` | `images.lock.json` next to the manifest, if there is one | Images lock that pins the case images by digest; a lock that was asked for must exist |
 | `--registry PREFIX` | `SSEBENCH_REGISTRY` | `ghcr.io/42-b3yond-6ug/ssebench` | Registry prefix of the images |
 | `--port PORT` | `SSEBENCH_CATALOG_PORT` | `8080` | TCP port |
 
@@ -332,15 +337,16 @@ go run ./catalog/cmd/ssebench-catalog serve --manifest datasets/pilot/manifest.j
 | `GET /tasks` | Every task, sorted by `id`, without `files` and `metadata` |
 | `GET /tasks/{id}` | One task |
 | `GET /tasks/{id}/metadata` | The task config |
-| `GET /manifest.json` | The manifest as loaded, with image names relative to the registry |
+| `GET /manifest.json` | The manifest as loaded, with image names relative to the registry and without a tag |
 
 `docker build -f catalog/Dockerfile .`, from the repository root, builds an
-image that serves the committed `datasets/pilot/manifest.json`.
+image that serves the committed `datasets/pilot/manifest.json` and
+`images.lock.json`.
 
 The service is optional. The CLI and the web UI read a manifest directly from
 a file or URL, and default to the bundled `datasets/pilot/manifest.json`, so
 they list tasks without any server or network. To use a service, set
 `SSEBENCH_CATALOG` (or pass `ssebench run --catalog`) to its base URL, such as
 `http://localhost:8080`; they read its `GET /manifest.json` and prefix image
-names with their own `$SSEBENCH_REGISTRY`. See
+names with their own `$SSEBENCH_REGISTRY`, and tag them with the dataset version. See
 [Task catalog](/reference/cli#task-catalog).

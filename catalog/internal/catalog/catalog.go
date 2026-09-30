@@ -29,7 +29,8 @@ type Task struct {
 	Project    string `json:"project"`
 	Repository string `json:"repository"`
 
-	// Base and Image are relative to a registry in the manifest; see Resolve.
+	// Base and Image are relative to a registry, and Image has no tag, in the
+	// manifest; see Resolve.
 	Base  string `json:"base"`
 	Image string `json:"image"`
 
@@ -50,11 +51,19 @@ func (t Task) Summary() Task {
 	return t
 }
 
-// Resolve returns the task with its image names prefixed by registry.
-func (t Task) Resolve(registry string) Task {
+// Resolve returns the task with its image names prefixed by registry. The base
+// image already carries its version. The case image is named by digest when
+// digest is not empty, and otherwise by tag, the dataset version it is
+// published with.
+func (t Task) Resolve(registry, tag, digest string) Task {
 	registry = strings.TrimRight(registry, "/")
 	t.Base = registry + "/" + t.Base
 	t.Image = registry + "/" + t.Image
+	if digest != "" {
+		t.Image += "@" + digest
+	} else {
+		t.Image += ":" + tag
+	}
 	return t
 }
 

@@ -403,8 +403,35 @@ def test_tasks_list_json(serve: Serve, capsys: pytest.CaptureFixture[str]) -> No
     assert run_cli("tasks", "list", "--json", "--catalog", serve({"/manifest.json": BUNDLED.read_bytes()})) == 0
 
     tasks = {t["id"]: t for t in json.loads(capsys.readouterr().out)}
-    assert tasks[TASK]["image"] == f"{REGISTRY}/case/pilot/{TASK}"
+    assert tasks[TASK]["image"] == f"{REGISTRY}/case/pilot/{TASK}:pilot-v1"
     assert "metadata" not in tasks[TASK] and "files" not in tasks[TASK]
+
+
+def test_tasks_list_json_names_the_pinned_digest(
+    tmp_path: Path, make_task: Callable[..., Path], capsys: pytest.CaptureFixture[str]
+) -> None:
+    dataset, _ = locked_dataset(tmp_path, make_task)
+
+    for source in ("--catalog", "--local"):
+        assert run_cli("tasks", "list", "--json", source, str(dataset)) == 0
+        [task] = json.loads(capsys.readouterr().out)
+        assert task["image"] == f"{REGISTRY}/case/demo/demo-task@{DIGEST}"
+
+
+def test_files_digest_matches_the_catalog_service() -> None:
+    # The catalog service (Go) computes the same value; its test has the same files and digest.
+    files = {
+        "a/b c.txt": "00",
+        "ünï/日本.go": "11",
+        'quo"te\\back': "22",
+        "tab\there\n": "33",
+        "del\x7f<>&": "44",
+        "emoji/\U0001f600": "55",
+        "": "",
+    }
+
+    assert files_digest({}) == "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    assert files_digest(files) == "da99528d31864bf3bcd3ef61ed0c6338565eb1f12f500b2e8739f0a12e0590c2"
 
 
 def test_tasks_list_local(tmp_path: Path, make_task: Callable[..., Path], capsys: pytest.CaptureFixture[str]) -> None:

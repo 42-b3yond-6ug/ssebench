@@ -89,6 +89,7 @@ jobs:
               - *shared
               - VERSION
               - datasets/*/manifest.json
+              - datasets/*/images.lock.json
               - catalog/**
             webui:
               - *shared
