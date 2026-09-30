@@ -8,12 +8,15 @@
 import { useEffect } from "react"
 import { useContainers } from "../context/useContainers"
 import { useNewPanel } from "../context/usePanels"
+import { statusLabel } from "../lib/runStatus"
+import { useServerInfo } from "../lib/serverInfo"
 import { timeAgo } from "../lib/utils"
 
 export function HomePage() {
   const { refreshContainers, getRecentContainers, attachContainer } =
     useContainers()
   const { openNewPanel } = useNewPanel()
+  const { readOnly } = useServerInfo()
 
   // Refresh containers on mount
   useEffect(() => {
@@ -50,18 +53,24 @@ export function HomePage() {
         {/* Action Cards - Side by Side */}
         <div className="flex gap-8 px-8">
           {/* Launch Card (Primary action) */}
-          <ActionCard
-            icon={<LaunchIcon />}
-            title="Launch New Test"
-            description="Start a fresh security evaluation"
-            onClick={() => openNewPanel("launch")}
-          />
+          {!readOnly && (
+            <ActionCard
+              icon={<LaunchIcon />}
+              title="Launch New Test"
+              description="Start a fresh security evaluation"
+              onClick={() => openNewPanel("launch")}
+            />
+          )}
 
           {/* Attach Card (Secondary action) */}
           <ActionCard
             icon={<AttachIcon />}
-            title="Attach to Container"
-            description="Connect to an existing test environment"
+            title={readOnly ? "Browse Runs" : "Attach to Container"}
+            description={
+              readOnly
+                ? "Read the dialog, diff and grade of a run"
+                : "Connect to an existing test environment"
+            }
             onClick={() => openNewPanel("attach")}
           />
         </div>
@@ -115,8 +124,7 @@ export function HomePage() {
                           : "bg-gruvbox-yellow/20 text-gruvbox-yellow"
                     }`}
                   >
-                    {container.status.charAt(0).toUpperCase() +
-                      container.status.slice(1)}
+                    {statusLabel(container)}
                   </span>
 
                   {/* Time ago */}

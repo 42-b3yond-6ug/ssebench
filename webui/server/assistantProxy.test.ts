@@ -3,7 +3,7 @@ import { rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import type { Server } from "bun"
 import { buildAssistantConfig } from "./assistantProxy"
-import { createFakes, FULL_ID, inspectJson, SHORT_ID } from "./testing"
+import { createFakes, runJson, setState, SHORT_ID } from "./testing"
 
 const fakes = createFakes()
 const savedEnv = { ...process.env }
@@ -38,20 +38,24 @@ afterAll(() => {
   rmSync(fakes.dir, { recursive: true, force: true })
 })
 
-const labels = { "ssebench.webui": "true" }
-const runEnv = [
-  "SSE_BASE_URL=http://litellm:4000",
-  "SSE_MODEL_NAME=claude-x",
-  "SSE_API_KEY=sk-of-the-run",
-]
+/** The run of a container whose environment is `env` */
+function runWithEnv(id: string, env: Record<string, string>) {
+  setState(fakes, {
+    runs: [runJson(id)],
+    env: { [id]: env },
+  })
+}
+
+const runEnv = {
+  SSE_BASE_URL: "http://litellm:4000",
+  SSE_MODEL_NAME: "claude-x",
+  SSE_API_KEY: "sk-of-the-run",
+}
 
 describe("proxyProviderFor", () => {
   test("makes a key of its own for the run's model", async () => {
     const { proxyProviderFor } = await import("./assistantProxy")
-    writeFileSync(
-      fakes.inspectFile,
-      inspectJson(labels, FULL_ID, "running", runEnv)
-    )
+    runWithEnv(SHORT_ID, runEnv)
 
     const provider = await proxyProviderFor(SHORT_ID)
 
@@ -87,27 +91,29 @@ describe("proxyProviderFor", () => {
   test("has no provider for a container without a model", async () => {
     const { proxyProviderFor } = await import("./assistantProxy")
     const other = "f".repeat(12)
-    writeFileSync(
-      fakes.inspectFile,
-      inspectJson(labels, other.repeat(5) + "ffff", "running", [
-        "SSE_BASE_URL=",
-        "SSE_MODEL_NAME=",
-      ])
-    )
+    runWithEnv(other, { SSE_BASE_URL: "", SSE_MODEL_NAME: "" })
     expect(await proxyProviderFor(other)).toBeNull()
   })
 
   test("has no provider when the proxy refuses", async () => {
     const { proxyProviderFor } = await import("./assistantProxy")
     const id = "a".repeat(12)
-    writeFileSync(
-      fakes.inspectFile,
-      inspectJson(labels, id.repeat(5) + "aaaa", "running", runEnv)
-    )
+    runWithEnv(id, runEnv)
     proxyStatus = 401
     expect(await proxyProviderFor(id)).toBeNull()
     proxyStatus = 200
   })
+})
+
+test("has no provider when the backend cannot run commands in the run", async () => {
+  const { proxyProviderFor } = await import("./assistantProxy")
+  const id = "c".repeat(12)
+  setState(fakes, {
+    supports_exec: false,
+    runs: [runJson(id)],
+    env: { [id]: runEnv },
+  })
+  expect(await proxyProviderFor(id)).toBeNull()
 })
 
 describe("buildAssistantConfig", () => {
@@ -141,10 +147,7 @@ test("reads the proxy's admin key from .env when the environment has none", asyn
   const before = requests.length
   const { proxyProviderFor } = await import("./assistantProxy")
   const id = "b".repeat(12)
-  writeFileSync(
-    fakes.inspectFile,
-    inspectJson(labels, id.repeat(5) + "bbbb", "running", runEnv)
-  )
+  runWithEnv(id, runEnv)
 
   await proxyProviderFor(id)
 

@@ -15,13 +15,17 @@ import {
 } from "react"
 import { apiFetch } from "../lib/api"
 import { onAuthRequired, setAuthToken } from "../lib/auth"
-import { ServerInfoContext, type ServerInfo } from "../lib/serverInfo"
+import {
+  DEFAULT_SERVER_INFO,
+  ServerInfoContext,
+  type ServerInfo,
+} from "../lib/serverInfo"
 
 type GateState = "checking" | "open" | "locked"
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<GateState>("checking")
-  const [serverInfo, setServerInfo] = useState<ServerInfo>({ terminal: true })
+  const [serverInfo, setServerInfo] = useState<ServerInfo>(DEFAULT_SERVER_INFO)
   const [tokenInput, setTokenInput] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -39,6 +43,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
         setServerInfo({
           terminal: data.terminal !== false,
           terminalHint: data.terminalHint,
+          assistant: data.assistant !== false,
+          readOnly: data.hosted === true,
         })
       }
     } catch {

@@ -10,6 +10,7 @@ import { BaseModal } from "./BaseModal"
 import { AttachContent } from "./AttachContent"
 import { LaunchWizard } from "../launch/LaunchWizard"
 import { useContainers } from "../../context/useContainers"
+import { useServerInfo } from "../../lib/serverInfo"
 
 export type NewPanelTab = "attach" | "launch"
 
@@ -24,7 +25,10 @@ export function NewPanel({
   onClose,
   defaultTab = "attach",
 }: NewPanelProps) {
-  const [activeTab, setActiveTab] = useState<NewPanelTab>(defaultTab)
+  const { readOnly } = useServerInfo()
+  const [requestedTab, setActiveTab] = useState<NewPanelTab>(defaultTab)
+  // A read-only server launches nothing
+  const activeTab = readOnly ? "attach" : requestedTab
   const { attachContainer, refreshContainers } = useContainers()
 
   // Update active tab when defaultTab changes
@@ -84,12 +88,14 @@ export function NewPanel({
             icon={<AttachIcon />}
             label="Attach"
           />
-          <TabButton
-            active={activeTab === "launch"}
-            onClick={() => setActiveTab("launch")}
-            icon={<LaunchIcon />}
-            label="Launch"
-          />
+          {!readOnly && (
+            <TabButton
+              active={activeTab === "launch"}
+              onClick={() => setActiveTab("launch")}
+              icon={<LaunchIcon />}
+              label="Launch"
+            />
+          )}
         </div>
 
         {/* Right content area */}

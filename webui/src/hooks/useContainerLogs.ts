@@ -1,7 +1,7 @@
 /**
  * Hook for subscribing to container logs via WebSocket
  *
- * Streams logs from `docker logs -f <containerId>` through the backend.
+ * Streams the run container's logs through the server.
  * Unlike LaunchContext logs (which capture Python subprocess output),
  * this streams logs directly from the Docker container.
  */

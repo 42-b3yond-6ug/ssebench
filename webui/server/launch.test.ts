@@ -1,18 +1,17 @@
 import { afterAll, afterEach, describe, expect, test } from "bun:test"
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import { createFakes, FULL_ID } from "./testing"
+import { createFakes, runJson, setState } from "./testing"
 
-// launch.ts reads its paths at import time, and spawns `uv` with the
+// launch.ts reads its paths at import time, and spawns the CLI with the
 // environment of the moment, so the fakes stay in place until the end.
 const fakes = createFakes()
 const savedEnv = { ...process.env }
-const events = join(fakes.dir, "uv-events.log")
-const done = join(fakes.dir, "uv-done")
+const events = join(fakes.runnerDir, "events.log")
+const done = join(fakes.runnerDir, "done")
+const mode = join(fakes.runnerDir, "run.mode")
 Object.assign(process.env, fakes.env, {
   SSEBENCH_CATALOG: "http://catalog.invalid",
-  FAKE_UV_EVENTS: events,
-  FAKE_UV_DONE: done,
 })
 const {
   buildLaunchArgs,
@@ -173,8 +172,6 @@ describe("buildLaunchArgs", () => {
       )
     ).toEqual([
       "run",
-      "ssebench",
-      "run",
       "--model=test-model",
       "--agent=dummy",
       "--task=demo-task-1",
@@ -224,32 +221,9 @@ describe("getPlugins", () => {
   })
 })
 
-// A `uv` that keeps running, as `ssebench run --keep-container` does, until
-// the test creates FAKE_UV_DONE. It records its arguments and how it ended.
-const LONG_RUNNING_UV = `#!/bin/sh
-for arg in "$@"; do printf '%s\\n' "$arg"; done >> "$FAKE_UV_LOG"
-printf '%s\\n' '--' >> "$FAKE_UV_LOG"
-trap 'echo terminated >> "$FAKE_UV_EVENTS"; exit 143' TERM
-while [ ! -f "$FAKE_UV_DONE" ]; do sleep 0.05; done
-echo finished >> "$FAKE_UV_EVENTS"
-`
-
-function psRow(
-  id: string,
-  labels: Record<string, string>,
-  status = "Up 1 minute"
-) {
-  return JSON.stringify({
-    ID: id,
-    Names: `run-${id}`,
-    Image: "agent-image",
-    Status: status,
-    Ports: "",
-    Labels: Object.entries({ "ssebench.webui": "true", ...labels })
-      .map(([k, v]) => `${k}=${v}`)
-      .join(","),
-    CreatedAt: "2026-01-01 00:00:00 +0000 UTC",
-  })
+/** The runs the backend lists */
+function backendHas(...ids: string[]) {
+  setState(fakes, { runs: ids.map((id) => runJson(id)) })
 }
 
 const request = {
@@ -263,8 +237,6 @@ const request = {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 describe("launch tracking", () => {
-  const uv = join(fakes.binDir, "uv")
-
   afterEach(async () => {
     // Let every fake CLI end by itself before the next test reads the events
     writeFileSync(done, "")
@@ -272,11 +244,13 @@ describe("launch tracking", () => {
     clearAllLaunches()
     rmSync(done, { force: true })
     rmSync(events, { force: true })
-    writeFileSync(fakes.psFile, "")
+    rmSync(mode, { force: true })
+    backendHas()
   })
 
-  function useLongRunningUv() {
-    writeFileSync(uv, LONG_RUNNING_UV, { mode: 0o755 })
+  /** `ssebench run` that keeps running, as with --keep-container, until the test creates `done` */
+  function useLongRunningCli() {
+    writeFileSync(mode, "hang")
     rmSync(done, { force: true })
     writeFileSync(events, "")
   }
@@ -285,73 +259,54 @@ describe("launch tracking", () => {
     readFileSync(events, "utf-8").split("\n").filter(Boolean)
 
   test("two launches of the same task each track their own container", async () => {
-    useLongRunningUv()
+    useLongRunningCli()
     const first = await launchTask(request)
     const second = await launchTask(request)
-    const label = (id: string) => ({
-      "ssebench.task-id": request.task,
-      "ssebench.run-id": id,
+    // Runs of the same task that are not these launches' come first
+    setState(fakes, {
+      runs: [
+        runJson("someone-elses-run"),
+        runJson("an-old-run", { state: "exited" }),
+        runJson(second.launch_id),
+        runJson(first.launch_id),
+      ],
     })
-    // Containers of the same task that are not these launches', one of them
-    // newer than either, come first; the launches' own follow in reverse order.
-    writeFileSync(
-      fakes.psFile,
-      [
-        psRow("ffffffffffff", label("someone-elses-run")),
-        psRow(
-          "eeeeeeeeeeee",
-          { "ssebench.task-id": request.task },
-          "Exited (0) 1 hour ago"
-        ),
-        psRow("bbbbbbbbbbbb", label(second.launch_id)),
-        psRow("aaaaaaaaaaaa", label(first.launch_id)),
-      ].join("\n")
-    )
 
     expect(await findRunContainer(first.launch_id)).toBe(true)
     expect(await findRunContainer(second.launch_id)).toBe(true)
 
     expect(getLaunchStatus(first.launch_id)).toMatchObject({
       status: "running",
-      containerId: "aaaaaaaaaaaa",
+      containerId: first.launch_id,
     })
     expect(getLaunchStatus(second.launch_id)).toMatchObject({
       status: "running",
-      containerId: "bbbbbbbbbbbb",
+      containerId: second.launch_id,
     })
   })
 
-  test("a launch does not take a container of the same task that is not its own", async () => {
-    useLongRunningUv()
+  test("a launch does not take a run of the same task that is not its own", async () => {
+    useLongRunningCli()
     const launch = await launchTask(request)
-    writeFileSync(
-      fakes.psFile,
-      psRow("ffffffffffff", {
-        "ssebench.task-id": request.task,
-        "ssebench.run-id": "someone-elses-run",
-      })
-    )
+    backendHas("someone-elses-run")
 
     expect(await findRunContainer(launch.launch_id)).toBe(false)
     expect(getLaunchStatus(launch.launch_id)?.status).toBe("launching")
   })
 
   test("the launch passes its ID to the CLI as the run ID", async () => {
-    useLongRunningUv()
+    useLongRunningCli()
     const launch = await launchTask(request)
-    await sleep(150)
+    await sleep(300)
 
-    const argv = readFileSync(fakes.uvLog, "utf-8").split("\n")
+    const argv = readFileSync(fakes.callsLog, "utf-8").split("\n")
     expect(argv).toContain(`--run-id=${launch.launch_id}`)
   })
 
   test("clearing a launch whose container exists leaves the CLI running to the end", async () => {
-    useLongRunningUv()
+    useLongRunningCli()
     const launch = await launchTask(request)
-    writeFileSync(
-      fakes.psFile,
-      psRow(FULL_ID.slice(0, 12), { "ssebench.run-id": launch.launch_id })
-    )
+    backendHas(launch.launch_id)
     expect(await findRunContainer(launch.launch_id)).toBe(true)
 
     clearLaunchEntry(launch.launch_id)
@@ -365,9 +320,9 @@ describe("launch tracking", () => {
   })
 
   test("clearing a launch that has no container yet stops the CLI", async () => {
-    useLongRunningUv()
+    useLongRunningCli()
     const launch = await launchTask(request)
-    await sleep(150)
+    await sleep(300)
 
     clearLaunchEntry(launch.launch_id)
     await sleep(300)
@@ -376,9 +331,9 @@ describe("launch tracking", () => {
   })
 
   test("a CLI that ends without a container fails the launch", async () => {
-    writeFileSync(uv, "#!/bin/sh\nexit 0\n", { mode: 0o755 })
+    writeFileSync(mode, "exit:0")
     const launch = await launchTask(request)
-    await sleep(300)
+    await sleep(500)
 
     expect(getLaunchStatus(launch.launch_id)).toMatchObject({
       status: "failed",
@@ -387,30 +342,22 @@ describe("launch tracking", () => {
   })
 
   test("a CLI that ends after its container appeared still finds it", async () => {
-    writeFileSync(
-      uv,
-      '#!/bin/sh\nwhile [ ! -f "$FAKE_UV_DONE" ]; do sleep 0.05; done\nexit 0\n',
-      { mode: 0o755 }
-    )
-    rmSync(done, { force: true })
+    useLongRunningCli()
     const launch = await launchTask(request)
-    writeFileSync(
-      fakes.psFile,
-      psRow("cccccccccccc", { "ssebench.run-id": launch.launch_id })
-    )
+    backendHas(launch.launch_id)
     writeFileSync(done, "")
-    await sleep(400)
+    await sleep(600)
 
     expect(getLaunchStatus(launch.launch_id)).toMatchObject({
       status: "running",
-      containerId: "cccccccccccc",
+      containerId: launch.launch_id,
     })
   })
 
   test("a failing CLI fails the launch with its exit code", async () => {
-    writeFileSync(uv, "#!/bin/sh\nexit 3\n", { mode: 0o755 })
+    writeFileSync(mode, "exit:3")
     const launch = await launchTask(request)
-    await sleep(300)
+    await sleep(500)
 
     expect(getLaunchStatus(launch.launch_id)).toMatchObject({
       status: "failed",
@@ -419,6 +366,6 @@ describe("launch tracking", () => {
   })
 
   test("the recorded arguments were the fake's", () => {
-    expect(existsSync(fakes.uvLog)).toBe(true)
+    expect(existsSync(fakes.callsLog)).toBe(true)
   })
 })

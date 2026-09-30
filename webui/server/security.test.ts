@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test"
 import {
   checkApiRequest,
+  checkHostedRequest,
+  isHosted,
   isLoopbackHost,
   isOriginAllowed,
   loadSecurityConfig,
@@ -31,6 +33,8 @@ function config(overrides: Partial<SecurityConfig> = {}): SecurityConfig {
     token: null,
     corsOrigins: new Set(),
     terminalEnabled: true,
+    hosted: false,
+    assistantEnabled: true,
     ...overrides,
   }
 }
@@ -71,6 +75,8 @@ describe("loadSecurityConfig", () => {
     expect(c.token).toBeNull()
     expect(c.corsOrigins.size).toBe(0)
     expect(c.terminalEnabled).toBe(true)
+    expect(c.assistantEnabled).toBe(true)
+    expect(c.hosted).toBe(false)
   })
 
   test("refuses a non-loopback bind without a token", () => {
@@ -111,6 +117,90 @@ describe("loadSecurityConfig", () => {
     expect(() =>
       loadSecurityConfig({ SSEBENCH_WEBUI_TERMINAL: "off-ish" })
     ).toThrow(SecurityConfigError)
+  })
+})
+
+describe("hosted mode", () => {
+  test("switches off the terminal and the assistant, whatever the terminal switch says", () => {
+    for (const terminal of [undefined, "1", "0"]) {
+      const c = loadSecurityConfig({
+        SSEBENCH_WEBUI_HOSTED: "1",
+        SSEBENCH_WEBUI_TERMINAL: terminal,
+      })
+      expect(c).toMatchObject({
+        hosted: true,
+        terminalEnabled: false,
+        assistantEnabled: false,
+      })
+    }
+  })
+
+  test("is parsed strictly, and a value that cannot be read counts as hosted", () => {
+    expect(loadSecurityConfig({ SSEBENCH_WEBUI_HOSTED: "no" }).hosted).toBe(
+      false
+    )
+    expect(() =>
+      loadSecurityConfig({ SSEBENCH_WEBUI_HOSTED: "maybe" })
+    ).toThrow(SecurityConfigError)
+    expect(isHosted({ SSEBENCH_WEBUI_HOSTED: "maybe" })).toBe(true)
+    expect(isHosted({ SSEBENCH_WEBUI_HOSTED: "true" })).toBe(true)
+    expect(isHosted({})).toBe(false)
+  })
+})
+
+describe("checkHostedRequest", () => {
+  const hosted = config({ hosted: true, terminalEnabled: false })
+
+  test("lets a server that is not hosted do anything", () => {
+    expect(checkHostedRequest("POST", "/api/launch", config())).toBeNull()
+    expect(
+      checkHostedRequest(
+        "POST",
+        "/api/containers/x/opencode/sessions",
+        config()
+      )
+    ).toBeNull()
+  })
+
+  test.each(["POST", "DELETE", "PUT", "PATCH", "post"])(
+    "refuses %s: a hosted server changes nothing",
+    (method) => {
+      expect(
+        checkHostedRequest(method, "/api/containers/run-1/stop", hosted)?.status
+      ).toBe(403)
+      expect(checkHostedRequest(method, "/api/launch", hosted)?.status).toBe(
+        403
+      )
+    }
+  )
+
+  test.each([
+    "/api/containers/run-1/opencode/health",
+    "/api/containers/run-1/opencode/sessions",
+    "/api/containers/run-1/opencode/events-ws",
+    "/api/pty-debug/run-1",
+  ])("refuses the assistant even to read: %s", (path) => {
+    expect(checkHostedRequest("GET", path, hosted)?.status).toBe(403)
+  })
+
+  test("refuses the report on the host's setup", () => {
+    expect(
+      checkHostedRequest("GET", "/api/launch/doctor", hosted)?.status
+    ).toBe(403)
+  })
+
+  test.each([
+    "/api/health",
+    "/api/containers",
+    "/api/containers/run-1/diff",
+    "/api/containers/run-1/agent/dialog",
+    "/api/containers/run-1/result",
+    "/api/containers/run-1/reference/patch",
+    "/api/containers/run-1/logs-ws",
+    "/api/launch/ws",
+  ])("lets the views read: %s", (path) => {
+    expect(checkHostedRequest("GET", path, hosted)).toBeNull()
+    expect(checkHostedRequest("OPTIONS", path, hosted)).toBeNull()
   })
 })
 

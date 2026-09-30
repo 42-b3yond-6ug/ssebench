@@ -1,7 +1,7 @@
 /**
  * Logs Content - Container logs viewer
  *
- * Displays logs from the Docker container via `docker logs -f`.
+ * Displays the container's logs, as the runner backend has them.
  * Streams logs in real-time with auto-scroll functionality.
  */
 

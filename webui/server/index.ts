@@ -4,11 +4,13 @@
  * A Bun server that:
  * - Uses Hono for REST API routes
  * - Uses Bun's native WebSocket for PTY connections
+ * - Finds, stops and reaches runs through the `ssebench runs` commands, so it
+ *   works with any runner backend
  */
 
 import type { Server, ServerWebSocket } from "bun"
 import { existsSync } from "fs"
-import { Hono } from "hono"
+import { Hono, type Context } from "hono"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
 import { serveStatic } from "hono/bun"
@@ -17,16 +19,17 @@ import type { EvaluationResultResponse } from "../src/types/container"
 import { gradeOf } from "./results"
 import { getDoctorReport } from "./doctor"
 import {
-  listContainers,
-  getContainer,
-  checkDockerAccess,
+  checkRunnerAccess,
   getSDKUrl,
   checkSDKHealth,
-  stopContainer,
-  removeContainer,
-  isContainerId,
-  resolveContainer,
-} from "./docker"
+  stopRun,
+  removeRun,
+  isRunId,
+  RUN_ID_SOURCE,
+  runnerCommand,
+} from "./runner"
+import { getContainer, listContainers, resolveRun } from "./runs"
+import { runData, type RunResponse } from "./runData"
 import { readReferencePatch } from "./reference"
 import {
   createSession as createOpenCodeSession,
@@ -83,6 +86,7 @@ import {
 } from "./launch"
 import {
   checkApiRequest,
+  checkHostedRequest,
   loadSecurityConfig,
   SecurityConfigError,
   webSocketResponseHeaders,
@@ -137,7 +141,9 @@ app.use(
 // Registered here rather than in fetch() so the check sees the same
 // (percent-decoded) path that the router uses.
 app.use("/api/*", async (c, next) => {
-  const rejection = checkApiRequest(c.req.raw, security)
+  const rejection =
+    checkApiRequest(c.req.raw, security) ??
+    checkHostedRequest(c.req.method, c.req.path, security)
   if (rejection) {
     console.warn(`[Auth] ${rejection.status} ${c.req.method} ${c.req.path}`)
     return rejection
@@ -145,10 +151,10 @@ app.use("/api/*", async (c, next) => {
   await next()
 })
 
-// Container IDs reach the docker CLI; reject anything that is not one
+// Run IDs reach the CLI's command line; reject anything that is not one
 app.use("/api/containers/:id/*", async (c, next) => {
-  if (!isContainerId(c.req.param("id"))) {
-    return c.json({ error: "Invalid container ID" }, 400)
+  if (!isRunId(c.req.param("id"))) {
+    return c.json({ error: "Invalid run ID" }, 400)
   }
   await next()
 })
@@ -156,28 +162,45 @@ app.use("/api/containers/:id/*", async (c, next) => {
 const TERMINAL_HINT =
   "The terminal needs the pty-proxy helper: run `bun run build:pty` in webui/ (it needs Go), then restart the server."
 
+/** Send a run's answer, whatever its status */
+function respond(c: Context, { data, status }: RunResponse) {
+  return c.json(data as never, status as never)
+}
+
 // Health check
 app.get("/api/health", async (c) => {
-  const dockerOk = await checkDockerAccess()
-  // The terminal needs the pty-proxy helper as well as the switch
+  const runner = await checkRunnerAccess()
+  const canExec = runner.ok && runner.supportsExec
+  // The terminal needs the pty-proxy helper and a backend that runs commands
+  // in a run, as well as the switch
   const terminalBuilt = ptyProxyBuilt()
+  const terminalHint =
+    !security.terminalEnabled || !runner.ok
+      ? undefined
+      : !terminalBuilt
+        ? TERMINAL_HINT
+        : !canExec
+          ? `The ${runner.backend} backend cannot run commands in a run, so there is no terminal.`
+          : undefined
   return c.json({
     status: "ok",
     version,
-    docker: dockerOk,
-    terminal: security.terminalEnabled && terminalBuilt,
-    ...(security.terminalEnabled && !terminalBuilt
-      ? { terminalHint: TERMINAL_HINT }
-      : {}),
+    runner: runner.ok,
+    backend: runner.ok ? runner.backend : null,
+    ...(runner.ok ? {} : { runnerError: runner.error }),
+    terminal: security.terminalEnabled && terminalBuilt && canExec,
+    ...(terminalHint ? { terminalHint } : {}),
+    assistant: security.assistantEnabled && canExec,
+    hosted: security.hosted,
     timestamp: new Date().toISOString(),
   })
 })
 
-// List all SSEBench containers
+// List all SSEBench runs: those on the backend, then finished ones that only
+// their results directory remembers
 app.get("/api/containers", async (c) => {
   try {
-    const containers = await listContainers()
-    return c.json({ containers })
+    return c.json(await listContainers())
   } catch (error) {
     console.error("Error listing containers:", error)
     return c.json({ error: "Failed to list containers" }, 500)
@@ -203,9 +226,12 @@ app.get("/api/containers/:id", async (c) => {
 app.post("/api/containers/:id/stop", async (c) => {
   const id = c.req.param("id")
   try {
-    const outcome = await stopContainer(id)
+    const outcome = await stopRun(id)
     if (outcome === "refused") {
       return c.json({ error: "Container not found" }, 404)
+    }
+    if (outcome === "ambiguous") {
+      return c.json({ error: "More than one run has this ID" }, 409)
     }
     if (outcome === "failed") {
       return c.json({ error: "Failed to stop container" }, 500)
@@ -221,9 +247,12 @@ app.post("/api/containers/:id/stop", async (c) => {
 app.post("/api/containers/:id/remove", async (c) => {
   const id = c.req.param("id")
   try {
-    const outcome = await removeContainer(id)
+    const outcome = await removeRun(id)
     if (outcome === "refused") {
       return c.json({ error: "Container not found" }, 404)
+    }
+    if (outcome === "ambiguous") {
+      return c.json({ error: "More than one run has this ID" }, 409)
     }
     if (outcome === "failed") {
       return c.json({ error: "Failed to remove container" }, 500)
@@ -248,76 +277,25 @@ app.get("/api/sdk/connections", (c) => {
 })
 
 // =============================================================================
-// SDK Proxy Routes - Forward requests to SDK daemon inside containers
+// Run data routes - the run's daemon while it runs, its run directory after
 // =============================================================================
-
-/**
- * Helper: Proxy a request to SDK daemon in container
- *
- * Discovers the container's IP address and forwards the request to the SDK.
- * Returns both the response data and HTTP status code.
- */
-async function proxyToSDK(
-  containerId: string,
-  endpoint: string
-): Promise<{ data: unknown; status: number }> {
-  const sdkUrl = await getSDKUrl(containerId)
-
-  if (!sdkUrl) {
-    return {
-      data: { error: "SDK not accessible - container may not be running" },
-      status: 503,
-    }
-  }
-
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5s timeout
-
-    const response = await fetch(`${sdkUrl}${endpoint}`, {
-      signal: controller.signal,
-    })
-
-    clearTimeout(timeoutId)
-
-    const data = await response.json()
-    return { data, status: response.status }
-  } catch (error) {
-    console.error(`SDK proxy failed for ${sdkUrl}${endpoint}:`, error)
-
-    if (error instanceof Error && error.name === "AbortError") {
-      return {
-        data: { error: "SDK request timeout" },
-        status: 504,
-      }
-    }
-
-    return {
-      data: { error: "Failed to communicate with SDK daemon" },
-      status: 500,
-    }
-  }
-}
 
 // Get project metadata (bug info, task description, etc.)
 app.get("/api/containers/:id/project", async (c) => {
   const id = c.req.param("id")
-  const { data, status } = await proxyToSDK(id, "/project")
-  return c.json(data, status as 200 | 500 | 503 | 504)
+  return respond(c, await runData(id, "/project"))
 })
 
 // Get unified diff of all changes vs buggy commit
 app.get("/api/containers/:id/diff", async (c) => {
   const id = c.req.param("id")
-  const { data, status } = await proxyToSDK(id, "/diff")
-  return c.json(data, status as 200 | 500 | 503 | 504)
+  return respond(c, await runData(id, "/diff"))
 })
 
 // Get list of modified files with stats
 app.get("/api/containers/:id/files", async (c) => {
   const id = c.req.param("id")
-  const { data, status } = await proxyToSDK(id, "/files")
-  return c.json(data, status as 200 | 500 | 503 | 504)
+  return respond(c, await runData(id, "/files"))
 })
 
 // SDK health check for a specific container
@@ -336,8 +314,7 @@ app.get("/api/containers/:id/sdk/health", async (c) => {
 // Get SDK version for a specific container
 app.get("/api/containers/:id/sdk/version", async (c) => {
   const id = c.req.param("id")
-  const { data, status } = await proxyToSDK(id, "/version")
-  return c.json(data, status as 200 | 500 | 503 | 504)
+  return respond(c, await runData(id, "/version"))
 })
 
 // Get agent dialog entries (with optional ?since=seq for incremental polling)
@@ -348,8 +325,7 @@ app.get("/api/containers/:id/agent/dialog", async (c) => {
     return c.json({ error: "Invalid since: expected a sequence number" }, 400)
   }
   const endpoint = since ? `/agent/dialog?since=${since}` : "/agent/dialog"
-  const { data, status } = await proxyToSDK(id, endpoint)
-  return c.json(data, status as 200 | 500 | 503 | 504)
+  return respond(c, await runData(id, endpoint))
 })
 
 // Get evaluation result (after agent finishes): the daemon's, else the run's
@@ -357,21 +333,23 @@ app.get("/api/containers/:id/agent/dialog", async (c) => {
 // containers.
 app.get("/api/containers/:id/result", async (c) => {
   const id = c.req.param("id")
-  const { data, status } = await proxyToSDK(id, "/result")
-  const fromDaemon = status === 200 ? (data as EvaluationResultResponse) : null
+  const answer = await runData(id, "/result")
+  const fromDaemon =
+    answer.status === 200 ? (answer.data as EvaluationResultResponse) : null
   const grade = await gradeOf(id, fromDaemon)
   if (grade?.available) return c.json(grade)
-  return c.json(data, status as 200 | 500 | 503 | 504)
+  return respond(c, answer)
 })
 
 // Get the reference patch, from the host: the daemon serves it only on its
-// admin socket inside the container.
+// admin socket inside the container. A run that is over has it in its run
+// directory.
 app.get("/api/containers/:id/reference/patch", async (c) => {
-  const container = await resolveContainer(c.req.param("id"))
-  if (!container) {
+  const run = await resolveRun(c.req.param("id"))
+  if (!run) {
     return c.json({ error: "Container not found" }, 404)
   }
-  const diff = readReferencePatch(container.labels, LOCAL_TASKS_PATH)
+  const diff = readReferencePatch(run.labels, LOCAL_TASKS_PATH)
   return c.json({ diff: diff ?? "" })
 })
 
@@ -631,8 +609,8 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001
 // Store server reference for WebSocket upgrades
 let server: Server<WSData>
 
-/** Container ID segment of WebSocket routes (see isContainerId) */
-const WS_CONTAINER_ID = "([a-f0-9]{12,64})"
+/** Run ID segment of WebSocket routes (see isRunId) */
+const WS_CONTAINER_ID = `(${RUN_ID_SOURCE})`
 const TERMINAL_WS_PATH = /^\/api\/pty(-debug)?\//
 
 export default {
@@ -654,6 +632,15 @@ export default {
       if (rejection) {
         console.warn(`[Auth] ${rejection.status} WS ${url.pathname}`)
         return rejection
+      }
+      const hostedRejection = checkHostedRequest(
+        request.method,
+        url.pathname,
+        security
+      )
+      if (hostedRejection) {
+        console.warn(`[Auth] ${hostedRejection.status} WS ${url.pathname}`)
+        return hostedRejection
       }
       if (!security.terminalEnabled && TERMINAL_WS_PATH.test(url.pathname)) {
         return Response.json(
@@ -980,7 +967,7 @@ export default {
 
         let sourceDir = "/src"
         try {
-          const { data } = await proxyToSDK(containerId, "/project")
+          const { data } = await runData(containerId, "/project")
           const source = (data as { source?: unknown } | null)?.source
           if (typeof source === "string" && source.startsWith("/")) {
             sourceDir = source
@@ -1056,6 +1043,15 @@ console.log(
   `   Auth: ${security.token ? "bearer token required" : "none (loopback only)"}`
 )
 console.log(`   Terminal: ${security.terminalEnabled ? "enabled" : "disabled"}`)
+console.log(
+  `   Assistant: ${security.assistantEnabled ? "enabled" : "disabled"}`
+)
+if (security.hosted) {
+  console.log(`   Hosted mode: read-only`)
+}
+console.log(
+  `   Runner: ${runnerCommand().join(" ")} (backend ${process.env.SSEBENCH_BACKEND || "docker"})`
+)
 if (security.corsOrigins.size > 0) {
   console.log(`   CORS origins: ${[...security.corsOrigins].join(", ")}`)
 }

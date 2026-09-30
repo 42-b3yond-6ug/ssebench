@@ -7,47 +7,19 @@
  * container that has stopped, whose daemon no longer answers.
  */
 
-import { existsSync, readFileSync, statSync } from "fs"
-import { isAbsolute, join } from "path"
 import type { EvaluationResultResponse } from "../src/types/container"
-import { ssebenchPath } from "./config"
-import { resolveContainer } from "./docker"
+import { plainDir, readGrade as readGradeFile } from "./pastRuns"
 import { RESULTS_LABEL } from "./reference"
-
-const MAX_RESULT_BYTES = 8 * 1024 * 1024
-/** The parts of a run's results path, results/<task>/<model>/<agent>, are names */
-const NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
-
-/** Split a model name such as `provider/model` into path-safe parts */
-function parts(value: string | undefined): string[] | null {
-  if (!value) return null
-  const names = value.split("/")
-  return names.every((n) => NAME.test(n)) ? names : null
-}
+import { resolveRun } from "./runs"
 
 /**
- * Where the run of a container wrote its results: its own run directory,
- * results/<task>/<model>/<agent>/<run-id>, which the label names. For a
- * container made before the label existed, results/<task>/<model>/<agent> in
- * the checkout, where runs wrote their results before every run had a
- * directory of its own. Null when the labels do not say, or say something
- * that is not a plain path.
+ * Where the run wrote its results: its own run directory,
+ * results/<task>/<model>/<agent>/<run-id>, which the `ssebench.results` label
+ * names. Null when the labels do not say, or say something that is not a
+ * plain absolute path.
  */
-export function resultsDir(
-  labels: Record<string, string>,
-  checkout = ssebenchPath()
-): string | null {
-  const labelled = labels[RESULTS_LABEL]
-  if (labelled) {
-    return isAbsolute(labelled) && !labelled.split("/").includes("..")
-      ? labelled
-      : null
-  }
-  const task = parts(labels["ssebench.task-id"])
-  const model = parts(labels["ssebench.model"])
-  const agent = parts(labels["ssebench.agent"])
-  if (!task || !model || !agent) return null
-  return join(checkout, "results", ...task, ...model, ...agent)
+export function resultsDir(labels: Record<string, string>): string | null {
+  return plainDir(labels[RESULTS_LABEL])
 }
 
 /**
@@ -55,47 +27,22 @@ export function resultsDir(
  * /result, or null while there is none, or none that parses.
  */
 export function readGrade(
-  labels: Record<string, string>,
-  checkout = ssebenchPath()
+  labels: Record<string, string>
 ): EvaluationResultResponse | null {
-  const dir = resultsDir(labels, checkout)
-  if (!dir) return null
-  const file = join(dir, "result.json")
-  try {
-    if (!existsSync(file) || statSync(file).size > MAX_RESULT_BYTES) {
-      return null
-    }
-    const text = readFileSync(file, "utf-8").trim()
-    if (!text) return null
-    const grade = JSON.parse(text) as Record<string, unknown>
-    if (
-      typeof grade.patch_result !== "object" ||
-      grade.patch_result === null ||
-      typeof grade.runtime_result !== "object" ||
-      grade.runtime_result === null
-    ) {
-      return null
-    }
-    return {
-      available: true,
-      patch_result: grade.patch_result as never,
-      runtime_result: grade.runtime_result as never,
-    }
-  } catch {
-    return null
-  }
+  const dir = resultsDir(labels)
+  return dir ? readGradeFile(dir) : null
 }
 
 /**
- * The grade of a container: the daemon's if it has one, else the run's from
- * the host. The daemon has none for a sidecar run, and none once the
- * container has stopped.
+ * The grade of a run: the daemon's if it has one, else the run's from the
+ * host. The daemon has none for a sidecar run, and none once the container
+ * has stopped.
  */
 export async function gradeOf(
-  containerId: string,
+  runId: string,
   fromDaemon: EvaluationResultResponse | null
 ): Promise<EvaluationResultResponse | null> {
   if (fromDaemon?.available) return fromDaemon
-  const container = await resolveContainer(containerId)
-  return (container && readGrade(container.labels)) ?? fromDaemon
+  const run = await resolveRun(runId)
+  return (run && readGrade(run.labels)) ?? fromDaemon
 }

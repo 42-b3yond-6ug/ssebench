@@ -9,7 +9,16 @@
  */
 
 import type { ServerWebSocket } from "bun"
-import { getSDKUrl, checkSDKHealth } from "./docker"
+import { getSDKUrl, checkSDKHealth } from "./runner"
+import { resolveRun, type ResolvedRun } from "./runs"
+import { usesDaemon } from "./runData"
+import {
+  parseDiffFiles,
+  readDiff,
+  readDialog,
+  readGrade as readRunGrade,
+  readProject,
+} from "./pastRuns"
 import { gradeOf } from "./results"
 import type {
   ProjectInfo,
@@ -27,6 +36,9 @@ const POLL_FAST = 1000 // 1s when active (recent changes)
 const POLL_NORMAL = 3000 // 3s default
 const POLL_SLOW = 10000 // 10s when idle
 const IDLE_THRESHOLD = 60000 // 60s to consider idle
+
+/** How many polls the daemon may leave unanswered before the run is looked up again */
+const SILENT_POLLS_BEFORE_CHECK = 3
 
 /** SDK readiness check configuration */
 const SDK_READY_MAX_WAIT_MS = 25 * 60 * 1000 // 25 minutes max wait time
@@ -59,6 +71,8 @@ interface SDKConnection {
   pollTimeout: ReturnType<typeof setTimeout> | null
   lastActivity: number // Timestamp of last data change
   isPolling: boolean
+  /** Polls in a row that got nothing from the daemon */
+  silentPolls: number
 }
 
 /** WebSocket message types sent to clients */
@@ -247,6 +261,21 @@ async function pollSDK(conn: SDKConnection): Promise<void> {
       fetchSDKData(conn.sdkUrl, "/diff") as Promise<{ diff?: string } | null>,
     ])
 
+    // A daemon that stops answering has gone with its container: what the run
+    // left in its directory is all there will be.
+    conn.silentPolls =
+      dialogData === null && filesData === null && diffData === null
+        ? conn.silentPolls + 1
+        : 0
+    if (conn.silentPolls >= SILENT_POLLS_BEFORE_CHECK) {
+      const run = await resolveRun(conn.containerId)
+      if (run && !usesDaemon(run)) {
+        syncFromFiles(conn, run)
+        conn.isPolling = false
+        return
+      }
+    }
+
     if (filesData?.files) {
       const filesJson = JSON.stringify(filesData.files)
       const cachedFilesJson = JSON.stringify(conn.files)
@@ -393,6 +422,59 @@ async function fetchInitialData(conn: SDKConnection): Promise<void> {
 }
 
 // =============================================================================
+// Runs that are over
+// =============================================================================
+
+/**
+ * Send what the run directory of a run that is over has and the clients do
+ * not: everything on `initial`, else only what changed since the last poll of
+ * the daemon. The run needs no polling afterwards.
+ */
+function syncFromFiles(
+  conn: SDKConnection,
+  run: ResolvedRun,
+  initial = false
+): void {
+  const dir = run.resultsDir
+  conn.status = "ready"
+  if (initial) {
+    broadcastToClients(conn, { type: "status", status: "ready" })
+  }
+  if (!dir) return
+
+  const project = readProject(dir)
+  if (project && !conn.project) {
+    conn.project = project
+    broadcastToClients(conn, { type: "project", data: project })
+  }
+
+  const diff = readDiff(dir)
+  if (diff !== null && (initial || diff !== conn.diff)) {
+    conn.diff = diff
+    conn.files = parseDiffFiles(diff)
+    broadcastToClients(conn, { type: "files", files: conn.files })
+    broadcastToClients(conn, { type: "diff", diff })
+  }
+
+  const entries = readDialog(dir, conn.dialogLastSeq) ?? []
+  if (entries.length > 0) {
+    conn.dialogEntries = [...conn.dialogEntries, ...entries]
+    conn.dialogLastSeq = Math.max(...entries.map((e) => e.seq))
+    broadcastToClients(conn, {
+      type: "dialog",
+      entries,
+      lastSeq: conn.dialogLastSeq,
+    })
+  }
+
+  const grade = readRunGrade(dir)
+  if (grade && JSON.stringify(grade) !== JSON.stringify(conn.result)) {
+    conn.result = grade
+    broadcastToClients(conn, { type: "result", result: grade })
+  }
+}
+
+// =============================================================================
 // Public API
 // =============================================================================
 
@@ -472,11 +554,29 @@ export async function startSDKConnection(
     pollTimeout: null,
     lastActivity: Date.now(),
     isPolling: false,
+    silentPolls: 0,
   }
   connections.set(containerId, conn)
 
   // Send initial connecting status
   broadcastToClients(conn, { type: "status", status: "connecting" })
+
+  // A run that is over has no daemon; its directory has what the daemon had.
+  const run = await resolveRun(containerId)
+  if (!run) {
+    conn.status = "error"
+    conn.errorMessage = "Run not found"
+    broadcastToClients(conn, {
+      type: "status",
+      status: "error",
+      error: conn.errorMessage,
+    })
+    return
+  }
+  if (!usesDaemon(run)) {
+    syncFromFiles(conn, run, true)
+    return
+  }
 
   // Wait for SDK to be ready
   const ready = await waitForSDKReady(conn)

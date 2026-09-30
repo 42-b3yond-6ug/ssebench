@@ -1,6 +1,6 @@
 /**
  * Network exposure policy for the web UI server: bind address, bearer-token
- * auth, allowed origins and the terminal switch.
+ * auth, allowed origins, the terminal switch and the hosted (read-only) mode.
  *
  * Kept free of Bun-only APIs so vite.config.ts can apply the same bind rules.
  */
@@ -25,6 +25,14 @@ export interface SecurityConfig {
   token: string | null
   corsOrigins: ReadonlySet<string>
   terminalEnabled: boolean
+  /**
+   * Hosted or showcase mode: the server only shows runs. It starts, stops and
+   * removes nothing, and it opens no terminal and lets no assistant run
+   * commands in a container.
+   */
+  hosted: boolean
+  /** Whether the AI assistant, which runs commands in the container, may be used */
+  assistantEnabled: boolean
 }
 
 export class SecurityConfigError extends Error {}
@@ -71,13 +79,26 @@ export function parseCorsOrigins(value: string | undefined): Set<string> {
   return origins
 }
 
-function parseTerminalFlag(value: string | undefined): boolean {
+function parseFlag(
+  name: string,
+  value: string | undefined,
+  whenUnset: boolean
+): boolean {
   const v = (value ?? "").trim().toLowerCase()
-  if (v === "" || ["1", "true", "yes", "on"].includes(v)) return true
+  if (v === "") return whenUnset
+  if (["1", "true", "yes", "on"].includes(v)) return true
   if (["0", "false", "no", "off"].includes(v)) return false
-  throw new SecurityConfigError(
-    `SSEBENCH_WEBUI_TERMINAL must be 0 or 1, got "${value}"`
-  )
+  throw new SecurityConfigError(`${name} must be 0 or 1, got "${value}"`)
+}
+
+/** Whether SSEBENCH_WEBUI_HOSTED asks for the read-only mode */
+export function isHosted(env: Env = process.env): boolean {
+  try {
+    return parseFlag("SSEBENCH_WEBUI_HOSTED", env.SSEBENCH_WEBUI_HOSTED, false)
+  } catch {
+    // An unreadable value is a hosted server's safe reading; startup reports it
+    return true
+  }
 }
 
 /**
@@ -107,10 +128,22 @@ export function loadBindConfig(env: Env = process.env): {
 }
 
 export function loadSecurityConfig(env: Env = process.env): SecurityConfig {
+  const hosted = parseFlag(
+    "SSEBENCH_WEBUI_HOSTED",
+    env.SSEBENCH_WEBUI_HOSTED,
+    false
+  )
+  const terminal = parseFlag(
+    "SSEBENCH_WEBUI_TERMINAL",
+    env.SSEBENCH_WEBUI_TERMINAL,
+    true
+  )
   return {
     ...loadBindConfig(env),
     corsOrigins: parseCorsOrigins(env.SSEBENCH_WEBUI_CORS_ORIGINS),
-    terminalEnabled: parseTerminalFlag(env.SSEBENCH_WEBUI_TERMINAL),
+    hosted,
+    terminalEnabled: terminal && !hosted,
+    assistantEnabled: !hosted,
   }
 }
 
@@ -232,6 +265,34 @@ export function checkApiRequest(
     !tokenMatches(presentedToken(request), config.token)
   ) {
     return denied(401, "Unauthorized", { "WWW-Authenticate": "Bearer" })
+  }
+  return null
+}
+
+/** Routes of the AI assistant, which runs commands in the container */
+const ASSISTANT_PATH = /^\/api\/(containers\/[^/]+\/opencode(\/|$)|pty-debug\/)/
+
+/**
+ * Checks an /api request against the hosted mode. Returns the error response
+ * to send, or null when the request may proceed. A hosted server only reads:
+ * every request that could change something is refused, and so are the
+ * assistant and the report on the host's setup.
+ */
+export function checkHostedRequest(
+  method: string,
+  pathname: string,
+  config: SecurityConfig
+): Response | null {
+  if (!config.hosted) return null
+  const verb = method.toUpperCase()
+  if (verb !== "GET" && verb !== "HEAD" && verb !== "OPTIONS") {
+    return denied(403, "This server is read-only")
+  }
+  if (ASSISTANT_PATH.test(pathname)) {
+    return denied(403, "The assistant is off on a hosted server")
+  }
+  if (pathname === "/api/launch/doctor") {
+    return denied(403, "This server does not report on its host")
   }
   return null
 }

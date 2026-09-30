@@ -7,8 +7,7 @@
  * reused briefly.
  */
 
-import { execFile } from "node:child_process"
-import { ssebenchPath } from "./config"
+import { runCli } from "./runner"
 
 export interface DoctorCheck {
   name: string
@@ -32,33 +31,32 @@ const TIMEOUT_MS = 60_000
 
 let cached: { at: number; result: Promise<DoctorResult> } | null = null
 
-function run(): Promise<DoctorResult> {
-  return new Promise((resolve) => {
-    execFile(
-      "uv",
-      ["run", "ssebench", "doctor", "--json"],
-      { cwd: ssebenchPath(), timeout: TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024 },
-      (error, stdout) => {
-        // The exit status is 1 when a required check fails; the report is
-        // still on stdout.
-        try {
-          const report = JSON.parse(stdout) as DoctorReport
-          if (Array.isArray(report.checks) && report.models) {
-            resolve({ available: true, report })
-            return
-          }
-        } catch {
-          // fall through
-        }
-        resolve({
-          available: false,
-          error: error
-            ? `Could not run \`ssebench doctor\`: ${error.message.split("\n")[0]}`
-            : "`ssebench doctor --json` printed no report",
-        })
+async function run(): Promise<DoctorResult> {
+  let stdout: string
+  let error: unknown = null
+  try {
+    // The exit status is 1 when a required check fails; the report is
+    // still on stdout.
+    ;({ stdout } = await runCli(["doctor", "--json"], {
+      timeoutMs: TIMEOUT_MS,
+    }))
+    try {
+      const report = JSON.parse(stdout) as DoctorReport
+      if (Array.isArray(report.checks) && report.models) {
+        return { available: true, report }
       }
-    )
-  })
+    } catch {
+      // fall through
+    }
+  } catch (e) {
+    error = e
+  }
+  return {
+    available: false,
+    error: error
+      ? `Could not run \`ssebench doctor\`: ${(error instanceof Error ? error.message : String(error)).split("\n")[0]}`
+      : "`ssebench doctor --json` printed no report",
+  }
 }
 
 export function getDoctorReport(): Promise<DoctorResult> {

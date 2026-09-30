@@ -7,6 +7,7 @@
 
 import { readFileSync, statSync } from "fs"
 import { isAbsolute, join, resolve, sep } from "path"
+import { readRunFile } from "./pastRuns"
 
 /** Container label with the run directory on the host */
 export const RESULTS_LABEL = "ssebench.results"
@@ -50,7 +51,7 @@ export function readReferencePatch(
 ): string | null {
   const results = labels[RESULTS_LABEL]
   if (results && isAbsolute(results)) {
-    const patch = readFile(join(results, REFERENCE_PATCH_FILE))
+    const patch = readRunFile(results, REFERENCE_PATCH_FILE)
     if (patch !== null) return patch
   }
   const taskId = labels[TASK_ID_LABEL]

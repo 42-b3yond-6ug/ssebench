@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react"
+import { useServerInfo } from "../lib/serverInfo"
 import type { DockerContainer } from "../types/container"
 
 interface DetachModalProps {
@@ -27,6 +28,9 @@ export function DetachModal({
   onCancel,
 }: DetachModalProps) {
   const [isStopping, setIsStopping] = useState(false)
+  const { readOnly } = useServerInfo()
+  // A finished run has no container to stop, and a read-only server stops nothing
+  const canStop = container.source === "container" && !readOnly
 
   // Close on Escape key
   useEffect(() => {
@@ -87,7 +91,14 @@ export function DetachModal({
             )}
           </p>
 
-          {isRunning ? (
+          {!canStop ? (
+            <p className="text-fg-4 mt-3 text-sm">
+              <strong className="text-fg">Detach:</strong> Close tab.{" "}
+              {container.source === "results"
+                ? "The run stays in the list, read from its results directory."
+                : "The run is not changed."}
+            </p>
+          ) : isRunning ? (
             <div className="mt-3 space-y-2">
               <p className="text-fg-4 text-sm">
                 <strong className="text-fg">Detach:</strong> Close tab but keep
@@ -123,19 +134,21 @@ export function DetachModal({
           >
             Cancel
           </button>
-          <button
-            onClick={handleDetachAndStop}
-            disabled={isStopping}
-            className="bg-gruvbox-red text-gruvbox-bg hover:bg-gruvbox-red/80 rounded px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            {isStopping
-              ? isRunning
-                ? "Stopping..."
-                : "Removing..."
-              : isRunning
-                ? "Detach + Stop"
-                : "Detach + Remove"}
-          </button>
+          {canStop && (
+            <button
+              onClick={handleDetachAndStop}
+              disabled={isStopping}
+              className="bg-gruvbox-red text-gruvbox-bg hover:bg-gruvbox-red/80 rounded px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {isStopping
+                ? isRunning
+                  ? "Stopping..."
+                  : "Removing..."
+                : isRunning
+                  ? "Detach + Stop"
+                  : "Detach + Remove"}
+            </button>
+          )}
           <button
             onClick={onDetach}
             disabled={isStopping}
