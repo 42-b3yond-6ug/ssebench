@@ -128,8 +128,10 @@ export function useOpenCodeEvents({
 }: UseOpenCodeEventsOptions) {
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Bumped by reconnect() to rerun the connection effect
+  const [connectionAttempt, setConnectionAttempt] = useState(0)
   const wsRef = useRef<WebSocket | null>(null)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reconnectAttemptsRef = useRef(0)
 
   // Store callbacks in refs to avoid dependency issues
@@ -173,362 +175,348 @@ export function useOpenCodeEvents({
     onRawEvent,
   ])
 
-  // Cleanup function
-  const cleanup = useCallback(() => {
-    if (wsRef.current) {
-      console.log("[useOpenCodeEvents] Closing WebSocket connection")
-      if (wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.close()
-      }
-      wsRef.current = null
-    }
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current)
-      reconnectTimeoutRef.current = null
-    }
-    setIsConnected(false)
-  }, [])
+  // Connect when enabled, reconnecting with exponential backoff
+  useEffect(() => {
+    if (!enabled || !sessionId) return
 
-  // Connect function with exponential backoff
-  const connect = useCallback(() => {
-    if (!enabled || !sessionId) {
-      cleanup()
-      return
-    }
-
-    // Build WebSocket URL with query parameters
-    const params = new URLSearchParams()
-    params.set("sessionId", sessionId)
-    if (directory) {
-      params.set("directory", directory)
-    }
-
-    const wsPath = `/api/containers/${containerId}/opencode/events-ws?${params}`
-
-    console.log("[useOpenCodeEvents] Connecting to:", wsPath)
-
-    try {
-      const ws = openWebSocket(wsPath)
-      wsRef.current = ws
-
-      ws.onopen = () => {
-        console.log("[useOpenCodeEvents] WebSocket connected")
-        setIsConnected(true)
-        setError(null)
-        reconnectAttemptsRef.current = 0 // Reset reconnect attempts on success
+    function connect() {
+      if (!sessionId) return
+      // Build WebSocket URL with query parameters
+      const params = new URLSearchParams()
+      params.set("sessionId", sessionId)
+      if (directory) {
+        params.set("directory", directory)
       }
 
-      ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data)
-          const eventType = message.type
-          const eventData = message.data
+      const wsPath = `/api/containers/${containerId}/opencode/events-ws?${params}`
 
-          // Log full event details for debugging
-          console.log(`[useOpenCodeEvents] Event received:`, {
-            type: eventType,
-            data: eventData,
-          })
+      console.log("[useOpenCodeEvents] Connecting to:", wsPath)
 
-          // Call raw event callback if provided (useful for debugging all events)
-          if (callbacksRef.current.onRawEvent) {
-            callbacksRef.current.onRawEvent({
+      try {
+        const ws = openWebSocket(wsPath)
+        wsRef.current = ws
+
+        ws.onopen = () => {
+          console.log("[useOpenCodeEvents] WebSocket connected")
+          setIsConnected(true)
+          setError(null)
+          reconnectAttemptsRef.current = 0 // Reset reconnect attempts on success
+        }
+
+        ws.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data)
+            const eventType = message.type
+            const eventData = message.data
+
+            // Log full event details for debugging
+            console.log(`[useOpenCodeEvents] Event received:`, {
               type: eventType,
-              properties: eventData?.properties || eventData,
+              data: eventData,
             })
-          }
 
-          // Handle connection confirmation
-          if (eventType === "connection") {
-            console.log("[useOpenCodeEvents] Connection confirmed")
-            return
-          }
-
-          // Handle error events
-          if (eventType === "error") {
-            console.error("[useOpenCodeEvents] Server error:", eventData.error)
-            setError(eventData.error || "Unknown error")
-            if (callbacksRef.current.onError) {
-              callbacksRef.current.onError(
-                new Error(eventData.error || "Unknown error")
-              )
+            // Call raw event callback if provided (useful for debugging all events)
+            if (callbacksRef.current.onRawEvent) {
+              callbacksRef.current.onRawEvent({
+                type: eventType,
+                properties: eventData?.properties || eventData,
+              })
             }
-            return
-          }
 
-          // Handle message.part.updated events
-          if (eventType === "message.part.updated") {
-            const props = eventData.properties as
-              PartUpdatedProperties | undefined
-
-            if (!props?.part) return
-
-            const part = props.part
-            const partType = part.type
-
-            // Handle tool part updates
-            if (partType === "tool") {
-              if (callbacksRef.current.onToolUpdate) {
-                const toolExecution: ToolExecution = {
-                  id: part.id,
-                  messageID: part.messageID,
-                  callID: part.callID || part.id,
-                  tool: part.tool || "unknown",
-                  status: part.state?.status || "pending",
-                  input: part.state?.input,
-                  output: part.state?.output,
-                  error: part.state?.error,
-                  startTime: part.state?.time?.start,
-                  endTime: part.state?.time?.end,
-                }
-                callbacksRef.current.onToolUpdate(toolExecution)
-              }
+            // Handle connection confirmation
+            if (eventType === "connection") {
+              console.log("[useOpenCodeEvents] Connection confirmed")
               return
             }
 
-            // Handle reasoning part updates
-            if (partType === "reasoning") {
-              if (callbacksRef.current.onReasoningUpdate) {
-                const reasoning: ReasoningContent = {
-                  id: part.id,
-                  messageID: part.messageID,
-                  text: part.text || "",
-                  startTime: part.time?.start,
-                  endTime: part.time?.end,
-                }
-                callbacksRef.current.onReasoningUpdate(reasoning)
-              }
-              return
-            }
-
-            // Handle text part updates (original behavior)
-            if (callbacksRef.current.onMessagePartUpdate) {
-              const messageId = part.messageID
-              const partId = part.id
-              const delta = props.delta || ""
-              const fullText = part.text || ""
-
-              callbacksRef.current.onMessagePartUpdate(
-                messageId,
-                partId,
-                delta,
-                fullText
+            // Handle error events
+            if (eventType === "error") {
+              console.error(
+                "[useOpenCodeEvents] Server error:",
+                eventData.error
               )
-            }
-            return
-          }
-
-          // Handle message.updated events
-          if (eventType === "message.updated") {
-            const props = eventData.properties as
-              MessageUpdatedProperties | undefined
-
-            // Check if message is complete (has end time)
-            if (
-              callbacksRef.current.onMessageComplete &&
-              props?.info?.time?.end
-            ) {
-              const messageId = props.info.id
-              callbacksRef.current.onMessageComplete(messageId)
-            }
-            return
-          }
-
-          // Handle session.status events
-          if (eventType === "session.status") {
-            const props = eventData.properties as
-              SessionStatusProperties | undefined
-
-            const status = props?.status
-            if (callbacksRef.current.onSessionStatus && status) {
-              if (typeof status === "string") {
-                callbacksRef.current.onSessionStatus(status)
-              } else if (status.type) {
-                callbacksRef.current.onSessionStatus(status.type, {
-                  attempt: status.attempt,
-                  message: status.message,
-                })
-              }
-            }
-            return
-          }
-
-          // Handle session.error events (provider errors, unreachable providers)
-          if (eventType === "session.error") {
-            const props = eventData.properties as
-              SessionErrorProperties | undefined
-            if (callbacksRef.current.onSessionError && props?.error) {
-              callbacksRef.current.onSessionError(props.error)
-            }
-            return
-          }
-
-          // Handle permission.asked or permission.updated events (permission request from AI)
-          if (
-            eventType === "permission.asked" ||
-            eventType === "permission.updated"
-          ) {
-            const props = eventData.properties as
-              PermissionAskedProperties | undefined
-
-            console.log(
-              "[useOpenCodeEvents] Permission event raw:",
-              JSON.stringify(eventData, null, 2)
-            )
-
-            if (callbacksRef.current.onPermissionAsked) {
-              // v2 SDK PermissionRequest structure:
-              // { id, sessionID, permission (type string), patterns (array), metadata, always, tool? }
-              // props IS the PermissionRequest object directly
-
-              if (!props?.id) {
-                console.error(
-                  "[useOpenCodeEvents] Could not find permission ID in event:",
-                  eventData
+              setError(eventData.error || "Unknown error")
+              if (callbacksRef.current.onError) {
+                callbacksRef.current.onError(
+                  new Error(eventData.error || "Unknown error")
                 )
+              }
+              return
+            }
+
+            // Handle message.part.updated events
+            if (eventType === "message.part.updated") {
+              const props = eventData.properties as
+                PartUpdatedProperties | undefined
+
+              if (!props?.part) return
+
+              const part = props.part
+              const partType = part.type
+
+              // Handle tool part updates
+              if (partType === "tool") {
+                if (callbacksRef.current.onToolUpdate) {
+                  const toolExecution: ToolExecution = {
+                    id: part.id,
+                    messageID: part.messageID,
+                    callID: part.callID || part.id,
+                    tool: part.tool || "unknown",
+                    status: part.state?.status || "pending",
+                    input: part.state?.input,
+                    output: part.state?.output,
+                    error: part.state?.error,
+                    startTime: part.state?.time?.start,
+                    endTime: part.state?.time?.end,
+                  }
+                  callbacksRef.current.onToolUpdate(toolExecution)
+                }
                 return
               }
 
-              const pendingPermission: PendingPermission = {
-                id: props.id,
-                sessionID: props.sessionID || "",
-                permission: props.permission || "unknown", // "permission" field is the type (bash, edit, etc.)
-                patterns: Array.isArray(props.patterns) ? props.patterns : [],
-                metadata: {
-                  ...(props.metadata || {}),
-                  messageID: props.tool?.messageID,
-                  callID: props.tool?.callID,
-                  always: props.always,
-                },
-                createdAt: Date.now(),
+              // Handle reasoning part updates
+              if (partType === "reasoning") {
+                if (callbacksRef.current.onReasoningUpdate) {
+                  const reasoning: ReasoningContent = {
+                    id: part.id,
+                    messageID: part.messageID,
+                    text: part.text || "",
+                    startTime: part.time?.start,
+                    endTime: part.time?.end,
+                  }
+                  callbacksRef.current.onReasoningUpdate(reasoning)
+                }
+                return
               }
 
-              console.log(
-                "[useOpenCodeEvents] Created pending permission:",
-                pendingPermission
-              )
-              callbacksRef.current.onPermissionAsked(pendingPermission)
-            }
-            return
-          }
+              // Handle text part updates (original behavior)
+              if (callbacksRef.current.onMessagePartUpdate) {
+                const messageId = part.messageID
+                const partId = part.id
+                const delta = props.delta || ""
+                const fullText = part.text || ""
 
-          // Handle permission.replied events
-          if (eventType === "permission.replied") {
-            const props = eventData.properties as
-              PermissionRepliedProperties | undefined
+                callbacksRef.current.onMessagePartUpdate(
+                  messageId,
+                  partId,
+                  delta,
+                  fullText
+                )
+              }
+              return
+            }
+
+            // Handle message.updated events
+            if (eventType === "message.updated") {
+              const props = eventData.properties as
+                MessageUpdatedProperties | undefined
+
+              // Check if message is complete (has end time)
+              if (
+                callbacksRef.current.onMessageComplete &&
+                props?.info?.time?.end
+              ) {
+                const messageId = props.info.id
+                callbacksRef.current.onMessageComplete(messageId)
+              }
+              return
+            }
+
+            // Handle session.status events
+            if (eventType === "session.status") {
+              const props = eventData.properties as
+                SessionStatusProperties | undefined
+
+              const status = props?.status
+              if (callbacksRef.current.onSessionStatus && status) {
+                if (typeof status === "string") {
+                  callbacksRef.current.onSessionStatus(status)
+                } else if (status.type) {
+                  callbacksRef.current.onSessionStatus(status.type, {
+                    attempt: status.attempt,
+                    message: status.message,
+                  })
+                }
+              }
+              return
+            }
+
+            // Handle session.error events (provider errors, unreachable providers)
+            if (eventType === "session.error") {
+              const props = eventData.properties as
+                SessionErrorProperties | undefined
+              if (callbacksRef.current.onSessionError && props?.error) {
+                callbacksRef.current.onSessionError(props.error)
+              }
+              return
+            }
+
+            // Handle permission.asked or permission.updated events (permission request from AI)
+            if (
+              eventType === "permission.asked" ||
+              eventType === "permission.updated"
+            ) {
+              const props = eventData.properties as
+                PermissionAskedProperties | undefined
+
+              console.log(
+                "[useOpenCodeEvents] Permission event raw:",
+                JSON.stringify(eventData, null, 2)
+              )
+
+              if (callbacksRef.current.onPermissionAsked) {
+                // v2 SDK PermissionRequest structure:
+                // { id, sessionID, permission (type string), patterns (array), metadata, always, tool? }
+                // props IS the PermissionRequest object directly
+
+                if (!props?.id) {
+                  console.error(
+                    "[useOpenCodeEvents] Could not find permission ID in event:",
+                    eventData
+                  )
+                  return
+                }
+
+                const pendingPermission: PendingPermission = {
+                  id: props.id,
+                  sessionID: props.sessionID || "",
+                  permission: props.permission || "unknown", // "permission" field is the type (bash, edit, etc.)
+                  patterns: Array.isArray(props.patterns) ? props.patterns : [],
+                  metadata: {
+                    ...(props.metadata || {}),
+                    messageID: props.tool?.messageID,
+                    callID: props.tool?.callID,
+                    always: props.always,
+                  },
+                  createdAt: Date.now(),
+                }
+
+                console.log(
+                  "[useOpenCodeEvents] Created pending permission:",
+                  pendingPermission
+                )
+                callbacksRef.current.onPermissionAsked(pendingPermission)
+              }
+              return
+            }
+
+            // Handle permission.replied events
+            if (eventType === "permission.replied") {
+              const props = eventData.properties as
+                PermissionRepliedProperties | undefined
+
+              console.log(
+                "[useOpenCodeEvents] Permission replied:",
+                JSON.stringify(props, null, 2)
+              )
+
+              if (
+                callbacksRef.current.onPermissionReplied &&
+                props?.permissionID
+              ) {
+                callbacksRef.current.onPermissionReplied(
+                  props.permissionID,
+                  true // Server confirmed the reply
+                )
+              }
+              return
+            }
+
+            // Log unhandled events for debugging (e.g., file.watcher.updated, input.queued)
+            console.warn(
+              `[useOpenCodeEvents] Unhandled event type: ${eventType}`,
+              {
+                type: eventType,
+                data: eventData,
+              }
+            )
+          } catch (error) {
+            console.error(
+              "[useOpenCodeEvents] Failed to parse message:",
+              error,
+              event.data
+            )
+          }
+        }
+
+        ws.onerror = (err) => {
+          console.error("[useOpenCodeEvents] WebSocket error:", err)
+          setError("Connection error")
+        }
+
+        ws.onclose = () => {
+          console.log("[useOpenCodeEvents] WebSocket closed")
+          setIsConnected(false)
+          setError("Connection closed")
+
+          // Attempt to reconnect with exponential backoff
+          const maxAttempts = 5
+          const baseDelay = 1000 // 1 second
+          const maxDelay = 30000 // 30 seconds
+
+          if (reconnectAttemptsRef.current < maxAttempts) {
+            const delay = Math.min(
+              baseDelay * Math.pow(2, reconnectAttemptsRef.current),
+              maxDelay
+            )
+            reconnectAttemptsRef.current++
 
             console.log(
-              "[useOpenCodeEvents] Permission replied:",
-              JSON.stringify(props, null, 2)
+              `[useOpenCodeEvents] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current}/${maxAttempts})`
             )
 
-            if (
-              callbacksRef.current.onPermissionReplied &&
-              props?.permissionID
-            ) {
-              callbacksRef.current.onPermissionReplied(
-                props.permissionID,
-                true // Server confirmed the reply
+            reconnectTimeoutRef.current = setTimeout(() => {
+              connect()
+            }, delay)
+          } else {
+            console.error(
+              "[useOpenCodeEvents] Max reconnection attempts reached"
+            )
+            if (callbacksRef.current.onError) {
+              callbacksRef.current.onError(
+                new Error("Failed to connect to OpenCode event stream")
               )
             }
-            return
           }
-
-          // Log unhandled events for debugging (e.g., file.watcher.updated, input.queued)
-          console.warn(
-            `[useOpenCodeEvents] Unhandled event type: ${eventType}`,
-            {
-              type: eventType,
-              data: eventData,
-            }
-          )
-        } catch (error) {
-          console.error(
-            "[useOpenCodeEvents] Failed to parse message:",
-            error,
-            event.data
+        }
+      } catch (error) {
+        console.error("[useOpenCodeEvents] Failed to create WebSocket:", error)
+        setError(String(error))
+        if (callbacksRef.current.onError) {
+          callbacksRef.current.onError(
+            error instanceof Error
+              ? error
+              : new Error("Failed to create WebSocket")
           )
         }
       }
-
-      ws.onerror = (err) => {
-        console.error("[useOpenCodeEvents] WebSocket error:", err)
-        setError("Connection error")
-      }
-
-      ws.onclose = () => {
-        console.log("[useOpenCodeEvents] WebSocket closed")
-        setIsConnected(false)
-        setError("Connection closed")
-
-        // Attempt to reconnect with exponential backoff
-        const maxAttempts = 5
-        const baseDelay = 1000 // 1 second
-        const maxDelay = 30000 // 30 seconds
-
-        if (reconnectAttemptsRef.current < maxAttempts) {
-          const delay = Math.min(
-            baseDelay * Math.pow(2, reconnectAttemptsRef.current),
-            maxDelay
-          )
-          reconnectAttemptsRef.current++
-
-          console.log(
-            `[useOpenCodeEvents] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current}/${maxAttempts})`
-          )
-
-          reconnectTimeoutRef.current = setTimeout(() => {
-            connect()
-          }, delay)
-        } else {
-          console.error("[useOpenCodeEvents] Max reconnection attempts reached")
-          if (callbacksRef.current.onError) {
-            callbacksRef.current.onError(
-              new Error("Failed to connect to OpenCode event stream")
-            )
-          }
-        }
-      }
-    } catch (error) {
-      console.error("[useOpenCodeEvents] Failed to create WebSocket:", error)
-      setError(String(error))
-      if (callbacksRef.current.onError) {
-        callbacksRef.current.onError(
-          error instanceof Error
-            ? error
-            : new Error("Failed to create WebSocket")
-        )
-      }
     }
-  }, [containerId, sessionId, directory, enabled, cleanup])
 
-  // Connect on mount and when dependencies change
-  useEffect(() => {
-    console.log(
-      `[useOpenCodeEvents] Effect triggered - enabled: ${enabled}, sessionId: ${sessionId}`
-    )
-
-    if (enabled && sessionId) {
-      connect()
-    } else {
-      console.log(
-        "[useOpenCodeEvents] Not connecting - enabled or sessionId is false"
-      )
-      cleanup()
-    }
+    connect()
 
     return () => {
-      console.log("[useOpenCodeEvents] Effect cleanup triggered")
-      cleanup()
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = null
+      }
+      if (wsRef.current) {
+        console.log("[useOpenCodeEvents] Closing WebSocket connection")
+        // A closed socket must not schedule a reconnect for a stale session
+        wsRef.current.onclose = null
+        if (wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.close()
+        }
+        wsRef.current = null
+      }
+      setIsConnected(false)
     }
-  }, [enabled, sessionId, connect, cleanup])
+  }, [containerId, sessionId, directory, enabled, connectionAttempt])
 
   // Reconnect function exposed to caller
   const reconnect = useCallback(() => {
-    cleanup()
     reconnectAttemptsRef.current = 0
-    connect()
-  }, [cleanup, connect])
+    setConnectionAttempt((n) => n + 1)
+  }, [])
 
   return { isConnected, error, reconnect }
 }

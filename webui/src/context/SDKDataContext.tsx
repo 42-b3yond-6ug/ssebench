@@ -10,7 +10,7 @@
  * This prevents duplicate connections and ensures consistent data.
  */
 
-import { ReactNode, useState, useEffect } from "react"
+import { ReactNode, useState, useEffect, useRef } from "react"
 import { useSDKWebSocket } from "../hooks/useSDKWebSocket"
 import { fetchReferencePatch } from "../lib/api"
 import type { CompleteEntry } from "../types/container"
@@ -36,31 +36,29 @@ export function SDKDataProvider({
   // Use unified WebSocket hook
   const sdk = useSDKWebSocket(containerId)
 
-  // Ground truth patch (fetched separately, only once when SDK is ready)
-  const [groundTruthPatch, setGroundTruthPatch] = useState<string | null>(null)
-  const [groundTruthFetched, setGroundTruthFetched] = useState(false)
+  // Ground truth patch, fetched once per container when its SDK is ready
+  const [groundTruth, setGroundTruth] = useState<{
+    containerId: string
+    patch: string
+  } | null>(null)
+  const fetchedForRef = useRef<string | null>(null)
 
-  // Fetch ground truth when SDK becomes ready
   useEffect(() => {
-    if (sdk.sdkReady && !groundTruthFetched) {
-      setGroundTruthFetched(true)
-      fetchReferencePatch(containerId)
-        .then((data) => {
-          if (data.diff && data.diff.trim()) {
-            setGroundTruthPatch(data.diff)
-          }
-        })
-        .catch((err) => {
-          console.warn("Failed to fetch ground truth patch:", err)
-        })
-    }
-  }, [containerId, sdk.sdkReady, groundTruthFetched])
+    if (!sdk.sdkReady || fetchedForRef.current === containerId) return
+    fetchedForRef.current = containerId
+    fetchReferencePatch(containerId)
+      .then((data) => {
+        if (data.diff && data.diff.trim()) {
+          setGroundTruth({ containerId, patch: data.diff })
+        }
+      })
+      .catch((err) => {
+        console.warn("Failed to fetch ground truth patch:", err)
+      })
+  }, [containerId, sdk.sdkReady])
 
-  // Reset ground truth when container changes
-  useEffect(() => {
-    setGroundTruthPatch(null)
-    setGroundTruthFetched(false)
-  }, [containerId])
+  const groundTruthPatch =
+    groundTruth?.containerId === containerId ? groundTruth.patch : null
 
   // Find completion entry if exists
   const completion =

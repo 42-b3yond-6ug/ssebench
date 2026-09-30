@@ -76,6 +76,11 @@ const initialState: SDKWebSocketState = {
   latestDialogSeq: -1,
 }
 
+/** The state a container starts from, before its socket reports anything */
+function stateFor(containerId: string | null): SDKWebSocketState {
+  return containerId ? { ...initialState, status: "connecting" } : initialState
+}
+
 // =============================================================================
 // Hook
 // =============================================================================
@@ -83,7 +88,14 @@ const initialState: SDKWebSocketState = {
 export function useSDKWebSocket(
   containerId: string | null
 ): SDKWebSocketReturn {
-  const [state, setState] = useState<SDKWebSocketState>(initialState)
+  const [state, setState] = useState<SDKWebSocketState>(() =>
+    stateFor(containerId)
+  )
+  const [stateContainerId, setStateContainerId] = useState(containerId)
+  if (containerId !== stateContainerId) {
+    setStateContainerId(containerId)
+    setState(stateFor(containerId))
+  }
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectAttemptRef = useRef(0)
 
@@ -98,17 +110,7 @@ export function useSDKWebSocket(
   }, [])
 
   useEffect(() => {
-    if (!containerId) {
-      setState(initialState)
-      return
-    }
-
-    // Reset state for new container
-    setState({
-      ...initialState,
-      status: "connecting",
-      isInitializing: true,
-    })
+    if (!containerId) return
 
     const wsPath = `/api/containers/${containerId}/sdk-ws`
     console.log(`[useSDKWebSocket] Connecting to: ${wsPath}`)

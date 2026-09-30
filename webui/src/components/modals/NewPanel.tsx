@@ -5,7 +5,7 @@
  * interface with vertical tabs (Attach/Launch) on the left and content on the right.
  */
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { BaseModal } from "./BaseModal"
 import { AttachContent } from "./AttachContent"
 import { LaunchWizard } from "../launch/LaunchWizard"
@@ -31,12 +31,12 @@ export function NewPanel({
   const activeTab = readOnly ? "attach" : requestedTab
   const { attachContainer, refreshContainers } = useContainers()
 
-  // Update active tab when defaultTab changes
-  useEffect(() => {
-    if (isOpen) {
-      setActiveTab(defaultTab)
-    }
-  }, [isOpen, defaultTab])
+  // Start on defaultTab each time the panel opens
+  const [wasOpen, setWasOpen] = useState(isOpen)
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen)
+    if (isOpen) setActiveTab(defaultTab)
+  }
 
   // Handle attach action
   const handleAttach = (containerId: string) => {

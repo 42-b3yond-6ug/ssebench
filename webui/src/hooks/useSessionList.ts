@@ -5,7 +5,7 @@
  * Provides session listing, refresh, and deletion capabilities.
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { OpenCodeClient } from "../lib/opencodeClient"
 import type { OpenCodeSessionListItem } from "../types/opencode"
 
@@ -57,48 +57,35 @@ export function useSessionList({
   refreshInterval = 5000,
 }: UseSessionListOptions): UseSessionListResult {
   const [sessions, setSessions] = useState<OpenCodeSessionListItem[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  // Only the first load shows a spinner, not the auto-refresh
+  const [isLoading, setIsLoading] = useState(enabled)
   const [error, setError] = useState<string | null>(null)
-  const isInitialLoad = useRef(true)
 
   const client = useMemo(() => new OpenCodeClient(containerId), [containerId])
 
-  const refresh = useCallback(
-    async (silent = false) => {
-      if (!enabled) return
-
-      // Only show loading spinner on initial load, not during auto-refresh
-      if (!silent && isInitialLoad.current) {
-        setIsLoading(true)
-      }
-
-      setError(null)
-
-      try {
-        const sessionList = await client.listSessions(directory)
-
-        // Only update state if sessions actually changed (prevents flicker)
-        setSessions((prevSessions) => {
-          if (sessionsChanged(prevSessions, sessionList)) {
-            return sessionList
-          }
-          return prevSessions
-        })
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to load sessions"
-        setError(errorMessage)
-        console.error("[SessionList] Error:", errorMessage)
-      } finally {
-        // Turn off loading spinner after initial load completes
-        if (!silent && isInitialLoad.current) {
-          setIsLoading(false)
-          isInitialLoad.current = false
+  const refresh = useCallback((): Promise<void> => {
+    if (!enabled) return Promise.resolve()
+    return client
+      .listSessions(directory)
+      .then(
+        (sessionList) => {
+          setError(null)
+          // Only update state if sessions actually changed (prevents flicker)
+          setSessions((prevSessions) =>
+            sessionsChanged(prevSessions, sessionList)
+              ? sessionList
+              : prevSessions
+          )
+        },
+        (err: unknown) => {
+          const errorMessage =
+            err instanceof Error ? err.message : "Failed to load sessions"
+          setError(errorMessage)
+          console.error("[SessionList] Error:", errorMessage)
         }
-      }
-    },
-    [client, directory, enabled]
-  )
+      )
+      .finally(() => setIsLoading(false))
+  }, [client, directory, enabled])
 
   // Initial load
   useEffect(() => {
@@ -110,7 +97,7 @@ export function useSessionList({
     if (!enabled || !refreshInterval) return
 
     const interval = setInterval(() => {
-      refresh(true) // Silent refresh - no loading spinner
+      refresh()
     }, refreshInterval)
     return () => clearInterval(interval)
   }, [refresh, enabled, refreshInterval])
@@ -119,8 +106,7 @@ export function useSessionList({
     async (sessionId: string) => {
       try {
         await client.deleteSession(sessionId)
-        // Refresh list after deletion (not silent - user action)
-        await refresh(false)
+        await refresh()
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Failed to delete session"

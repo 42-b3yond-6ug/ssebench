@@ -43,7 +43,7 @@ export function PromptSelector({
   // Check OpenCode health status
   useEffect(() => {
     let mounted = true
-    let pollInterval: NodeJS.Timeout | null = null
+    let pollInterval: ReturnType<typeof setInterval> | null = null
 
     const checkHealth = async () => {
       try {

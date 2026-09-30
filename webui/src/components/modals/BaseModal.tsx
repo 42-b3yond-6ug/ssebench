@@ -42,12 +42,12 @@ export function BaseModal({
   const viewportMaxWidth = maxWidth ?? window.innerWidth * 0.95
   const viewportMaxHeight = maxHeight ?? window.innerHeight * 0.9
 
-  // Reset size when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setSize({ width: defaultWidth, height: defaultHeight })
-    }
-  }, [isOpen, defaultWidth, defaultHeight])
+  // Reset size each time the modal opens
+  const [wasOpen, setWasOpen] = useState(isOpen)
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen)
+    if (isOpen) setSize({ width: defaultWidth, height: defaultHeight })
+  }
 
   // Handle escape key
   useEffect(() => {

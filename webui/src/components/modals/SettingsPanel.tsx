@@ -30,12 +30,12 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
   const [apiKeyInput, setApiKeyInput] = useState(anthropicApiKey || "")
   const [showApiKey, setShowApiKey] = useState(false)
 
-  // Sync input with saved API key when panel opens
-  useEffect(() => {
-    if (isOpen) {
-      setApiKeyInput(anthropicApiKey || "")
-    }
-  }, [isOpen, anthropicApiKey])
+  // Sync input with saved API key each time the panel opens
+  const [wasOpen, setWasOpen] = useState(isOpen)
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen)
+    if (isOpen) setApiKeyInput(anthropicApiKey || "")
+  }
 
   // Handle Escape key
   useEffect(() => {
@@ -166,7 +166,9 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                   </div>
                   <button
                     onClick={() => {
-                      setAnthropicApiKey(apiKeyInput.trim() || null)
+                      const key = apiKeyInput.trim()
+                      setAnthropicApiKey(key || null)
+                      setApiKeyInput(key)
                     }}
                     className="bg-gruvbox-aqua hover:bg-gruvbox-aqua/80 text-bg rounded px-4 py-2 text-sm font-medium transition-colors"
                   >

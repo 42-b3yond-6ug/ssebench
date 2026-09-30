@@ -42,102 +42,101 @@ export function LaunchProvider({ children }: LaunchProviderProps) {
   // This prevents races where a stale WS broadcast re-adds an entry we already cleared.
   const dismissedIdsRef = useRef<Set<string>>(new Set())
 
-  // Connect to WebSocket
-  const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      return
-    }
+  // Connect to the launch WebSocket, reconnecting while mounted
+  useEffect(() => {
+    function connect() {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        return
+      }
 
-    const wsPath = "/api/launch/ws"
-    console.log("[Launch] Connecting to:", wsPath)
+      const wsPath = "/api/launch/ws"
+      console.log("[Launch] Connecting to:", wsPath)
 
-    const ws = openWebSocket(wsPath)
-    wsRef.current = ws
+      const ws = openWebSocket(wsPath)
+      wsRef.current = ws
 
-    ws.onopen = () => {
-      console.log("[Launch] WebSocket connected")
-      setIsConnected(true)
-    }
+      ws.onopen = () => {
+        console.log("[Launch] WebSocket connected")
+        setIsConnected(true)
+      }
 
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data)
-        const launchId: string | undefined = msg.launch_id
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data)
+          const launchId: string | undefined = msg.launch_id
 
-        // Ignore messages for launches we've already dismissed
-        if (launchId && dismissedIdsRef.current.has(launchId)) {
-          return
-        }
+          // Ignore messages for launches we've already dismissed
+          if (launchId && dismissedIdsRef.current.has(launchId)) {
+            return
+          }
 
-        if (msg.type === "status" && launchId) {
-          setLaunches((prev) => {
-            // Double-check inside functional update (dismissedIds may have been
-            // added between the outer check and when React processes this update)
-            if (dismissedIdsRef.current.has(launchId)) return prev
-            const next = new Map(prev)
-            const existing = next.get(launchId)
-            next.set(launchId, {
-              status: msg.data as LaunchStatus,
-              logs: existing?.logs ?? [],
+          if (msg.type === "status" && launchId) {
+            setLaunches((prev) => {
+              // Double-check inside functional update (dismissedIds may have been
+              // added between the outer check and when React processes this update)
+              if (dismissedIdsRef.current.has(launchId)) return prev
+              const next = new Map(prev)
+              const existing = next.get(launchId)
+              next.set(launchId, {
+                status: msg.data as LaunchStatus,
+                logs: existing?.logs ?? [],
+              })
+              return next
             })
-            return next
-          })
-        } else if (msg.type === "log" && launchId) {
-          setLaunches((prev) => {
-            if (dismissedIdsRef.current.has(launchId)) return prev
-            const next = new Map(prev)
-            const existing = next.get(launchId)
-            if (existing) {
-              next.set(launchId, {
-                ...existing,
-                logs: [...existing.logs, msg.data as string],
-              })
-            } else {
-              // Log arrived before status — create placeholder
-              next.set(launchId, {
-                status: {
-                  launch_id: launchId,
-                  status: "launching",
-                  command: "",
-                  taskId: "",
-                  startTime: new Date().toISOString(),
-                },
-                logs: [msg.data as string],
-              })
-            }
-            return next
-          })
-        } else if (msg.type === "cleared" && launchId) {
-          setLaunches((prev) => {
-            const next = new Map(prev)
-            next.delete(launchId)
-            return next
-          })
+          } else if (msg.type === "log" && launchId) {
+            setLaunches((prev) => {
+              if (dismissedIdsRef.current.has(launchId)) return prev
+              const next = new Map(prev)
+              const existing = next.get(launchId)
+              if (existing) {
+                next.set(launchId, {
+                  ...existing,
+                  logs: [...existing.logs, msg.data as string],
+                })
+              } else {
+                // Log arrived before status — create placeholder
+                next.set(launchId, {
+                  status: {
+                    launch_id: launchId,
+                    status: "launching",
+                    command: "",
+                    taskId: "",
+                    startTime: new Date().toISOString(),
+                  },
+                  logs: [msg.data as string],
+                })
+              }
+              return next
+            })
+          } else if (msg.type === "cleared" && launchId) {
+            setLaunches((prev) => {
+              const next = new Map(prev)
+              next.delete(launchId)
+              return next
+            })
+          }
+        } catch (err) {
+          console.error("[Launch] Failed to parse message:", err)
         }
-      } catch (err) {
-        console.error("[Launch] Failed to parse message:", err)
+      }
+
+      ws.onerror = () => {
+        console.error("[Launch] WebSocket error")
+      }
+
+      ws.onclose = () => {
+        console.log("[Launch] WebSocket closed")
+        setIsConnected(false)
+        wsRef.current = null
+
+        // Reconnect after delay
+        reconnectTimeoutRef.current = setTimeout(() => {
+          console.log("[Launch] Reconnecting...")
+          connect()
+        }, 5000)
       }
     }
 
-    ws.onerror = () => {
-      console.error("[Launch] WebSocket error")
-    }
-
-    ws.onclose = () => {
-      console.log("[Launch] WebSocket closed")
-      setIsConnected(false)
-      wsRef.current = null
-
-      // Reconnect after delay
-      reconnectTimeoutRef.current = setTimeout(() => {
-        console.log("[Launch] Reconnecting...")
-        connect()
-      }, 5000)
-    }
-  }, [])
-
-  // Initial connection
-  useEffect(() => {
     connect()
 
     return () => {
@@ -145,11 +144,12 @@ export function LaunchProvider({ children }: LaunchProviderProps) {
         clearTimeout(reconnectTimeoutRef.current)
       }
       if (wsRef.current) {
+        wsRef.current.onclose = null
         wsRef.current.close()
         wsRef.current = null
       }
     }
-  }, [connect])
+  }, [])
 
   // Cancel a specific launch
   const cancel = useCallback(async (launchId: string): Promise<boolean> => {

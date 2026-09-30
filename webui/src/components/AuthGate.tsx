@@ -23,6 +23,34 @@ import {
 
 type GateState = "checking" | "open" | "locked"
 
+interface HealthProbe {
+  state: "open" | "locked"
+  serverInfo?: ServerInfo
+}
+
+/** Locked when the server wants a (different) token */
+async function probeHealth(): Promise<HealthProbe> {
+  try {
+    const response = await apiFetch("/api/health")
+    if (response.status === 401) return { state: "locked" }
+    if (response.ok) {
+      const data = await response.json()
+      return {
+        state: "open",
+        serverInfo: {
+          terminal: data.terminal !== false,
+          terminalHint: data.terminalHint,
+          assistant: data.assistant !== false,
+          readOnly: data.hosted === true,
+        },
+      }
+    }
+  } catch {
+    // Backend unreachable: render the app, which reports it
+  }
+  return { state: "open" }
+}
+
 export function AuthGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<GateState>("checking")
   const [serverInfo, setServerInfo] = useState<ServerInfo>(DEFAULT_SERVER_INFO)
@@ -30,33 +58,15 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  /** Returns false when the server wants a (different) token */
-  const check = useCallback(async (): Promise<boolean> => {
-    try {
-      const response = await apiFetch("/api/health")
-      if (response.status === 401) {
-        setState("locked")
-        return false
-      }
-      if (response.ok) {
-        const data = await response.json()
-        setServerInfo({
-          terminal: data.terminal !== false,
-          terminalHint: data.terminalHint,
-          assistant: data.assistant !== false,
-          readOnly: data.hosted === true,
-        })
-      }
-    } catch {
-      // Backend unreachable: render the app, which reports it
-    }
-    setState("open")
-    return true
+  const apply = useCallback((probe: HealthProbe): boolean => {
+    if (probe.serverInfo) setServerInfo(probe.serverInfo)
+    setState(probe.state)
+    return probe.state === "open"
   }, [])
 
   useEffect(() => {
-    check()
-  }, [check])
+    probeHealth().then(apply)
+  }, [apply])
 
   useEffect(() => onAuthRequired(() => setState("locked")), [])
 
@@ -65,7 +75,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     setSubmitting(true)
     setError(null)
     setAuthToken(tokenInput)
-    const accepted = await check()
+    const accepted = apply(await probeHealth())
     setSubmitting(false)
     if (accepted) {
       setTokenInput("")
