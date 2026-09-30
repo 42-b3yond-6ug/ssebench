@@ -22,9 +22,10 @@ Usage:
 
 	entrypoint [--mode NAME] [--] <command> [args...]
 
-A mode can change where the entrypoint logs through [Config]. One that speaks a
-protocol over the container's stdin and stdout keeps the entrypoint's log out
-of stdout ([Config.LogTo]).
+A mode can change how the entrypoint treats the container's streams and its
+arguments, through [Config]. One that speaks a protocol over the container's
+stdin and stdout keeps the entrypoint's log out of stdout ([Config.LogTo]),
+and one that runs no agent takes no command ([Config.AgentCommandOptional]).
 */
 package entrypoint
 
@@ -57,7 +58,7 @@ func Run(args []string) int {
 		Name:      "entrypoint",
 		Usage:     "SSEBench container entrypoint",
 		Version:   Version,
-		ArgsUsage: "[--] <command> [args...]",
+		ArgsUsage: "[--] [command [args...]]",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "mode",
@@ -112,7 +113,7 @@ func runMode(name string, agentCmd []string) int {
 		logger.Error("SSE_ARCHIVE environment variable is required")
 		return 1
 	}
-	if len(agentCmd) == 0 {
+	if len(agentCmd) == 0 && !cfg.AgentCommandOptional {
 		logger.Error(fmt.Sprintf("Usage: entrypoint [--mode %s] [--] <command> [args...]", strings.Join(Modes(), "|")))
 		return 1
 	}

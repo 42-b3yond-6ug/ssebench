@@ -48,6 +48,10 @@ type AgentResult struct {
 	TimedOut bool
 }
 
+// errNoAgentCommand is what [Runtime.RunAgent] returns when the entrypoint got
+// no agent command.
+var errNoAgentCommand = errors.New("no agent command was given")
+
 // agentCommand runs the agent's command line as the unprivileged user
 // "model". Tests replace it because they run without root.
 var agentCommand = func(cmdline string) *exec.Cmd {
@@ -374,8 +378,12 @@ func (rt *Runtime) StartService(name string, argv []string, dir string, env []st
 // RunAgent runs the agent command as the user "model" and waits for it to
 // exit, killing its process group at [Config.AgentTimeout]. Once the agent has
 // exited, it ends the agent phase (see [Runtime.EndAgentPhase]). It returns
-// an error only if the agent could not be started.
+// an error only if the agent could not be started, which includes having no
+// command to run when the mode sets [Config.AgentCommandOptional].
 func (rt *Runtime) RunAgent() (AgentResult, error) {
+	if len(rt.agentCmd) == 0 {
+		return AgentResult{}, errNoAgentCommand
+	}
 	rt.startAgentPhaseHooks()
 	cmd, start, err := rt.startAgent()
 	if err != nil {
