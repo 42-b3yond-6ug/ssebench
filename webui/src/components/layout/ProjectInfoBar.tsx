@@ -17,7 +17,23 @@ import { useDock } from "../dock/useDock"
 import { ProjectInfoModal } from "../modals/ProjectInfoModal"
 import { VendorIcon } from "../icons/VendorIcon"
 import { getVendorFromName } from "../../lib/modelUtils"
-import * as SimpleIcons from "simple-icons"
+import {
+  type SimpleIcon,
+  siC,
+  siCplusplus,
+  siGnubash,
+  siGo,
+  siJavascript,
+  siKotlin,
+  siOpenjdk,
+  siPhp,
+  siPython,
+  siRuby,
+  siRust,
+  siScala,
+  siSwift,
+  siTypescript,
+} from "simple-icons"
 
 export function ProjectInfoBar() {
   const { project, sdkVersion, isInitializing } = useSDKDataContext()
@@ -424,31 +440,29 @@ function BottomPanelIcon({ active }: { active: boolean }) {
 function LanguageIcon({ language }: { language: string }) {
   const lang = language.toLowerCase()
 
-  // Map language names to simple-icons keys
-  const iconMap: Record<string, keyof typeof SimpleIcons> = {
-    python: "siPython",
-    javascript: "siJavascript",
-    typescript: "siTypescript",
-    go: "siGo",
-    rust: "siRust",
-    java: "siOpenjdk",
-    c: "siC",
-    "c++": "siCplusplus",
-    cpp: "siCplusplus",
-    ruby: "siRuby",
-    php: "siPhp",
-    swift: "siSwift",
-    kotlin: "siKotlin",
-    scala: "siScala",
-    shell: "siGnubash",
-    bash: "siGnubash",
+  // Map language names to simple-icons
+  const iconMap: Record<string, SimpleIcon> = {
+    python: siPython,
+    javascript: siJavascript,
+    typescript: siTypescript,
+    go: siGo,
+    rust: siRust,
+    java: siOpenjdk,
+    c: siC,
+    "c++": siCplusplus,
+    cpp: siCplusplus,
+    ruby: siRuby,
+    php: siPhp,
+    swift: siSwift,
+    kotlin: siKotlin,
+    scala: siScala,
+    shell: siGnubash,
+    bash: siGnubash,
   }
 
-  const iconKey = iconMap[lang]
+  const icon = iconMap[lang]
 
-  // Get icon from simple-icons
-  if (iconKey && SimpleIcons[iconKey]) {
-    const icon = SimpleIcons[iconKey]
+  if (icon) {
     return (
       <svg
         className="h-4 w-4"
