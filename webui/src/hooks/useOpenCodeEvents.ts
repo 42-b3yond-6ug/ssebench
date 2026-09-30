@@ -11,6 +11,7 @@ import type {
   ToolExecution,
   PendingPermission,
   ReasoningContent,
+  OpenCodeErrorInfo,
 } from "../types/opencode"
 
 interface OpenCodeEvent {
@@ -49,8 +50,23 @@ interface MessageUpdatedProperties {
   info?: { id: string; time?: EventTime }
 }
 
+// Older servers send the status as a string, newer ones as an object
 interface SessionStatusProperties {
-  status?: "idle" | "busy" | "retry"
+  status?:
+    | "idle"
+    | "busy"
+    | "retry"
+    | { type?: "idle" | "busy" | "retry"; attempt?: number; message?: string }
+}
+
+interface SessionErrorProperties {
+  error?: OpenCodeErrorInfo
+}
+
+/** What a retrying session says about why */
+export interface SessionRetryDetail {
+  attempt?: number
+  message?: string
 }
 
 interface PermissionAskedProperties {
@@ -79,7 +95,12 @@ interface UseOpenCodeEventsOptions {
     fullText: string
   ) => void
   onMessageComplete?: (messageId: string) => void
-  onSessionStatus?: (status: "idle" | "busy" | "retry") => void
+  onSessionStatus?: (
+    status: "idle" | "busy" | "retry",
+    detail?: SessionRetryDetail
+  ) => void
+  /** The session failed, for example because the provider could not be reached */
+  onSessionError?: (error: OpenCodeErrorInfo) => void
   onToolUpdate?: (tool: ToolExecution) => void
   onPermissionAsked?: (permission: PendingPermission) => void
   onPermissionReplied?: (id: string, allow: boolean) => void
@@ -97,6 +118,7 @@ export function useOpenCodeEvents({
   onMessagePartUpdate,
   onMessageComplete,
   onSessionStatus,
+  onSessionError,
   onToolUpdate,
   onPermissionAsked,
   onPermissionReplied,
@@ -115,6 +137,7 @@ export function useOpenCodeEvents({
     onMessagePartUpdate,
     onMessageComplete,
     onSessionStatus,
+    onSessionError,
     onToolUpdate,
     onPermissionAsked,
     onPermissionReplied,
@@ -129,6 +152,7 @@ export function useOpenCodeEvents({
       onMessagePartUpdate,
       onMessageComplete,
       onSessionStatus,
+      onSessionError,
       onToolUpdate,
       onPermissionAsked,
       onPermissionReplied,
@@ -140,6 +164,7 @@ export function useOpenCodeEvents({
     onMessagePartUpdate,
     onMessageComplete,
     onSessionStatus,
+    onSessionError,
     onToolUpdate,
     onPermissionAsked,
     onPermissionReplied,
@@ -317,8 +342,27 @@ export function useOpenCodeEvents({
               | SessionStatusProperties
               | undefined
 
-            if (callbacksRef.current.onSessionStatus && props?.status) {
-              callbacksRef.current.onSessionStatus(props.status)
+            const status = props?.status
+            if (callbacksRef.current.onSessionStatus && status) {
+              if (typeof status === "string") {
+                callbacksRef.current.onSessionStatus(status)
+              } else if (status.type) {
+                callbacksRef.current.onSessionStatus(status.type, {
+                  attempt: status.attempt,
+                  message: status.message,
+                })
+              }
+            }
+            return
+          }
+
+          // Handle session.error events (provider errors, unreachable providers)
+          if (eventType === "session.error") {
+            const props = eventData.properties as
+              | SessionErrorProperties
+              | undefined
+            if (callbacksRef.current.onSessionError && props?.error) {
+              callbacksRef.current.onSessionError(props.error)
             }
             return
           }

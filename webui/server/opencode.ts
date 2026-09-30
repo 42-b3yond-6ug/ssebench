@@ -1,7 +1,11 @@
 /**
  * OpenCode SDK Integration - Manages OpenCode SDK clients for containers
  *
- * OpenCode server runs on port 4096 inside each container.
+ * OpenCode server runs on port 4096 inside each container. A container whose
+ * assistant goes through the LiteLLM proxy gets a server of its own on port
+ * 4098, started with the proxy's model: the server on 4096 starts without it,
+ * and configuring that one at runtime writes a config file, with the key in
+ * it, into the project's source tree.
  * This module provides type-safe SDK access to containerized OpenCode servers.
  *
  * Features:
@@ -12,6 +16,11 @@
  */
 
 import { getSDKUrl, resolveContainer } from "./docker"
+import {
+  buildAssistantConfig,
+  proxyProviderFor,
+  type AssistantProvider,
+} from "./assistantProxy"
 import { spawn } from "bun"
 import {
   createOpencodeClient,
@@ -27,6 +36,47 @@ interface OpenCodeProcess {
   process: ReturnType<typeof spawn>
   startedAt: Date
   isStarting: boolean // prevent concurrent start attempts
+}
+
+/** The port of the OpenCode server that the entrypoint starts */
+const DEFAULT_PORT = 4096
+/** The port of the server that the web UI starts for the proxy's model */
+const PROXY_PORT = 4098
+/** How long a container without a proxy model is taken to have none */
+const NO_PROXY_TTL_MS = 30_000
+
+interface AssistantTarget {
+  port: number
+  /** Set when the assistant uses the run's model through the proxy */
+  provider: AssistantProvider | null
+  decidedAt: number
+}
+
+/** Which server serves each container's assistant */
+const targets = new Map<string, AssistantTarget>()
+
+async function assistantTarget(containerId: string): Promise<AssistantTarget> {
+  const known = targets.get(containerId)
+  if (
+    known &&
+    (known.provider || Date.now() - known.decidedAt < NO_PROXY_TTL_MS)
+  ) {
+    return known
+  }
+  const provider = await proxyProviderFor(containerId)
+  const target = {
+    port: provider ? PROXY_PORT : DEFAULT_PORT,
+    provider,
+    decidedAt: Date.now(),
+  }
+  if (known && known.port !== target.port) {
+    // Clients made for the other server are useless now
+    for (const key of [...sdkClients.keys()]) {
+      if (key.startsWith(containerId)) sdkClients.delete(key)
+    }
+  }
+  targets.set(containerId, target)
+  return target
 }
 
 /**
@@ -193,12 +243,28 @@ async function startOpenCode(containerId: string): Promise<boolean> {
   try {
     console.log(`${logPrefix} Starting OpenCode server...`)
 
+    // Where the assistant's model comes from: the run's proxy, which a
+    // restricted container can reach, else the user's own key set per session.
+    // The configuration goes in the environment of the docker client, not in
+    // its arguments, because it holds a key.
+    const { port, provider } = await assistantTarget(container.id)
+    console.log(
+      `${logPrefix} Assistant model: ${provider ? `${provider.model} through the LiteLLM proxy` : "the user's provider key"}`
+    )
+    const env: Record<string, string | undefined> = { ...Bun.env }
+    if (provider) {
+      env.OPENCODE_CONFIG_CONTENT = JSON.stringify(
+        buildAssistantConfig(provider)
+      )
+    }
+
     // Spawn docker exec (without -d flag)
     const proc = spawn({
       cmd: [
         "docker",
         "exec",
         "-i", // Keep stdin open (even though we don't use it)
+        ...(provider ? ["-e", "OPENCODE_CONFIG_CONTENT"] : []),
         // It listens on the run network, which other containers share, so
         // it gets the agent's privileges, not root's.
         "--user",
@@ -207,7 +273,7 @@ async function startOpenCode(containerId: string): Promise<boolean> {
         "opencode",
         "serve",
         "--port",
-        "4096",
+        String(port),
         "--hostname",
         "0.0.0.0",
         "--print-logs",
@@ -215,7 +281,7 @@ async function startOpenCode(containerId: string): Promise<boolean> {
       stdin: "ignore",
       stdout: "pipe",
       stderr: "pipe",
-      env: Bun.env,
+      env,
     })
 
     // Store process info
@@ -326,9 +392,10 @@ async function getOpenCodeUrl(containerId: string): Promise<string | null> {
   const sdkUrl = await getSDKUrl(containerId)
   if (!sdkUrl) return null
 
-  // Replace SDK port (4263) with OpenCode port (4096)
+  // Replace SDK port (4263) with the assistant's OpenCode port
   // Example: http://172.17.0.2:4263 -> http://172.17.0.2:4096
-  return sdkUrl.replace(":4263", ":4096")
+  const { port } = await assistantTarget(containerId)
+  return sdkUrl.replace(":4263", `:${port}`)
 }
 
 /**
@@ -409,8 +476,9 @@ export async function createSession(
   }
 
   try {
-    // First, set the API key if provided
-    if (apiKey) {
+    // First, set the API key if provided. A server configured with the proxy
+    // has its model and needs none.
+    if (apiKey && !(await assistantTarget(containerId)).provider) {
       const authResult = await client.auth.set({
         path: { id: "anthropic" },
         body: { type: "api", key: apiKey },
@@ -712,6 +780,8 @@ export async function listSessions(
  */
 export async function checkHealth(containerId: string): Promise<{
   healthy: boolean
+  /** The assistant's model when it goes through the proxy, else none: it needs the user's key */
+  proxyModel?: string
   version?: string
   processRunning?: boolean
   pid?: number
@@ -752,8 +822,13 @@ export async function checkHealth(containerId: string): Promise<{
     const isProcessRunning =
       isHealthy || (!!processInfo && !processInfo.process.killed)
 
+    const proxyModel = isHealthy
+      ? (await assistantTarget(containerId)).provider?.model
+      : undefined
+
     return {
       healthy: isHealthy,
+      ...(proxyModel ? { proxyModel } : {}),
       version,
       processRunning: isProcessRunning,
       pid: processInfo?.process.pid,

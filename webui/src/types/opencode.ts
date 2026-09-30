@@ -33,10 +33,22 @@ export interface OpenCodeMessage {
   parts: MessagePart[]
 }
 
+/** What OpenCode reports when a message fails, for example a provider error */
+export interface OpenCodeErrorInfo {
+  name: string
+  data?: {
+    message?: string
+    statusCode?: number
+    responseBody?: string
+  }
+}
+
 interface MessageInfo {
   id: string
   sessionID: string
   role: "user" | "assistant"
+  /** Set on an assistant message that failed */
+  error?: OpenCodeErrorInfo
   time: {
     created: number // Unix timestamp in milliseconds
     completed?: number
@@ -142,6 +154,8 @@ export interface SendMessageResponse {
 
 export interface HealthResponse {
   healthy: boolean
+  /** The assistant's model when it goes through the LiteLLM proxy; absent when it needs your own key */
+  proxyModel?: string
   version?: string
   processRunning?: boolean
   pid?: number

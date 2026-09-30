@@ -12,10 +12,12 @@ import type {
   ToolExecution,
   PendingPermission,
   ReasoningContent,
+  OpenCodeErrorInfo,
 } from "../types/opencode"
 import type { DialogEntry } from "../types/container"
 import { useSettings } from "../context/useSettings"
-import { useOpenCodeEvents } from "./useOpenCodeEvents"
+import { useOpenCodeEvents, type SessionRetryDetail } from "./useOpenCodeEvents"
+import { describeOpenCodeError, isReportable } from "../lib/opencodeErrors"
 
 interface UseOpenCodeSessionOptions {
   containerId: string
@@ -67,6 +69,10 @@ interface UseOpenCodeSessionResult {
   // API key management
   hasApiKey: boolean
   needsApiKey: boolean
+  /** The model the assistant uses through the LiteLLM proxy, if it does */
+  proxyModel: string | null
+  /** Why the provider is not answering yet, while OpenCode retries */
+  retryNotice: string | null
 }
 
 /**
@@ -91,6 +97,10 @@ export function useOpenCodeSession({
   const [isInitializing, setIsInitializing] = useState(true)
   const [isConnecting, setIsConnecting] = useState(false)
   const [isProcessRunning, setIsProcessRunning] = useState(false)
+  // The model when the assistant goes through the LiteLLM proxy
+  const [proxyModel, setProxyModel] = useState<string | null>(null)
+  // Why the provider is not answering yet, while OpenCode retries
+  const [retryNotice, setRetryNotice] = useState<string | null>(null)
 
   // Streaming state
   const [streamingMessages, setStreamingMessages] = useState<
@@ -125,7 +135,8 @@ export function useOpenCodeSession({
   const client = useMemo(() => new OpenCodeClient(containerId), [containerId])
 
   const hasApiKey = hasAnthropicApiKey()
-  const needsApiKey = !hasApiKey && !sessionId
+  // The proxy needs no key of the user's
+  const needsApiKey = !hasApiKey && !proxyModel && !sessionId && !isInitializing
 
   const refreshMessagesInternal = useCallback(
     async (sid: string) => {
@@ -133,6 +144,14 @@ export function useOpenCodeSession({
         const msgs = await client.getMessages(sid)
         console.log("[OpenCode] Messages refreshed:", msgs.length)
         setMessages(msgs)
+
+        // A provider error is not an HTTP error: OpenCode answers with an
+        // assistant message that carries it, and nothing else to show.
+        const last = msgs[msgs.length - 1]
+        if (last?.info.role === "assistant" && isReportable(last.info.error)) {
+          setError(describeOpenCodeError(last.info.error!))
+          setRetryNotice(null)
+        }
 
         // Clear pending user message after refresh
         pendingUserMessageRef.current = null
@@ -244,7 +263,7 @@ export function useOpenCodeSession({
   )
 
   const createSessionInternal = useCallback(async () => {
-    if (!hasApiKey) {
+    if (!hasApiKey && !proxyModel) {
       setError("Please set your Anthropic API key in Settings")
       return
     }
@@ -277,6 +296,7 @@ export function useOpenCodeSession({
     }
   }, [
     hasApiKey,
+    proxyModel,
     client,
     workingDir,
     anthropicApiKey,
@@ -343,16 +363,33 @@ export function useOpenCodeSession({
 
   // Memoize event callbacks to prevent unnecessary reconnections
   const handleSessionStatus = useCallback(
-    (status: "idle" | "busy" | "retry") => {
+    (status: "idle" | "busy" | "retry", detail?: SessionRetryDetail) => {
       console.log(`[OpenCode] Session status: ${status}`)
       if (status === "busy") {
         setIsStreaming(true)
+        setRetryNotice(null)
       } else if (status === "idle") {
         setIsStreaming(false)
+        setRetryNotice(null)
+      } else if (status === "retry") {
+        setRetryNotice(
+          `${detail?.message || "The model provider is not answering"}${
+            detail?.attempt ? ` (attempt ${detail.attempt})` : ""
+          }`
+        )
       }
     },
     []
   )
+
+  // The session failed for good: show why instead of an empty reply
+  const handleSessionError = useCallback((err: OpenCodeErrorInfo) => {
+    console.error("[OpenCode] Session error:", err)
+    if (!isReportable(err)) return
+    setIsStreaming(false)
+    setRetryNotice(null)
+    setError(describeOpenCodeError(err))
+  }, [])
 
   const handleEventError = useCallback((err: Error) => {
     console.error("[OpenCode] Event stream error:", err)
@@ -416,6 +453,7 @@ export function useOpenCodeSession({
     onMessagePartUpdate: handleMessagePartUpdate,
     onMessageComplete: handleMessageComplete,
     onSessionStatus: handleSessionStatus,
+    onSessionError: handleSessionError,
     onToolUpdate: handleToolUpdate,
     onPermissionAsked: handlePermissionAsked,
     onPermissionReplied: handlePermissionReplied,
@@ -433,6 +471,7 @@ export function useOpenCodeSession({
         const health = await client.checkHealth()
         if (mounted) {
           setIsHealthy(health.healthy)
+          setProxyModel(health.proxyModel ?? null)
           setIsProcessRunning(health.processRunning || false)
           setIsInitializing(false)
 
@@ -498,7 +537,7 @@ export function useOpenCodeSession({
   // Create session on mount if autoCreate is enabled
   useEffect(() => {
     if (!autoCreate || sessionId || !isHealthy || isInitializing) return
-    if (!hasApiKey) {
+    if (!hasApiKey && !proxyModel) {
       setError("Please set your Anthropic API key in Settings")
       return
     }
@@ -510,6 +549,7 @@ export function useOpenCodeSession({
     isHealthy,
     isInitializing,
     hasApiKey,
+    proxyModel,
     createSessionInternal,
   ])
 
@@ -789,5 +829,7 @@ export function useOpenCodeSession({
     replyToPermission,
     hasApiKey,
     needsApiKey,
+    proxyModel,
+    retryNotice,
   }
 }

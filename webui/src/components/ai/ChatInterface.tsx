@@ -47,6 +47,8 @@ export function ChatInterface({
     replyToPermission,
     needsApiKey,
     hasApiKey,
+    proxyModel,
+    retryNotice,
   } = useOpenCodeSession({
     containerId,
     workingDir: project?.source,
@@ -84,8 +86,9 @@ export function ChatInterface({
             API Key Required
           </h3>
           <p className="text-fg-3 mb-4 text-sm">
-            Please set your Anthropic API key in Settings to use OpenCode debug
-            assistant.
+            Please set your Anthropic API key in Settings to use the OpenCode
+            debug assistant. A run that has a model needs no key: its assistant
+            goes through the run&apos;s LiteLLM proxy.
           </p>
           <button
             onClick={openSettings}
@@ -193,7 +196,7 @@ export function ChatInterface({
               <p className="text-gruvbox-red text-sm font-medium">
                 {isSessionExpired
                   ? "Session Expired"
-                  : "Failed to communicate with OpenCode"}
+                  : "The assistant reported an error"}
               </p>
               <p className="text-fg-4 mt-1 text-xs">{error}</p>
               {isSessionExpired && (
@@ -247,8 +250,23 @@ export function ChatInterface({
         <div className="border-border-subtle flex flex-shrink-0 items-center justify-between border-b px-4 py-2">
           <div className="flex items-center gap-2">
             <div className="bg-gruvbox-green h-2 w-2 rounded-full" />
-            <p className="text-fg-3 text-xs">OpenCode connected</p>
+            <p className="text-fg-3 text-xs">
+              OpenCode connected
+              {proxyModel
+                ? ` · ${proxyModel} through the LiteLLM proxy`
+                : " · your Anthropic API key"}
+            </p>
           </div>
+        </div>
+      )}
+
+      {/* The provider is not answering; OpenCode keeps retrying */}
+      {retryNotice && (
+        <div
+          role="status"
+          className="bg-gruvbox-yellow/10 border-gruvbox-yellow text-fg-2 flex-shrink-0 border-b px-4 py-2 text-xs"
+        >
+          Waiting for the model provider: {retryNotice}
         </div>
       )}
 
