@@ -185,15 +185,17 @@ ssebench proxy up      # just launch
 ```
 
 Missing keys are only a problem for the models that need them: the `dummy` and
-`reference` agents need none, and `just demo --agent <agent> --model <model>`
-stops before it builds anything when the model's key is missing.
+`reference` agents need none, and both `ssebench run` and
+`just demo --agent <agent> --model <model>` stop before they build anything when
+the model's key is missing from `.env`, with one line that names the variable.
 
 ### The agent ended at once, or said it could not log in
 
-`ssebench run` does not check the key before it starts. A run whose provider key
-is missing or wrong still builds the images and runs the agent, and ends with a
-grade, so check the run when it finishes much sooner than an agent working on a
-task would. The signs:
+`ssebench run` stops before it builds anything when `.env` lacks the model's
+provider key, but it cannot tell whether a key that is there works. A run whose
+provider key is wrong still builds the images and runs the agent, and ends with
+a grade, so check the run when it finishes much sooner than an agent working on
+a task would. The signs:
 
 - `result.json` says `failed`, with `PoC failed` as `error_msg`, because the
   agent changed nothing, and the summary's `spend` is 0.
@@ -208,11 +210,14 @@ Fix the key in `.env`, restart the proxy with `ssebench proxy up`, and run again
 
 ## Running a task
 
-- **`Model no-such-model does not exist.`** The name is not in `models/*.yaml`.
-  `grep -h model_name models/*.yaml` lists the names.
-- **`Agent no-such-agent does not exist.`** The name is not a directory under
-  `agents/`. SSEBench ships `claude-code`, `codex`, `opencode`, `dummy` and
-  `reference`.
+- **`Unknown model 'no-such-model'. Available models: ...`** The name is not in
+  `models/*.yaml`; the message lists the names, and the closest one when there
+  is one.
+- **`Unknown agent 'no-such-agent'. Available agents: ...`** The name is not a
+  directory under `agents/`. SSEBench ships `claude-code`, `codex`, `opencode`,
+  `dummy` and `reference`.
+- **`Model '<name>': <VARIABLE> is not set in .env.`** The model's provider key
+  is missing; see [Provider keys](#provider-keys).
 - **`Benchmark task no-such-task does not exist.`** With `--local DIR`, the
   task is not a folder of that directory. `uv run ssebench tasks list` prints
   the task IDs.
