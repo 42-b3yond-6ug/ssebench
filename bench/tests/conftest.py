@@ -6,6 +6,9 @@ from typing import Any
 import pytest
 import yaml
 
+from ssebench.runner import RunOutcome
+from ssebench.runner.result import PatchResult, PerTaskEvaluationResult
+
 DOCKERFILE = """\
 ARG SSEBENCH_REGISTRY=registry.test/ssebench
 FROM ${SSEBENCH_REGISTRY}/base-generic-c:1.0.0
@@ -30,6 +33,12 @@ TASK_FILES = {
     "sse/pocs/poc.bin": "crash\n",
     "sse/reports/crash.txt": "ERROR: AddressSanitizer\n",
 }
+
+
+def finished_run(_runner: object) -> RunOutcome:
+    """Stands in for `BenchmarkRunner.run` in a test of the command line: a run that passed."""
+    patch = PatchResult(build_success=True, pov_passed=1, pov_total=1, func_test_success=True)
+    return RunOutcome(Path("run"), PerTaskEvaluationResult.model_construct(patch_result=patch))
 
 
 def _task_config(task_id: str) -> dict[str, Any]:

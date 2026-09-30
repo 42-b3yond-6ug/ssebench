@@ -1,6 +1,7 @@
 import logging
 import shutil
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import ClassVar, final, override
@@ -102,6 +103,18 @@ def stopped_after_grading(returncode: int, keep_container: bool, evaluator_file:
     return keep_container and returncode in STOP_STATUSES and evaluator_file.stat().st_size > 0
 
 
+@dataclass(frozen=True)
+class RunOutcome:
+    """What a finished run left: its directory and the summary written there."""
+
+    directory: Path
+    summary: PerTaskEvaluationResult
+
+    @property
+    def passed(self) -> bool:
+        return self.summary.patch_result.status == "passed"
+
+
 def record_results(
     task: Task,
     run_config: RunConfig,
@@ -109,8 +122,8 @@ def record_results(
     evaluator_file: Path,
     run_id: str | None = None,
     started_at: datetime | None = None,
-) -> None:
-    """Complete the run's result.json with the run settings, and write the summary beside it."""
+) -> PerTaskEvaluationResult:
+    """Complete the run's result.json with the run settings, write the summary beside it, and return it."""
     content = evaluator_file.read_text().strip()
     if content:
         container_result = EvaluationResult.model_validate_json(content)
@@ -132,6 +145,7 @@ def record_results(
         started_at=started_at,
     )
     replace_file(evaluator_file.with_name(SUMMARY_FILE), per_task_result.model_dump_json())
+    return per_task_result
 
 
 class BenchmarkRunner(ABC):
@@ -204,7 +218,7 @@ class BenchmarkRunner(ABC):
             Mount(source=str(results_path / ARCHIVE_DIR), target=ARCHIVE_PATH),
         )
 
-    def run(self):
+    def run(self) -> RunOutcome:
         assert self.images is not None
 
         started_at = datetime.now(UTC)
@@ -225,7 +239,10 @@ class BenchmarkRunner(ABC):
                 self._report_exit(status, evaluator_file)
         save_reference_patch(self.task, results_path)
 
-        record_results(self.task, self._run_config(), self.model.get_spend(), evaluator_file, self.run_id, started_at)
+        summary = record_results(
+            self.task, self._run_config(), self.model.get_spend(), evaluator_file, self.run_id, started_at
+        )
+        return RunOutcome(results_path, summary)
 
 
 @final

@@ -21,7 +21,7 @@ from ssebench.runner import BenchmarkSandboxRunner, BenchmarkSidecarRunner
 from ssebench.runner.lifecycle import RunGuard, check_run_id, execute
 from ssebench.tasks import LocalTask
 
-from .conftest import FakeDocker
+from .conftest import FakeDocker, finished_run
 
 TASK = "demo-1"
 
@@ -111,7 +111,7 @@ def test_run_passes_the_run_id_to_the_runner(task: LocalTask, tmp_path: Path, mo
     monkeypatch.setattr(stack, "up", lambda: None)
     monkeypatch.setattr(stack, "wait_healthy", lambda: None)
     monkeypatch.setattr(BenchmarkSandboxRunner, "build", lambda self: runners.append(self))
-    monkeypatch.setattr(BenchmarkSandboxRunner, "run", lambda self: None)
+    monkeypatch.setattr(BenchmarkSandboxRunner, "run", finished_run)
 
     assert cli.cmd_run(run_args(local=str(tmp_path / "pilot"), run_id="from-the-ui")) == 0
 
@@ -126,7 +126,7 @@ def test_run_makes_an_id_for_the_runner_when_none_is_given(
     monkeypatch.setattr(stack, "up", lambda: None)
     monkeypatch.setattr(stack, "wait_healthy", lambda: None)
     monkeypatch.setattr(BenchmarkSandboxRunner, "build", lambda self: runners.append(self))
-    monkeypatch.setattr(BenchmarkSandboxRunner, "run", lambda self: None)
+    monkeypatch.setattr(BenchmarkSandboxRunner, "run", finished_run)
 
     assert cli.cmd_run(run_args(local=str(tmp_path / "pilot"))) == 0
 

@@ -363,6 +363,13 @@ def test_describe_the_grade() -> None:
     assert demo.describe(passing) == ("build passed, PoC 1/1 passed, functional tests passed, intent tests failed")
 
 
+def test_describe_a_grade_with_checks_that_did_not_run() -> None:
+    assert demo.describe({"patch_result": {"build_success": False}}) == (
+        "build failed, PoC not run, functional tests not run, intent tests not run"
+    )
+    assert demo.describe({}) == "no grade"
+
+
 def test_the_log_shows_progress_only(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     log = tmp_path / "demo.log"
     _ = log.write_text(

@@ -63,8 +63,9 @@ uv run ssebench run --local datasets/pilot --task <task-id> --agent <agent> --mo
 ```sh
 ssebench run [-h] [--model NAME] --agent NAME --task ID [--local DIR]
              [--catalog PATH|URL] [--build] [--mode MODE] [--backend NAME] [--prebuilt]
-             [--tool-layer NAME] [--plugin NAME] [--run-id ID] [--timeout SECONDS]
-             [--difficulty LEVEL] [--keep-container] [--egress POLICY]
+             [--tool-layer NAME] [--plugin NAME] [--run-id ID] [--require-pass]
+             [--timeout SECONDS] [--difficulty LEVEL] [--keep-container]
+             [--egress POLICY]
 ```
 
 | Option | Default | Description |
@@ -81,6 +82,7 @@ ssebench run [-h] [--model NAME] --agent NAME --task ID [--local DIR]
 | `--tool-layer NAME` | `sandbox` | Tool layer to build in sandbox mode; installed extensions can add more |
 | `--plugin NAME` | `[]` | Run a plugin in this run (repeatable), instead of those `plugins.yaml` enables; sandbox mode only |
 | `--run-id ID` |  | Name the run: its directory is `results/TASK/MODEL/AGENT/ID`, and its containers get the label `ssebench.run-id=ID`, so a tool that starts the run can find them. 1 to 64 letters, digits, '.', '_' or '-', and not `latest`. The run is refused if that directory exists. Default: the UTC time the command started and six random hex digits, such as 20260929-153012-a1b2c3 |
+| `--require-pass` | off | Exit with status 1 unless the run's grade is passed, which needs every check the task has to pass; without it the command exits 0 whatever the grade. The grade is printed either way |
 | `--timeout SECONDS` | `3600` | How long the agent may run |
 | `--difficulty LEVEL` | 2 = `NO_FUTURE_TEST` | Which checks the agent's `test_patch` tool may run, from 0 (all) to 4 (none). One of 0, 1, 2, 3, 4 |
 | `--keep-container` | off | Keep the container after the run, for example to inspect it from the web UI |

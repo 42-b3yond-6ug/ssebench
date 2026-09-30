@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import httpx
+from pydantic import ValidationError
 
 from ssebench import arch, doctor, paths, settings, stack
 from ssebench.agents.agent import get_agent_path
@@ -35,6 +36,7 @@ from ssebench.pipe import REGISTRY, TAG
 from ssebench.runner.layout import new_run_id, run_dir
 from ssebench.runner.lifecycle import RUN_ID_LABEL
 from ssebench.runner.reference import is_reference_run
+from ssebench.runner.result import PatchResult, describe_grade
 from ssebench.tasks import Catalog, CatalogError, load_catalog
 from ssebench.tasks.catalog import bundled_manifest
 from ssebench.tasks.manifest import ManifestTask
@@ -422,17 +424,10 @@ def describe(result: Mapping[str, object]) -> str:
     patch = result.get("patch_result")
     if not isinstance(patch, dict):
         return "no grade"
-
-    def passed(ok: object) -> str:
-        return "passed" if ok else "failed"
-
-    parts = [
-        f"build {passed(patch.get('build_success'))}",
-        f"PoC {patch.get('pov_passed')}/{patch.get('pov_total')} passed",
-        f"functional tests {passed(patch.get('func_test_success'))}",
-        f"intent tests {passed(patch.get('intent_test_success'))}",
-    ]
-    return ", ".join(parts)
+    try:
+        return describe_grade(PatchResult.model_validate(patch))
+    except ValidationError:
+        return "no grade"
 
 
 PROGRESS_LINE = re.compile(r"(INFO|WARNING|ERROR):[\w.]+:(.*)")
