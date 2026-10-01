@@ -18,7 +18,7 @@ agent is allowed to see (see [What the agent sees](/concepts/tasks-and-datasets#
 | Section | Content | From the task config |
 |---|---|---|
 | Task | The role, and the project's name and language | `project`, `language` |
-| Objective, Requirements, Validation | Fixed instructions: fix the root cause, keep the project's behaviour, commit the fix, and how the fix is checked | none |
+| Objective, Requirements, Validation | Fixed instructions: fix the root cause, change only the project's code and leave its tests alone, keep the project's behaviour, commit the fix, and how the fix is checked | none |
 | Vulnerability | Every description field that is set, each under its own heading | `task_description` |
 | Project | Name, language and the path of the source tree | `project`, `language`, `source` |
 | Build and test | The build script and the test script | `scripts.build`, `scripts.test` |
