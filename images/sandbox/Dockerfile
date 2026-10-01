@@ -21,17 +21,20 @@ COPY runtime/mcp/pyproject.toml runtime/mcp/*.py /ssebench/mcp/
 
 # Plugins: plugins.yaml and the schema always ship, so the entrypoint validates
 # them at startup; a venv per plugin is installed only for the plugins this run
-# selected (PLUGINS is a space-separated list). Each plugin gets its own venv
-# next to its code, like the evaluator; run.sh runs it with that venv's Python.
+# selected (PLUGINS is a space-separated list). A plugin with a pyproject.toml
+# gets its own venv next to its code, like the evaluator, and run.sh runs it
+# with that venv's Python; a plugin without one is only its files.
 ARG PLUGINS=""
 COPY runtime/plugins/ /src/runtime/plugins/
 RUN mkdir -p /plugins && \
     cp /src/runtime/plugins/plugins.yaml /src/runtime/plugins/schema.json /plugins/ && \
     for name in ${PLUGINS}; do \
         cp -r "/src/runtime/plugins/${name}/." "/plugins/${name}/" && \
-        UV_PROJECT_ENVIRONMENT="/plugins/${name}/.venv" \
-            uv sync --package "ssebench-plugin-${name}" --frozen --no-dev --no-editable && \
-        chmod +x "/plugins/${name}/run.sh" ; \
+        if [ -f "/plugins/${name}/pyproject.toml" ]; then \
+            UV_PROJECT_ENVIRONMENT="/plugins/${name}/.venv" \
+                uv sync --package "ssebench-plugin-${name}" --frozen --no-dev --no-editable ; \
+        fi && \
+        chmod +x "/plugins/${name}/run.sh" || exit 1 ; \
     done
 
 

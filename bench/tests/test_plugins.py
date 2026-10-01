@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import tomllib
 from pathlib import Path
 from typing import cast
 
@@ -123,6 +124,28 @@ def test_selected_plugins_checks_run_sh(tmp_path: Path):
     # A requested plugin that is not declared is an error.
     with pytest.raises(PluginError, match="unknown plugin"):
         selected_plugins(["ghost"], directory=tmp_path)
+
+
+def test_shell_only_plugin_is_selected(tmp_path: Path):
+    """A plugin needs only run.sh; a pyproject.toml is optional."""
+    write_plugins(tmp_path, "- {name: diffstat, enabled: true, hook: after-grading, llm: false, timeout: 2}")
+    make_run_sh(tmp_path, "diffstat")
+
+    assert [p.name for p in selected_plugins(None, directory=tmp_path)] == ["diffstat"]
+    assert not (tmp_path / "diffstat" / "pyproject.toml").exists()
+
+
+def test_python_plugins_are_workspace_members():
+    """The uv workspace lists exactly the plugins that are Python projects, so a
+    plugin folder without a pyproject.toml does not break the workspace."""
+    root = Path(__file__).parents[2]
+    members = tomllib.loads((root / "pyproject.toml").read_text())["tool"]["uv"]["workspace"]["members"]
+    plugin_members = {m for m in members if m.startswith("runtime/plugins/")}
+    python_plugins = {
+        p.parent.relative_to(root).as_posix() for p in (root / "runtime" / "plugins").glob("*/pyproject.toml")
+    }
+
+    assert plugin_members == python_plugins
 
 
 def test_sandbox_runner_installs_selected_plugins(monkeypatch: pytest.MonkeyPatch):

@@ -93,7 +93,8 @@ To run it in every run, set `enabled: true`.
 
 A plugin with a `pyproject.toml` gets its own virtual environment. It is a
 member of the repository's uv workspace, so it must be named
-`ssebench-plugin-<name>`:
+`ssebench-plugin-<name>` and listed in `[tool.uv.workspace] members` of the
+root `pyproject.toml`; a plugin with only a `run.sh` is not listed there:
 
 ```toml
 # runtime/plugins/diffstat/pyproject.toml
@@ -109,7 +110,7 @@ dependencies = [
 ssebench-sdk = { workspace = true }
 ```
 
-Run `uv lock` after adding it. The tool layer syncs it into
+Add `"runtime/plugins/diffstat"` to the workspace members and run `uv lock`. The tool layer syncs it into
 `/plugins/<name>/.venv`, and `run.sh` starts it with that environment's Python:
 
 ```bash
