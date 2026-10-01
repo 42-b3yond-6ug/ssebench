@@ -180,7 +180,7 @@ tasks you changed with `just verify dataset`. See
   That is slow, AddressSanitizer may misbehave under QEMU, and `ssebench doctor`
   and `ssebench run` warn about it. The dataset was verified only on x86-64
   Linux hosts. See
-  [Architectures](../../docs/getting-started/installation.md#architectures).
+  [Architectures](../../docs/deployment/host.md#architectures).
 - **Builds need the network; grading does not.** A case image build clones the
   upstream project at a pinned commit and fetches packages, Go modules, crates
   and toolchains, so it depends on those hosts being reachable. A build that

@@ -297,7 +297,7 @@ The model has no prices. See [Costs and the budget](#costs-and-the-budget).
 
 ## Next steps
 
-- [Quickstart](/getting-started/quickstart): run a task with your model
+- [Run an agent from the command line](/getting-started/quickstart#run-an-agent-from-the-command-line): run a task with your model
 - [Environment variables](/reference/environment): keys and container variables
 - [LiteLLM proxy](/concepts/litellm-proxy): how runs get their key and how spend is recorded
 - [LiteLLM providers](https://docs.litellm.ai/docs/providers): every provider

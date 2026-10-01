@@ -10,9 +10,8 @@ const sidebar: DefaultTheme.SidebarItem[] = [
     text: 'Getting started',
     items: [
       { text: 'What is SSEBench?', link: '/getting-started/introduction' },
-      { text: 'Try the demo', link: '/getting-started/demo' },
-      { text: 'Installation', link: '/getting-started/installation' },
       { text: 'Quickstart', link: '/getting-started/quickstart' },
+      { text: 'Try without installing', link: '/getting-started/try' },
       { text: 'Troubleshooting', link: '/getting-started/troubleshooting' }
     ]
   },
@@ -80,6 +79,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
     text: 'Deployment',
     collapsed: true,
     items: [
+      { text: 'Host requirements', link: '/deployment/host' },
       { text: 'Local stack', link: '/deployment/compose' },
       { text: 'Kubernetes', link: '/deployment/kubernetes' },
       { text: 'Integrity and egress', link: '/deployment/integrity-and-egress' }

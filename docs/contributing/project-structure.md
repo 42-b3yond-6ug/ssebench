@@ -148,5 +148,5 @@ docs/
 
 ## Next steps
 
-- [Quickstart](/getting-started/quickstart): run your first task
+- [Quickstart](/getting-started/quickstart): set up a clone and run your first task
 - [Architecture](/concepts/architecture): how the components fit together

@@ -4,81 +4,173 @@ outline: deep
 
 # Quickstart
 
-This page gets you from nothing to a graded run. Every path runs the pilot task
-`gjson-196-bf4efcb`, a Go task that builds in seconds, and every path assumes
-Docker and [uv](https://docs.astral.sh/uv/) are installed; see
-[Installation](/getting-started/installation). The paths are tested on Linux;
-on macOS with Docker Desktop, read
-[macOS and Docker Desktop](/getting-started/installation#macos-and-docker-desktop)
-first, because it is untested and needs settings (amd64 emulation, resources,
-and host networking for the demo's web UI).
+::: tip Try SSEBench without Installation
+Only want to see SSEBench work? With Docker and [uv](https://docs.astral.sh/uv/)
+installed, run the demo without cloning anything or installing the tools below:
 
-| You want to | You need | Go to |
-|---|---|---|
-| See a graded run in the web UI, with no key and no model | a clone, [just](https://just.systems/) | [Five minutes: `just demo`](#five-minutes-just-demo) |
-| Run a real agent on a task | a clone and the key of a model provider | [Run an agent with your own key](#run-an-agent-with-your-own-key) |
-| Do the same without cloning the repository | the key of a model provider | [Without a clone](#without-a-clone) |
+```sh
+mkdir ssebench-work && cd ssebench-work
+uvx ssebench init        # then add your provider key to .env
+uvx ssebench demo up --agent claude-code --model claude-sonnet-4-6
+```
 
-Then [read the results](#read-the-results).
+See [Try without installing](/getting-started/try).
+:::
 
-## Five minutes: `just demo`
+This page sets up SSEBench from a clone of its repository, then runs an agent on
+a pilot task with your model key, in the demo and from the command line. A clone is what you need to change SSEBench,
+add tasks, agents or models, build images yourself, or use the `just` recipes.
+
+## Prerequisites
+
+- **Linux on x86-64.** Every pilot task builds an amd64 image; other
+  architectures run them under emulation, and macOS is untested. See
+  [Architectures](/deployment/host#architectures) and
+  [macOS and Docker Desktop](/deployment/host#macos-and-docker-desktop).
+- **Docker Engine** with the buildx and Compose plugins.
+- [**uv**](https://docs.astral.sh/uv/), [**just**](https://just.systems/) and
+  **git**. uv installs Python for you.
+- **10 GB of free disk** for the demo, 15 GB when you build its images from the
+  checkout, and about 100 GB for the entire pilot dataset. Images are large; see
+  [Disk space](/deployment/host#disk-space).
+- **Network access**, to pull images and the packages that builds download.
+
+Other tools are optional, such as fzf for the pickers of `just run` and Typst
+for reports; see [Optional tools](#optional-tools).
+
+:::: details Commands to install the required tools on your system
+
+::: code-group
+
+```sh [Ubuntu/Debian]
+# Docker Engine with the buildx and Compose plugins, from Docker's apt repository:
+# https://docs.docker.com/engine/install/ubuntu/ (Debian: .../debian/). Install
+#   docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+# Not Ubuntu's `docker.io` package: it has neither plugin.
+# Let your user run docker: sudo usermod -aG docker "$USER", then log in again
+
+# uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# just
+curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/.local/bin
+# Open a new shell afterwards, so that ~/.local/bin is on your PATH
+
+# Optional tools
+sudo apt-get install -y fzf jq make
+```
+
+```sh [macOS]
+# Docker: Docker Desktop, or another engine such as colima.
+# Read "macOS and Docker Desktop" in Host requirements first: it is untested, and needs settings.
+
+brew install uv just
+
+# Optional tools
+brew install fzf jq typst
+```
+
+```sh [Arch Linux]
+sudo pacman -S docker docker-buildx docker-compose uv just
+sudo systemctl enable --now docker
+sudo usermod -aG docker "$USER"   # then log in again
+
+# Optional tools
+sudo pacman -S fzf jq make typst
+```
+
+```sh [Nix]
+# The flake's devshell has every tool the repository uses: Python, uv, Rust, Go,
+# Bun, just, Typst, the Docker CLI with buildx and Compose, fzf and jq.
+# Run it in the checkout, after cloning it in "Set up" below:
+nix develop
+
+# The Docker engine still comes from your system. On NixOS:
+#   virtualisation.docker.enable = true;
+#   users.users.<you>.extraGroups = [ "docker" ];
+# Outside the devshell on NixOS, the prebuilt tools that uv installs (ruff, and
+# the Node.js that basedpyright needs) run only with nix-ld.
+```
+
+:::
+
+::::
+
+## Set up
+
+Clone the repository and set it up. Run every command in these docs from the
+repository root.
 
 ```sh
 git clone https://github.com/42-b3yond-6ug/ssebench.git
 cd ssebench
 just setup
-just demo
 ```
 
-`just setup` installs the dependencies and writes `.env` with generated local
-secrets. `just demo` checks your host, gets the images, starts the
-[LiteLLM proxy](/concepts/litellm-proxy), the task catalog and the
-[web UI](/webui/), and runs the [`reference` agent](/reference/cli#reference-runs)
-on `gjson-196-bf4efcb`. The reference agent applies the task's known upstream
-fix instead of asking a model for one, so the demo needs no API key, and every
-check passes. With the images cached, it ends with:
-
-```text
-Done in 45s (images 2s, stack 12s, run 30s).
-Result:  build passed, PoC 1/1 passed, functional tests passed, intent tests passed
-
-Open http://127.0.0.1:3001
-The run gjson-196-bf4efcb / reference is listed there, with its dialog, diff and evaluation result.
-```
-
-Open `http://127.0.0.1:3001` and click the run in the list on the left. The
-**Agent Dialog** shows what the agent did, **Changes** the diff against the
-vulnerable commit, and **Evaluation Result** the grade; see
-[Watching a run](/webui/run-view). When you are done:
+`just setup` writes a `.env` file. Add the key of each model provider you use
+to it, and leave the others empty:
 
 ```sh
-just demo-down
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+GOOGLE_API_KEY=...
 ```
 
-This removes what the demo created: its containers, its Compose project and the
-database volume. The images stay cached, and the run's files stay in `results/`.
+To reach these providers through a router or gateway, see
+[A compatible endpoint for the bundled providers](/guides/add-a-model#a-compatible-endpoint-for-the-bundled-providers).
 
-The first run pulls or builds about 4 GB of images (a build from the checkout also leaves about 11 GB of build cache; see [Disk space](/getting-started/installation#prerequisites)). [Try the demo](/getting-started/demo)
-has the timings, the settings (ports, the Compose project) and what to do when
-it stops early.
+The keys are optional. Without one, you can still try SSEBench with its two
+agents that call no model: `reference` applies the task's known fix, so every
+check passes, and `dummy` changes nothing, so the patch fails.
 
-## Run an agent with your own key
+::: warning
+Never commit `.env`. It is listed in `.gitignore`.
+:::
+
+Finally, check your setup:
+
+```sh
+just doctor
+```
+
+It checks Docker, disk space, `.env` and the provider keys, and prints a fix for
+each problem; [Troubleshooting](/getting-started/troubleshooting) explains each
+check.
+
+## Run the demo
+
+```sh
+just demo --agent claude-code --model claude-sonnet-4-6
+```
+
+`just demo` runs [the demo](/getting-started/try#run-the-demo) from your
+checkout: it starts the LiteLLM proxy, the task catalog and the web UI, prints
+the address of the web UI, `http://127.0.0.1:3001`, and runs the agent on
+`gjson-196-bf4efcb` while you watch it there. The run calls the model with your
+key and **costs money**; the demo stops before it builds anything when the key
+is missing from `.env`. `just demo-down` removes what the demo created.
+
+Without a key, `just demo` alone runs the
+[`reference`](/reference/cli#reference-runs) agent, which applies the task's
+known fix: it needs no model, and every check passes.
+
+From a checkout, the demo pulls the images at the checkout's version, and builds
+those that the registry does not have, as before a release. `just demo --build`
+builds every image from the checkout and pulls nothing, which is what you want
+after you change the code: images that exist locally are not pulled or rebuilt.
+A build from the checkout takes 3 to 4 minutes on a large host, and leaves about
+11 GB of build cache (see [Build cache](/deployment/host#build-cache)).
+[Try SSEBench](/getting-started/try#run-the-demo) describes the demo, its
+options and what to do when it fails; `just demo` takes the options of
+`ssebench demo up`.
+
+## Run an agent from the command line
 
 A real agent calls a model with your key, which **costs money**. It works until
 it stops or reaches the timeout (one hour by default, `--timeout` changes it),
-so start with a small task like this one.
+so start with a small task.
 
-From a clone that you have set up with `just setup`:
-
-1. Put the key of your model provider in `.env`:
-
-   ```sh
-   ANTHROPIC_API_KEY=sk-ant-...
-   ```
-
-   The variables are `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` and
-   `GOOGLE_API_KEY`. The proxy reads provider keys from `.env` only, not from
-   your shell.
+1. Put the key of your model provider in `.env`, as in [Set up](#set-up).
 
 2. Check the setup. The `Provider keys` line names the keys that are set:
 
@@ -116,156 +208,53 @@ pilot task, one after the other. [CLI](/reference/cli) lists every option;
 `--difficulty` sets how much the agent may check while it works, see
 [Difficulty levels](/concepts/difficulty-levels).
 
+::: tip Without a key
+`just run --task gjson-196-bf4efcb --agent reference` applies the task's known
+fix and passes, with no model and no key.
+`--agent dummy --model claude-sonnet-4-6` makes no model calls either: the
+agent exits at once, so the evaluator grades the unmodified source tree and the
+patch fails. That is expected, and it shows that your images, proxy and grading
+work.
+:::
+
 ::: tip Pull the case image instead of building it
 `--local` builds the task's case image from its folder. Without it, `ssebench
 run` pulls the prebuilt image of the task, which already holds its base image,
 so the base images are not needed:
 
 ```sh
-uv run ssebench run --task gjson-196-bf4efcb --agent reference
+uv run ssebench run --task gjson-196-bf4efcb --agent claude-code --model claude-sonnet-4-6
 ```
 
-That is how `ssebench` runs [without a clone](#without-a-clone). `--build`
-builds the case image from the task's folder even though a prebuilt one exists.
-See [Prebuilt images](/dataset/pilot#prebuilt-images) for the tags, the digests
-that pin them and the size of every image.
+`--build` builds the case image from the task's folder even though a prebuilt
+one exists. See [Prebuilt images](/dataset/pilot#prebuilt-images) for the tags,
+the digests that pin them and the size of every image.
 :::
 
-To watch a real run live in the web UI, start it with the demo instead:
-
-```sh
-just demo --agent claude-code --model claude-sonnet-4-6
-```
-
-It stops before it builds anything when the model's key is missing from `.env`.
-
-::: tip Check the setup without spending anything
-`just run --task gjson-196-bf4efcb --agent dummy --model claude-sonnet-4-6`
-makes no model calls: the `dummy` agent exits at once, so the evaluator grades
-the unmodified source tree and the patch fails. That is expected, and it shows
-that your images, proxy and grading work. `--agent reference` without `--model`
-applies the known fix and passes.
-:::
-
-## Without a clone
-
-You do not need the repository to run a pilot task. The `ssebench` package on
-PyPI carries the agent definitions, the model list and the pilot task list;
-the task images come from the registry. You need Docker with buildx and
-Compose, and uv:
-
-```sh
-mkdir ssebench-work && cd ssebench-work
-uvx ssebench init
-uvx ssebench doctor
-uvx ssebench tasks list
-uvx ssebench run --task gjson-196-bf4efcb --agent reference
-```
-
-`init` writes `.env` with generated secrets, a copy of the model definitions in
-`models/` and an empty `results/`. `doctor` checks Docker, disk space and
-`.env`. `tasks list` prints the 55 pilot tasks without touching the network.
-The `reference` run needs no key.
-
-For a real agent, add your provider key to `./.env` (`ANTHROPIC_API_KEY=...`),
-run `uvx ssebench doctor` to see that it is set, and run:
-
-```sh
-uvx ssebench run --task gjson-196-bf4efcb --agent claude-code --model claude-sonnet-4-6
-```
-
-Run every `ssebench` command from this directory: it holds `.env` and
-`models/`, and `results/` is written here. Edit `models/` to add or change a
-model; `ssebench run` rebuilds the proxy image when a file changes. The first
-run pulls the task's [case image](/dataset/pilot#prebuilt-images) and the
-runtime image from the registry, and builds the tool, agent and proxy layers on
-your machine, which downloads packages, so it needs network access. `uv tool install ssebench` keeps the
-command on your `PATH` instead of running it through `uvx`.
-
-Without a clone there is no `just`: `uvx ssebench proxy up` starts the proxy,
-and `uvx ssebench demo up` runs the demo. [CLI](/reference/cli#without-a-clone)
-describes what the package carries and what it pulls.
-
-## Read the results
-
-Every run writes its own directory under `results/` in the working directory:
-
-```text
-results/
-└── gjson-196-bf4efcb/none/reference/
-    ├── latest -> 20260929-153012-a1b2c3       the newest run
-    └── 20260929-153012-a1b2c3/                the run directory: everything the container produced
-        ├── summary.json                       the summary: the grade, the settings, the spend
-        ├── result.json                        the grade
-        ├── final.patch                        the patch that was graded
-        ├── source.tar.gz                      the source tree after grading
-        ├── agent.log  daemon.log  mcp.log  evaluator.log  …
-        └── archive/dialog.jsonl               the agent's session
-```
-
-The run directory is `results/<task>/<model>/<agent>/<run-id>/`. A reference run
-has the model `none`; the run of `claude-code` above writes
-`results/gjson-196-bf4efcb/claude-sonnet-4-6/claude-code/<run-id>/`. The run ID
-is the time in UTC and six random hex digits, or the `--run-id` you give.
-Running the same combination again makes another directory, so repeated trials
-keep their results.
-
-`ssebench run` prints the grade and the path of the run directory when it ends.
-`result.json` is the evaluator's grade; `latest` is the newest run:
-
-```sh
-jq .patch_result results/gjson-196-bf4efcb/none/reference/latest/result.json
-```
-
-```json
-{
-  "status": "passed",
-  "build_success": true,
-  "pov_passed": 1,
-  "pov_total": 1,
-  "func_test_success": true,
-  "intent_test_success": true,
-  "error_msg": null,
-  "error_log": null
-}
-```
-
-| Field | Meaning |
-|---|---|
-| `status` | `passed` when every check that ran passed, `failed` when a check failed or the patch did not apply, `error` when nothing could be graded. |
-| `build_success` | The patched project builds. |
-| `pov_passed`, `pov_total` | How many of the task's proof-of-concept inputs no longer trigger the vulnerability. |
-| `func_test_success` | The project's own tests pass. |
-| `intent_test_success` | The tests that came with the upstream fix pass. |
-| `error_msg`, `error_log` | The first check that failed, and its output. |
-
-A check that did not run, because the task does not have it or an earlier
-failure ended grading, is `null`. `runtime_result` records how long the agent ran
-and whether it timed out. The summary adds the run settings as `config` and what
-the model calls cost as `spend`, in US dollars. [Results format](/concepts/results)
-describes every file, and [Grading pipeline](/concepts/grading) how to read a
-grade.
-
-::: tip A `failed` grade that came too quickly
-When the agent never got to work, for example because its provider key is missing
-or invalid, the run still ends with a grade: `failed`, with the proof of concept
-of the untouched source tree as `error_msg`, and a `spend` of 0. Look at
-`agent.log` in the run directory, and see [Troubleshooting](/getting-started/troubleshooting#the-agent-ended-at-once-or-said-it-could-not-log-in).
-:::
-
-After `just demo`, the run's container is still alive for the web UI, so its
-`result.json` has no `config` yet, and the summary is not written, until
-`just demo-down` removes the container.
-
-`just report` combines the summaries in `results/` into a PDF report; it needs
+The run's grade, logs and patch go to
+`results/<task>/<model>/<agent>/<run-id>/`; see
+[Read the results](/getting-started/try#read-the-results). `just report`
+combines the summaries in `results/` into a PDF report; it needs
 [Typst](https://typst.app/). It counts the latest run of each task, model and
 agent, and leaves reference runs out of the scores; `just report default all`
 counts every run. See [Reports](/concepts/results#reports).
 
+## Optional tools
+
+A run of a released version needs none of them.
+
+| Tool | Needed for |
+|------|------------|
+| make | `just base-images`, and `just demo` when the registry does not have the base image of the task, as before a release; the image is then built from the checkout |
+| fzf | The interactive task, model and agent pickers in `just` recipes |
+| jq and [Typst](https://typst.app/) | Reading results and building a report from them |
+| [Bun](https://bun.sh/) | The web UI and these docs; `just demo` does not need it |
+| Rust and Go | `just test` and `just lint` for the daemon and the Go components; `rust-toolchain.toml` pins the Rust version |
+
 ## Next steps
 
-- [Troubleshooting](/getting-started/troubleshooting): what `ssebench doctor` reports and how to fix it
-- [Web UI](/webui/): launch runs and watch them live
+- [Troubleshooting](/getting-started/troubleshooting): when `ssebench doctor` fails
 - [Architecture](/concepts/architecture): what happens during a run
-- [Add a model](/guides/add-a-model): use another provider or model
-- [The pilot dataset](/dataset/pilot): the tasks you can run
+- [Add an agent](/guides/add-an-agent), [Add a model](/guides/add-a-model) and
+  [Add a task](/guides/add-a-task): extend SSEBench
+- [How to contribute](/contributing/): tests, linting and pull requests

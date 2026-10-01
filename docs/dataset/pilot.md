@@ -62,8 +62,8 @@ uv run ssebench run \
     --model claude-sonnet-4-6
 ```
 
-The [Quickstart](/getting-started/quickstart) explains the steps before your
-first run.
+The [Quickstart](/getting-started/quickstart) explains the steps before
+your first run.
 
 `--local` builds the task's case image from its folder. To use the prebuilt
 image instead, name the task without `--local`; see
@@ -224,7 +224,7 @@ not for pull requests: run it for the tasks you changed before review with
 
 - **x86-64 only.** Every task is `amd64`, and many C tasks build with
   AddressSanitizer for x86-64. On an arm64 host, a run executes under amd64
-  emulation; see [Architectures](/getting-started/installation#architectures).
+  emulation; see [Architectures](/deployment/host#architectures).
 - **Builds use the network; grading does not.** A case image build downloads the
   upstream project and its dependencies. A run's container reaches only the LiteLLM
   proxy under the default egress policy; see

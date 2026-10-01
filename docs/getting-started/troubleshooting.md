@@ -66,13 +66,14 @@ plugin (every image is built with `docker buildx build`) and the Compose plugin
   `extraGroups`.
 - **`fail buildx` or `fail Compose`.** Install the plugins:
   `docker-buildx` and `docker-compose-plugin` in most Linux package managers,
-  or a current Docker Desktop. `docker buildx version` and
+  or a current Docker Desktop. Ubuntu's `docker.io` package has neither; use
+  Docker's own packages instead. `docker buildx version` and
   `docker compose version` must both print a version.
 - **Docker Desktop and other engines that run containers in a VM** have not
-  been tested with [the demo](/getting-started/demo), whose web UI container
+  been tested with [the demo](/getting-started/try#run-the-demo), whose web UI container
   shares the host's network. On Docker Desktop, turn on Settings > Resources >
   Network > Enable host networking (4.34 or later); see
-  [macOS and Docker Desktop](/getting-started/installation#macos-and-docker-desktop).
+  [macOS and Docker Desktop](/deployment/host#macos-and-docker-desktop).
 
 ## CPU architecture
 
@@ -88,7 +89,7 @@ Use an x86-64 host for benchmark runs. `docker run --rm --platform linux/amd64
 alpine uname -m` prints `x86_64` when your Docker can run amd64 images; if it
 fails with `exec format error`, install the emulator. `ssebench run` and
 `ssebench build-case` print the same warning once. See
-[Architectures](/getting-started/installation#architectures).
+[Architectures](/deployment/host#architectures).
 
 ## Disk space
 
@@ -97,7 +98,7 @@ your working directory. It fails below 10 GiB free and warns below 50 GiB.
 
 The three base images take 3.5 to 5 GB, the LiteLLM proxy 1.2 to 1.7 GB, and
 every task adds its case image (0.7 to 3.4 GB, half of them under 1.3 GB) plus the
-tool and agent layers on top of it; the [sizes](/getting-started/installation#prerequisites)
+tool and agent layers on top of it; the [sizes](/deployment/host#disk-space)
 depend on the Docker version. Many tasks share layers, so `docker system df`
 shows what Docker really uses. Its `Build Cache` row is often the largest: about
 11 GB after a demo built from the checkout.
@@ -267,8 +268,8 @@ Fix the key in `.env`, restart the proxy with `ssebench proxy up`, and run again
 
 ## The demo
 
-[Try the demo](/getting-started/demo#troubleshooting) lists what can go wrong
-with `just demo`: a port in use, images that are not in the registry yet, and a
+[When the demo fails](/getting-started/try#when-the-demo-fails) lists what can go
+wrong with the demo: a port in use, images that are not in the registry yet, and a
 web UI that cannot reach Docker.
 
 ## Still stuck
