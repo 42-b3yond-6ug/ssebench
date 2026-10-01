@@ -72,7 +72,8 @@ const sidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Overview', link: '/webui/' },
       { text: 'Launching runs', link: '/webui/launching-runs' },
       { text: 'Watching a run', link: '/webui/run-view' },
-      { text: 'Security model', link: '/webui/security' }
+      { text: 'Security model', link: '/webui/security' },
+      { text: 'Static showcase', link: '/webui/static-showcase' }
     ]
   },
   {
