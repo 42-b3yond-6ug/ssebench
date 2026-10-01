@@ -104,7 +104,7 @@ machine that also runs other benchmarks you will see those runs too.
 - **Agent Dialog** (left) is what the agent did: its messages and tool calls.
   The reference agent only applies the patch and finishes.
 - **Changes** shows the diff of the source tree against the vulnerable commit.
-- **Evaluation Result** shows the grade: the build, the functional tests, the
+- **Evaluation Result**, a card at the end of the dialog, shows the grade: the build, the functional tests, the
   proof-of-concept check (**Security**) and the tests that came with the
   upstream fix (**Intent**). A reference run is marked as one.
 

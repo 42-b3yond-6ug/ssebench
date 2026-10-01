@@ -19,6 +19,7 @@ results/
         ├── commits.log                  the agent's commit messages
         ├── source.tar.gz                the agent's source tree
         ├── reference.patch              the reference patch (added after the run, if the task has one)
+        ├── post-review.txt              a reviewer's note (optional, written after the run by hand)
         ├── agent.log  daemon.log  mcp.log  evaluator.log  opencode.log
         ├── scriptrunner-<ms>.log        one per script the daemon ran
         ├── patch-<ms>.log               one per test diff the daemon applied
@@ -88,6 +89,7 @@ container exits, so the `artifact` plugin's manifest does not list them.
 | `commits.log` | daemon, when grading starts | Hash, subject and body of each commit the agent made, separated by `---`; empty when it made none. |
 | `source.tar.gz` | evaluator | The source tree the agent worked in, as it was after grading. |
 | `reference.patch` | the CLI, after the run | The task's reference patch, copied from the task folder when the task has one, for reports and the web UI. |
+| `post-review.txt` | a reviewer, after the run | An optional plain-text note about the run. Neither the agent nor the runtime writes it; the web UI shows it in a **Review** tab when it is there. It sits at the top of the run directory, not in `archive/`. |
 | `agent.log` | entrypoint | Standard output and error of the agent command. |
 | `daemon.log` | entrypoint | The daemon's log, including its difficulty gate and every tool call. |
 | `mcp.log` | entrypoint | The MCP server's log, including the difficulty level it read. |

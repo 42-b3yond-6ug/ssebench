@@ -65,8 +65,8 @@ bottom areas.
 | Area | Contents |
 |---|---|
 | Left | [Agent dialog](#agent-dialog) |
-| Center | [Changes](#changes-and-files), [Files](#changes-and-files), [AI](#ai-assistant), [Terminal](#terminal), [Evaluation Result](#evaluation-result); the AI and Terminal tabs only for a run with a container, on a server that allows them |
-| Bottom | [Terminal](#terminal) and [Logs](#logs) |
+| Center | [Changes](#changes-and-files), [Files](#changes-and-files), [AI](#ai-assistant), [Terminal](#terminal); the AI and Terminal tabs only for a run with a container, on a server that allows them |
+| Bottom | [Terminal](#terminal), [Review](#review) and [Logs](#logs); Review only for a run with a reviewer's note, and the bottom area then opens on it |
 
 The dividers between the areas can be dragged. **Settings** in the sidebar moves
 the tab bars and changes the terminal colors.
@@ -108,7 +108,7 @@ the changed files with `A`, `M`, `D` or `R` and their line counts.
 ### The reference patch
 
 Once the agent's phase is over, the daemon serves the task's reference patch, and
-the header gains three buttons:
+the header gains three buttons, and **Split** is the one the tab opens on:
 
 | Button | Shows |
 |---|---|
@@ -119,16 +119,16 @@ the header gains three buttons:
 Next to them, **Similarity** is the share of changed lines that the two diffs
 have in common, after normalizing whitespace, in green from 80%, yellow from 40%
 and red below. It compares text and is not a grade; the grade is the
-[Evaluation Result](#evaluation-result). The reference patch is fetched once,
+[Evaluation Result](#evaluation-result), which is a card at the end of the agent dialog. The reference patch is fetched once,
 when the run opens. If you opened it while the agent was still working, the
 buttons stay missing until you reload the page.
 
 ## Evaluation Result
 
-![The Evaluation Result tab of a reference run](/images/webui/evaluation.png)
-
-The tab reads `No evaluation yet` until the evaluator has written the grade. The
-card then shows the checks of the [grading pipeline](/concepts/grading):
+The grade is a card at the end of the [agent dialog](#agent-dialog), after the
+session card. It is missing until the evaluator has started grading, reads
+`Evaluating patch...` while it runs, and then shows the checks of the
+[grading pipeline](/concepts/grading):
 
 | Check | Shows |
 |---|---|
@@ -148,6 +148,18 @@ The grade comes from the container's daemon. When the daemon has none, or the
 container has stopped, the web UI reads `result.json` from the run's results
 directory on the host instead: the run's own directory, which the container's
 `ssebench.results` label names.
+
+## Review
+
+A finished run can carry a reviewer's note: a plain-text file `post-review.txt`
+at the top of its run directory, written after the run by whoever reviews it. The
+server serves it at `GET /api/containers/<run-id>/review`, as
+`{"available": true, "text": "..."}`, or `{"available": false}` when the file
+is missing, empty, a link, or the run has a daemon to ask and is still working.
+The **Review** tab appears next to Logs only when there is a note, and the
+bottom area opens on it. The text is shown as written, with its line breaks and
+indentation, and is not rendered as markdown or HTML. It is read-only, so it
+works on a [hosted](/webui/security#hosted-mode) server too.
 
 ## Logs
 
@@ -223,7 +235,8 @@ container backs any more, marked **Finished**, and shows what the directory hold
 | Agent dialog | `archive/dialog.jsonl` |
 | Changes and Files | `final.patch`, the patch the grader applied |
 | Truth, Split | `reference.patch`, else the task folder of the local dataset |
-| Evaluation Result | `result.json` |
+| Evaluation Result card | `result.json` |
+| Review | `post-review.txt`, when present |
 | Logs | `agent.log` and `evaluator.log` |
 
 The terminal and the AI assistant need a container and are missing. The same
