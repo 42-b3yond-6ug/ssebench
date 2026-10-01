@@ -3,6 +3,7 @@
 [![CI](https://github.com/42-b3yond-6ug/ssebench/actions/workflows/ci.yml/badge.svg)](https://github.com/42-b3yond-6ug/ssebench/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/ssebench)](https://pypi.org/project/ssebench/)
 [![Docs](https://img.shields.io/badge/docs-ssebench.b3yond.ai-blue)](https://ssebench.b3yond.ai)
+[![Demo](https://img.shields.io/badge/demo-ssebench--demo.b3yond.ai-orange)](https://ssebench-demo.b3yond.ai)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
 Reinforcement-learning environments and a benchmark for AI coding agents on
@@ -28,7 +29,13 @@ the fix or changes how it is graded
 
 ## Try it
 
-With Docker and [uv](https://docs.astral.sh/uv/), and no API key:
+To look before installing anything,
+**[ssebench-demo.b3yond.ai](https://ssebench-demo.b3yond.ai)** shows finished
+runs of Claude Code, Codex and OpenCode on six pilot tasks: each agent's dialog,
+its patch next to the upstream fix, the grade, and a note on why a failed run
+failed.
+
+To run it yourself, with Docker and [uv](https://docs.astral.sh/uv/), and no API key:
 
 ```sh
 mkdir ssebench-work && cd ssebench-work
