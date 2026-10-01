@@ -9,10 +9,11 @@ Deliver a complete, root-cause fix that prevents all inputs from triggering the 
 ## Requirements
 
 1. Identify the vulnerability type, trigger conditions, affected code paths, and security impact before changing code.
-2. Fix the underlying issue at its root cause. Don't patch only symptoms, tests, or the PoV. Do not "fix" by catch-all swallowing, disabling features, PoV-only special casing, or overly broad input bans.
-3. Do not unintentionally break expected behavior. If behavior must change, make it explicit and justified.
-4. Prefer minimal, clear, idiomatic changes. Avoid hacks, fragile checks, or broad refactors unless necessary.
-5. Use available tools deliberately. Inspect surrounding code to infer intended behavior and constraints.
+2. Fix the underlying issue at its root cause. Don't patch only symptoms or the PoV. Do not "fix" by catch-all swallowing, disabling features, PoV-only special casing, or overly broad input bans.
+3. Change only the project's code. Do not add, update or delete tests or test data, even where a test expects the old behavior: the validation tests are kept separately and take care of that. To check your fix, write temporary programs or inputs outside the project's source tree.
+4. Do not unintentionally break expected behavior. If behavior must change, make it explicit and justified.
+5. Prefer minimal, clear, idiomatic changes. Avoid hacks, fragile checks, or broad refactors unless necessary.
+6. Use available tools deliberately. Inspect surrounding code to infer intended behavior and constraints.
 
 After the fix is complete, commit your changes with a clear commit message.
 
