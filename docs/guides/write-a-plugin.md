@@ -31,9 +31,10 @@ chmod +x runtime/plugins/diffstat/run.sh
 ```
 
 The script runs in its own folder, with the entrypoint's environment:
-`SSE_RESULTS` is the root-only results directory, where the daemon wrote
-`final.patch` when grading started, and `SSE_ARCHIVE` is the archive directory,
-where plugins write their output. It writes only under `diffstat/` there.
+`SSE_RESULTS` is the results directory, where the daemon wrote `final.patch`
+when grading started; it is root-only, so only a grading plugin can read it.
+`SSE_ARCHIVE` is the archive directory, where plugins write their output; the
+script writes only under `diffstat/` there.
 
 ## 2. Register it
 
@@ -62,11 +63,13 @@ Add an entry to `runtime/plugins/plugins.yaml`:
 
 ```sh
 uv run ssebench run --local datasets/pilot --task gjson-196-bf4efcb \
-  --agent dummy --model claude-sonnet-4-6 --plugin diffstat
+  --agent reference --plugin diffstat
 ```
 
+The [`reference`](/reference/cli#reference-runs) agent applies the task's known
+fix and calls no model, so the run needs no key and leaves a patch to summarise.
 The CLI installs the plugin in the tool image and enables it for this run. In
-the run directory, `results/gjson-196-bf4efcb/claude-sonnet-4-6/dummy/latest/`:
+the run directory, `results/gjson-196-bf4efcb/none/reference/latest/`:
 
 - `archive/diffstat/diffstat.txt` is the plugin's output;
 - `archive/plugins/diffstat.log` has its standard output and error;
@@ -85,8 +88,9 @@ the run directory, `results/gjson-196-bf4efcb/claude-sonnet-4-6/dummy/latest/`:
 ]
 ```
 
-The summary, `summary.json` in the run directory, lists it
-in `config.plugins` and its outcome in `plugin_results`. `result.json` is the same as without the plugin.
+The summary, `summary.json` in the run directory, lists it in `config.plugins`
+and its outcome in `plugin_results`. `result.json` is the same as without the
+plugin.
 
 To run it in every run, set `enabled: true`.
 
