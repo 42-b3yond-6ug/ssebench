@@ -102,7 +102,8 @@ LLM model configurations, read by the LiteLLM proxy:
 models/
 ├── anthropic-claude.yaml    # Anthropic models
 ├── google-gemini.yaml       # Google models
-└── openai-gpt.yaml          # OpenAI models
+├── openai-gpt.yaml          # OpenAI models
+└── xai-grok.yaml            # xAI models
 ```
 
 See [Add a model](/guides/add-a-model) for the format.

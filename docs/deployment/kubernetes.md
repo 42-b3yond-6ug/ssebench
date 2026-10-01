@@ -126,8 +126,8 @@ helm install ssebench oci://ghcr.io/42-b3yond-6ug/ssebench/charts/ssebench \
 `<version>` is a release of SSEBench: the chart and the images have the same version, and
 the images default to `ghcr.io/42-b3yond-6ug/ssebench/<name>:<version>`. From a checkout,
 install `deploy/helm/ssebench` instead of the `oci://` address. The models of the
-proxy are those of `models/anthropic-claude.yaml`, `openai-gpt.yaml` and
-`google-gemini.yaml`; a model whose key is missing is listed but fails when a run
+proxy are those of `models/anthropic-claude.yaml`, `openai-gpt.yaml`,
+`google-gemini.yaml` and `xai-grok.yaml`; a model whose key is missing is listed but fails when a run
 calls it.
 
 The chart prints the commands you need after the install (`helm status` shows them
@@ -209,7 +209,7 @@ A proxy that changes the `Host` header needs `webui.corsOrigins`.
 | `image.pullSecrets` | none | Image pull Secrets for the chart's pods |
 | `auth.existingSecret` | none | A Secret of yours with `LITELLM_MASTER_KEY` (starts with `sk-`), `POSTGRES_PASSWORD` (letters and digits) and `SSEBENCH_WEBUI_TOKEN` (16 or more characters, no spaces). Without it the chart makes a Secret with random values and keeps them on upgrade. Use your own when a tool renders the chart without a cluster to look at, as a GitOps controller can, since it would make new values on each render |
 | `litellm.image.name`, `litellm.image.tag` | `litellm`, empty | The proxy's image; an empty tag is `image.tag` |
-| `litellm.providerKeySecrets` | none | Secrets whose entries become the proxy's environment: the provider keys, by the names the models use (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`) |
+| `litellm.providerKeySecrets` | none | Secrets whose entries become the proxy's environment: the provider keys, by the names the models use (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `XAI_API_KEY`) |
 | `litellm.config` | none | A LiteLLM configuration that replaces the one in the image, which lists `models/`. It must set `master_key: os.environ/LITELLM_MASTER_KEY` |
 | `litellm.resources` | 100m CPU and 512Mi to 2Gi | Requests and limits of the proxy |
 | `postgres.enabled` | `true` | `false` uses your own database instead of the chart's |

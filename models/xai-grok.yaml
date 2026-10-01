@@ -1,0 +1,11 @@
+- model_name: grok-4.7
+  litellm_params:
+    model: xai/grok-4.7
+    api_key: os.environ/XAI_API_KEY
+  model_info:
+    input_cost_per_token: 2.0e-06
+    input_cost_per_token_above_200k_tokens: 4.0e-06
+    cache_read_input_token_cost: 5.0e-07
+    cache_read_input_token_cost_above_200k_tokens: 1.0e-06
+    output_cost_per_token: 6.0e-06
+    output_cost_per_token_above_200k_tokens: 1.2e-05
