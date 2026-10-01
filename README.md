@@ -24,7 +24,7 @@ the fix or changes how it is graded
 - **A web UI** to launch runs and watch them live: the agent dialog, the diff,
   a terminal into the container, and the grade.
 
-![A graded run in the SSEBench web UI](docs/public/images/webui/run-view.png)
+![Claude Opus fixing RUSTSEC-2021-0033 in the SSEBench web UI: the agent dialog, its patch, and the grade](docs/public/images/readme-run.png)
 
 ## Try it
 
