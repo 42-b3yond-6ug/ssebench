@@ -15,7 +15,7 @@ offered under their `model_name`. That name is what you pass to
 `ssebench run --model`.
 
 The repository has one file per provider: `anthropic-claude.yaml`,
-`google-gemini.yaml` and `openai-gpt.yaml`. `ssebench init` copies them into
+`google-gemini.yaml`, `openai-gpt.yaml` and `xai-grok.yaml`. `ssebench init` copies them into
 the `models/` of your workspace when you run `ssebench` without a clone; edit
 that copy.
 
@@ -138,7 +138,7 @@ the same request to an unpriced model cost nothing.
 
 ## Provider examples
 
-The first three are the entries that `models/` already has.
+The first four are the entries that `models/` already has.
 
 ### OpenAI
 
@@ -165,6 +165,15 @@ The first three are the entries that `models/` already has.
   litellm_params:
     model: gemini/gemini-3.1-pro-preview
     api_key: os.environ/GOOGLE_API_KEY
+```
+
+### xAI
+
+```yaml
+- model_name: grok-4.7
+  litellm_params:
+    model: xai/grok-4.7
+    api_key: os.environ/XAI_API_KEY
 ```
 
 ### Azure OpenAI
@@ -230,7 +239,7 @@ which recreates the container.
 
 ## A compatible endpoint for the bundled providers
 
-The models in `models/` call Anthropic, OpenAI and Google directly. To send them
+The models in `models/` call Anthropic, OpenAI, Google and xAI directly. To send them
 to a compatible endpoint instead, such as a model router or a company gateway
 that serves the same models, leave `models/` as it is and set the endpoint's
 base URL in `.env`, next to its key:
@@ -245,9 +254,10 @@ ANTHROPIC_BASE_URL=https://router.example.com
 | Anthropic | `ANTHROPIC_BASE_URL` | without `/v1` | `<base>/v1/messages` |
 | OpenAI | `OPENAI_BASE_URL` | with `/v1` | `<base>/chat/completions`, `<base>/responses` |
 | Google | `GEMINI_API_BASE` | with `/v1beta` | `<base>/models/<model>:generateContent` |
+| xAI | `XAI_API_BASE` | with `/v1` | `<base>/chat/completions` |
 
 The key is sent the way the provider expects it (`x-api-key` for Anthropic,
-`Authorization: Bearer` for OpenAI, `x-goog-api-key` for Google), so the
+`Authorization: Bearer` for OpenAI and xAI, `x-goog-api-key` for Google), so the
 endpoint must accept it there. LiteLLM also reads `ANTHROPIC_API_BASE`, which
 takes precedence over `ANTHROPIC_BASE_URL`, and `OPENAI_API_BASE`, which
 `OPENAI_BASE_URL` takes precedence over. Run `just launch` afterwards so the

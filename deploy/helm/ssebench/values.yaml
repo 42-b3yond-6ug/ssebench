@@ -25,7 +25,7 @@ litellm:
     name: litellm
     tag: ""
   # Secrets whose entries become environment variables of the proxy, for the provider keys that the
-  # models reference (ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY). A key that is missing only
+  # models reference (ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY, XAI_API_KEY). A key that is missing only
   # disables the models that use it.
   providerKeySecrets: []
   # A LiteLLM configuration file that replaces the one baked into the image, which lists the models in

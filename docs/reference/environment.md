@@ -33,9 +33,11 @@ GOOGLE_API_KEY=...
 | `ANTHROPIC_API_KEY` | unset | LiteLLM proxy, CLI doctor, sse.ai | Key of the Anthropic models in `models/anthropic-claude.yaml`. `sse.ai` also uses it when it runs OpenCode outside a task container. |
 | `OPENAI_API_KEY` | unset | LiteLLM proxy, CLI doctor | Key of the OpenAI models in `models/openai-gpt.yaml`. |
 | `GOOGLE_API_KEY` | unset | LiteLLM proxy, CLI doctor | Key of the Gemini models in `models/google-gemini.yaml`. |
+| `XAI_API_KEY` | unset | LiteLLM proxy, CLI doctor | Key of the Grok models in `models/xai-grok.yaml`. |
 | `ANTHROPIC_BASE_URL` | `https://api.anthropic.com` | LiteLLM proxy, CLI doctor | Endpoint of the Anthropic models, for an Anthropic-compatible endpoint such as a router or gateway; without the `/v1` suffix. LiteLLM also reads `ANTHROPIC_API_BASE`, which takes precedence. |
 | `OPENAI_BASE_URL` | `https://api.openai.com/v1` | LiteLLM proxy, CLI doctor | Endpoint of the OpenAI models, for an OpenAI-compatible endpoint; with the `/v1` suffix. LiteLLM also reads `OPENAI_API_BASE`, which this one takes precedence over. |
 | `GEMINI_API_BASE` | `https://generativelanguage.googleapis.com/v1beta` | LiteLLM proxy, CLI doctor | Endpoint of the Gemini models, for a Gemini-compatible endpoint; with the `/v1beta` suffix. |
+| `XAI_API_BASE` | `https://api.x.ai/v1` | LiteLLM proxy, CLI doctor | Endpoint of the Grok models, for an xAI-compatible endpoint; with the `/v1` suffix. |
 
 <!-- end generated -->
 

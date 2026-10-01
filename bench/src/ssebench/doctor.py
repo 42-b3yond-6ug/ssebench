@@ -45,6 +45,12 @@ KEY_PROBES: dict[str, tuple[tuple[str, ...], str, str, Callable[[str], dict[str,
         "/models?pageSize=1",
         lambda key: {"x-goog-api-key": key},
     ),
+    "XAI_API_KEY": (
+        ("XAI_API_BASE",),
+        "https://api.x.ai/v1",
+        "/models",
+        lambda key: {"Authorization": f"Bearer {key}"},
+    ),
 }
 
 
