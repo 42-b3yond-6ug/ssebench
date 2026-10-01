@@ -60,7 +60,7 @@ The code is the `ssebench` package in `bench/src/ssebench/`, with one subpackage
 
 ## Python workspace
 
-The Python projects form one [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) rooted at the repository's `pyproject.toml`: `bench`, `runtime/evaluator`, `runtime/mcp`, `runtime/plugins/*`, `sdk/python` and the agent wrappers `agents/*/*-sse`. `uv sync` at the root installs all of them into one `.venv`, and `uv.lock` pins their dependencies. The ruff, basedpyright and pytest settings live in the root `pyproject.toml`.
+The Python projects form one [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) rooted at the repository's `pyproject.toml`: `bench`, `runtime/evaluator`, `runtime/mcp`, the Python plugins in `runtime/plugins/`, `sdk/python` and the agent wrappers `agents/*/*-sse`. `uv sync` at the root installs all of them into one `.venv`, and `uv.lock` pins their dependencies. The ruff, basedpyright and pytest settings live in the root `pyproject.toml`.
 
 ## runtime/
 

@@ -6,7 +6,9 @@ members = [
   "bench",
   "runtime/evaluator",
   "runtime/mcp",
-  "runtime/plugins/*",
+  # Python plugins only, so that a plugin with nothing but a run.sh is no member.
+  "runtime/plugins/artifact",
+  "runtime/plugins/oracle",
   "sdk/python",
   "agents/*/*-sse",
 ]
