@@ -26,6 +26,7 @@ import {
   readGrade,
   readLogText,
   readProject,
+  readReview,
   readRunFile,
 } from "./pastRuns"
 import { createFakes, pastJson, setState, type Fakes } from "./testing"
@@ -165,6 +166,32 @@ describe("readDialog", () => {
 
   test("is null for a run that wrote no dialog", () => {
     expect(readDialog(runDir("no-dialog"))).toBeNull()
+  })
+})
+
+describe("readReview", () => {
+  test("reads the note beside summary.json", () => {
+    const dir = runDir("review")
+    writeFileSync(join(dir, "post-review.txt"), "Line one\n  indented <b>\n")
+    expect(readReview(dir)).toEqual({
+      available: true,
+      text: "Line one\n  indented <b>\n",
+    })
+  })
+
+  test("is unavailable when the note is missing or blank", () => {
+    const dir = runDir("no-review")
+    expect(readReview(dir)).toEqual({ available: false })
+    writeFileSync(join(dir, "post-review.txt"), " \n")
+    expect(readReview(dir)).toEqual({ available: false })
+  })
+
+  test("does not follow a link in place of the note", () => {
+    const secret = join(root, "secret.txt")
+    writeFileSync(secret, "secret")
+    const dir = runDir("linked-review")
+    symlinkSync(secret, join(dir, "post-review.txt"))
+    expect(readReview(dir)).toEqual({ available: false })
   })
 })
 

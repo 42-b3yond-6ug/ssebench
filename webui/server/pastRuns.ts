@@ -19,6 +19,7 @@ import type {
   DockerContainer,
   EvaluationResultResponse,
   ProjectInfo,
+  ReviewResponse,
 } from "../src/types/container"
 import { runCli } from "./runner"
 
@@ -198,6 +199,14 @@ export function readGrade(dir: string): EvaluationResultResponse | null {
     patch_result: grade.patch_result as never,
     runtime_result: grade.runtime_result as never,
   }
+}
+
+/** The reviewer's note in post-review.txt, which whoever reviews the run writes after it, never the agent or the runtime */
+export function readReview(dir: string): ReviewResponse {
+  const text = readRunFile(dir, "post-review.txt")
+  return text !== null && text.trim()
+    ? { available: true, text }
+    : { available: false }
 }
 
 /** The patch the grader applied, or an empty patch when the agent changed nothing */

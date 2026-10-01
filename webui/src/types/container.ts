@@ -195,6 +195,10 @@ export interface RuntimeResult {
   agent_exit_code?: number | null
 }
 
+/** A reviewer's note on a finished run, from its `post-review.txt` */
+export type ReviewResponse =
+  { available: true; text: string } | { available: false }
+
 /** SDK /result response */
 export interface EvaluationResultResponse {
   available: boolean
