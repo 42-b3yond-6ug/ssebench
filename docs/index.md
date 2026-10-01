@@ -9,7 +9,7 @@ hero:
   actions:
     - theme: brand
       text: Get started
-      link: /getting-started/installation
+      link: /getting-started/quickstart
     - theme: alt
       text: What is SSEBench?
       link: /getting-started/introduction

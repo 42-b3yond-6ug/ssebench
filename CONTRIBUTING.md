@@ -33,7 +33,7 @@ just setup
 secrets for the LiteLLM proxy and its database. Add your provider keys to
 `.env` to run real agents. `.env` is ignored by git; never commit it.
 `just doctor` checks Docker, disk space and `.env`, and says how to fix what is
-wrong; see [Installation](docs/getting-started/installation.md) and
+wrong; see [Quickstart](docs/getting-started/quickstart.md) and
 [Troubleshooting](docs/getting-started/troubleshooting.md).
 
 Each toolchain works from the repository root on its own, too:

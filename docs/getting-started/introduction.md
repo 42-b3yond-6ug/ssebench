@@ -108,7 +108,7 @@ To bring your own, see [Add an agent](/guides/add-an-agent).
 
 ## Next steps
 
-- [Installation](/getting-started/installation): set up SSEBench on your machine
-- [Quickstart](/getting-started/quickstart): run an agent on a pilot task
+- [Quickstart](/getting-started/quickstart): clone and set up SSEBench, and run your first task
+- [Try without installing](/getting-started/try): run the demo and a pilot task, with no clone
 - [Architecture](/concepts/architecture): how SSEBench works
 - [The pilot dataset](/dataset/pilot): the tasks that ship with SSEBench

@@ -17,8 +17,8 @@ reward for training a policy or as a score for comparing agents.
 Models, agent harnesses and tasks plug in independently. Any agent can run
 against any model, because all LLM traffic goes through a LiteLLM proxy.
 
+[Try SSEBench](docs/getting-started/try.md) ·
 [Quickstart](docs/getting-started/quickstart.md) ·
-[Try the demo](docs/getting-started/demo.md) ·
 [Documentation](docs/) ·
 [The pilot dataset](docs/dataset/pilot.md) ·
 [Contributing](CONTRIBUTING.md)
@@ -147,9 +147,9 @@ You need Docker with the buildx and Compose plugins, and
 [uv](https://docs.astral.sh/uv/); [just](https://just.systems/) if you work
 from a clone. An x86-64 Linux host is recommended: the pilot tasks are
 amd64-only, so an arm64 host runs them under emulation, which is slow. Images
-take tens of GB. See [Installation](docs/getting-started/installation.md).
+take tens of GB. See [Host requirements](docs/deployment/host.md).
 macOS with Docker Desktop is untested; its requirements and caveats are in
-[Installation](docs/getting-started/installation.md#macos-and-docker-desktop).
+[Host requirements](docs/deployment/host.md#macos-and-docker-desktop).
 
 **See it work, with no API key**
 
@@ -165,7 +165,7 @@ just demo-down
 Docker Compose, runs the `reference` agent, which applies the task's upstream
 fix instead of asking a model, and prints the address of the web UI,
 `http://127.0.0.1:3001`, where the run is open: the dialog, the diff and the
-evaluation result. See [Try the demo](docs/getting-started/demo.md).
+evaluation result. See [Try SSEBench](docs/getting-started/try.md).
 
 **Run a real agent, without a clone**
 
@@ -192,8 +192,8 @@ logs of every component.
 
 A real run calls a model with your key and costs money. When something does not
 work, start with `ssebench doctor` and
-[Troubleshooting](docs/getting-started/troubleshooting.md). The
-[Quickstart](docs/getting-started/quickstart.md) walks through all of this and
+[Troubleshooting](docs/getting-started/troubleshooting.md).
+[Try SSEBench](docs/getting-started/try.md) walks through all of this and
 explains how to read the results.
 
 ## Repository map

@@ -140,7 +140,7 @@ A run builds all four layers, and starts the container, for one platform. It
 is the architecture of the case image: the host's when the task's manifest
 `arch` lists it, otherwise the first one listed, which every `pilot` task makes
 `linux/amd64`. On an arm64 host that runs the whole task under emulation; see
-[Architectures](/getting-started/installation#architectures). The CLI passes it
+[Architectures](/deployment/host#architectures). The CLI passes it
 as `--platform` to every `docker buildx build`, and the tool layers'
 Dockerfiles compile the daemon and the entrypoint for `TARGETARCH` on the build
 platform, so the compilation is never emulated.

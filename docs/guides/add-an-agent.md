@@ -251,8 +251,8 @@ uv run ssebench run --local datasets/pilot --task gjson-196-bf4efcb \
 
 `--model` is required for every agent but `reference`. It only has to name a
 model in `models/`; this agent never calls it. The first run builds the case,
-tool and agent images, and Docker's cache makes later runs quick; see the
-[Quickstart](/getting-started/quickstart) and
+tool and agent images, and Docker's cache makes later runs quick; see
+[Quickstart](/getting-started/quickstart#run-an-agent-from-the-command-line) and
 [Image layers](/concepts/image-layers).
 
 The container's log ends with the entrypoint's view of your agent:

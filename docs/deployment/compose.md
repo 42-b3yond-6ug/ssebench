@@ -177,7 +177,7 @@ start over after changing `POSTGRES_PASSWORD`.
 ## The demo stack
 
 `deploy/compose/demo.yaml` adds two services to the stack for the
-[demo](/getting-started/demo), and only adds: the proxy and its database stay as
+[demo](/getting-started/try#run-the-demo), and only adds: the proxy and its database stay as
 described above.
 
 | Service | Image | Role |

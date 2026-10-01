@@ -17,5 +17,5 @@ read [Web UI security](../docs/webui/security.md) before you run it anywhere but
 your own machine.
 
 - [Local stack](../docs/deployment/compose.md)
-- [Try the demo](../docs/getting-started/demo.md)
+- [Try SSEBench](../docs/getting-started/try.md)
 - [Kubernetes and the Helm chart](../docs/deployment/kubernetes.md)

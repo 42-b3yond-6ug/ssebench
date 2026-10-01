@@ -62,10 +62,10 @@ read-only, add `-e SSEBENCH_WEBUI_HOSTED=1`; see [Hosted mode](#hosted-mode).
 
 On Docker Desktop, `--network host` is the virtual machine's network and works
 only with **Enable host networking** turned on (4.34 or later); it is untested.
-See [macOS and Docker Desktop](/getting-started/installation#macos-and-docker-desktop).
+See [macOS and Docker Desktop](/deployment/host#macos-and-docker-desktop).
 
 `just demo` starts this image, with the catalog and the LiteLLM proxy, and opens
-a finished run in it; see [Try the demo](/getting-started/demo).
+a finished run in it; see [Run the demo](/getting-started/try#run-the-demo).
 
 The image carries the `ssebench` CLI, which the server uses to find and reach
 runs (`SSEBENCH_CLI=ssebench`), and the `docker` and `kubectl` CLIs. It has no

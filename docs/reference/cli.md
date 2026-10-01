@@ -141,7 +141,7 @@ Every image and container of a run uses the platform of the task's case image:
 the host's architecture if the task's manifest `arch` lists it, otherwise the
 first architecture listed. When that is not the host's, as for a `pilot` task
 on an arm64 host, `run` warns once, before it starts anything, that the task
-runs under emulation. See [Architectures](/getting-started/installation#architectures).
+runs under emulation. See [Architectures](/deployment/host#architectures).
 
 ### Reference runs
 
@@ -433,7 +433,7 @@ and summaries that do not parse are left out.
 Builds the case images of a dataset without running anything. Each image is
 built for the platform that a run of its task uses, and the command warns once
 when that is emulated; see
-[Architectures](/getting-started/installation#architectures).
+[Architectures](/deployment/host#architectures).
 
 ```sh
 uv run ssebench build-case --benchmarks datasets/pilot --tasks gjson-196-bf4efcb
@@ -694,7 +694,7 @@ the command only writes `.env` and `results/`.
 
 ## `ssebench demo`
 
-Starts, and removes, the [local demo](/getting-started/demo): the LiteLLM proxy
+Starts, and removes, the [local demo](/getting-started/try#run-the-demo): the LiteLLM proxy
 and its database, the task catalog and the web UI in a Compose project of their
 own (`SSEBENCH_DEMO_PROJECT`, default `ssebench-demo`), and one run of an agent
 that the web UI shows. `just demo` and `just demo-down` call it.
