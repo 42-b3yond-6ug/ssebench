@@ -89,7 +89,15 @@ CASES = [
             and last_dialog_entry(run).get("status") == "success"
         ),
     ),
-    Case("codex", "gpt-5.1-codex", lambda run: "[codex] exited with code 0" in (run / "agent.log").read_text()),
+    Case(
+        "codex",
+        "gpt-5.1-codex",
+        lambda run: (
+            "[codex] exited with code 0" in (run / "agent.log").read_text()
+            and last_dialog_entry(run).get("type") == "complete"
+            and last_dialog_entry(run).get("status") == "success"
+        ),
+    ),
     Case(
         "opencode",
         "gpt-5.1",

@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import sys
 from asyncio.streams import StreamReader
@@ -9,6 +10,7 @@ from sse import project
 from sse.prompt import task_prompt
 
 from config import CONFIG_TEMPLATE
+from dialog import DialogWriter
 
 
 def generate_config(api_key: str, base_url: str, model: str, mcp_url: str):
@@ -24,9 +26,22 @@ def generate_config(api_key: str, base_url: str, model: str, mcp_url: str):
         toml.dump(CONFIG_TEMPLATE, f)
 
 
-async def stream_output(stream: StreamReader, prefix: str = ""):
+def record_dialog(dialog: DialogWriter, line: str):
+    """Feed one stdout line of `codex exec --json` to the dialog; never raises."""
+    try:
+        event = json.loads(line)
+        if isinstance(event, dict):
+            dialog.process_codex_event(event)
+    except Exception as e:
+        print(f"[codex] dialog: skipped a line: {e}", file=sys.stderr, flush=True)
+
+
+async def stream_output(
+    stream: StreamReader, prefix: str = "", dialog: DialogWriter | None = None
+):
     """
-    Reads from a stream line-by-line and prints it with a prefix.
+    Reads from a stream line-by-line and prints it with a prefix, passing
+    each line to `dialog` when there is one.
     This runs as a separate, concurrent task.
     """
 
@@ -39,10 +54,16 @@ async def stream_output(stream: StreamReader, prefix: str = ""):
             line_sep = b"\n"
             while line_sep in buf:
                 first_line, buf = buf.split(line_sep, maxsplit=1)
-                print(f"{prefix} {first_line.decode().strip()}", flush=True)
+                line = first_line.decode().strip()
+                print(f"{prefix} {line}", flush=True)
+                if dialog and line:
+                    record_dialog(dialog, line)
             if len(chunk) == 0:
                 # EOF, prints whatever we have in buf
-                print(f"{prefix} {buf.decode().strip()}", flush=True)
+                line = buf.decode().strip()
+                print(f"{prefix} {line}", flush=True)
+                if dialog and line:
+                    record_dialog(dialog, line)
                 break
 
         except Exception as e:
@@ -50,13 +71,22 @@ async def stream_output(stream: StreamReader, prefix: str = ""):
             continue
 
 
-async def run_codex():
+async def run_codex(dialog: DialogWriter, model_name: str):
     command_args = [
         "codex",
         "exec",
         "--dangerously-bypass-approvals-and-sandbox",
         "--json",
     ]
+
+    prompt = task_prompt()
+    dialog.write_init(
+        task=project.metadata.id,
+        cwd=str(project.source),
+        model=model_name,
+        agent="codex",
+    )
+    dialog.write_prompt(prompt)
 
     process = await asyncio.create_subprocess_exec(
         *command_args,
@@ -67,18 +97,21 @@ async def run_codex():
     )
 
     if process.stdin:
-        process.stdin.write(task_prompt().encode("utf-8"))
+        process.stdin.write(prompt.encode("utf-8"))
         await process.stdin.drain()
         process.stdin.close()
 
     assert process.stdout is not None
     assert process.stderr is not None
 
-    stdout_task = asyncio.create_task(stream_output(process.stdout, prefix="[STDOUT]"))
+    stdout_task = asyncio.create_task(
+        stream_output(process.stdout, prefix="[STDOUT]", dialog=dialog)
+    )
     stderr_task = asyncio.create_task(stream_output(process.stderr, prefix="[STDERR]"))
 
     return_code = await process.wait()
     _ = await asyncio.gather(stdout_task, stderr_task)
+    dialog.finish(return_code)
     print(f"[codex] exited with code {return_code}")
     return return_code
 
@@ -98,7 +131,14 @@ async def main():
 
     generate_config(api_key, base_url, model_name, "http://localhost:3000/mcp")
 
-    return await run_codex()
+    dialog = DialogWriter()
+    try:
+        return await run_codex(dialog, model_name)
+    except Exception as e:
+        dialog.write_complete("error", message=str(e))
+        raise
+    finally:
+        dialog.close()
 
 
 if __name__ == "__main__":
