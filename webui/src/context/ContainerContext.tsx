@@ -12,6 +12,7 @@
 import { useState, useCallback, useEffect, type ReactNode } from "react"
 import type { DockerContainer, ContainersResponse } from "../types/container"
 import { apiFetch } from "../lib/api"
+import { STATIC_SITE } from "../lib/staticSite"
 import { ContainerContext, type ViewType } from "./useContainers"
 
 /** Recent container entry with timestamp */
@@ -255,7 +256,10 @@ export function ContainerProvider({ children }: { children: ReactNode }) {
       const freshContainers = await refreshContainers()
 
       // Auto-attach all running containers so the user sees them on page load/refresh.
-      const running = freshContainers.filter((c) => c.status === "running")
+      // A static showcase has no way to attach later, so it attaches every run.
+      const running = STATIC_SITE
+        ? freshContainers
+        : freshContainers.filter((c) => c.status === "running")
       if (running.length > 0) {
         setAttachedContainers((prev) => {
           const existingIds = new Set(prev.map((c) => c.id))

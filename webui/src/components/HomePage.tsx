@@ -10,6 +10,7 @@ import { useContainers } from "../context/useContainers"
 import { useNewPanel } from "../context/usePanels"
 import { statusLabel } from "../lib/runStatus"
 import { useServerInfo } from "../lib/serverInfo"
+import { STATIC_SITE } from "../lib/staticSite"
 import { timeAgo } from "../lib/utils"
 
 export function HomePage() {
@@ -62,17 +63,25 @@ export function HomePage() {
             />
           )}
 
-          {/* Attach Card (Secondary action) */}
-          <ActionCard
-            icon={<AttachIcon />}
-            title={readOnly ? "Browse Runs" : "Attach to Container"}
-            description={
-              readOnly
-                ? "Read the dialog, diff and grade of a run"
-                : "Connect to an existing test environment"
-            }
-            onClick={() => openNewPanel("attach")}
-          />
+          {STATIC_SITE && (
+            <p className="text-fg-3 text-sm">
+              Choose a run in the sidebar to read its dialog, diff and grade.
+            </p>
+          )}
+
+          {/* Attach Card (Secondary action); a static showcase attaches every run itself */}
+          {!STATIC_SITE && (
+            <ActionCard
+              icon={<AttachIcon />}
+              title={readOnly ? "Browse Runs" : "Attach to Container"}
+              description={
+                readOnly
+                  ? "Read the dialog, diff and grade of a run"
+                  : "Connect to an existing test environment"
+              }
+              onClick={() => openNewPanel("attach")}
+            />
+          )}
         </div>
 
         {/* Recent Activity Section */}

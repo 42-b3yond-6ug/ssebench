@@ -9,7 +9,8 @@ no server process behind it. It suits a results page that anyone can open, on a
 host such as Cloudflare Pages that serves files only.
 
 The export reads a `results/` directory and writes the web UI's client together
-with the data of every finished run in it.
+with the data of every finished run in it. The site opens with every run in the
+sidebar; it has no panel to attach or detach runs.
 
 ## Export
 
