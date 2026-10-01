@@ -414,8 +414,7 @@ The grade; a check the task does not have is `null`.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `success` | `true
-` | yes |  |
+| `success` | `true` | yes |  |
 
 ### Error
 

@@ -19,8 +19,8 @@ set -euo pipefail
 
 out="$SSE_ARCHIVE/diffstat"
 mkdir -p "$out"
-if [ -s "$SSE_ARCHIVE/final.patch" ]; then
-	git apply --stat "$SSE_ARCHIVE/final.patch" > "$out/diffstat.txt"
+if [ -s "$SSE_RESULTS/final.patch" ]; then
+	git apply --stat "$SSE_RESULTS/final.patch" > "$out/diffstat.txt"
 else
 	echo "no changes" > "$out/diffstat.txt"
 fi
@@ -31,8 +31,9 @@ chmod +x runtime/plugins/diffstat/run.sh
 ```
 
 The script runs in its own folder, with the entrypoint's environment:
-`SSE_ARCHIVE` is the results directory, where the daemon wrote `final.patch`
-when grading started. It writes only under `diffstat/` there.
+`SSE_RESULTS` is the root-only results directory, where the daemon wrote
+`final.patch` when grading started, and `SSE_ARCHIVE` is the archive directory,
+where plugins write their output. It writes only under `diffstat/` there.
 
 ## 2. Register it
 
@@ -65,9 +66,9 @@ uv run ssebench run --local datasets/pilot --task gjson-196-bf4efcb \
 ```
 
 The CLI installs the plugin in the tool image and enables it for this run. In
-the run directory, `results/gjson-196-bf4efcb/claude-sonnet-4-6/dummy/`:
+the run directory, `results/gjson-196-bf4efcb/claude-sonnet-4-6/dummy/latest/`:
 
-- `diffstat/diffstat.txt` is the plugin's output;
+- `archive/diffstat/diffstat.txt` is the plugin's output;
 - `archive/plugins/diffstat.log` has its standard output and error;
 - `archive/plugins/results.json` records how it ended:
 

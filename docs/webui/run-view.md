@@ -248,10 +248,10 @@ Container?**:
 | **Detach** | Closes the tab. The container keeps running, and you can attach again |
 | **Detach + Stop** | Closes the tab, kills the container and removes it. Offered for a running container |
 | **Detach + Remove** | Closes the tab and removes the container. Offered for a container that has stopped |
+| **Cancel** | Does nothing |
 
 A finished run that has no container, and every run on a hosted server, offers
 only **Detach**.
-| **Cancel** | Does nothing |
 
 The web UI only touches runs with the label `ssebench.webui`, named by run ID.
 A container that stops by itself, or by `docker stop`, stays on the list as

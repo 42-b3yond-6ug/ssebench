@@ -213,8 +213,8 @@ prefer `ssebench proxy up`.
 
 ## Kubernetes
 
-The stack is for one host. The [Kubernetes](/deployment/kubernetes) deployment is
-not available yet.
+The stack is for one host. To run on a cluster, see
+[Kubernetes](/deployment/kubernetes).
 
 ## Next steps
 

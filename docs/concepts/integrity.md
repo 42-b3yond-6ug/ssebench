@@ -274,7 +274,7 @@ reach:
   repository and its fix. Use it only for tasks that need the network, and do
   not compare its results with restricted runs.
 - **The agent's working files are not protected from the agent.** It owns its
-  source tree and its home directory, and writes `dialog.jsonl` to the results
+  source tree and its home directory, and writes `dialog.jsonl` to the archive
   directory. Treat `dialog.jsonl` and the other agent-written files as the
   agent's own account, not as evidence.
 
