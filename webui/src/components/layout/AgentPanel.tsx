@@ -14,6 +14,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { useSDKDataContext } from "../../context/useSDKDataContext"
+import { EvaluationResultCard } from "./EvaluationResultCard"
 import type {
   DialogEntry,
   InitEntry,
@@ -754,7 +755,7 @@ export function AgentDialogContent() {
     if (autoScroll && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [filteredEntries.length, autoScroll])
+  }, [filteredEntries.length, resultAvailable, autoScroll])
 
   // Detect if user has scrolled up (disable auto-scroll)
   const handleScroll = () => {
@@ -802,6 +803,7 @@ export function AgentDialogContent() {
             {filteredEntries.map((entry) => (
               <DialogEntryComponent key={entry.seq} entry={entry} />
             ))}
+            <EvaluationResultCard />
           </div>
         )}
       </div>
