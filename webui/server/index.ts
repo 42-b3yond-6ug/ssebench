@@ -15,7 +15,11 @@ import { cors } from "hono/cors"
 import { logger } from "hono/logger"
 import { serveStatic } from "hono/bun"
 import { version } from "../package.json"
-import type { EvaluationResultResponse } from "../src/types/container"
+import type {
+  EvaluationResultResponse,
+  ReviewResponse,
+} from "../src/types/container"
+import { readReview } from "./pastRuns"
 import { gradeOf } from "./results"
 import { getDoctorReport } from "./doctor"
 import {
@@ -29,7 +33,7 @@ import {
   runnerCommand,
 } from "./runner"
 import { getContainer, listContainers, resolveRun } from "./runs"
-import { runData, type RunResponse } from "./runData"
+import { runData, usesDaemon, type RunResponse } from "./runData"
 import { readReferencePatch } from "./reference"
 import {
   createSession as createOpenCodeSession,
@@ -334,6 +338,20 @@ app.get("/api/containers/:id/result", async (c) => {
   const grade = await gradeOf(id, fromDaemon)
   if (grade?.available) return c.json(grade)
   return respond(c, answer)
+})
+
+// Get the reviewer's note of a run that is over, from its run directory. A run
+// with a daemon to ask is still being worked on and has none.
+app.get("/api/containers/:id/review", async (c) => {
+  const run = await resolveRun(c.req.param("id"))
+  if (!run) {
+    return c.json({ error: "Run not found" }, 404)
+  }
+  const review: ReviewResponse =
+    run.resultsDir && !usesDaemon(run)
+      ? readReview(run.resultsDir)
+      : { available: false }
+  return c.json(review)
 })
 
 // Get the reference patch, from the host: the daemon serves it only on its

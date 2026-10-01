@@ -620,6 +620,26 @@ describe("hosted server", () => {
     ).toBe(200)
   })
 
+  test("serves a reviewer's note of a finished run, and none for a live one", async () => {
+    const note = join(dir, "post-review.txt")
+    const get = async (id: string) =>
+      (await fetch(`${server.base}/api/containers/${id}/review`)).json()
+    expect(await get("old-run")).toEqual({ available: false })
+    writeFileSync(note, "Looks right.\nSecond line\n")
+    try {
+      expect(await get("old-run")).toEqual({
+        available: true,
+        text: "Looks right.\nSecond line\n",
+      })
+      expect(await get("live-run")).toEqual({ available: false })
+    } finally {
+      rmSync(note)
+    }
+    expect(
+      (await fetch(`${server.base}/api/containers/nope/review`)).status
+    ).toBe(404)
+  })
+
   test("refuses to launch, stop, remove or cancel, and runs nothing", async () => {
     for (const path of [
       "/api/launch",

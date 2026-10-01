@@ -10,6 +10,7 @@ import {
   type TerminalControls,
 } from "./components/layout/TerminalContent"
 import { LogsContent } from "./components/layout/LogsContent"
+import { ReviewContent } from "./components/layout/ReviewContent"
 import { LaunchingView } from "./components/layout/LaunchingView"
 import { HomePage } from "./components/HomePage"
 import { NewPanel, type NewPanelTab } from "./components/modals/NewPanel"
@@ -24,6 +25,7 @@ import { useLaunchContext } from "./context/useLaunchContext"
 import { NewPanelContext, SettingsPanelContext } from "./context/usePanels"
 import { Dock, DockProvider, useDock } from "./components/dock"
 import { useResizableRight, useResizableTop } from "./hooks/useResizable"
+import { useReview } from "./hooks/useReview"
 import { AuthGate } from "./components/AuthGate"
 import { useServerInfo } from "./lib/serverInfo"
 
@@ -121,6 +123,24 @@ function LogsIcon() {
   )
 }
 
+function ReviewIcon() {
+  return (
+    <svg
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M8 10h8M8 14h5m-9 6l3-3h11a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v14z"
+      />
+    </svg>
+  )
+}
+
 // =============================================================================
 // Badge components for bottom dock tabs
 // =============================================================================
@@ -213,6 +233,20 @@ function ContainerLayout({ containerId }: { containerId: string }) {
 
   // Bottom dock: log count for badge
   const [logCount, setLogCount] = useState(0)
+
+  // A run with a reviewer's note opens on it, not on the logs
+  const review = useReview(containerId)
+  const { activePanels, setActivePanel } = useDock()
+  const bottomPanel = activePanels.bottom
+  useEffect(() => {
+    if (review !== null) setActivePanel("bottom", "review")
+  }, [review, setActivePanel])
+  // The tab is gone with the note, for example after switching to another run
+  useEffect(() => {
+    if (review === null && bottomPanel === "review") {
+      setActivePanel("bottom", "logs")
+    }
+  }, [review, bottomPanel, setActivePanel])
   const terminalControlsRef = useRef<TerminalControls | null>(null)
 
   // Refit terminal on panel resize
@@ -299,6 +333,11 @@ function ContainerLayout({ containerId }: { containerId: string }) {
                 }}
                 showToolbar
               />
+            </Dock.Panel>
+          )}
+          {review !== null && (
+            <Dock.Panel id="review" name="Review" icon={<ReviewIcon />}>
+              <ReviewContent text={review} />
             </Dock.Panel>
           )}
           <Dock.Panel

@@ -41,7 +41,7 @@ export function openWebSocket(path: string): WebSocket {
 // SDK API Functions - Fetch data from SDK daemon via backend proxy
 // =============================================================================
 
-import type { DiffResponse } from "../types/container"
+import type { DiffResponse, ReviewResponse } from "../types/container"
 import type {
   Task,
   TaskSource,
@@ -64,6 +64,20 @@ export async function fetchReferencePatch(
   )
   if (!response.ok) {
     throw new Error(`Failed to fetch reference patch: ${response.status}`)
+  }
+  return response.json()
+}
+
+/**
+ * Fetch the reviewer's note of a run. It is unavailable for a run that is
+ * still going and for one nobody reviewed.
+ */
+export async function fetchReview(
+  containerId: string
+): Promise<ReviewResponse> {
+  const response = await apiFetch(`/api/containers/${containerId}/review`)
+  if (!response.ok) {
+    throw new Error(`Failed to fetch review: ${response.status}`)
   }
   return response.json()
 }

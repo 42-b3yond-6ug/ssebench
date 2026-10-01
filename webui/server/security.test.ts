@@ -195,6 +195,7 @@ describe("checkHostedRequest", () => {
     "/api/containers/run-1/diff",
     "/api/containers/run-1/agent/dialog",
     "/api/containers/run-1/result",
+    "/api/containers/run-1/review",
     "/api/containers/run-1/reference/patch",
     "/api/containers/run-1/logs-ws",
     "/api/launch/ws",
