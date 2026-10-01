@@ -77,8 +77,8 @@ The CLI mounts the run directory into the container root-only, at `SSE_RESULTS`
 (`/var/lib/ssebench/results`), and its `archive/` subdirectory as the agent's
 `SSE_ARCHIVE` (`/tmp/sse-archive`). Root writes the grade and the logs; the
 agent writes only inside `archive/`, so a file it plants there cannot redirect
-a root write. The CLI writes `summary.json` when the container exits, so the
-`artifact` plugin's manifest does not list it.
+a root write. The CLI writes `summary.json` and `reference.patch` when the
+container exits, so the `artifact` plugin's manifest does not list them.
 
 | File | Written by | Contents |
 |---|---|---|
@@ -95,7 +95,7 @@ a root write. The CLI writes `summary.json` when the container exits, so the
 | `opencode.log` | entrypoint | The OpenCode server's log; empty unless the image has OpenCode. |
 | `scriptrunner-<ms>.log` | daemon | The command line, exit code, standard output and standard error of one task script, named by the time it started in milliseconds. There is one for each check `test_patch` ran during the run, followed by those of grading. |
 | `patch-<ms>.log` | daemon | The result of applying the hidden tests before an intent test. |
-| `archive/plugins/<name>.log`, `archive/plugins/results.json` | entrypoint | The output of each [plugin](/concepts/plugins-and-hooks) and how it ended; only when plugins ran. Each plugin writes its own output in a folder named after it, such as `artifact/manifest.json`. |
+| `archive/plugins/<name>.log`, `archive/plugins/results.json` | entrypoint | The output of each [plugin](/concepts/plugins-and-hooks) and how it ended; only when plugins ran. Each plugin writes its own output in a folder of the archive named after it, such as `archive/artifact/manifest.json`. |
 
 The MCP server also writes the full log of a long check result to
 `/tmp/mcp/logs` inside the container; that directory is not part of the

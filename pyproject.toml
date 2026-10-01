@@ -62,7 +62,7 @@ include = ["bench", "runtime/evaluator", "runtime/mcp", "runtime/plugins", "sdk/
 extraPaths = ["sdk/python"]
 
 [tool.pytest.ini_options]
-testpaths = ["bench/tests", "sdk/python/tests", "runtime/evaluator/tests", "runtime/mcp/tests", "runtime/plugins/oracle/tests", "tools/docs", "tools/report"]
+testpaths = ["bench/tests", "sdk/python/tests", "runtime/evaluator/tests", "runtime/mcp/tests", "runtime/plugins/artifact/tests", "runtime/plugins/oracle/tests", "tools/docs", "tools/report"]
 # The reference docs generators (tools/docs/refdocs) and tools/report/collect.py are not packages; their tests import them from here.
 pythonpath = ["tools/docs", "tools/report", "runtime/plugins/oracle"]
 addopts = ["--import-mode=importlib"]
