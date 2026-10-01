@@ -13,11 +13,12 @@ import { statusLabel } from "../../lib/runStatus"
 
 interface AttachContentProps {
   onAttach: (id: string) => void
+  onAttachAll: (ids: string[]) => void
 }
 
 type FilterTab = "running" | "exited" | "all" | "recent"
 
-export function AttachContent({ onAttach }: AttachContentProps) {
+export function AttachContent({ onAttach, onAttachAll }: AttachContentProps) {
   const {
     containers,
     isLoading,
@@ -80,6 +81,12 @@ export function AttachContent({ onAttach }: AttachContentProps) {
     }
   }, [containers, getRecentContainers])
 
+  // Attach all acts on what the tab and the search show
+  const unattachedIds = useMemo(
+    () => filteredContainers.filter((c) => !isAttached(c.id)).map((c) => c.id),
+    [filteredContainers, isAttached]
+  )
+
   const selected = containers.find((c) => c.id === selectedId)
   // Only a container that has stopped is offered for removal here
   const canRemove =
@@ -107,6 +114,10 @@ export function AttachContent({ onAttach }: AttachContentProps) {
       onAttach(selectedId)
     }
   }, [selectedId, onAttach])
+
+  const handleAttachAll = useCallback(() => {
+    onAttachAll(unattachedIds)
+  }, [unattachedIds, onAttachAll])
 
   const handleRowClick = useCallback((container: DockerContainer) => {
     setSelectedId(container.id)
@@ -302,6 +313,18 @@ export function AttachContent({ onAttach }: AttachContentProps) {
                 Remove
               </button>
             )}
+            <button
+              onClick={handleAttachAll}
+              disabled={unattachedIds.length === 0}
+              className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                unattachedIds.length > 0
+                  ? "border-gruvbox-aqua text-gruvbox-aqua hover:bg-gruvbox-aqua/10"
+                  : "border-border-subtle text-fg-4 cursor-not-allowed"
+              }`}
+            >
+              Attach all
+              {unattachedIds.length > 0 && ` (${unattachedIds.length})`}
+            </button>
             <button
               onClick={handleAttach}
               disabled={!selectedId}
