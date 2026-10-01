@@ -243,8 +243,8 @@ Hello, SSEBench!
 
 Commands are imported only when they can be used: for `ssebench --help`,
 `ssebench` without a command, an unknown command, or the command itself. The
-built-in commands (`run`, `build-case`, `dataset`, `tasks`, `proxy`, `doctor`)
-import no extension. A command that cannot be imported, does not implement
+built-in commands (`run`, `build-case`, `dataset`, `tasks`, `runs`, `proxy`,
+`doctor`, `init`, `demo`) import no extension. A command that cannot be imported, does not implement
 `Command`, has a different `name`, fails in `configure`, is registered more
 than once or has a built-in name is left out with a warning, and the rest of
 the CLI keeps working.
@@ -461,7 +461,7 @@ gets `SSE_ARCHIVE`, `SSE_RESULTS`, `SSE_DAEMON_SOCKET`, `SSE_DIFFICULTY` and
 | `SSE_DIFFICULTY` | The [difficulty level](/concepts/difficulty-levels), from 0 to 4 |
 | `TIMEOUT` | The agent's time limit in seconds (`--timeout`); the evaluator uses the same limit |
 | `SSE_KEEP_ALIVE` | `1` keeps the container running after the run (`--keep-container`), otherwise `0` |
-| `SSE_DAEMON_SOCKET` | Sidecar mode only: the daemon's agent-facing Unix socket, `/run/ssebench/sse.sock` |
+| `SSE_DAEMON_SOCKET` | The daemon's agent-facing Unix socket: `/tmp/sse.sock`, or `/run/ssebench/sse.sock` in sidecar mode |
 
 A [reference run](/reference/cli#reference-runs) uses no model:
 `SSE_MODEL_NAME` is `none`, and `SSE_API_KEY` and `SSE_BASE_URL` are empty.
@@ -522,12 +522,11 @@ In sidecar mode `/run/ssebench` is a volume the two containers share. It is
 owned by root and writable only by root, so the agent can use the sockets in it
 but cannot replace them.
 
-The reference patch is served at `GET /reference/patch` on the admin socket at
-any time, and on the agent-facing socket and HTTP only after the agent phase
-ends (the entrypoint sends `POST /admin/agent_exited` over the admin socket when
-the agent exits, which is how the web UI reads it from the host post-run).
-Post-agent SDK tooling uses `sse.reference.get_reference_patch()`. The
-[integrity model](/concepts/integrity) explains the two kinds of listener.
+The reference patch is served at `GET /reference/patch` on the admin socket
+only, never on the agent-facing socket or HTTP port, which other run containers
+on the network can reach. Post-agent SDK tooling uses
+`sse.reference.get_reference_patch()`. The [integrity model](/concepts/integrity)
+explains the two kinds of listener.
 
 The LiteLLM proxy is `litellm:4000` on two networks of its Compose project. By
 default the task container joins the internal one, `<project>_agents`

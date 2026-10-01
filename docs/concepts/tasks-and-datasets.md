@@ -85,7 +85,7 @@ have all four.
 
 ## Datasets
 
-A dataset is a folder under `datasets/` with one folder per task, plus two
+A dataset is a folder under `datasets/` with one folder per task, plus three
 files:
 
 - `dataset.yaml` holds the dataset version, such as `pilot-v1`. It changes
@@ -96,7 +96,6 @@ files:
   its validated config, and a SHA-256 checksum of every file in its folder.
   `ssebench dataset manifest` generates it, and `--check` fails when the
   committed file is out of date.
-
 - `images.lock.json` pins the published case image of each task by digest, so
   that a run pulls exactly the image its release was published with. See the
   [images lock](/dataset/manifest#images-lock).

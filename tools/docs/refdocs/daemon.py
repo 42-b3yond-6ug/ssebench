@@ -61,7 +61,7 @@ def type_of(schema: dict[str, Any]) -> str:
     if "oneOf" in schema:
         return " \\| ".join(type_of(s) for s in schema["oneOf"])
     if "const" in schema:
-        return code(yaml.safe_dump(schema["const"], default_flow_style=True).strip().removesuffix("..."))
+        return code(yaml.safe_dump(schema["const"], default_flow_style=True).removesuffix("...\n").strip())
     if "enum" in schema:
         return " \\| ".join(code(str(v)) for v in schema["enum"])
     kinds = schema.get("type", "any")
