@@ -20,6 +20,7 @@ import { DetachModal } from "../DetachModal"
 import { ResizeHandle } from "../ui/ResizeHandle"
 import { stopContainer, removeContainer } from "../../lib/api"
 import { statusLabel } from "../../lib/runStatus"
+import { STATIC_SITE } from "../../lib/staticSite"
 import type { DockerContainer } from "../../types/container"
 
 interface SidebarProps {
@@ -224,15 +225,17 @@ export function Sidebar({ width, onResizeStart, isResizing }: SidebarProps) {
           )}
 
           {/* Attach button - Opens New Panel (Secondary action) */}
-          <button
-            onClick={() => openNewPanel("attach")}
-            className="text-fg-4 hover:bg-bg-1 hover:text-gruvbox-aqua flex w-full items-center gap-2 px-4 py-3 text-sm transition-colors"
-          >
-            <ContainerIcon />
-            <span className="font-medium">
-              {readOnly ? "Browse Runs" : "Attach to Container"}
-            </span>
-          </button>
+          {!STATIC_SITE && (
+            <button
+              onClick={() => openNewPanel("attach")}
+              className="text-fg-4 hover:bg-bg-1 hover:text-gruvbox-aqua flex w-full items-center gap-2 px-4 py-3 text-sm transition-colors"
+            >
+              <ContainerIcon />
+              <span className="font-medium">
+                {readOnly ? "Browse Runs" : "Attach to Container"}
+              </span>
+            </button>
+          )}
 
           {/* Divider */}
           <div className="border-border-subtle border-t" />
@@ -314,17 +317,19 @@ function ContainerCard({
         </div>
       </div>
 
-      {/* Detach button - top right corner, visible on hover */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation()
-          onDetachClick()
-        }}
-        className="text-fg-4 hover:bg-gruvbox-red/20 hover:text-gruvbox-red absolute top-1 right-1 rounded p-1 opacity-0 transition-all group-hover:opacity-100"
-        title="Detach container"
-      >
-        <CloseIcon />
-      </button>
+      {/* Detach button - top right corner, visible on hover; a static showcase could not attach again */}
+      {!STATIC_SITE && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onDetachClick()
+          }}
+          className="text-fg-4 hover:bg-gruvbox-red/20 hover:text-gruvbox-red absolute top-1 right-1 rounded p-1 opacity-0 transition-all group-hover:opacity-100"
+          title="Detach container"
+        >
+          <CloseIcon />
+        </button>
+      )}
     </div>
   )
 }
