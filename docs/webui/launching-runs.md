@@ -216,8 +216,8 @@ daemon. The agent container has no web UI label and is not listed. Remove both
 containers and both volumes yourself when you are done.
 
 The evaluator of a sidecar run runs in the agent container, and writes the grade to
-the results directory that both containers mount. The **Evaluation Result** tab
-shows it from the daemon, or, when the daemon has none, from that directory on
+the results directory that both containers mount. The **Evaluation Result** card
+in the agent dialog shows it from the daemon, or, when the daemon has none, from that directory on
 the host.
 
 ## Next steps
