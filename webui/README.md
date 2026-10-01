@@ -57,6 +57,13 @@ Without the terminal helper, or with a backend that cannot run commands in a
 run, `/api/health` reports `terminal: false` with a `terminalHint`, and the UI
 hides the terminal tabs and shows the hint.
 
+### Static export
+
+`bun run export-static -- --results <dir> --out <dir>` builds the client in static
+mode (`VITE_SSEBENCH_STATIC=1`) and writes the data of the finished runs in
+`<results dir>` as JSON next to it, for a host that serves files only. See
+[Static showcase](../docs/webui/static-showcase.md).
+
 Tests: `bun test` for the server, `go test ./...` in `pty-proxy/`.
 
 ### In a container
