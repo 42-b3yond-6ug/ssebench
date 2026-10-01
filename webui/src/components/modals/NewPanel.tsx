@@ -29,7 +29,12 @@ export function NewPanel({
   const [requestedTab, setActiveTab] = useState<NewPanelTab>(defaultTab)
   // A read-only server launches nothing
   const activeTab = readOnly ? "attach" : requestedTab
-  const { attachContainer, refreshContainers } = useContainers()
+  const {
+    containers,
+    attachContainer,
+    attachContainerDirect,
+    refreshContainers,
+  } = useContainers()
 
   // Start on defaultTab each time the panel opens
   const [wasOpen, setWasOpen] = useState(isOpen)
@@ -41,6 +46,20 @@ export function NewPanel({
   // Handle attach action
   const handleAttach = (containerId: string) => {
     attachContainer(containerId)
+    onClose()
+  }
+
+  // Attach in list order and open the last one, as a single attach opens its own
+  const handleAttachAll = (containerIds: string[]) => {
+    containerIds.forEach((id) => {
+      const container = containers.find((c) => c.id === id)
+      if (container) {
+        attachContainerDirect(
+          container,
+          id === containerIds[containerIds.length - 1]
+        )
+      }
+    })
     onClose()
   }
 
@@ -101,7 +120,10 @@ export function NewPanel({
         {/* Right content area */}
         <div className="flex-1 overflow-hidden">
           {activeTab === "attach" ? (
-            <AttachContent onAttach={handleAttach} />
+            <AttachContent
+              onAttach={handleAttach}
+              onAttachAll={handleAttachAll}
+            />
           ) : (
             <LaunchWizard onLaunch={handleLaunch} />
           )}
