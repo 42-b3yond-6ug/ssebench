@@ -35,7 +35,7 @@ SSEBench ships two plugins, both disabled by default:
 
 | Plugin | Hook | What it does |
 |---|---|---|
-| `artifact` | `after-grading` | Writes `artifact/manifest.json`: every file in the results directory with its size, SHA-256 and the component that wrote it. |
+| `artifact` | `after-grading` | Writes `artifact/manifest.json` in the archive directory: every file in the run's results directory, the archive included, with its size, SHA-256 and the component that wrote it. |
 | `oracle` | `after-grading` | Asks the run's model to compare the agent's patch with the reference patch and writes the review to `oracle/`; it can also try to fuzz the patched project. Needs a model; experimental. See `runtime/plugins/oracle/README.md`. |
 
 ## Choosing plugins for a run
@@ -107,9 +107,11 @@ When its hook comes, the entrypoint runs the plugin's `run.sh` with Bash:
 | Time limit | `timeout` minutes, after which its whole process group is killed |
 | Environment | The entrypoint's own environment, plus `SSE_PLUGIN_NAME`, `SSE_PLUGIN_HOOK` (such as `after-grading`) and `SSE_PLUGIN_SKIP_FILE` (see [Skipping](#skipping)); a plugin that runs as `model` has `HOME=/home/model`, `USER` and `LOGNAME` set to `model` |
 
-The environment includes `SSE_ARCHIVE` (the results directory),
-`SSE_DIFFICULTY`, `TIMEOUT` and `SSE_DAEMON_SOCKET`, the daemon's agent-facing
-socket, through which [`sse`](/reference/python-sdk) reaches the daemon. The
+The environment includes `SSE_RESULTS` (the run's results directory, with the
+grade, `final.patch` and the logs; root-only, so only grading plugins can read
+it), `SSE_ARCHIVE` (the agent's archive directory, `archive/` in the run
+directory), `SSE_DIFFICULTY`, `TIMEOUT` and `SSE_DAEMON_SOCKET`, the daemon's
+agent-facing socket, through which [`sse`](/reference/python-sdk) reaches the daemon. The
 LLM variables `SSE_BASE_URL`, `SSE_API_KEY` and `SSE_MODEL_NAME` are removed
 unless the plugin declares `llm: true`, so a plugin only gets the run's model
 key when it asks for it. Its model calls use the run's key, so they count
