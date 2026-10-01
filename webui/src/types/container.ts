@@ -205,3 +205,21 @@ export interface EvaluationResultResponse {
   patch_result?: PatchResult
   runtime_result?: RuntimeResult
 }
+
+/**
+ * Everything the run view needs for one finished run, as the static export
+ * writes it to data/runs/<run-id>.json (see server/staticExport.ts).
+ */
+export interface StaticRunData {
+  container: DockerContainer
+  project: ProjectInfo | null
+  /** The patch the grader applied; null when the run left none */
+  diff: string | null
+  files: ChangedFile[]
+  dialog: DialogEntry[]
+  result: EvaluationResultResponse | null
+  referencePatch: string
+  review: ReviewResponse
+  /** The component logs the run directory keeps, as the log view shows them */
+  logs: string
+}

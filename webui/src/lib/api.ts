@@ -6,6 +6,7 @@
  */
 
 import { getAuthToken, notifyAuthRequired, webSocketProtocols } from "./auth"
+import { STATIC_SITE, staticFetch, staticSocket } from "./staticSite"
 
 /**
  * Fetch wrapper that adds the access token, if any
@@ -14,6 +15,7 @@ export async function apiFetch(
   path: string,
   options?: RequestInit
 ): Promise<Response> {
+  if (STATIC_SITE) return staticFetch(path, options)
   const headers = new Headers(options?.headers)
   const token = getAuthToken()
   if (token) {
@@ -32,6 +34,7 @@ export async function apiFetch(
  * Uses ws:// for http:// and wss:// for https://
  */
 export function openWebSocket(path: string): WebSocket {
+  if (STATIC_SITE) return staticSocket(path)
   const { protocol, host } = window.location
   const wsProtocol = protocol === "https:" ? "wss:" : "ws:"
   return new WebSocket(`${wsProtocol}//${host}${path}`, webSocketProtocols())

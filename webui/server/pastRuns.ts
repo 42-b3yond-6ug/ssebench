@@ -42,8 +42,14 @@ const MAX_FILE_BYTES = 32 * 1024 * 1024
 
 let listing: { at: number; result: Promise<PastRun[]> } | null = null
 
-async function fetchPast(): Promise<PastRun[]> {
-  const result = await runCli(["runs", "results", "--json"])
+/** The finished runs under `dir` (the CLI's own default, results/, without one) */
+export async function fetchPast(dir?: string): Promise<PastRun[]> {
+  const result = await runCli([
+    "runs",
+    "results",
+    "--json",
+    ...(dir ? ["--dir", dir] : []),
+  ])
   if (result.code !== 0) {
     const lines = result.stderr.trim().split("\n")
     throw new Error(
