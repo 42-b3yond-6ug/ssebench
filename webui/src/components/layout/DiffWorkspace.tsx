@@ -7,6 +7,7 @@
 
 import { useState, useMemo } from "react"
 import { useSDKDataContext } from "../../context/useSDKDataContext"
+import { useContainers } from "../../context/useContainers"
 import hljs from "highlight.js/lib/core"
 import "../../styles/hljs-gruvbox.css"
 
@@ -474,13 +475,17 @@ function DiffFileCard({
 }
 
 // Empty state
-function EmptyState() {
+function EmptyState({ finished }: { finished: boolean }) {
   return (
     <div className="text-fg-4 flex h-full flex-col items-center justify-center">
       <div className="mb-4 text-6xl opacity-20"></div>
-      <h3 className="text-fg-3 mb-2 text-lg font-medium">No changes yet</h3>
+      <h3 className="text-fg-3 mb-2 text-lg font-medium">
+        {finished ? "No files changed" : "No changes yet"}
+      </h3>
       <p className="max-w-md text-center text-sm">
-        When the agent modifies files, the diff will appear here.
+        {finished
+          ? "The agent finished without changing any files."
+          : "When the agent modifies files, the diff will appear here."}
       </p>
     </div>
   )
@@ -1014,6 +1019,11 @@ function calculateDiffSimilarity(
 }
 
 export function DiffWorkspace() {
+  const { activeContainer } = useContainers()
+  // A run that is over will not change any more files
+  const finished =
+    activeContainer?.source === "results" ||
+    activeContainer?.status === "exited"
   const [expandedFiles, setExpandedFiles] = useState<Set<number>>(new Set())
   const [isRawView, setIsRawView] = useState(false)
   const [patchView, setPatchView] = useState<"agent" | "truth" | "split">(
@@ -1195,7 +1205,7 @@ export function DiffWorkspace() {
           />
         ) : displayFiles.length === 0 ? (
           <div className="flex h-full items-center justify-center">
-            <EmptyState />
+            <EmptyState finished={finished} />
           </div>
         ) : isRawView ? (
           <RawDiffView diff={displayDiff} onExport={exportDiff} />
