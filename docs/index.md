@@ -14,6 +14,9 @@ hero:
       text: What is SSEBench?
       link: /getting-started/introduction
     - theme: alt
+      text: Live demo
+      link: https://ssebench-demo.b3yond.ai
+    - theme: alt
       text: View on GitHub
       link: https://github.com/42-b3yond-6ug/ssebench
 
