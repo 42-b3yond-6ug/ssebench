@@ -1026,9 +1026,9 @@ export function DiffWorkspace() {
     activeContainer?.status === "exited"
   const [expandedFiles, setExpandedFiles] = useState<Set<number>>(new Set())
   const [isRawView, setIsRawView] = useState(false)
-  const [patchView, setPatchView] = useState<"agent" | "truth" | "split">(
-    "agent"
-  )
+  const [requestedPatchView, setPatchView] = useState<
+    "agent" | "truth" | "split"
+  >("split")
   const {
     diff,
     isLoading,
@@ -1039,6 +1039,9 @@ export function DiffWorkspace() {
     retryAttempt,
     groundTruthPatch,
   } = useSDKDataContext()
+
+  // Without a reference patch there is nothing to compare with
+  const patchView = groundTruthPatch ? requestedPatchView : "agent"
 
   // Parse the diffs
   const parsedFiles = useMemo(() => parseDiff(diff), [diff])
