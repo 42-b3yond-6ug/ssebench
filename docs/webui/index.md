@@ -139,3 +139,9 @@ nothing:
 `/api/health` reports `hosted: true`. Set a [token](/webui/security#token) as
 well when the server is reachable by others; hosted mode limits what the server
 does, not who may ask. See [Security model](/webui/security#hosted-mode).
+
+## Static showcase
+
+To publish finished runs on a host that serves files only, such as Cloudflare
+Pages, export them as a static, read-only site with `bun run export-static`. See
+[Static showcase](/webui/static-showcase).
