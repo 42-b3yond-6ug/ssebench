@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/urfave/cli-docs/v3 v3.1.0
-	github.com/urfave/cli/v3 v3.13.0
+	github.com/urfave/cli/v3 v3.14.0
 )
 
 require (
