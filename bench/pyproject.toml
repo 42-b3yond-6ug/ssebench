@@ -43,7 +43,7 @@ ssebench = "ssebench.cli:main"
 
 [project.optional-dependencies]
 kubernetes = [
-    "kubernetes>=31",
+    "kubernetes>=37.0.1",
 ]
 
 [build-system]
