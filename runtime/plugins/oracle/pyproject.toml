@@ -4,7 +4,7 @@ version = "1.1.0"
 description = "Oracle plugin for SSEBench"
 requires-python = ">=3.12"
 dependencies = [
-  "pydantic>=2.12.4",
+  "pydantic>=2.14.1",
   "ssebench-sdk",
 ]
 
