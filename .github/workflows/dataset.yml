@@ -231,7 +231,7 @@ jobs:
         run: uv run ssebench dataset publish --dir "$DATASET" --output "$OUTPUT" --registry "$REGISTRY" --revision "$GITHUB_SHA" "$TASK"
       - name: Upload the publication record
         if: needs.plan.outputs.publish == 'true' && !github.event.repository.private
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dataset-published-${{ matrix.task.task }}
           path: ${{ env.OUTPUT }}/published/
@@ -251,7 +251,7 @@ jobs:
           df -h /
       - name: Upload the task result
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dataset-verify-result-${{ matrix.task.task }}
           path: ${{ env.OUTPUT }}/tasks/
@@ -259,7 +259,7 @@ jobs:
           retention-days: 30
       - name: Upload the run logs
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dataset-verify-logs-${{ matrix.task.task }}
           path: |
@@ -280,7 +280,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-python
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: dataset-verify-result-*
           path: ${{ env.OUTPUT }}/tasks
@@ -298,7 +298,7 @@ jobs:
           exit "$status"
       - name: Upload the summary
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dataset-verify-summary
           path: |
@@ -319,7 +319,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-python
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         # There is nothing to download when no task was published.
         continue-on-error: true
         with:
@@ -342,7 +342,7 @@ jobs:
             echo "This run published ${#records[@]} case images. The lock pins $(jq '.images | length' "$OUTPUT/images.lock.json")"
             echo "of the dataset's tasks by digest; it is the artifact \`images-lock\`."
           } >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: images-lock
           path: ${{ env.OUTPUT }}/images.lock.json
@@ -362,7 +362,7 @@ jobs:
       GH_REPO: ${{ github.repository }}
       TAG: ${{ github.ref_name }}
     steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         continue-on-error: true
         with:
           name: images-lock
