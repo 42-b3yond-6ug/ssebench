@@ -5,7 +5,7 @@ description = "SSEBENCH MCP Server"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "fastmcp>=2.0.0",
+  "fastmcp>=4.1.0",
   "ssebench-sdk",
 ]
 

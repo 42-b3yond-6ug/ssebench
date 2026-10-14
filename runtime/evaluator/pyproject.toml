@@ -3,7 +3,7 @@ name = "ssebench-evaluator"
 version = "1.1.0"
 requires-python = ">=3.12"
 dependencies = [
-  "pydantic>=2.12.4",
+  "pydantic>=2.14.1",
   "ssebench-sdk",
 ]
 

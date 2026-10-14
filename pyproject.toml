@@ -15,11 +15,11 @@ members = [
 
 [dependency-groups]
 dev = [
-  "basedpyright>=1.29.0",
+  "basedpyright>=1.40.2",
   "hatchling>=1.27.0",
   "jsonschema>=4.26.0",
   "pytest>=8.3.5",
-  "ruff>=0.16.10",
+  "ruff>=0.17.0",
   # The optional Kubernetes backend, so that its tests and type checks run.
   "kubernetes>=37.0.1",
 ]
