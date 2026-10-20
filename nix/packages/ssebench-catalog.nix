@@ -16,7 +16,7 @@ pkgs.buildGo126Module {
     ];
   };
   modRoot = "catalog";
-  vendorHash = "sha256-k1aePUdA9BPPdNlaI9yUoyK+YQVI3aHRTySiV5GaL5A=";
+  vendorHash = "sha256-RAURCAbJwHV9TsJU1hXY3/HoT9k90fhogfkiQJN60bU=";
   env.CGO_ENABLED = 0;
   ldflags = [
     "-s"
