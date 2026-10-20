@@ -38,12 +38,12 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /pty-proxy .
 
 
-FROM ghcr.io/astral-sh/uv:0.13.1@sha256:4a1f3666816dafadd20ceb71eac9a7d56d7ef30279f7d64048519ab901ada336 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.3@sha256:bee0a2a458fd956c5df7b8b4c5fed2257b0af34866e3da7b51db0be3acb375d1 AS uv
 
 
 # The uv of the build platform: the target's uv would run under emulation and
 # fetch a Python for the target, which the build stage cannot run.
-FROM --platform=$BUILDPLATFORM ghcr.io/astral-sh/uv:0.13.1@sha256:4a1f3666816dafadd20ceb71eac9a7d56d7ef30279f7d64048519ab901ada336 AS build-uv
+FROM --platform=$BUILDPLATFORM ghcr.io/astral-sh/uv:0.13.3@sha256:bee0a2a458fd956c5df7b8b4c5fed2257b0af34866e3da7b51db0be3acb375d1 AS build-uv
 
 
 FROM --platform=$BUILDPLATFORM oven/bun:1.4.3-slim AS cli-wheel
@@ -54,7 +54,7 @@ COPY . .
 RUN uv build --package ssebench --wheel --out-dir /wheel
 
 
-FROM docker:29.9.0-cli AS docker-cli
+FROM docker:29.9.1-cli AS docker-cli
 
 
 FROM registry.k8s.io/kubectl:v1.37.1@sha256:b7cab618e281b1ee7484e7b706a96e2135fbb6e072c2a573a7dab4e87d7f2385 AS kubectl
