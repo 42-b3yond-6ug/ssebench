@@ -218,7 +218,7 @@ jobs:
       - name: Log in to the registry
         # After the verification, so that the run of the task's own scripts never sees the credentials.
         if: needs.plan.outputs.publish == 'true' && !github.event.repository.private
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
