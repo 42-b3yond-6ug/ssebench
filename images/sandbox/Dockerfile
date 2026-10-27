@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:0.13.3@sha256:bee0a2a458fd956c5df7b8b4c5fed2257b0af34866e3da7b51db0be3acb375d1 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 AS uv
 
 # The evaluator and the MCP server are members of the uv workspace at the
 # repository root. Each venv is synced from a copy of just the workspace files
@@ -41,7 +41,7 @@ RUN mkdir -p /plugins && \
 # Only unpacks a download, so it runs on the build platform; TARGETARCH picks the
 # build to fetch. To bump OPENCODE_VERSION, update both checksums from the
 # release's assets.
-FROM --platform=$BUILDPLATFORM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS opencode-downloader
+FROM --platform=$BUILDPLATFORM alpine:3.24@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a AS opencode-downloader
 RUN apk add --no-cache wget ca-certificates
 ARG TARGETARCH
 ARG OPENCODE_VERSION=1.18.33
