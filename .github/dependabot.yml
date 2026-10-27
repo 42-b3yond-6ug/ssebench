@@ -24,6 +24,10 @@ updates:
     commit-message:
       prefix: build
       include: scope
+    ignore:
+      # The SDK's build-system floor is the first setuptools with SPDX license
+      # expressions, not the latest release.
+      - dependency-name: setuptools
     groups:
       python:
         patterns: ["*"]
