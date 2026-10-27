@@ -17,7 +17,7 @@
 # Most build steps run on the build platform, so a multi-platform build needs
 # little emulation; the CLI is pure Python and installs on the target platform.
 
-FROM --platform=$BUILDPLATFORM oven/bun:1.4.3 AS web
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.4 AS web
 WORKDIR /src
 COPY package.json bun.lock bunfig.toml ./
 COPY webui/package.json webui/
@@ -38,15 +38,15 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /pty-proxy .
 
 
-FROM ghcr.io/astral-sh/uv:0.13.3@sha256:bee0a2a458fd956c5df7b8b4c5fed2257b0af34866e3da7b51db0be3acb375d1 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 AS uv
 
 
 # The uv of the build platform: the target's uv would run under emulation and
 # fetch a Python for the target, which the build stage cannot run.
-FROM --platform=$BUILDPLATFORM ghcr.io/astral-sh/uv:0.13.3@sha256:bee0a2a458fd956c5df7b8b4c5fed2257b0af34866e3da7b51db0be3acb375d1 AS build-uv
+FROM --platform=$BUILDPLATFORM ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 AS build-uv
 
 
-FROM --platform=$BUILDPLATFORM oven/bun:1.4.3-slim AS cli-wheel
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.4-slim AS cli-wheel
 # The wheel of the CLI carries the assets it needs (see bench/hatch_build.py).
 COPY --from=build-uv /uv /usr/local/bin/uv
 WORKDIR /repo
@@ -54,13 +54,13 @@ COPY . .
 RUN uv build --package ssebench --wheel --out-dir /wheel
 
 
-FROM docker:29.9.1-cli AS docker-cli
+FROM docker:29.9.2-cli AS docker-cli
 
 
 FROM registry.k8s.io/kubectl:v1.37.1@sha256:b7cab618e281b1ee7484e7b706a96e2135fbb6e072c2a573a7dab4e87d7f2385 AS kubectl
 
 
-FROM oven/bun:1.4.3-slim
+FROM oven/bun:1.4.4-slim
 COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/docker
 # `ssebench runs endpoint` and `runs exec` run kubectl on the Kubernetes backend.
 COPY --from=kubectl /bin/kubectl /usr/local/bin/kubectl
