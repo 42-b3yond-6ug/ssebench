@@ -1,0 +1,31 @@
+name: Dependabot auto-merge
+
+# Only the package ecosystems qualify: dependabot.yml gives them security
+# updates alone, and ci-ok covers what they change. A merge made with
+# GITHUB_TOKEN triggers no push workflow on main; the weekly scheduled runs of
+# images.yml and the others pick the change up.
+
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  automerge:
+    name: Enable auto-merge
+    if: github.actor == 'dependabot[bot]' && github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - id: meta
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+      - if: >-
+          contains(fromJSON('["uv", "cargo", "go_modules", "bun"]'), steps.meta.outputs.package-ecosystem)
+          && steps.meta.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge --auto --rebase "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
