@@ -227,6 +227,26 @@ choose "Re-run all jobs" instead.
 Once a tag has published anything, treat its version as used: fix forward with
 the next version instead of moving the tag.
 
+## Dependency updates
+
+The project takes security fixes only, so Dependabot
+(`.github/dependabot.yml`) opens two kinds of pull request:
+
+| Ecosystems | Pull requests | Merged by |
+|---|---|---|
+| uv, cargo, Go modules, Bun | Security updates, grouped per ecosystem; no version updates (`open-pull-requests-limit: 0`) | `dependabot-automerge.yml`, once `ci-ok` passes; a major version waits for a maintainer |
+| Docker, GitHub Actions | Monthly version updates, grouped, for releases at least seven days old | A maintainer, after building the images (`just verify images`), because `ci-ok` builds none |
+
+A merge made by the auto-merge workflow triggers no workflow on `main`; the
+weekly scheduled runs of `images.yml`, `verify.yml` and the others pick it up.
+The workflow needs Dependabot security updates and auto-merge turned on for the
+repository:
+
+```sh
+gh api -X PUT repos/42-b3yond-6ug/ssebench/automated-security-fixes
+gh api -X PATCH repos/42-b3yond-6ug/ssebench -F allow_auto_merge=true
+```
+
 ## First public release
 
 Do this checklist once, when the repository becomes public. The workflows do
@@ -258,9 +278,8 @@ the repository `42-b3yond-6ug/ssebench`.
      -f name=main -f type=branch
    ```
 
-5. **Dependabot.** Version updates are paused: raise every
-   `open-pull-requests-limit` in `.github/dependabot.yml` from `0` (for
-   example to `5`) and remove the comment above `updates`, in a pull request.
+5. **Dependabot.** Turn on security updates and auto-merge, as
+   [Dependency updates](/contributing/releasing#dependency-updates) shows.
 6. **GitHub Pages.** Publish from GitHub Actions and set the custom domain:
 
    ```sh
@@ -457,7 +476,7 @@ COPY --from=ghcr.io/42-b3yond-6ug/ssebench/runtime:1.2.0 /usr/local/bin/entrypoi
 ```
 
 Upstream images are pinned by tag, and most also by digest. Dependabot
-proposes updates for the directories it watches; the base images are left to
+proposes monthly updates for the directories it watches; the base images are left to
 change with the datasets (see [Base images](/dataset/manifest#base-images)).
 Tools downloaded during a build (Claude Code, Codex, OpenCode, ccache) are
 pinned by version, and binaries also by their SHA-256 sum, next to the

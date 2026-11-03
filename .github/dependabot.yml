@@ -1,5 +1,10 @@
 version: 2
 
+# The project is in security-only maintenance. The package ecosystems get no
+# version updates (open-pull-requests-limit: 0), only security updates, which
+# dependabot-automerge.yml merges once ci-ok passes. Docker images have no
+# security updates, and ci-ok builds no image, so docker and GitHub Actions
+# keep monthly version updates that a maintainer merges by hand.
 
 updates:
   - package-ecosystem: github-actions
@@ -7,7 +12,9 @@ updates:
       - /
       - /.github/actions/*
     schedule:
-      interval: weekly
+      interval: monthly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     commit-message:
       prefix: ci
@@ -19,8 +26,8 @@ updates:
   - package-ecosystem: uv
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 0
     commit-message:
       prefix: build
       include: scope
@@ -29,22 +36,22 @@ updates:
       # expressions, not the latest release.
       - dependency-name: setuptools
     groups:
-      python:
+      python-security:
+        applies-to: security-updates
         patterns: ["*"]
-        update-types: [minor, patch]
 
   - package-ecosystem: cargo
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 0
     commit-message:
       prefix: build
       include: scope
     groups:
-      rust:
+      rust-security:
+        applies-to: security-updates
         patterns: ["*"]
-        update-types: [minor, patch]
 
   - package-ecosystem: gomod
     directories:
@@ -52,21 +59,21 @@ updates:
       - /runtime/entrypoint
       - /webui/pty-proxy
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 0
     commit-message:
       prefix: build
       include: scope
     groups:
-      go:
+      go-security:
+        applies-to: security-updates
         patterns: ["*"]
-        update-types: [minor, patch]
 
   - package-ecosystem: bun
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 0
     commit-message:
       prefix: build
       include: scope
@@ -75,9 +82,9 @@ updates:
       - dependency-name: typescript
         update-types: [version-update:semver-major]
     groups:
-      javascript:
+      javascript-security:
+        applies-to: security-updates
         patterns: ["*"]
-        update-types: [minor, patch]
 
   # images/base-images is left out: those images pin the compilers that the
   # dataset's tasks are built and graded with, so they change with the dataset.
@@ -90,7 +97,9 @@ updates:
       - /images/sidecar-case
       - /webui
     schedule:
-      interval: weekly
+      interval: monthly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     commit-message:
       prefix: build
@@ -107,7 +116,9 @@ updates:
   - package-ecosystem: docker
     directory: /images/sandbox
     schedule:
-      interval: weekly
+      interval: monthly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     commit-message:
       prefix: build
