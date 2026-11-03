@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.1.0",
   "devDependencies": {
-    "vitepress": "^2.0.0-alpha.20"
+    "vitepress": "^2.0.0-alpha.21"
   },
   "scripts": {
     "dev": "vitepress dev",
